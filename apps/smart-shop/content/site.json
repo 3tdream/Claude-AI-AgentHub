@@ -1,0 +1,118 @@
+{
+  "name": "Smart Shop",
+  "description": "AI-powered eCommerce platform with intelligent product discovery",
+  "logoText": "Smart Shop",
+  "tagline": "Shop Smarter with AI",
+  "url": "http://localhost:3000",
+  "menus": {
+    "header": {
+      "id": "main",
+      "items": [
+        {
+          "label": "Shop",
+          "href": "/category/all",
+          "children": [
+            {
+              "label": "All Products",
+              "href": "/category/all",
+              "description": "Browse our full catalog"
+            },
+            {
+              "label": "Electronics",
+              "href": "/category/electronics",
+              "description": "Latest tech and gadgets"
+            },
+            {
+              "label": "Fashion",
+              "href": "/category/fashion",
+              "description": "Trending styles"
+            },
+            {
+              "label": "Home & Living",
+              "href": "/category/home",
+              "description": "Comfort meets style"
+            },
+            {
+              "label": "Sports",
+              "href": "/category/sports",
+              "description": "Gear up for action"
+            }
+          ]
+        },
+        {
+          "label": "Featured",
+          "href": "/cms/featured",
+          "badge": "New"
+        },
+        {
+          "label": "Deals",
+          "href": "/cms/deals"
+        },
+        {
+          "label": "About",
+          "href": "/cms/about"
+        }
+      ]
+    },
+    "footer": [
+      {
+        "id": "shop",
+        "items": [
+          { "label": "All Products", "href": "/category/all" },
+          { "label": "Electronics", "href": "/category/electronics" },
+          { "label": "Fashion", "href": "/category/fashion" },
+          { "label": "Home & Living", "href": "/category/home" }
+        ]
+      },
+      {
+        "id": "company",
+        "items": [
+          { "label": "About Us", "href": "/cms/about" },
+          { "label": "Contact", "href": "/cms/contact" },
+          { "label": "Careers", "href": "/cms/careers" }
+        ]
+      },
+      {
+        "id": "support",
+        "items": [
+          { "label": "Help Center", "href": "/cms/help" },
+          { "label": "Shipping", "href": "/cms/shipping" },
+          { "label": "Returns", "href": "/cms/returns" },
+          { "label": "Privacy Policy", "href": "/cms/privacy" }
+        ]
+      }
+    ]
+  },
+  "social": [
+    {
+      "platform": "twitter",
+      "url": "https://twitter.com/smartshop",
+      "label": "Follow us on Twitter"
+    },
+    {
+      "platform": "instagram",
+      "url": "https://instagram.com/smartshop",
+      "label": "Follow us on Instagram"
+    },
+    {
+      "platform": "facebook",
+      "url": "https://facebook.com/smartshop",
+      "label": "Like us on Facebook"
+    }
+  ],
+  "footer": {
+    "copyright": "© 2024 Smart Shop. All rights reserved.",
+    "links": [
+      { "label": "Privacy Policy", "href": "/cms/privacy" },
+      { "label": "Terms of Service", "href": "/cms/terms" },
+      { "label": "Cookie Policy", "href": "/cms/cookies" }
+    ]
+  },
+  "seo": {
+    "defaultTitle": "Smart Shop - AI-Powered Shopping",
+    "titleTemplate": "%s | Smart Shop",
+    "description": "Discover products tailored to you with our AI-powered shopping platform",
+    "keywords": ["ecommerce", "AI shopping", "online store", "smart recommendations"],
+    "ogImage": "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=1200&h=630&fit=crop"
+  }
+}
