@@ -1,0 +1,70 @@
+{
+  "id": 2,
+  "title": "EcoFlow Sustainability",
+  "description": "Carbon footprint tracking for enterprises",
+  "date": "Oct 25, 2025",
+  "slideCount": 7,
+  "colorScheme": {
+    "primary": "bg-gradient-to-br from-green-600 to-teal-600",
+    "secondary": "bg-green-50",
+    "accent": "text-green-600",
+    "button": "bg-green-600 hover:bg-green-700"
+  },
+  "slides": [
+    {
+      "type": "title",
+      "title": "EcoFlow",
+      "subtitle": "Sustainable Business Operations",
+      "content": "Track, Reduce, Thrive"
+    },
+    {
+      "type": "problem",
+      "title": "The Challenge",
+      "points": [
+        "Companies face increasing ESG requirements",
+        "Carbon tracking is manual and expensive",
+        "No real-time sustainability metrics",
+        "Compliance reporting is complex"
+      ]
+    },
+    {
+      "type": "solution",
+      "title": "EcoFlow Platform",
+      "description": "Automated carbon tracking and ESG reporting for modern enterprises",
+      "features": ["Real-time Monitoring", "Automated Reporting", "Supply Chain Tracking", "AI Recommendations"]
+    },
+    {
+      "type": "market",
+      "title": "Market Size",
+      "stat": "$15B",
+      "description": "ESG Software Market",
+      "details": "Expected to reach $40B by 2028"
+    },
+    {
+      "type": "traction",
+      "title": "Early Success",
+      "metrics": [
+        { "label": "Enterprise Clients", "value": "45" },
+        { "label": "Carbon Tracked", "value": "500K tons" },
+        { "label": "Revenue", "value": "$1.2M ARR" },
+        { "label": "Team Size", "value": "18" }
+      ]
+    },
+    {
+      "type": "business",
+      "title": "Revenue Model",
+      "tiers": [
+        { "name": "SMB", "price": "$299/mo", "users": "Single facility" },
+        { "name": "Enterprise", "price": "$2K+/mo", "users": "Multiple locations" },
+        { "name": "Custom", "price": "Custom", "users": "Global operations" }
+      ]
+    },
+    {
+      "type": "ask",
+      "title": "Investment",
+      "amount": "$3M Seed Round",
+      "usage": "Engineering • Customer Success • Market Expansion",
+      "goal": "100 enterprise customers by 2026"
+    }
+  ]
+}

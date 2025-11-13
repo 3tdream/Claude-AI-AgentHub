@@ -1,0 +1,46 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2025-10-28",
+  "decks": [
+    {
+      "id": 1,
+      "filename": "techventure-ai.json",
+      "title": "TechVenture AI Platform",
+      "description": "Revolutionary AI-powered analytics platform",
+      "category": "AI/Analytics",
+      "tags": ["AI", "Analytics", "SaaS", "B2B"],
+      "featured": true
+    },
+    {
+      "id": 2,
+      "filename": "ecoflow-sustainability.json",
+      "title": "EcoFlow Sustainability",
+      "description": "Carbon footprint tracking for enterprises",
+      "category": "ESG/Sustainability",
+      "tags": ["ESG", "Carbon Tracking", "Sustainability", "Enterprise"],
+      "featured": true
+    },
+    {
+      "id": 3,
+      "filename": "healthpro-telemedicine.json",
+      "title": "HealthPro Telemedicine",
+      "description": "Next-generation virtual healthcare platform",
+      "category": "Healthcare",
+      "tags": ["Healthcare", "Telemedicine", "Digital Health", "B2C"],
+      "featured": true
+    }
+  ],
+  "instructions": {
+    "for_ai_agents": "To add a new pitch deck, create a new JSON file in this directory following the structure of existing decks, then add an entry to this manifest file with the next available ID.",
+    "deck_structure": {
+      "required_fields": ["id", "title", "description", "date", "slideCount", "colorScheme", "slides"],
+      "slide_types": ["title", "problem", "solution", "market", "business", "traction", "team", "ask"],
+      "color_scheme_format": {
+        "primary": "Tailwind gradient class (e.g., 'bg-gradient-to-br from-blue-600 to-purple-700')",
+        "secondary": "Tailwind background class (e.g., 'bg-blue-50')",
+        "accent": "Tailwind text color class (e.g., 'text-blue-600')",
+        "button": "Tailwind button classes (e.g., 'bg-blue-600 hover:bg-blue-700')"
+      }
+    }
+  }
+}
