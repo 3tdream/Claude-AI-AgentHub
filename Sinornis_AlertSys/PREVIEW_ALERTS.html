@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sinornis Alert System - Preview</title>
+    <style>
+        /* Inline CSS for preview */
+        :root {
+            --primary-color: #2c5aa0;
+            --secondary-color: #1a4480;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --info-color: #17a2b8;
+            --bg-primary: #f8f9fa;
+            --bg-secondary: #ffffff;
+            --text-primary: #333333;
+            --text-secondary: #6c757d;
+            --text-light: #ffffff;
+            --border-color: #e9ecef;
+            --shadow-light: 0 2px 4px rgba(0,0,0,0.1);
+            --shadow-medium: 0 4px 8px rgba(0,0,0,0.15);
+            --spacing-xs: 0.25rem;
+            --spacing-sm: 0.5rem;
+            --spacing-md: 1rem;
+            --spacing-lg: 1.5rem;
+            --spacing-xl: 2rem;
+            --spacing-xxl: 3rem;
+            --border-radius-sm: 4px;
+            --border-radius-md: 8px;
+            --border-radius-lg: 12px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .dashboard-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .dashboard-header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: var(--shadow-light);
+            padding: var(--spacing-md) var(--spacing-xl);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1920px;
+            margin: 0 auto;
+        }
+
+        .dashboard-title {
+            color: var(--primary-color);
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .breadcrumb {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .breadcrumb-item {
+            color: var(--text-secondary);
+            text-decoration: none;
+        }
+
+        .breadcrumb-item.active {
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+
+        .breadcrumb-separator {
+            margin: 0 var(--spacing-sm);
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-lg);
+        }
+
+        .alert-summary {
+            display: flex;
+            gap: var(--spacing-sm);
+        }
+
+        .alert-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: var(--text-light);
+        }
+
+        .alert-count.critical {
+            background-color: var(--danger-color);
+        }
+
+        .alert-count.warning {
+            background-color: var(--warning-color);
+            color: var(--text-primary);
+        }
+
+        .alert-count.info {
+            background-color: var(--info-color);
+        }
+
+        .system-status {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: var(--success-color);
+        }
+
+        .dashboard-main {
+            flex: 1;
+            padding: var(--spacing-xl);
+            max-width: 1920px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* Alert Overview Cards */
+        .alert-overview-section {
+            margin-bottom: var(--spacing-xxl);
+        }
+
+        .overview-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: var(--spacing-lg);
+        }
+
+        .overview-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-lg);
+            padding: var(--spacing-lg);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            box-shadow: var(--shadow-light);
+            transition: transform 0.2s ease;
+            cursor: pointer;
+        }
+
+        .overview-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .overview-card.critical {
+            border-left: 4px solid var(--danger-color);
+        }
+
+        .overview-card.warning {
+            border-left: 4px solid var(--warning-color);
+        }
+
+        .overview-card.info {
+            border-left: 4px solid var(--info-color);
+        }
+
+        .overview-card.resolved {
+            border-left: 4px solid var(--success-color);
+        }
+
+        .card-icon {
+            font-size: 2.5rem;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .card-content {
+            flex: 1;
+        }
+
+        .card-title {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .card-value {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .card-subtitle {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        /* Alert Controls */
+        .alert-controls-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-lg);
+            padding: var(--spacing-lg);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--shadow-light);
+        }
+
+        .controls-wrapper {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: var(--spacing-lg);
+            flex-wrap: wrap;
+        }
+
+        .filter-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-lg);
+            flex: 1;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-xs);
+            min-width: 120px;
+        }
+
+        .filter-group label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .filter-select {
+            padding: var(--spacing-sm) var(--spacing-md);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-sm);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+
+        .action-controls {
+            display: flex;
+            gap: var(--spacing-sm);
+        }
+
+        .btn-action {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+            padding: var(--spacing-sm) var(--spacing-md);
+            background: var(--primary-color);
+            color: var(--text-light);
+            border: none;
+            border-radius: var(--border-radius-sm);
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-action:hover {
+            background: var(--secondary-color);
+        }
+
+        /* Alert List */
+        .alert-list-section {
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-lg);
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+        }
+
+        .section-header h2 {
+            color: var(--text-primary);
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .list-controls {
+            display: flex;
+            gap: var(--spacing-lg);
+            align-items: center;
+        }
+
+        .view-toggle {
+            display: flex;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-sm);
+            overflow: hidden;
+        }
+
+        .toggle-btn {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+            padding: var(--spacing-sm) var(--spacing-md);
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            border: none;
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+
+        .toggle-btn.active {
+            background: var(--primary-color);
+            color: var(--text-light);
+        }
+
+        .alerts-container {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-md);
+        }
+
+        .alert-item {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-lg);
+            padding: var(--spacing-lg);
+            display: flex;
+            align-items: flex-start;
+            gap: var(--spacing-md);
+            box-shadow: var(--shadow-light);
+            transition: all 0.2s ease;
+        }
+
+        .alert-item:hover {
+            box-shadow: var(--shadow-medium);
+            transform: translateY(-1px);
+        }
+
+        .alert-item.critical {
+            border-left: 4px solid var(--danger-color);
+            background: linear-gradient(to right, rgba(220, 53, 69, 0.02), var(--bg-secondary));
+        }
+
+        .alert-item.warning {
+            border-left: 4px solid var(--warning-color);
+            background: linear-gradient(to right, rgba(255, 193, 7, 0.02), var(--bg-secondary));
+        }
+
+        .alert-item.info {
+            border-left: 4px solid var(--info-color);
+            background: linear-gradient(to right, rgba(23, 162, 184, 0.02), var(--bg-secondary));
+        }
+
+        .alert-item.acknowledged {
+            opacity: 0.8;
+            background: var(--bg-primary);
+        }
+
+        .alert-checkbox {
+            margin-top: var(--spacing-xs);
+        }
+
+        .alert-severity {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: var(--spacing-xs);
+            min-width: 80px;
+        }
+
+        .severity-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .severity-indicator.critical {
+            background-color: var(--danger-color);
+        }
+
+        .severity-indicator.warning {
+            background-color: var(--warning-color);
+        }
+
+        .severity-indicator.info {
+            background-color: var(--info-color);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.1); }
+        }
+
+        .severity-text {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+        }
+
+        .alert-content {
+            flex: 1;
+        }
+
+        .alert-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: var(--spacing-sm);
+            flex-wrap: wrap;
+            gap: var(--spacing-sm);
+        }
+
+        .alert-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .alert-timestamp {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .alert-status-badge {
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border-radius: var(--border-radius-sm);
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            background-color: var(--success-color);
+            color: var(--text-light);
+        }
+
+        .alert-message {
+            color: var(--text-primary);
+            line-height: 1.5;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .alert-metadata {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .meta-item {
+            font-size: 0.85rem;
+            display: flex;
+            gap: var(--spacing-xs);
+        }
+
+        .meta-label {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .meta-value {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .alert-actions {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-xs);
+            min-width: 120px;
+        }
+
+        .btn-alert-action {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-xs);
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border-radius: var(--border-radius-sm);
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-alert-action:hover {
+            border-color: var(--primary-color);
+            background: var(--primary-color);
+            color: var(--text-light);
+        }
+
+        .pagination-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: var(--spacing-xl);
+            padding-top: var(--spacing-lg);
+            border-top: 1px solid var(--border-color);
+        }
+
+        .pagination-info {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .pagination-controls {
+            display: flex;
+            gap: var(--spacing-xs);
+        }
+
+        .pagination-btn {
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border-radius: var(--border-radius-sm);
+            font-size: 0.9rem;
+            cursor: pointer;
+            min-width: 40px;
+        }
+
+        .pagination-btn.active {
+            background: var(--primary-color);
+            color: var(--text-light);
+            border-color: var(--primary-color);
+        }
+
+        .pagination-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-main {
+                padding: var(--spacing-md);
+            }
+            
+            .controls-wrapper {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .filter-controls {
+                justify-content: space-between;
+            }
+            
+            .alert-item {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .alert-severity {
+                flex-direction: row;
+                justify-content: flex-start;
+                align-items: center;
+            }
+            
+            .alert-actions {
+                flex-direction: row;
+                justify-content: flex-end;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <div class="header-content">
+                <h1 class="dashboard-title">🐓 Sinornis Alert System</h1>
+                <nav class="breadcrumb">
+                    <a href="#" class="breadcrumb-item">Dashboard</a>
+                    <span class="breadcrumb-separator">></span>
+                    <span class="breadcrumb-item active">Alerts</span>
+                </nav>
+                <div class="header-actions">
+                    <div class="alert-summary">
+                        <span class="alert-count critical">1</span>
+                        <span class="alert-count warning">2</span>
+                        <span class="alert-count info">1</span>
+                    </div>
+                    <div class="system-status">
+                        <span class="status-indicator"></span>
+                        <span>System Active</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="dashboard-main">
+            <!-- Alert Overview -->
+            <section class="alert-overview-section">
+                <div class="overview-cards">
+                    <div class="overview-card critical">
+                        <div class="card-icon">🚨</div>
+                        <div class="card-content">
+                            <div class="card-title">Critical Alerts</div>
+                            <div class="card-value">1</div>
+                            <div class="card-subtitle">Immediate attention required</div>
+                        </div>
+                    </div>
+                    <div class="overview-card warning">
+                        <div class="card-icon">⚠️</div>
+                        <div class="card-content">
+                            <div class="card-title">Warning Alerts</div>
+                            <div class="card-value">2</div>
+                            <div class="card-subtitle">Monitor conditions</div>
+                        </div>
+                    </div>
+                    <div class="overview-card info">
+                        <div class="card-icon">ℹ️</div>
+                        <div class="card-content">
+                            <div class="card-title">Info Alerts</div>
+                            <div class="card-value">1</div>
+                            <div class="card-subtitle">Routine notifications</div>
+                        </div>
+                    </div>
+                    <div class="overview-card resolved">
+                        <div class="card-icon">✅</div>
+                        <div class="card-content">
+                            <div class="card-title">Resolved Today</div>
+                            <div class="card-value">8</div>
+                            <div class="card-subtitle">Successfully handled</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Controls -->
+            <section class="alert-controls-section">
+                <div class="controls-wrapper">
+                    <div class="filter-controls">
+                        <div class="filter-group">
+                            <label>Severity:</label>
+                            <select class="filter-select">
+                                <option>All Severities</option>
+                                <option>Critical</option>
+                                <option>Warning</option>
+                                <option>Info</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Status:</label>
+                            <select class="filter-select">
+                                <option>Active Alerts</option>
+                                <option>Acknowledged</option>
+                                <option>Resolved</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Farm:</label>
+                            <select class="filter-select">
+                                <option>All Farms</option>
+                                <option>Alpha Farm</option>
+                                <option>Beta Farm</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="action-controls">
+                        <button class="btn-action">🔄 Refresh</button>
+                        <button class="btn-action">✓ Acknowledge All</button>
+                        <button class="btn-action">📊 Export</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Alert List -->
+            <section class="alert-list-section">
+                <div class="section-header">
+                    <h2>Active Alerts</h2>
+                    <div class="list-controls">
+                        <div class="view-toggle">
+                            <button class="toggle-btn active">📋 List</button>
+                            <button class="toggle-btn">🎴 Cards</button>
+                        </div>
+                        <select class="filter-select">
+                            <option>Newest First</option>
+                            <option>Oldest First</option>
+                            <option>Severity</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="alerts-container">
+                    <!-- Critical Alert -->
+                    <div class="alert-item critical">
+                        <div class="alert-checkbox">
+                            <input type="checkbox">
+                        </div>
+                        <div class="alert-severity">
+                            <span class="severity-indicator critical"></span>
+                            <span class="severity-text">CRITICAL</span>
+                        </div>
+                        <div class="alert-content">
+                            <div class="alert-header">
+                                <div class="alert-title">🌡️ Temperature Critical - Coop A1</div>
+                                <div class="alert-timestamp">2 minutes ago</div>
+                            </div>
+                            <div class="alert-message">
+                                Temperature reached 28.5°C, exceeding critical threshold of 27°C. 
+                                Immediate cooling system activation required to prevent heat stress.
+                            </div>
+                            <div class="alert-metadata">
+                                <span class="meta-item">
+                                    <span class="meta-label">Farm:</span>
+                                    <span class="meta-value">Alpha Farm</span>
+                                </span>
+                                <span class="meta-item">
+                                    <span class="meta-label">Sensor:</span>
+                                    <span class="meta-value">TEMP-A1-001</span>
+                                </span>
+                                <span class="meta-item">
+                                    <span class="meta-label">Current Value:</span>
+                                    <span class="meta-value">28.5°C</span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="alert-actions">
+                            <button class="btn-alert-action">✓ Acknowledge</button>
+                            <button class="btn-alert-action">👁️ Details</button>
+                            <button class="btn-alert-action">✅ Resolve</button>
+                        </div>
+                    </div>
+
+                    <!-- Warning Alert -->
+                    <div class="alert-item warning">
+                        <div class="alert-checkbox">
+                            <input type="checkbox">
+                        </div>
+                        <div class="alert-severity">
+                            <span class="severity-indicator warning"></span>
+                            <span class="severity-text">WARNING</span>
+                        </div>
+                        <div class="alert-content">
+                            <div class="alert-header">
+                                <div class="alert-title">🥜 Feed Level Low - Coop B2</div>
+                                <div class="alert-timestamp">15 minutes ago</div>
+                            </div>
+                            <div class="alert-message">
+                                Feed level has dropped to 18%, below the 20% threshold. 
+                                Refill recommended within the next 2 hours to maintain feeding schedule.
+                            </div>
+                            <div class="alert-metadata">
+                                <span class="meta-item">
+                                    <span class="meta-label">Farm:</span>
+                                    <span class="meta-value">Beta Farm</span>
+                                </span>
+                                <span class="meta-item">
+                                    <span class="meta-label">Sensor:</span>
+                                    <span class="meta-value">FEED-B2-003</span>
+                                </span>
+                                <span class="meta-item">
+                                    <span class="meta-label">Current Level:</span>
+                                    <span class="meta-value">18%</span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="alert-actions">
+                            <button class="btn-alert-action">✓ Acknowledge</button>
+                            <button class="btn-alert-action">👁️ Details</button>
+                            <button class="btn-alert-action">✅ Resolve</button>
+                        </div>
+                    </div>
+
+                    <!-- Info Alert -->
+                    <div class="alert-item info acknowledged">
+                        <div class="alert-checkbox">
+                            <input type="checkbox">
+                        </div>
+                        <div class="alert-severity">
+                            <span class="severity-indicator info"></span>
+                            <span class="severity-text">INFO</span>
+                        </div>
+                        <div class="alert-content">
+                            <div class="alert-header">
+                                <div class="alert-title">📊 Daily Health Report - Farm Gamma</div>
+                                <div class="alert-timestamp">1 hour ago</div>
+                                <div class="alert-status-badge acknowledged">Acknowledged</div>
+                            </div>
+                            <div class="alert-message">
+                                Daily health monitoring report generated. All parameters within normal ranges. 
+                                Average productivity: 94.2%. Bird activity levels normal.
+                            </div>
+                            <div class="alert-metadata">
+                                <span class="meta-item">
+                                    <span class="meta-label">Farm:</span>
+                                    <span class="meta-value">Gamma Farm</span>
+                                </span>
+                                <span class="meta-item">
+                                    <span class="meta-label">Type:</span>
+                                    <span class="meta-value">Scheduled Report</span>
+                                </span>
+                                <span class="meta-item">
+                                    <span class="meta-label">Acknowledged by:</span>
+                                    <span class="meta-value">Farm Manager</span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="alert-actions">
+                            <button class="btn-alert-action">👁️ Details</button>
+                            <button class="btn-alert-action">✅ Resolve</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination-container">
+                    <div class="pagination-info">
+                        Showing 1-3 of 4 alerts
+                    </div>
+                    <div class="pagination-controls">
+                        <button class="pagination-btn" disabled>Previous</button>
+                        <button class="pagination-btn active">1</button>
+                        <button class="pagination-btn">2</button>
+                        <button class="pagination-btn">Next</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // Simple demo functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🐓 Sinornis Alert System Preview Loaded');
+            
+            // Add click handlers for demo
+            document.querySelectorAll('.btn-alert-action').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const action = this.textContent.trim();
+                    alert(`Demo: ${action} action would be performed here`);
+                });
+            });
+
+            // Toggle functionality
+            document.querySelectorAll('.toggle-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                });
+            });
+
+            console.log('✅ Preview is fully interactive!');
+        });
+    </script>
+</body>
+</html>

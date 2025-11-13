@@ -1,0 +1,386 @@
+{
+  "presentation": {
+    "title": "From Heritage to Innovation",
+    "subtitle": "The Journey to Becoming the Best AI College",
+    "totalSlides": 12
+  },
+  "slides": [
+    {
+      "id": 1,
+      "type": "title",
+      "background": {
+        "type": "image",
+        "source": "/assets/slide-1-innovation.jpg",
+        "fallback": "https://images.unsplash.com/photo-1759884247144-53d52c31f859?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxpbm5vdmF0aW9uJTIwZGlnaXRhbCUyMHRyYW5zZm9ybWF0aW9ufGVufDF8fHx8MTc2MTEzNTM4OXww&ixlib=rb-4.1.0&q=80&w=1080"
+      },
+      "overlay": true,
+      "content": {
+        "alignment": "center",
+        "badge": {
+          "text": "A Transformation Story",
+          "color": "blue-500"
+        },
+        "title": "From Heritage to Innovation",
+        "subtitle": "The Journey to Becoming the Best AI College"
+      }
+    },
+    {
+      "id": 2,
+      "type": "content",
+      "background": {
+        "type": "image",
+        "source": "/assets/slide-2-heritage.jpg",
+        "fallback": "https://images.unsplash.com/photo-1690464901049-432440757c81?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxvbGQlMjB1bml2ZXJzaXR5JTIwYnVpbGRpbmclMjBoaXN0b3JpY3xlbnwxfHx8fDE3NjExMzUzODl8MA&ixlib=rb-4.1.0&q=80&w=1080"
+      },
+      "overlay": true,
+      "content": {
+        "alignment": "left",
+        "badge": {
+          "text": "Chapter 1: Heritage",
+          "color": "amber-500"
+        },
+        "title": "The Beginning",
+        "paragraphs": [
+          "Founded in 1950, our institution stood as a beacon of traditional education for over seven decades.",
+          "Classic lecture halls, timeless libraries, and a commitment to foundational knowledge."
+        ],
+        "highlight": {
+          "text": "But the world was changing...",
+          "color": "amber-200"
+        }
+      }
+    },
+    {
+      "id": 3,
+      "type": "cards",
+      "background": {
+        "type": "image",
+        "source": "/assets/slide-3-challenge.jpg",
+        "fallback": "https://images.unsplash.com/photo-1495364141860-b0d03eccd065?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1920"
+      },
+      "overlay": true,
+      "content": {
+        "alignment": "center",
+        "badge": {
+          "text": "Chapter 2: The Challenge",
+          "color": "red-500"
+        },
+        "title": "WAKE UP BABY!",
+        "cards": [
+          {
+            "icon": "AlertTriangle",
+            "title": "Declining Enrollment",
+            "description": "Students seeking modern tech programs"
+          },
+          {
+            "icon": "Clock",
+            "title": "Outdated Curriculum",
+            "description": "Tech industry moving at lightning speed"
+          },
+          {
+            "icon": "Zap",
+            "title": "Need for Change",
+            "description": "Adapt or become irrelevant"
+          }
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "type": "content",
+      "background": {
+        "type": "image",
+        "source": "/assets/slide-4-vision.jpg",
+        "fallback": "https://images.unsplash.com/photo-1531403009284-440f080d1e12?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1920"
+      },
+      "overlay": true,
+      "content": {
+        "alignment": "center",
+        "badge": {
+          "text": "Chapter 3: The Vision",
+          "color": "purple-500"
+        },
+        "title": "A Bold Decision",
+        "paragraphs": [
+          "In 2020, our board made a revolutionary choice:"
+        ],
+        "quote": {
+          "text": "We will become the world's leading AI-focused institution",
+          "color": "purple-300"
+        },
+        "footer": "A five-year transformation plan was born"
+      }
+    },
+    {
+      "id": 5,
+      "type": "checklist",
+      "background": {
+        "type": "image",
+        "source": "/assets/slide-5-infrastructure.jpg",
+        "fallback": "https://images.unsplash.com/photo-1732115234692-3ee71d5363af?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjB0ZWNobm9sb2d5JTIwY2FtcHVzfGVufDF8fHx8MTc2MTExNTA1OHww&ixlib=rb-4.1.0&q=80&w=1080"
+      },
+      "overlay": true,
+      "content": {
+        "alignment": "left",
+        "badge": {
+          "text": "Phase 1: 2020-2021",
+          "color": "cyan-500"
+        },
+        "title": "Digital Infrastructure",
+        "items": [
+          "Campus-wide fiber optic network",
+          "GPU clusters for machine learning",
+          "Cloud computing partnerships",
+          "Smart classrooms with AI assistants"
+        ],
+        "highlight": {
+          "text": "Investment: $50M",
+          "color": "cyan-200"
+        }
+      }
+    },
+    {
+      "id": 6,
+      "type": "dual-list",
+      "background": {
+        "type": "image",
+        "source": "/assets/slide-6-curriculum.jpg",
+        "fallback": "https://images.unsplash.com/photo-1522071820081-009f0129c71c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1920"
+      },
+      "overlay": true,
+      "content": {
+        "alignment": "center",
+        "badge": {
+          "text": "Phase 2: 2021-2022",
+          "color": "green-500"
+        },
+        "title": "AI-First Curriculum",
+        "lists": [
+          {
+            "title": "New Programs",
+            "items": [
+              "AI & Machine Learning",
+              "Data Science",
+              "Robotics Engineering",
+              "Neural Networks",
+              "AI Ethics & Philosophy"
+            ]
+          },
+          {
+            "title": "Partnerships",
+            "items": [
+              "Google AI Research",
+              "OpenAI Education",
+              "MIT AI Labs",
+              "Stanford AI Group",
+              "DeepMind Scholars"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "type": "content",
+      "background": {
+        "type": "image",
+        "source": "/assets/slide-7-research.jpg",
+        "fallback": "https://images.unsplash.com/photo-1635340038191-96eea7fbd056?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxBSSUyMHJvYm90aWNzJTIwbGFifGVufDF8fHx8MTc2MTEzNTM4OHww&ixlib=rb-4.1.0&q=80&w=1080"
+      },
+      "overlay": true,
+      "content": {
+        "alignment": "right",
+        "badge": {
+          "text": "Phase 3: 2022-2023",
+          "color": "blue-500"
+        },
+        "title": "Research Excellence",
+        "subtitle": "State-of-the-Art Facilities",
+        "items": [
+          "[Bot] Advanced Robotics Lab",
+          "[Brain] Neural Interface Research Center",
+          "[Microscope] Quantum Computing Lab",
+          "[Eye] Computer Vision Studio",
+          "[MessageSquare] Natural Language Processing Hub"
+        ],
+        "highlight": {
+          "text": "15+ Research Publications in Top Journals",
+          "color": "blue-200"
+        }
+      }
+    },
+    {
+      "id": 8,
+      "type": "stats",
+      "background": {
+        "type": "image",
+        "source": "/assets/slide-8-faculty.jpg",
+        "fallback": "https://images.unsplash.com/photo-1758270704113-9fb2ac81788f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkaXZlcnNlJTIwc3R1ZGVudHMlMjBsZWFybmluZ3xlbnwxfHx8fDE3NjEwNTAxNzV8MA&ixlib=rb-4.1.0&q=80&w=1080"
+      },
+      "overlay": true,
+      "content": {
+        "alignment": "center",
+        "badge": {
+          "text": "Phase 4: 2023-2024",
+          "color": "orange-500"
+        },
+        "title": "World-Class Faculty",
+        "stats": [
+          {
+            "number": "50+",
+            "label": "PhD AI Researchers"
+          },
+          {
+            "number": "12",
+            "label": "Industry Veterans"
+          },
+          {
+            "number": "8",
+            "label": "Nobel/Turing Winners"
+          }
+        ]
+      }
+    },
+    {
+      "id": 9,
+      "type": "dual-list",
+      "background": {
+        "type": "image",
+        "source": "/assets/slide-9-students.jpg",
+        "fallback": "https://images.unsplash.com/photo-1569653402334-2e98fbaa80ee?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzdHVkZW50cyUyMGNvZGluZyUyMGNvbXB1dGVyc3xlbnwxfHx8fDE3NjExMzUzODl8MA&ixlib=rb-4.1.0&q=80&w=1080"
+      },
+      "overlay": true,
+      "content": {
+        "alignment": "center",
+        "badge": {
+          "text": "Impact: Student Success",
+          "color": "pink-500"
+        },
+        "title": "A New Generation",
+        "lists": [
+          {
+            "title": "Achievements",
+            "items": [
+              "[Trophy] 3 International AI Competition Wins",
+              "[Briefcase] 98% Job Placement Rate",
+              "[Rocket] 25+ Student Startups Founded",
+              "[BookOpen] 500+ Research Papers Published"
+            ]
+          },
+          {
+            "title": "Where They Work",
+            "items": [
+              "• Google DeepMind",
+              "• Tesla AI Team",
+              "• Microsoft Research",
+              "• Meta AI Research",
+              "• Leading AI Startups"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 10,
+      "type": "awards",
+      "background": {
+        "type": "image",
+        "source": "/assets/slide-10-awards.jpg",
+        "fallback": "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1920"
+      },
+      "overlay": true,
+      "content": {
+        "alignment": "center",
+        "badge": {
+          "text": "Recognition & Awards",
+          "color": "yellow-500",
+          "textColor": "black"
+        },
+        "title": "Global Recognition",
+        "awards": [
+          {
+            "icon": "Medal",
+            "title": "Top 10 AI College Worldwide",
+            "source": "QS Rankings 2025"
+          },
+          {
+            "icon": "Star",
+            "title": "Best Innovation in Education",
+            "source": "EdTech Awards"
+          },
+          {
+            "icon": "GraduationCap",
+            "title": "Excellence in AI Research",
+            "source": "IEEE Recognition"
+          },
+          {
+            "icon": "Globe",
+            "title": "Most Impactful College",
+            "source": "Global Education Forum"
+          }
+        ]
+      }
+    },
+    {
+      "id": 11,
+      "type": "content",
+      "background": {
+        "type": "image",
+        "source": "/assets/slide-11-future.jpg",
+        "fallback": "https://images.unsplash.com/photo-1563394867331-e687a36112fd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmdXR1cmlzdGljJTIwY2xhc3Nyb29tJTIwdGVjaG5vbG9neXxlbnwxfHx8fDE3NjExNzE0M3ww&ixlib=rb-4.1.0&q=80&w=1080"
+      },
+      "overlay": true,
+      "content": {
+        "alignment": "left",
+        "badge": {
+          "text": "Vision 2030",
+          "color": "indigo-500"
+        },
+        "title": "The Future Ahead",
+        "subtitle": "Our Next Goals",
+        "items": [
+          "[Target] #1 AI College Globally",
+          "[Globe2] Online AI Academy for 100,000+ Students",
+          "[Microscope] Breakthrough AI Research Center",
+          "[Handshake] Industry Partnerships Worldwide",
+          "[Lightbulb] Incubate 100+ AI Startups"
+        ],
+        "highlight": {
+          "text": "We're not just teaching AI. We're shaping the future of humanity.",
+          "color": "indigo-200"
+        }
+      }
+    },
+    {
+      "id": 12,
+      "type": "cta",
+      "background": {
+        "type": "image",
+        "source": "/assets/slide-12-cta.jpg",
+        "fallback": "https://images.unsplash.com/photo-1760348082205-8bda5fbdd7b5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxncmFkdWF0aW9uJTIwY2VsZWJyYXRpb24lMjBzdWNjZXNzfGVufDF8fHx8MTc2MTA4MTk5Mnww&ixlib=rb-4.1.0&q=80&w=1080"
+      },
+      "overlay": true,
+      "content": {
+        "alignment": "center",
+        "title": "Join Our Journey",
+        "subtitle": "Be part of the transformation. Shape the future of AI.",
+        "buttons": [
+          {
+            "text": "Apply Now",
+            "variant": "primary",
+            "action": "apply"
+          },
+          {
+            "text": "Learn More",
+            "variant": "outline",
+            "action": "learn"
+          }
+        ],
+        "footer": [
+          "From a 75-year heritage to the frontier of AI innovation",
+          "This is our story. What's yours?"
+        ]
+      }
+    }
+  ]
+}

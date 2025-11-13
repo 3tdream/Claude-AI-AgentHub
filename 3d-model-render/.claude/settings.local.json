@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:www.tiltan.co.il)",
+      "WebFetch(domain:tiltan-42hdbamui-aviosipovs-projects.vercel.app)",
+      "WebFetch(domain:alche.studio)",
+      "Read(//c/Users/Ro050/OneDrive/שולחן העבודה/ai-projects/Lib/**)",
+      "Read(//c/Users/Ro050/OneDrive/שולחן העבודה/ai-projects/**)",
+      "Bash(mklink:*)",
+      "Bash(cmd /c \"mklink /J node_modules ..\\Lib\\node_modules\")",
+      "Bash(npm install:*)",
+      "Bash(npm run dev)",
+      "Bash(npm uninstall:*)",
+      "Bash(npx kill-port:*)",
+      "WebFetch(domain:spacetypegenerator.com)",
+      "Read(//c/Users/Ro050/OneDrive/שולחן העבודה/ME/Tiltan/3D/OBJ/OBJ/**)",
+      "Bash(if [ -f \"C:\\Users\\Ro050\\OneDrive\\שולחן העבודה\\ME\\Tiltan\\3D\\OBJ\\OBJ\\Asset 7.mtl\" ])",
+      "Bash(then cp \"C:\\Users\\Ro050\\OneDrive\\שולחן העבודה\\ME\\Tiltan\\3D\\OBJ\\OBJ\\Asset 7.mtl\" \"C:\\Users\\Ro050\\OneDrive\\שולחן העבודה\\ai-projects\\tiltan-refresh\\public\\models\\tiltan-logo.mtl\")",
+      "Bash(else echo \"No MTL file found\")",
+      "Bash(fi)",
+      "Bash(cat:*)",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nAdd 3D OBJ logo with debug overlay and optimized settings\n\n- Loaded Tiltan logo from OBJ file (Asset 7.obj)\n- Created TiltanLogo3D component with real-time rendering\n- Added debug overlay showing scale, position, quaternion, color, opacity, roughness\n- Configured camera: position [0, 1, 5], FOV 55\n- Optimized lighting: ambient 0.5, directional 1.2, point lights\n- Disabled shadows for cleaner rendering\n- Material: green #22c55e, metalness 0.6, roughness 0.3\n- Model scale: 0.15\n- Floating animation with auto-rotation\n- Installed three-stdlib for OBJ loading\n- Fixed hydration warnings with suppressHydrationWarning\n\n🤖 Generated with Claude Code\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git config:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

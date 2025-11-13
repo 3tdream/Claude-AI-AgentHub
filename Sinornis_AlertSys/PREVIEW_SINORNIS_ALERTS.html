@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sinornis Alert System - Official 28 Alerts Preview</title>
+    <style>
+        /* Use the same CSS as before but more comprehensive */
+        :root {
+            --primary-color: #2c5aa0;
+            --secondary-color: #1a4480;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --info-color: #17a2b8;
+            --bg-primary: #f8f9fa;
+            --bg-secondary: #ffffff;
+            --text-primary: #333333;
+            --text-secondary: #6c757d;
+            --text-light: #ffffff;
+            --border-color: #e9ecef;
+            --shadow-light: 0 2px 4px rgba(0,0,0,0.1);
+            --shadow-medium: 0 4px 8px rgba(0,0,0,0.15);
+            --spacing-xs: 0.25rem;
+            --spacing-sm: 0.5rem;
+            --spacing-md: 1rem;
+            --spacing-lg: 1.5rem;
+            --spacing-xl: 2rem;
+            --spacing-xxl: 3rem;
+            --border-radius-sm: 4px;
+            --border-radius-md: 8px;
+            --border-radius-lg: 12px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            direction: ltr;
+        }
+
+        .dashboard-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .dashboard-header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: var(--shadow-light);
+            padding: var(--spacing-md) var(--spacing-xl);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1920px;
+            margin: 0 auto;
+        }
+
+        .dashboard-title {
+            color: var(--primary-color);
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .breadcrumb {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .breadcrumb-item {
+            color: var(--text-secondary);
+            text-decoration: none;
+        }
+
+        .breadcrumb-item.active {
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+
+        .breadcrumb-separator {
+            margin: 0 var(--spacing-sm);
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-lg);
+        }
+
+        .alert-summary {
+            display: flex;
+            gap: var(--spacing-sm);
+        }
+
+        .alert-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: var(--text-light);
+        }
+
+        .alert-count.critical {
+            background-color: var(--danger-color);
+        }
+
+        .alert-count.warning {
+            background-color: var(--warning-color);
+            color: var(--text-primary);
+        }
+
+        .alert-count.info {
+            background-color: var(--info-color);
+        }
+
+        .system-status {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: var(--success-color);
+        }
+
+        .dashboard-main {
+            flex: 1;
+            padding: var(--spacing-xl);
+            max-width: 1920px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* Overview Cards */
+        .alert-overview-section {
+            margin-bottom: var(--spacing-xxl);
+        }
+
+        .overview-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: var(--spacing-lg);
+        }
+
+        .overview-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-lg);
+            padding: var(--spacing-lg);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            box-shadow: var(--shadow-light);
+            transition: transform 0.2s ease;
+            cursor: pointer;
+        }
+
+        .overview-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .overview-card.critical {
+            border-left: 4px solid var(--danger-color);
+        }
+
+        .overview-card.warning {
+            border-left: 4px solid var(--warning-color);
+        }
+
+        .overview-card.info {
+            border-left: 4px solid var(--info-color);
+        }
+
+        .overview-card.resolved {
+            border-left: 4px solid var(--success-color);
+        }
+
+        .card-icon {
+            font-size: 2.5rem;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .card-content {
+            flex: 1;
+        }
+
+        .card-title {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .card-value {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .card-subtitle {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        /* Alert List */
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-lg);
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+        }
+
+        .section-header h2 {
+            color: var(--text-primary);
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .alerts-container {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-md);
+        }
+
+        .alert-item {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-lg);
+            padding: var(--spacing-lg);
+            display: flex;
+            align-items: flex-start;
+            gap: var(--spacing-md);
+            box-shadow: var(--shadow-light);
+            transition: all 0.2s ease;
+        }
+
+        .alert-item:hover {
+            box-shadow: var(--shadow-medium);
+            transform: translateY(-1px);
+        }
+
+        .alert-item.critical {
+            border-left: 4px solid var(--danger-color);
+            background: linear-gradient(to right, rgba(220, 53, 69, 0.02), var(--bg-secondary));
+        }
+
+        .alert-item.warning {
+            border-left: 4px solid var(--warning-color);
+            background: linear-gradient(to right, rgba(255, 193, 7, 0.02), var(--bg-secondary));
+        }
+
+        .alert-item.info {
+            border-left: 4px solid var(--info-color);
+            background: linear-gradient(to right, rgba(23, 162, 184, 0.02), var(--bg-secondary));
+        }
+
+        .alert-item.acknowledged {
+            opacity: 0.8;
+            background: var(--bg-primary);
+        }
+
+        .alert-severity {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: var(--spacing-xs);
+            min-width: 80px;
+        }
+
+        .severity-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .severity-indicator.critical {
+            background-color: var(--danger-color);
+        }
+
+        .severity-indicator.warning {
+            background-color: var(--warning-color);
+        }
+
+        .severity-indicator.info {
+            background-color: var(--info-color);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.1); }
+        }
+
+        .severity-text {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+        }
+
+        .alert-content {
+            flex: 1;
+        }
+
+        .alert-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: var(--spacing-sm);
+            flex-wrap: wrap;
+            gap: var(--spacing-sm);
+        }
+
+        .alert-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .alert-timestamp {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .alert-status-badge {
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border-radius: var(--border-radius-sm);
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            background-color: var(--success-color);
+            color: var(--text-light);
+        }
+
+        .alert-message {
+            color: var(--text-primary);
+            line-height: 1.5;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .alert-metadata {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .meta-item {
+            font-size: 0.85rem;
+            display: flex;
+            gap: var(--spacing-xs);
+        }
+
+        .meta-label {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .meta-value {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .alert-actions {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-xs);
+            min-width: 120px;
+        }
+
+        .btn-alert-action {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-xs);
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border-radius: var(--border-radius-sm);
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-alert-action:hover {
+            border-color: var(--primary-color);
+            background: var(--primary-color);
+            color: var(--text-light);
+        }
+
+        /* Hebrew text support */
+        .hebrew-text {
+            direction: rtl;
+            text-align: right;
+            font-family: 'Segoe UI', 'Arial Hebrew', Arial, sans-serif;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-main {
+                padding: var(--spacing-md);
+            }
+            
+            .alert-item {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .alert-severity {
+                flex-direction: row;
+                justify-content: flex-start;
+                align-items: center;
+            }
+            
+            .alert-actions {
+                flex-direction: row;
+                justify-content: flex-end;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <div class="header-content">
+                <h1 class="dashboard-title">🐓 Sinornis Alert System - Official 28 Alerts</h1>
+                <nav class="breadcrumb">
+                    <a href="#" class="breadcrumb-item">Dashboard</a>
+                    <span class="breadcrumb-separator">></span>
+                    <span class="breadcrumb-item active">Official Alerts</span>
+                </nav>
+                <div class="header-actions">
+                    <div class="alert-summary">
+                        <span class="alert-count critical">10</span>
+                        <span class="alert-count warning">3</span>
+                        <span class="alert-count info">0</span>
+                    </div>
+                    <div class="system-status">
+                        <span class="status-indicator"></span>
+                        <span>System Active</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="dashboard-main">
+            <!-- Alert Overview -->
+            <section class="alert-overview-section">
+                <div class="overview-cards">
+                    <div class="overview-card critical">
+                        <div class="card-icon">🚨</div>
+                        <div class="card-content">
+                            <div class="card-title">Critical Alerts</div>
+                            <div class="card-value">10</div>
+                            <div class="card-subtitle">Emergency response required</div>
+                        </div>
+                    </div>
+                    <div class="overview-card warning">
+                        <div class="card-icon">⚠️</div>
+                        <div class="card-content">
+                            <div class="card-title">Warning Alerts</div>
+                            <div class="card-value">3</div>
+                            <div class="card-subtitle">Monitor conditions</div>
+                        </div>
+                    </div>
+                    <div class="overview-card info">
+                        <div class="card-icon">ℹ️</div>
+                        <div class="card-content">
+                            <div class="card-title">Categories Covered</div>
+                            <div class="card-value">12</div>
+                            <div class="card-subtitle">Alert categories active</div>
+                        </div>
+                    </div>
+                    <div class="overview-card resolved">
+                        <div class="card-icon">📋</div>
+                        <div class="card-content">
+                            <div class="card-title">Total Alert Types</div>
+                            <div class="card-value">28</div>
+                            <div class="card-subtitle">Official Sinornis checklist</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Alert List -->
+            <section class="alert-list-section">
+                <div class="section-header">
+                    <h2>Active Sinornis Alerts (Sample)</h2>
+                </div>
+
+                <div class="alerts-container">
+                    <!-- Critical Emergency Alert -->
+                    <div class="alert-item critical">
+                        <div class="alert-severity">
+                            <span class="severity-indicator critical"></span>
+                            <span class="severity-text">CRITICAL</span>
+                        </div>
+                        <div class="alert-content">
+                            <div class="alert-header">
+                                <div class="alert-title">🌡️ Bird Breathing Difficulty - Heat Stress</div>
+                                <div class="alert-timestamp">2 minutes ago</div>
+                            </div>
+                            <div class="alert-message">
+                                <span class="hebrew-text">ציפור מתקשה לנשום בעת לחץ חם או שילוב אדי מים ושמש אדומה.</span><br>
+                                Temperature >25°C in houses with 150+ birds. Activate cooling system immediately.
+                            </div>
+                            <div class="alert-metadata">
+                                <span class="meta-item">
+                                    <span class="meta-label">Alert ID:</span>
+                                    <span class="meta-value">ALERT_001</span>
+                                </span>
+                                <span class="meta-item">
+                                    <span class="meta-label">Farm:</span>
+                                    <span class="meta-value">Alpha Farm</span>
+                                </span>
+                                <span class="meta-item">
+                                    <span class="meta-label">Current:</span>
+                                    <span class="meta-value">28.5°C</span>
+                                </span>
+                                <span class="meta-item">
+                                    <span class="meta-label">Category:</span>
+                                    <span class="meta-value">Environmental Stress</span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="alert-actions">
+                            <button class="btn-alert-action">✓ Acknowledge</button>
+                            <button class="btn-alert-action">👁️ Details</button>
+                            <button class="btn-alert-action">🔧 Action</button>
+                        </div>
+                    </div>
+
+                    <!-- Multi-Gas Emergency -->
+                    <div class="alert-item critical">
+                        <div class="alert-severity">
+                            <span class="severity-indicator critical"></span>
+                            <span class="severity-text">EMERGENCY</span>
+                        </div>
+                        <div class="alert-content">
+                            <div class="alert-header">
+                                <div class="alert-title">☣️ Critical Multi-Gas Alert - Emergency</div>
+                                <div class="alert-timestamp">5 minutes ago</div>
+                            </div>
+                            <div class="alert-message">
+                                <span class="hebrew-text">רמות מסוכנות של מספר גזים - NH3>20PPM, CO2>4000PPM, H2S>20PPM.</span><br>
+                                Dangerous levels of multiple gases detected. Emergency ventilation required!
+                            </div>
+                            <div class="alert-metadata">
+                                <span class="meta-item">
+                                    <span class="meta-label">Alert ID:</span>
+                                    <span class="meta-value">ALERT_004</span>
+                                </span>
+                                <span class="meta-item">
+                                    <span class="meta-label">Farm:</span>
+                                    <span class="meta-value">Gamma Farm</span>
+                                </span>
+                                <span class="meta-item">
+                                    <span class="meta-label">Status:</span>
+                                    <span class="meta-value">Multi-gas danger</span>
+                                </span>
+                                <span class="meta-item">
+                                    <span class="meta-label">Category:</span>
+                                    <span class="meta-value">Emergency</span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="alert-actions">
+                            <button class="btn-alert-action">🚨 Emergency</button>
+                            <button class="btn-alert-action">👁️ Details</button>
+                            <button class="btn-alert-action">📞 Call</button>
+                        </div>
+                    </div>
+
+                    <!-- Cooling System Failure -->
+                    <div class="alert-item critical">
+                        <div class="alert-severity">
+                            <span class="severity-indicator critical"></span>
+                            <span class="severity-text">CRITICAL</span>
+                        </div>
+                        <div class="alert-content">
+                            <div class="alert-header">
+                                <div class="alert-title">🚰 Cooling Pad System Failure</div>
+                                <div class="alert-timestamp">12 minutes ago</div>
+                            </div>
+                            <div class="alert-message">
+                                <span class="hebrew-text">תקלה במערכת הפד קירור - מים לא זורמים למשך 3 שעות בחלקים A-C.</span><br>
+                                No water flow for 3+ hours in sections A-C. Check water pumps immediately.
+                            </div>
+                            <div class="alert-metadata">
+                                <span class="meta-item">
+                                    <span class="meta-label">Alert ID:</span>
+                                    <span class="meta-value">ALERT_007</span>
+                                </span>
+                                <span class="meta-item">
+                                    <span class="meta-label">Farm:</span>
+                                    <span class="meta-value">Alpha Farm</span>
+                                </span>
+                                <span class="meta-item">
+                                    <span class="meta-label">Flow Rate:</span>
+                                    <span class="meta-value">0 L/min</span>
+                                </span>
+                                <span class="meta-item">
+                                    <span class="meta-label">Category:</span>
+                                    <span class="meta-value">Cooling System</span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="alert-actions">
+                            <button class="btn-alert-action">✓ Acknowledge</button>
+                            <button class="btn-alert-action">👁️ Details</button>
+                            <button class="btn-alert-action">🔧 Repair</button>
+                        </div>
+                    </div>
+
+                    <!-- Young Chick Alert -->
+                    <div class="alert-item critical">
+                        <div class="alert-severity">
+                            <span class="severity-indicator critical"></span>
+                            <span class="severity-text">CRITICAL</span>
+                        </div>
+                        <div class="alert-content">
+                            <div class="alert-header">
+                                <div class="alert-title">🐥 Cold Draft on Young Chicks</div>
+                                <div class="alert-timestamp">30 minutes ago</div>
+                            </div>
+                            <div class="alert-message">
+                                <span class="hebrew-text">רוח קרה על אפרוחים צעירים - מהירות רוח מעל 0.3 m/s במשך 14 ימים רצופים.</span><br>
+                                Wind speed above 0.3 m/s affecting young chicks for 14+ days. Protect immediately.
+                            </div>
+                            <div class="alert-metadata">
+                                <span class="meta-item">
+                                    <span class="meta-label">Alert ID:</span>
+                                    <span class="meta-value">ALERT_014</span>
+                                </span>
+                                <span class="meta-item">
+                                    <span class="meta-label">Farm:</span>
+                                    <span class="meta-value">Alpha Farm</span>
+                                </span>
+                                <span class="meta-item">
+                                    <span class="meta-label">Wind Speed:</span>
+                                    <span class="meta-value">0.45 m/s</span>
+                                </span>
+                                <span class="meta-item">
+                                    <span class="meta-label">Category:</span>
+                                    <span class="meta-value">Chick Welfare</span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="alert-actions">
+                            <button class="btn-alert-action">✓ Acknowledge</button>
+                            <button class="btn-alert-action">👁️ Details</button>
+                            <button class="btn-alert-action">🛡️ Protect</button>
+                        </div>
+                    </div>
+
+                    <!-- High Ammonia Alert -->
+                    <div class="alert-item critical">
+                        <div class="alert-severity">
+                            <span class="severity-indicator critical"></span>
+                            <span class="severity-text">CRITICAL</span>
+                        </div>
+                        <div class="alert-content">
+                            <div class="alert-header">
+                                <div class="alert-title">💀 High Ammonia (NH3) Levels</div>
+                                <div class="alert-timestamp">20 minutes ago</div>
+                            </div>
+                            <div class="alert-message">
+                                <span class="hebrew-text">רמות אמוניה גבוהות - מעל 25 PPM למעל 6 שעות רצוף.</span><br>
+                                Ammonia levels above 25 PPM for 6+ consecutive hours. Immediate ventilation required.
+                            </div>
+                            <div class="alert-metadata">
+                                <span class="meta-item">
+                                    <span class="meta-label">Alert ID:</span>
+                                    <span class="meta-value">ALERT_010</span>
+                                </span>
+                                <span class="meta-item">
+                                    <span class="meta-label">Farm:</span>
+                                    <span class="meta-value">Beta Farm</span>
+                                </span>
+                                <span class="meta-item">
+                                    <span class="meta-label">NH3 Level:</span>
+                                    <span class="meta-value">28 PPM</span>
+                                </span>
+                                <span class="meta-item">
+                                    <span class="meta-label">Category:</span>
+                                    <span class="meta-value">Air Quality</span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="alert-actions">
+                            <button class="btn-alert-action">✓ Acknowledge</button>
+                            <button class="btn-alert-action">👁️ Details</button>
+                            <button class="btn-alert-action">💨 Ventilate</button>
+                        </div>
+                    </div>
+
+                    <!-- Bacteria Growth Conditions (Warning) -->
+                    <div class="alert-item warning acknowledged">
+                        <div class="alert-severity">
+                            <span class="severity-indicator warning"></span>
+                            <span class="severity-text">WARNING</span>
+                        </div>
+                        <div class="alert-content">
+                            <div class="alert-header">
+                                <div class="alert-title">🦠 High Bacteria Growth Conditions</div>
+                                <div class="alert-timestamp">50 minutes ago</div>
+                                <div class="alert-status-badge acknowledged">Acknowledged</div>
+                            </div>
+                            <div class="alert-message">
+                                <span class="hebrew-text">תנאים מתאימים לגידול חיידקים - AQI מעל 150 + RH מעל 70% למשך 10 שעות.</span><br>
+                                Conditions suitable for bacteria growth. Sanitize environment, reduce humidity.
+                            </div>
+                            <div class="alert-metadata">
+                                <span class="meta-item">
+                                    <span class="meta-label">Alert ID:</span>
+                                    <span class="meta-value">ALERT_013</span>
+                                </span>
+                                <span class="meta-item">
+                                    <span class="meta-label">Farm:</span>
+                                    <span class="meta-value">Beta Farm</span>
+                                </span>
+                                <span class="meta-item">
+                                    <span class="meta-label">Conditions:</span>
+                                    <span class="meta-value">AQI: 165, RH: 74%</span>
+                                </span>
+                                <span class="meta-item">
+                                    <span class="meta-label">Ack. by:</span>
+                                    <span class="meta-value">Farm Manager</span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="alert-actions">
+                            <button class="btn-alert-action">👁️ Details</button>
+                            <button class="btn-alert-action">🧽 Sanitize</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Summary Info -->
+                <div style="margin-top: var(--spacing-xxl); padding: var(--spacing-lg); background: var(--bg-secondary); border-radius: var(--border-radius-lg); border-left: 4px solid var(--info-color);">
+                    <h3 style="color: var(--info-color); margin-bottom: var(--spacing-md);">📋 Sinornis Official Alert System</h3>
+                    <p><strong>Total Alerts:</strong> 28 official alert types based on Sinornis checklist</p>
+                    <p><strong>Categories:</strong> Environmental Stress, Air Quality, Cooling System, Heating System, Ventilation, Chick Welfare, Emergency, Behavior, Temperature, Health Risk, Feeding</p>
+                    <p><strong>Languages:</strong> Hebrew (עברית) and English support</p>
+                    <p><strong>Features:</strong> Real-time monitoring, multi-channel notifications, severity-based escalation</p>
+                    <p><strong>Source:</strong> Based on "Alerts Sinornis check list.csv" specification document</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // Demo functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🐓 Sinornis Official Alert System - 28 Alerts Loaded');
+            
+            document.querySelectorAll('.btn-alert-action').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const action = this.textContent.trim();
+                    const alertTitle = this.closest('.alert-item').querySelector('.alert-title').textContent;
+                    alert(`Demo: ${action} action for "${alertTitle}"`);
+                });
+            });
+
+            console.log('✅ All 28 Sinornis alerts system ready!');
+        });
+    </script>
+</body>
+</html>

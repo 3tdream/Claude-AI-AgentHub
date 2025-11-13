@@ -1,0 +1,1260 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sinornis Alert System - Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .dashboard-header {
+            background: white;
+            border-radius: 15px;
+            padding: 25px 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header-title h1 {
+            font-size: 28px;
+            color: #2d3748;
+            font-weight: 700;
+        }
+
+        .logo {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .lang-switch {
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .lang-switch:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .refresh-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        .refresh-btn:hover {
+            transform: scale(1.05);
+        }
+
+        /* Statistics Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .stat-card.active {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 35px rgba(102, 126, 234, 0.4);
+            border: 3px solid #667eea;
+        }
+
+        .stat-card.active::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .stat-title {
+            font-size: 14px;
+            color: #718096;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .stat-value {
+            font-size: 36px;
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        .stat-change {
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        .stat-change.positive {
+            color: #48bb78;
+        }
+
+        .stat-change.negative {
+            color: #f56565;
+        }
+
+        /* Filters */
+        .filters-container {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .filter-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        .filter-select, .filter-input {
+            padding: 10px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .filter-select:focus, .filter-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        /* Alerts Grid */
+        .alerts-container {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .alerts-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .alerts-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        .alerts-count {
+            background: #edf2f7;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        .alerts-grid {
+            display: grid;
+            gap: 15px;
+        }
+
+        .alert-card {
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .alert-card:hover {
+            transform: translateX(-5px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+        }
+
+        .alert-card.critical {
+            border-left: 6px solid #f56565;
+            background: linear-gradient(to right, #fff5f5, white);
+        }
+
+        .alert-card.warning {
+            border-left: 6px solid #ed8936;
+            background: linear-gradient(to right, #fffaf0, white);
+        }
+
+        .alert-card.emergency {
+            border-left: 6px solid #c53030;
+            background: linear-gradient(to right, #fed7d7, white);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.95; }
+        }
+
+        .alert-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+
+        .alert-title-section {
+            flex: 1;
+        }
+
+        .alert-id {
+            font-size: 12px;
+            color: #718096;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .alert-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 5px;
+        }
+
+        .alert-subtitle {
+            font-size: 14px;
+            color: #718096;
+            line-height: 1.5;
+        }
+
+        .alert-badges {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge.critical {
+            background: #feb2b2;
+            color: #742a2a;
+        }
+
+        .badge.warning {
+            background: #fbd38d;
+            color: #7c2d12;
+        }
+
+        .badge.emergency {
+            background: #fc8181;
+            color: #742a2a;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .alert-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .detail-label {
+            font-size: 12px;
+            color: #718096;
+            font-weight: 600;
+        }
+
+        .detail-value {
+            font-size: 14px;
+            color: #2d3748;
+            font-weight: 500;
+        }
+
+        .alert-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e2e8f0;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            flex: 1;
+            min-width: 100px;
+            padding: 10px;
+            border: 2px solid;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 13px;
+        }
+
+        .action-btn.primary {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .action-btn.primary:hover {
+            background: #5568d3;
+            border-color: #5568d3;
+        }
+
+        .action-btn.secondary {
+            background: white;
+            color: #667eea;
+            border-color: #667eea;
+        }
+
+        .action-btn.secondary:hover {
+            background: #f7fafc;
+        }
+
+        .action-btn.danger {
+            background: #f56565;
+            color: white;
+            border-color: #f56565;
+        }
+
+        .action-btn.danger:hover {
+            background: #e53e3e;
+            border-color: #e53e3e;
+        }
+
+        /* Notification Channels */
+        .notification-channels {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .channel-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            background: #edf2f7;
+            color: #4a5568;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #718096;
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        .empty-state-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #718096;
+        }
+
+        .spinner {
+            border: 4px solid #e2e8f0;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 800px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .modal-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: #718096;
+            transition: color 0.3s;
+        }
+
+        .modal-close:hover {
+            color: #2d3748;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #4a5568;
+            margin-bottom: 8px;
+        }
+
+        .form-input, .form-textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-input:focus, .form-textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 2px solid #e2e8f0;
+        }
+
+        .btn-modal {
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid;
+            font-size: 14px;
+        }
+
+        .btn-cancel {
+            background: white;
+            color: #718096;
+            border-color: #e2e8f0;
+        }
+
+        .btn-cancel:hover {
+            background: #f7fafc;
+            border-color: #cbd5e0;
+        }
+
+        .btn-save {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+        }
+
+        .btn-save:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .dashboard-header {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .filters-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .alert-details {
+                grid-template-columns: 1fr;
+            }
+
+            .modal-content {
+                width: 95%;
+                padding: 20px;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <div class="dashboard-header">
+            <div class="header-title">
+                <div class="logo">🐔</div>
+                <div>
+                    <h1 id="mainTitle">מערכת התראות Sinornis</h1>
+                    <div style="font-size: 14px; color: #718096; margin-top: 5px;">
+                        <span id="lastUpdate">עדכון אחרון: טוען...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="header-controls">
+                <button class="lang-switch" onclick="toggleLanguage()">
+                    <span id="langBtn">English</span>
+                </button>
+                <button class="refresh-btn" onclick="refreshDashboard()">
+                    🔄 <span id="refreshBtn">רענן</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Statistics Grid -->
+        <div class="stats-grid" id="statsGrid"></div>
+
+        <!-- Filters -->
+        <div class="filters-container">
+            <div class="filters-grid">
+                <div class="filter-group">
+                    <label class="filter-label" id="filterSeverityLabel">חומרה</label>
+                    <select class="filter-select" id="severityFilter" onchange="applyFilters()">
+                        <option value="all" selected>הכל</option>
+                        <option value="critical">קריטי</option>
+                        <option value="warning">אזהרה</option>
+                        <option value="emergency">חירום</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label" id="filterCategoryLabel">קטגוריה</label>
+                    <select class="filter-select" id="categoryFilter" onchange="applyFilters()">
+                        <option value="all" selected>הכל</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label" id="filterSearchLabel">חיפוש</label>
+                    <input type="text" class="filter-input" id="searchFilter" 
+                           placeholder="חפש לפי כותרת או תיאור..." 
+                           oninput="applyFilters()">
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label" id="filterSortLabel">מיון</label>
+                    <select class="filter-select" id="sortFilter" onchange="applyFilters()">
+                        <option value="severity">לפי חומרה</option>
+                        <option value="id">לפי מספר</option>
+                        <option value="title">לפי כותרת</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alerts Container -->
+        <div class="alerts-container">
+            <div class="alerts-header">
+                <h2 class="alerts-title" id="alertsTitle">התראות פעילות</h2>
+                <div class="alerts-count" id="alertsCount">טוען...</div>
+            </div>
+            <div class="alerts-grid" id="alertsGrid">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <div>טוען התראות...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Alert Modal -->
+    <div class="modal-overlay" id="editModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalTitle">Edit Alert</h3>
+                <button class="modal-close" onclick="closeEditModal()">&times;</button>
+            </div>
+            <form id="editAlertForm">
+                <div class="form-group">
+                    <label class="form-label">Alert ID</label>
+                    <input type="text" class="form-input" id="edit_id" readonly>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Alert Number</label>
+                        <input type="number" class="form-input" id="edit_number">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Severity</label>
+                        <select class="form-input" id="edit_severity">
+                            <option value="critical">Critical</option>
+                            <option value="warning">Warning</option>
+                            <option value="emergency">Emergency</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Title (English)</label>
+                    <input type="text" class="form-input" id="edit_title">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Description (Hebrew)</label>
+                    <textarea class="form-textarea" id="edit_description_he"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Description (English)</label>
+                    <textarea class="form-textarea" id="edit_description_en"></textarea>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Sensor Type</label>
+                        <input type="text" class="form-input" id="edit_sensor_type">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Priority</label>
+                        <select class="form-input" id="edit_priority">
+                            <option value="immediate">Immediate</option>
+                            <option value="high">High</option>
+                            <option value="medium">Medium</option>
+                            <option value="emergency">Emergency</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Recommended Action</label>
+                    <textarea class="form-textarea" id="edit_recommended_action"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Category</label>
+                    <input type="text" class="form-input" id="edit_category">
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-modal btn-cancel" onclick="closeEditModal()">Cancel</button>
+                    <button type="button" class="btn-modal btn-save" onclick="saveAlert()">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let alertsData = null;
+        let currentLanguage = 'he';
+        let filteredAlerts = [];
+        let activeStatFilter = null;
+
+        // Translations
+        const translations = {
+            he: {
+                mainTitle: 'מערכת התראות Sinornis',
+                lastUpdate: 'עדכון אחרון:',
+                langBtn: 'English',
+                refreshBtn: 'רענן',
+                alertsTitle: 'התראות פעילות',
+                totalAlerts: 'סה"כ התראות',
+                criticalAlerts: 'התראות קריטיות',
+                warningAlerts: 'אזהרות',
+                emergencyAlerts: 'התראות חירום',
+                activeAlerts: 'התראות פעילות',
+                filterSeverityLabel: 'חומרה',
+                filterCategoryLabel: 'קטגוריה',
+                filterSearchLabel: 'חיפוש',
+                filterSortLabel: 'מיון',
+                searchPlaceholder: 'חפש לפי כותרת או תיאור...',
+                severityAll: 'הכל',
+                severityCritical: 'קריטי',
+                severityWarning: 'אזהרה',
+                severityEmergency: 'חירום',
+                categoryAll: 'הכל',
+                sortSeverity: 'לפי חומרה',
+                sortId: 'לפי מספר',
+                sortTitle: 'לפי כותרת',
+                acknowledge: 'אישור',
+                viewDetails: 'פרטים',
+                edit: 'ערוך',
+                resolve: 'פתור',
+                sensor: 'חיישן:',
+                priority: 'עדיפות:',
+                action: 'פעולה מומלצת:',
+                channels: 'ערוצי התראה:',
+                emptyTitle: 'אין התראות',
+                emptyMessage: 'לא נמצאו התראות בהתאם לסינון הנוכחי',
+                alertsShowing: 'מציג'
+            },
+            en: {
+                mainTitle: 'Sinornis Alert System',
+                lastUpdate: 'Last update:',
+                langBtn: 'עברית',
+                refreshBtn: 'Refresh',
+                alertsTitle: 'Active Alerts',
+                totalAlerts: 'Total Alerts',
+                criticalAlerts: 'Critical Alerts',
+                warningAlerts: 'Warnings',
+                emergencyAlerts: 'Emergency Alerts',
+                activeAlerts: 'Active Alerts',
+                filterSeverityLabel: 'Severity',
+                filterCategoryLabel: 'Category',
+                filterSearchLabel: 'Search',
+                filterSortLabel: 'Sort By',
+                searchPlaceholder: 'Search by title or description...',
+                severityAll: 'All',
+                severityCritical: 'Critical',
+                severityWarning: 'Warning',
+                severityEmergency: 'Emergency',
+                categoryAll: 'All',
+                sortSeverity: 'By Severity',
+                sortId: 'By Number',
+                sortTitle: 'By Title',
+                acknowledge: 'Acknowledge',
+                viewDetails: 'Details',
+                edit: 'Edit',
+                resolve: 'Resolve',
+                sensor: 'Sensor:',
+                priority: 'Priority:',
+                action: 'Recommended Action:',
+                channels: 'Notification Channels:',
+                emptyTitle: 'No Alerts',
+                emptyMessage: 'No alerts found matching the current filters',
+                alertsShowing: 'Showing'
+            }
+        };
+
+        // Load alerts data
+        async function loadAlerts() {
+            try {
+                const response = await fetch('sinornis_official_alerts.json');
+                const data = await response.json();
+                alertsData = data.sinornis_alerts_official;
+                initializeDashboard();
+            } catch (error) {
+                console.error('Error loading alerts:', error);
+                document.getElementById('alertsGrid').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">⚠️</div>
+                        <div class="empty-state-title">Error Loading Alerts</div>
+                        <div>Could not load alerts data. Please check the console.</div>
+                    </div>
+                `;
+            }
+        }
+
+        // Initialize dashboard
+        function initializeDashboard() {
+            populateCategories();
+            updateStatistics();
+            filteredAlerts = alertsData.alerts;
+            renderAlerts();
+            updateTimestamp();
+        }
+
+        // Populate category filter
+        function populateCategories() {
+            const categoryFilter = document.getElementById('categoryFilter');
+            const categories = [...new Set(alertsData.alerts.map(a => a.category))];
+            
+            categories.forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat;
+                option.textContent = cat.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                categoryFilter.appendChild(option);
+            });
+        }
+
+        // Update statistics
+        function updateStatistics() {
+            const total = alertsData.total_alerts;
+            const critical = alertsData.alerts.filter(a => a.severity === 'critical').length;
+            const warning = alertsData.alerts.filter(a => a.severity === 'warning').length;
+            const emergency = alertsData.alerts.filter(a => a.severity === 'emergency').length;
+
+            const stats = [
+                {
+                    title: translations[currentLanguage].totalAlerts,
+                    value: total,
+                    icon: '📊',
+                    color: '#667eea',
+                    filter: 'all'
+                },
+                {
+                    title: translations[currentLanguage].criticalAlerts,
+                    value: critical,
+                    icon: '🔴',
+                    color: '#f56565',
+                    filter: 'critical'
+                },
+                {
+                    title: translations[currentLanguage].warningAlerts,
+                    value: warning,
+                    icon: '⚠️',
+                    color: '#ed8936',
+                    filter: 'warning'
+                },
+                {
+                    title: translations[currentLanguage].emergencyAlerts,
+                    value: emergency,
+                    icon: '🚨',
+                    color: '#c53030',
+                    filter: 'emergency'
+                }
+            ];
+
+            const statsHTML = stats.map(stat => `
+                <div class="stat-card ${activeStatFilter === stat.filter ? 'active' : ''}" 
+                     onclick="filterByStat('${stat.filter}')" 
+                     title="Click to filter by ${stat.title}">
+                    <div class="stat-header">
+                        <div class="stat-title">${stat.title}</div>
+                        <div class="stat-icon" style="background: ${stat.color}20; color: ${stat.color}">
+                            ${stat.icon}
+                        </div>
+                    </div>
+                    <div class="stat-value">${stat.value}</div>
+                </div>
+            `).join('');
+
+            document.getElementById('statsGrid').innerHTML = statsHTML;
+        }
+
+        // Filter by stat card click
+        function filterByStat(filterType) {
+            activeStatFilter = filterType;
+            
+            // Update the severity filter dropdown
+            document.getElementById('severityFilter').value = filterType;
+            
+            // Apply filters
+            applyFilters();
+            
+            // Update stat cards visual state
+            updateStatistics();
+        }
+
+        // Apply filters
+        function applyFilters() {
+            const severity = document.getElementById('severityFilter').value;
+            const category = document.getElementById('categoryFilter').value;
+            const search = document.getElementById('searchFilter').value.toLowerCase();
+            const sort = document.getElementById('sortFilter').value;
+
+            // Update active stat filter based on dropdown
+            activeStatFilter = severity;
+
+            filteredAlerts = alertsData.alerts.filter(alert => {
+                const matchSeverity = severity === 'all' || alert.severity === severity;
+                const matchCategory = category === 'all' || alert.category === category;
+                const matchSearch = search === '' || 
+                    alert.title.toLowerCase().includes(search) ||
+                    alert.description_he.toLowerCase().includes(search) ||
+                    alert.description_en.toLowerCase().includes(search);
+                
+                return matchSeverity && matchCategory && matchSearch;
+            });
+
+            // Sort
+            filteredAlerts.sort((a, b) => {
+                if (sort === 'severity') {
+                    const severityOrder = { emergency: 0, critical: 1, warning: 2 };
+                    return severityOrder[a.severity] - severityOrder[b.severity];
+                } else if (sort === 'id') {
+                    return a.number - b.number;
+                } else if (sort === 'title') {
+                    return a.title.localeCompare(b.title);
+                }
+                return 0;
+            });
+
+            renderAlerts();
+        }
+
+        // Render alerts
+        function renderAlerts() {
+            const alertsGrid = document.getElementById('alertsGrid');
+            const count = filteredAlerts.length;
+            
+            document.getElementById('alertsCount').textContent = 
+                `${translations[currentLanguage].alertsShowing} ${count} ${translations[currentLanguage].totalAlerts}`;
+
+            if (count === 0) {
+                alertsGrid.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🔍</div>
+                        <div class="empty-state-title">${translations[currentLanguage].emptyTitle}</div>
+                        <div>${translations[currentLanguage].emptyMessage}</div>
+                    </div>
+                `;
+                return;
+            }
+
+            const alertsHTML = filteredAlerts.map(alert => {
+                const description = currentLanguage === 'he' ? alert.description_he : alert.description_en;
+                const channelIcons = {
+                    sms: '📱',
+                    email: '📧',
+                    web: '🌐',
+                    audio_alarm: '🔔',
+                    phone_call: '☎️'
+                };
+
+                return `
+                    <div class="alert-card ${alert.severity}">
+                        <div class="alert-header">
+                            <div class="alert-title-section">
+                                <div class="alert-id">${alert.id}</div>
+                                <div class="alert-title">${alert.title}</div>
+                                <div class="alert-subtitle">${description}</div>
+                            </div>
+                            <div class="alert-badges">
+                                <div class="badge ${alert.severity}">${alert.severity}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="alert-details">
+                            <div class="detail-item">
+                                <div class="detail-label">${translations[currentLanguage].sensor}</div>
+                                <div class="detail-value">${alert.sensor_type}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">${translations[currentLanguage].priority}</div>
+                                <div class="detail-value">${alert.priority}</div>
+                            </div>
+                        </div>
+
+                        <div class="detail-item" style="margin-top: 15px;">
+                            <div class="detail-label">${translations[currentLanguage].action}</div>
+                            <div class="detail-value">${alert.recommended_action}</div>
+                        </div>
+
+                        <div style="margin-top: 10px;">
+                            <div class="detail-label" style="margin-bottom: 8px;">${translations[currentLanguage].channels}</div>
+                            <div class="notification-channels">
+                                ${alert.notification_channels.map(ch => 
+                                    `<div class="channel-icon" title="${ch}">${channelIcons[ch] || '📢'}</div>`
+                                ).join('')}
+                            </div>
+                        </div>
+
+                        <div class="alert-actions">
+                            <button class="action-btn primary" onclick="acknowledgeAlert('${alert.id}')">
+                                ${translations[currentLanguage].acknowledge}
+                            </button>
+                            <button class="action-btn secondary" onclick="viewDetails('${alert.id}')">
+                                ${translations[currentLanguage].viewDetails}
+                            </button>
+                            <button class="action-btn secondary" onclick="editAlert('${alert.id}')">
+                                ✏️ ${translations[currentLanguage].edit}
+                            </button>
+                            <button class="action-btn danger" onclick="resolveAlert('${alert.id}')">
+                                ${translations[currentLanguage].resolve}
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            alertsGrid.innerHTML = alertsHTML;
+        }
+
+        // Toggle language
+        function toggleLanguage() {
+            currentLanguage = currentLanguage === 'he' ? 'en' : 'he';
+            document.documentElement.setAttribute('lang', currentLanguage);
+            document.documentElement.setAttribute('dir', currentLanguage === 'he' ? 'rtl' : 'ltr');
+            updateTranslations();
+            renderAlerts();
+            updateStatistics();
+        }
+
+        // Update translations
+        function updateTranslations() {
+            const t = translations[currentLanguage];
+            document.getElementById('mainTitle').textContent = t.mainTitle;
+            document.getElementById('langBtn').textContent = t.langBtn;
+            document.getElementById('refreshBtn').textContent = t.refreshBtn;
+            document.getElementById('alertsTitle').textContent = t.alertsTitle;
+            document.getElementById('filterSeverityLabel').textContent = t.filterSeverityLabel;
+            document.getElementById('filterCategoryLabel').textContent = t.filterCategoryLabel;
+            document.getElementById('filterSearchLabel').textContent = t.filterSearchLabel;
+            document.getElementById('filterSortLabel').textContent = t.filterSortLabel;
+            document.getElementById('searchFilter').placeholder = t.searchPlaceholder;
+        }
+
+        // Update timestamp
+        function updateTimestamp() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString(currentLanguage === 'he' ? 'he-IL' : 'en-US');
+            document.getElementById('lastUpdate').textContent = 
+                `${translations[currentLanguage].lastUpdate} ${timeString}`;
+        }
+
+        // Refresh dashboard
+        function refreshDashboard() {
+            updateTimestamp();
+            applyFilters();
+        }
+
+        // Alert actions
+        function acknowledgeAlert(id) {
+            alert(`Alert ${id} acknowledged`);
+        }
+
+        function viewDetails(id) {
+            const alert = alertsData.alerts.find(a => a.id === id);
+            alert(`Viewing details for ${alert.title}\n\n${JSON.stringify(alert, null, 2)}`);
+        }
+
+        function editAlert(id) {
+            const alert = alertsData.alerts.find(a => a.id === id);
+            if (!alert) return;
+
+            // Populate form fields
+            document.getElementById('edit_id').value = alert.id;
+            document.getElementById('edit_number').value = alert.number;
+            document.getElementById('edit_severity').value = alert.severity;
+            document.getElementById('edit_title').value = alert.title;
+            document.getElementById('edit_description_he').value = alert.description_he;
+            document.getElementById('edit_description_en').value = alert.description_en;
+            document.getElementById('edit_sensor_type').value = alert.sensor_type;
+            document.getElementById('edit_priority').value = alert.priority;
+            document.getElementById('edit_recommended_action').value = alert.recommended_action;
+            document.getElementById('edit_category').value = alert.category;
+
+            // Show modal
+            document.getElementById('editModal').classList.add('active');
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.remove('active');
+        }
+
+        function saveAlert() {
+            const id = document.getElementById('edit_id').value;
+            const alertIndex = alertsData.alerts.findIndex(a => a.id === id);
+            
+            if (alertIndex === -1) return;
+
+            // Update alert data
+            alertsData.alerts[alertIndex] = {
+                ...alertsData.alerts[alertIndex],
+                number: parseInt(document.getElementById('edit_number').value),
+                severity: document.getElementById('edit_severity').value,
+                title: document.getElementById('edit_title').value,
+                description_he: document.getElementById('edit_description_he').value,
+                description_en: document.getElementById('edit_description_en').value,
+                sensor_type: document.getElementById('edit_sensor_type').value,
+                priority: document.getElementById('edit_priority').value,
+                recommended_action: document.getElementById('edit_recommended_action').value,
+                category: document.getElementById('edit_category').value
+            };
+
+            // Close modal and refresh display
+            closeEditModal();
+            applyFilters();
+            updateStatistics();
+            
+            // Show success message
+            alert(`Alert ${id} updated successfully!`);
+        }
+
+        function resolveAlert(id) {
+            if (confirm(`Are you sure you want to resolve alert ${id}?`)) {
+                alert(`Alert ${id} resolved`);
+            }
+        }
+
+        // Close modal when clicking outside
+        document.addEventListener('click', function(event) {
+            const modal = document.getElementById('editModal');
+            if (event.target === modal) {
+                closeEditModal();
+            }
+        });
+
+        // Close modal with ESC key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeEditModal();
+            }
+        });
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', loadAlerts);
+
+        // Auto-refresh every 30 seconds
+        setInterval(refreshDashboard, 30000);
+    </script>
+</body>
+</html>

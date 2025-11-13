@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON-Driven Slideshow - Fully Customizable</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* JSON Panel */
+        .json-panel {
+            width: 35%;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .json-panel h2 {
+            margin-bottom: 15px;
+        }
+
+        .json-display {
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            line-height: 1.6;
+        }
+
+        .json-display pre {
+            margin: 0;
+        }
+
+        /* Slideshow Panel */
+        .slideshow-panel {
+            width: 65%;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .slide {
+            flex: 1;
+            display: none;
+            position: relative;
+            overflow-y: auto;
+        }
+
+        .slide.active {
+            display: flex;
+        }
+
+        /* Animation Types */
+        @keyframes slideFromRight {
+            from { opacity: 0; transform: translateX(100px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes slideFromLeft {
+            from { opacity: 0; transform: translateX(-100px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes zoomIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes slideFromBottom {
+            from { opacity: 0; transform: translateY(50px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .slide.anim-slide-right.active { animation: slideFromRight 0.6s ease-out; }
+        .slide.anim-slide-left.active { animation: slideFromLeft 0.6s ease-out; }
+        .slide.anim-fade.active { animation: fadeIn 0.6s ease-out; }
+        .slide.anim-zoom.active { animation: zoomIn 0.6s ease-out; }
+        .slide.anim-slide-bottom.active { animation: slideFromBottom 0.6s ease-out; }
+
+        /* Layout: Centered */
+        .layout-centered {
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 60px;
+        }
+
+        /* Layout: Split Left (Image on left, content on right) */
+        .layout-split-left {
+            flex-direction: row;
+            align-items: center;
+        }
+
+        .layout-split-left .slide-image-container {
+            flex: 1;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+
+        .layout-split-left .slide-content-container {
+            flex: 1;
+            padding: 60px;
+        }
+
+        /* Layout: Split Right (Content on left, image on right) */
+        .layout-split-right {
+            flex-direction: row;
+            align-items: center;
+        }
+
+        .layout-split-right .slide-content-container {
+            flex: 1;
+            padding: 60px;
+        }
+
+        .layout-split-right .slide-image-container {
+            flex: 1;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+
+        /* Layout: Minimal */
+        .layout-minimal {
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 80px 100px;
+        }
+
+        /* Layout: Image Focus */
+        .layout-image-focus {
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+        }
+
+        .layout-image-focus .slide-image-container {
+            width: 100%;
+            max-width: 900px;
+            margin-bottom: 30px;
+        }
+
+        .layout-image-focus .slide-content-container {
+            text-align: center;
+            max-width: 800px;
+        }
+
+        /* Layout: Grid */
+        .layout-grid {
+            flex-direction: column;
+            padding: 60px;
+        }
+
+        .layout-grid .slide-content-container {
+            display: grid;
+            gap: 30px;
+            height: 100%;
+        }
+
+        .layout-grid .grid-header {
+            text-align: center;
+        }
+
+        .layout-grid .grid-items {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .layout-grid .grid-item {
+            padding: 25px;
+            border-radius: 12px;
+            transition: transform 0.3s;
+        }
+
+        .layout-grid .grid-item:hover {
+            transform: translateY(-5px);
+        }
+
+        /* Slide Components */
+        .slide-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .badge-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.8); }
+        }
+
+        .slide-title {
+            font-size: 3.5rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+            line-height: 1.2;
+        }
+
+        .slide-subtitle {
+            font-size: 1.5rem;
+            margin-bottom: 30px;
+            line-height: 1.4;
+        }
+
+        .slide-content {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            margin-bottom: 20px;
+        }
+
+        .slide-list {
+            list-style: none;
+            margin-top: 20px;
+        }
+
+        .slide-list li {
+            padding: 12px 0;
+            padding-left: 30px;
+            position: relative;
+            font-size: 1.1rem;
+        }
+
+        .slide-list li:before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            font-weight: bold;
+        }
+
+        .slide-image {
+            max-width: 100%;
+            max-height: 500px;
+            object-fit: contain;
+            border-radius: 12px;
+        }
+
+        .slide-footer {
+            margin-top: 40px;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            opacity: 0.7;
+        }
+
+        /* Controls */
+        .controls {
+            position: absolute;
+            bottom: 30px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            padding: 0 60px;
+            z-index: 100;
+        }
+
+        .controls button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .controls button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .controls button:disabled {
+            cursor: not-allowed;
+            opacity: 0.4;
+        }
+
+        .slide-indicator {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .info-box {
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border-left: 4px solid;
+        }
+
+        .info-box h3 {
+            margin-bottom: 10px;
+        }
+
+        /* Theme will be applied dynamically */
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- JSON Panel -->
+        <div class="json-panel" id="jsonPanel">
+            <h2>📄 JSON Configuration</h2>
+            <p style="margin-bottom: 15px; font-size: 14px; opacity: 0.8;">
+                Complete control over theme, layouts, animations, and content
+            </p>
+            <div class="json-display" id="jsonDisplayContainer">
+                <pre id="jsonDisplay"></pre>
+            </div>
+            <div class="info-box" id="infoBox" style="margin-top: 20px;">
+                <h3>✨ Features:</h3>
+                <p style="line-height: 1.8; font-size: 14px;">
+                    • <strong>Theme Control:</strong> Colors, fonts, backgrounds<br>
+                    • <strong>6 Layout Types:</strong> centered, split-left, split-right, minimal, image-focus, grid<br>
+                    • <strong>5 Animations:</strong> slide-right, slide-left, fade, zoom, slide-bottom<br>
+                    • <strong>Image Loading:</strong> Load images by key from assets folder<br>
+                    • <strong>Flexible Content:</strong> Badge, title, subtitle, content, items, footer, images
+                </p>
+            </div>
+        </div>
+
+        <!-- Slideshow Panel -->
+        <div class="slideshow-panel" id="slideshowPanel">
+            <div id="slideshowContainer"></div>
+
+            <div class="controls" id="controls">
+                <button id="prevBtn" onclick="changeSlide(-1)">← Previous</button>
+                <div class="slide-indicator" id="slideIndicator">
+                    <span id="currentSlide">1</span> / <span id="totalSlides">0</span>
+                </div>
+                <button id="nextBtn" onclick="changeSlide(1)">Next →</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample JSON Data Structure with Light Theme
+        const slideshowData = {
+            "theme": {
+                "name": "Light & Bright",
+                "colors": {
+                    "primary": "#2563eb",
+                    "secondary": "#7c3aed",
+                    "accent": "#f59e0b",
+                    "background": "#ffffff",
+                    "panelBackground": "#f8fafc",
+                    "text": "#1e293b",
+                    "textSecondary": "#64748b",
+                    "border": "#e2e8f0",
+                    "controlBg": "#2563eb",
+                    "controlText": "#ffffff",
+                    "controlHover": "#1d4ed8"
+                },
+                "fonts": {
+                    "title": "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+                    "body": "'Inter', -apple-system, BlinkMacSystemFont, sans-serif"
+                },
+                "effects": {
+                    "borderRadius": "16px",
+                    "shadow": "0 10px 40px rgba(0,0,0,0.1)"
+                }
+            },
+            "slides": [
+                {
+                    "layout": "centered",
+                    "animation": "fade",
+                    "background": "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                    "badge": "Seed Round Pitch",
+                    "title": "AIkinsey",
+                    "subtitle": "Autonomous AI Workforce Platform",
+                    "content": "Not a tool — a complete workforce. Personal AI employees for every human worker.",
+                    "footer": "Hybrid Human-AI Organizations",
+                    "textColor": "#ffffff",
+                    "badgeColor": "rgba(255,255,255,0.2)",
+                    "badgeBorder": "rgba(255,255,255,0.3)",
+                    "badgeText": "#ffffff"
+                },
+                {
+                    "layout": "split-left",
+                    "animation": "slide-right",
+                    "badge": "Problem Statement",
+                    "title": "The Challenge",
+                    "subtitle": "Traditional Banking Limitations",
+                    "image": "app-logo",
+                    "items": [
+                        "Manual processes consume 60% of workforce time",
+                        "Customer service response times average 24-48 hours",
+                        "Compliance reviews create bottlenecks",
+                        "Limited personalization at scale",
+                        "Rising operational costs",
+                        "Customer dissatisfaction increasing"
+                    ]
+                },
+                {
+                    "layout": "split-right",
+                    "animation": "slide-left",
+                    "badge": "Our Solution",
+                    "title": "AI-Powered Banking",
+                    "subtitle": "Transforming Financial Services",
+                    "image": "hero-banner",
+                    "items": [
+                        "24/7 Intelligent customer support",
+                        "Automated compliance and risk assessment",
+                        "Real-time fraud detection",
+                        "Personalized financial recommendations",
+                        "90% cost reduction in operations"
+                    ]
+                },
+                {
+                    "layout": "grid",
+                    "animation": "zoom",
+                    "badge": "Key Features",
+                    "title": "Platform Capabilities",
+                    "subtitle": "Built for Scale and Performance",
+                    "gridItems": [
+                        {
+                            "title": "AI Agents",
+                            "content": "Autonomous agents that handle complex workflows"
+                        },
+                        {
+                            "title": "Real-time Processing",
+                            "content": "Process millions of transactions per second"
+                        },
+                        {
+                            "title": "Security First",
+                            "content": "Bank-grade encryption and compliance"
+                        },
+                        {
+                            "title": "Easy Integration",
+                            "content": "Seamless API integration with existing systems"
+                        }
+                    ]
+                },
+                {
+                    "layout": "minimal",
+                    "animation": "slide-bottom",
+                    "badge": "Vision",
+                    "title": "Future of Banking",
+                    "subtitle": "Where Technology Meets Finance",
+                    "content": "We envision a world where every bank employee has AI assistants that handle routine tasks, allowing humans to focus on complex decision-making and customer relationships.",
+                    "items": [
+                        "Increase operational efficiency by 300%",
+                        "Reduce customer wait times by 95%",
+                        "Scale personalized service to millions"
+                    ]
+                },
+                {
+                    "layout": "image-focus",
+                    "animation": "fade",
+                    "badge": "Market Opportunity",
+                    "title": "$150B Global Market",
+                    "subtitle": "Massive TAM with Growing Demand",
+                    "image": "product-demo",
+                    "items": [
+                        "10,000+ banks worldwide",
+                        "Growing demand for digital transformation",
+                        "Regulatory pressure for automation"
+                    ]
+                },
+                {
+                    "layout": "split-left",
+                    "animation": "slide-right",
+                    "badge": "Traction",
+                    "title": "Proven Results",
+                    "subtitle": "Real Impact, Real Numbers",
+                    "image": "team-photo",
+                    "items": [
+                        "5 enterprise pilot programs",
+                        "250% increase in customer satisfaction",
+                        "80% reduction in processing time",
+                        "$2M ARR in first year",
+                        "15 team members across 3 countries"
+                    ]
+                },
+                {
+                    "layout": "centered",
+                    "animation": "zoom",
+                    "background": "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
+                    "badge": "The Ask",
+                    "title": "Join Our Journey",
+                    "subtitle": "Seeking $5M Series A",
+                    "content": "Help us revolutionize banking with AI. Together, we'll build the future of financial services.",
+                    "items": [
+                        "Scale to 50 enterprise clients",
+                        "Expand AI capabilities",
+                        "Grow team from 15 to 50",
+                        "Launch in 5 new markets"
+                    ],
+                    "textColor": "#ffffff",
+                    "badgeColor": "rgba(255,255,255,0.2)",
+                    "badgeBorder": "rgba(255,255,255,0.3)",
+                    "badgeText": "#ffffff"
+                }
+            ]
+        };
+
+        // Apply theme to the page
+        function applyTheme(theme) {
+            const root = document.documentElement;
+
+            // Apply colors as CSS variables
+            Object.keys(theme.colors).forEach(key => {
+                root.style.setProperty(`--color-${key}`, theme.colors[key]);
+            });
+
+            // Apply fonts
+            root.style.setProperty('--font-title', theme.fonts.title);
+            root.style.setProperty('--font-body', theme.fonts.body);
+
+            // Apply to elements
+            document.body.style.backgroundColor = theme.colors.background;
+            document.body.style.color = theme.colors.text;
+            document.body.style.fontFamily = theme.fonts.body;
+
+            // JSON Panel
+            const jsonPanel = document.getElementById('jsonPanel');
+            jsonPanel.style.backgroundColor = theme.colors.panelBackground;
+            jsonPanel.style.borderRight = `2px solid ${theme.colors.border}`;
+            jsonPanel.style.color = theme.colors.text;
+
+            const jsonDisplay = document.getElementById('jsonDisplayContainer');
+            jsonDisplay.style.backgroundColor = theme.colors.background;
+            jsonDisplay.style.border = `1px solid ${theme.colors.border}`;
+            jsonDisplay.style.color = theme.colors.text;
+
+            // Info box
+            const infoBox = document.getElementById('infoBox');
+            infoBox.style.backgroundColor = theme.colors.panelBackground;
+            infoBox.style.borderLeftColor = theme.colors.primary;
+            infoBox.querySelector('h3').style.color = theme.colors.primary;
+
+            // Slideshow panel
+            const slideshowPanel = document.getElementById('slideshowPanel');
+            slideshowPanel.style.backgroundColor = theme.colors.background;
+
+            // Controls
+            const controls = document.querySelectorAll('.controls button');
+            controls.forEach(btn => {
+                btn.style.backgroundColor = theme.colors.controlBg;
+                btn.style.color = theme.colors.controlText;
+            });
+
+            const indicator = document.getElementById('slideIndicator');
+            indicator.style.backgroundColor = theme.colors.panelBackground;
+            indicator.style.color = theme.colors.textSecondary;
+            indicator.style.border = `1px solid ${theme.colors.border}`;
+        }
+
+        // Load image by key
+        function loadImage(imageKey) {
+            if (!imageKey) return '';
+
+            // Try different extensions
+            const extensions = ['png', 'jpg', 'jpeg', 'svg', 'webp', 'gif'];
+            const imagePath = `assets/images/${imageKey}`;
+
+            // For demo, we'll use a placeholder
+            // In production, this would check if the file exists
+            return `https://via.placeholder.com/600x400/667eea/ffffff?text=${imageKey}`;
+        }
+
+        // Generate slides from JSON
+        let currentSlideIndex = 0;
+        const slideshowContainer = document.getElementById('slideshowContainer');
+
+        function generateSlides(data) {
+            const theme = data.theme;
+
+            data.slides.forEach((slide, index) => {
+                const slideDiv = document.createElement('div');
+                slideDiv.className = `slide layout-${slide.layout} anim-${slide.animation}`;
+                if (index === 0) slideDiv.classList.add('active');
+
+                // Apply slide background
+                if (slide.background) {
+                    slideDiv.style.background = slide.background;
+                } else {
+                    slideDiv.style.backgroundColor = theme.colors.background;
+                }
+
+                // Apply text color
+                const textColor = slide.textColor || theme.colors.text;
+                slideDiv.style.color = textColor;
+
+                let slideHTML = '';
+
+                // For split layouts and image-focus
+                if (slide.layout === 'split-left' || slide.layout === 'split-right' || slide.layout === 'image-focus') {
+                    if (slide.image) {
+                        slideHTML += `
+                            <div class="slide-image-container">
+                                <img src="${loadImage(slide.image)}" alt="${slide.title}" class="slide-image" style="box-shadow: ${theme.effects.shadow}">
+                            </div>
+                        `;
+                    }
+                }
+
+                // Content container
+                slideHTML += '<div class="slide-content-container">';
+
+                // Grid layout
+                if (slide.layout === 'grid') {
+                    slideHTML += '<div class="grid-header">';
+                }
+
+                // Badge
+                if (slide.badge) {
+                    const badgeColor = slide.badgeColor || `${theme.colors.primary}15`;
+                    const badgeBorder = slide.badgeBorder || `${theme.colors.primary}30`;
+                    const badgeText = slide.badgeText || theme.colors.primary;
+
+                    slideHTML += `
+                        <div class="slide-badge" style="background: ${badgeColor}; border: 1px solid ${badgeBorder}; color: ${badgeText}">
+                            <div class="badge-dot" style="background: ${badgeText}"></div>
+                            ${slide.badge}
+                        </div>
+                    `;
+                }
+
+                // Title
+                if (slide.title) {
+                    let titleStyle = `font-family: ${theme.fonts.title};`;
+                    if (slide.textColor) {
+                        titleStyle += `color: ${slide.textColor};`;
+                    } else {
+                        titleStyle += `background: linear-gradient(to right, ${theme.colors.primary}, ${theme.colors.secondary}); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;`;
+                    }
+                    slideHTML += `<h1 class="slide-title" style="${titleStyle}">${slide.title}</h1>`;
+                }
+
+                // Subtitle
+                if (slide.subtitle) {
+                    const subtitleColor = slide.textColor ? `${slide.textColor}cc` : theme.colors.textSecondary;
+                    slideHTML += `<div class="slide-subtitle" style="color: ${subtitleColor}">${slide.subtitle}</div>`;
+                }
+
+                if (slide.layout === 'grid') {
+                    slideHTML += '</div>'; // Close grid-header
+                }
+
+                // Content
+                if (slide.content) {
+                    const contentColor = slide.textColor ? `${slide.textColor}dd` : theme.colors.text;
+                    slideHTML += `<div class="slide-content" style="color: ${contentColor}">${slide.content}</div>`;
+                }
+
+                // Grid items
+                if (slide.gridItems && slide.layout === 'grid') {
+                    slideHTML += '<div class="grid-items">';
+                    slide.gridItems.forEach(item => {
+                        slideHTML += `
+                            <div class="grid-item" style="background: ${theme.colors.panelBackground}; border: 1px solid ${theme.colors.border}">
+                                <h3 style="color: ${theme.colors.primary}; margin-bottom: 10px;">${item.title}</h3>
+                                <p style="color: ${theme.colors.textSecondary}; font-size: 0.95rem;">${item.content}</p>
+                            </div>
+                        `;
+                    });
+                    slideHTML += '</div>';
+                }
+
+                // Items list
+                if (slide.items && slide.items.length > 0) {
+                    const itemColor = slide.textColor || theme.colors.text;
+                    const arrowColor = slide.textColor || theme.colors.primary;
+                    slideHTML += `<ul class="slide-list" style="color: ${itemColor}">`;
+                    slide.items.forEach(item => {
+                        slideHTML += `<li style="color: ${itemColor}"><style>.slide-list li:before { color: ${arrowColor}; }</style>${item}</li>`;
+                    });
+                    slideHTML += '</ul>';
+                }
+
+                // Footer
+                if (slide.footer) {
+                    const footerColor = slide.textColor ? `${slide.textColor}99` : theme.colors.textSecondary;
+                    slideHTML += `<div class="slide-footer" style="color: ${footerColor}">${slide.footer}</div>`;
+                }
+
+                slideHTML += '</div>'; // Close slide-content-container
+
+                slideDiv.innerHTML = slideHTML;
+                slideshowContainer.appendChild(slideDiv);
+            });
+
+            document.getElementById('totalSlides').textContent = data.slides.length;
+        }
+
+        function changeSlide(direction) {
+            const slides = document.querySelectorAll('.slide');
+            slides[currentSlideIndex].classList.remove('active');
+
+            currentSlideIndex += direction;
+
+            // Boundary checks
+            if (currentSlideIndex >= slides.length) {
+                currentSlideIndex = slides.length - 1;
+            }
+            if (currentSlideIndex < 0) {
+                currentSlideIndex = 0;
+            }
+
+            slides[currentSlideIndex].classList.add('active');
+            document.getElementById('currentSlide').textContent = currentSlideIndex + 1;
+
+            // Update button states
+            document.getElementById('prevBtn').disabled = currentSlideIndex === 0;
+            document.getElementById('nextBtn').disabled = currentSlideIndex === slides.length - 1;
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                e.preventDefault();
+                changeSlide(1);
+            } else if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                changeSlide(-1);
+            }
+        });
+
+        // Initialize
+        document.getElementById('jsonDisplay').textContent = JSON.stringify(slideshowData, null, 2);
+        applyTheme(slideshowData.theme);
+        generateSlides(slideshowData);
+        document.getElementById('prevBtn').disabled = true;
+    </script>
+</body>
+</html>

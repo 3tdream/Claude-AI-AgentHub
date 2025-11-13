@@ -1,0 +1,552 @@
+[
+  {
+    "id": "prod-001",
+    "slug": "wireless-noise-canceling-headphones",
+    "title": "Wireless Noise-Canceling Headphones",
+    "description": "Premium over-ear headphones with advanced active noise cancellation, 30-hour battery life, and superior sound quality. Features include adaptive EQ, spatial audio, and seamless device switching. Perfect for work, travel, and immersive listening experiences.",
+    "shortDescription": "Premium wireless headphones with 30hr battery and ANC",
+    "price": {
+      "amount": 349.99,
+      "currency": "USD"
+    },
+    "compareAtPrice": 449.99,
+    "media": [
+      {
+        "id": "img-001-1",
+        "url": "https://images.unsplash.com/photo-1545127398-14699f92334b?w=800&h=800&fit=crop",
+        "alt": "Black wireless headphones front view",
+        "type": "image",
+        "width": 800,
+        "height": 800
+      },
+      {
+        "id": "img-001-2",
+        "url": "https://images.unsplash.com/photo-1484704849700-f032a568e944?w=800&h=800&fit=crop",
+        "alt": "Headphones side profile",
+        "type": "image",
+        "width": 800,
+        "height": 800
+      }
+    ],
+    "specs": [
+      { "label": "Battery Life", "value": "30 hours" },
+      { "label": "Connectivity", "value": "Bluetooth 5.3" },
+      { "label": "Weight", "value": "250g" },
+      { "label": "Driver Size", "value": "40mm" },
+      { "label": "Noise Cancellation", "value": "Active ANC" }
+    ],
+    "tags": ["electronics", "audio", "wireless", "premium", "noise-canceling"],
+    "category": "electronics",
+    "featured": true,
+    "stock": 45,
+    "available": true,
+    "variants": [
+      {
+        "id": "var-001-1",
+        "title": "Black",
+        "sku": "HEAD-BLK-001",
+        "price": { "amount": 349.99, "currency": "USD" },
+        "stock": 25,
+        "options": { "color": "Black" },
+        "available": true
+      },
+      {
+        "id": "var-001-2",
+        "title": "Silver",
+        "sku": "HEAD-SLV-001",
+        "price": { "amount": 349.99, "currency": "USD" },
+        "stock": 20,
+        "options": { "color": "Silver" },
+        "available": true
+      }
+    ],
+    "seo": {
+      "title": "Premium Wireless Noise-Canceling Headphones",
+      "description": "Experience superior sound with 30-hour battery and advanced ANC",
+      "keywords": ["wireless headphones", "noise canceling", "bluetooth headphones"]
+    }
+  },
+  {
+    "id": "prod-002",
+    "slug": "smart-fitness-tracker",
+    "title": "Smart Fitness Tracker Watch",
+    "description": "Advanced fitness tracker with heart rate monitoring, sleep tracking, GPS, and 14-day battery life. Track your workouts, monitor health metrics, and stay connected with smart notifications. Water-resistant design perfect for swimming and intense workouts.",
+    "shortDescription": "Fitness tracker with GPS and 14-day battery",
+    "price": {
+      "amount": 199.99,
+      "currency": "USD"
+    },
+    "media": [
+      {
+        "id": "img-002-1",
+        "url": "https://images.unsplash.com/photo-1575311373937-040b8e1fd5b6?w=800&h=800&fit=crop",
+        "alt": "Smart fitness tracker on wrist",
+        "type": "image",
+        "width": 800,
+        "height": 800
+      }
+    ],
+    "specs": [
+      { "label": "Battery Life", "value": "14 days" },
+      { "label": "Water Resistance", "value": "5ATM" },
+      { "label": "GPS", "value": "Built-in" },
+      { "label": "Heart Rate Monitor", "value": "24/7" },
+      { "label": "Display", "value": "1.4\" AMOLED" }
+    ],
+    "tags": ["electronics", "fitness", "wearable", "health"],
+    "category": "electronics",
+    "featured": true,
+    "stock": 78,
+    "available": true
+  },
+  {
+    "id": "prod-003",
+    "slug": "minimalist-laptop-backpack",
+    "title": "Minimalist Laptop Backpack",
+    "description": "Sleek and functional backpack designed for modern professionals. Features a dedicated laptop compartment (fits up to 15.6\"), water-resistant fabric, hidden anti-theft pocket, and ergonomic design. Multiple organizational pockets keep your gear organized on the go.",
+    "shortDescription": "Water-resistant backpack with laptop compartment",
+    "price": {
+      "amount": 89.99,
+      "currency": "USD"
+    },
+    "media": [
+      {
+        "id": "img-003-1",
+        "url": "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800&h=800&fit=crop",
+        "alt": "Black minimalist backpack",
+        "type": "image",
+        "width": 800,
+        "height": 800
+      }
+    ],
+    "specs": [
+      { "label": "Material", "value": "Water-resistant polyester" },
+      { "label": "Laptop Capacity", "value": "Up to 15.6\"" },
+      { "label": "Volume", "value": "20L" },
+      { "label": "Weight", "value": "0.8kg" }
+    ],
+    "tags": ["fashion", "accessories", "backpack", "work"],
+    "category": "fashion",
+    "featured": false,
+    "stock": 120,
+    "available": true,
+    "variants": [
+      {
+        "id": "var-003-1",
+        "title": "Black",
+        "sku": "BAG-BLK-003",
+        "price": { "amount": 89.99, "currency": "USD" },
+        "stock": 80,
+        "options": { "color": "Black" },
+        "available": true
+      },
+      {
+        "id": "var-003-2",
+        "title": "Gray",
+        "sku": "BAG-GRY-003",
+        "price": { "amount": 89.99, "currency": "USD" },
+        "stock": 40,
+        "options": { "color": "Gray" },
+        "available": true
+      }
+    ]
+  },
+  {
+    "id": "prod-004",
+    "slug": "ceramic-table-lamp",
+    "title": "Modern Ceramic Table Lamp",
+    "description": "Elegant table lamp with handcrafted ceramic base and linen shade. Provides warm, ambient lighting perfect for bedrooms, living rooms, or offices. Features a dimmer switch for adjustable brightness and adds a touch of sophistication to any space.",
+    "shortDescription": "Handcrafted ceramic lamp with dimmer",
+    "price": {
+      "amount": 129.99,
+      "currency": "USD"
+    },
+    "media": [
+      {
+        "id": "img-004-1",
+        "url": "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=800&h=800&fit=crop",
+        "alt": "White ceramic table lamp",
+        "type": "image",
+        "width": 800,
+        "height": 800
+      }
+    ],
+    "specs": [
+      { "label": "Material", "value": "Ceramic & Linen" },
+      { "label": "Height", "value": "18 inches" },
+      { "label": "Bulb Type", "value": "E26 LED (included)" },
+      { "label": "Dimmer", "value": "Included" }
+    ],
+    "tags": ["home", "lighting", "decor", "ceramic"],
+    "category": "home",
+    "featured": true,
+    "stock": 35,
+    "available": true
+  },
+  {
+    "id": "prod-005",
+    "slug": "yoga-mat-pro",
+    "title": "Professional Yoga Mat",
+    "description": "Premium non-slip yoga mat with extra cushioning for joint protection. Made from eco-friendly TPE material, this mat provides excellent grip and support for all yoga styles. Includes carrying strap and alignment markers for proper form.",
+    "shortDescription": "Eco-friendly yoga mat with superior grip",
+    "price": {
+      "amount": 59.99,
+      "currency": "USD"
+    },
+    "media": [
+      {
+        "id": "img-005-1",
+        "url": "https://images.unsplash.com/photo-1601925260368-ae2f83cf8b7f?w=800&h=800&fit=crop",
+        "alt": "Purple yoga mat rolled out",
+        "type": "image",
+        "width": 800,
+        "height": 800
+      }
+    ],
+    "specs": [
+      { "label": "Material", "value": "Eco-friendly TPE" },
+      { "label": "Thickness", "value": "6mm" },
+      { "label": "Size", "value": "72\" x 24\"" },
+      { "label": "Weight", "value": "1.2kg" }
+    ],
+    "tags": ["sports", "yoga", "fitness", "eco-friendly"],
+    "category": "sports",
+    "featured": false,
+    "stock": 95,
+    "available": true,
+    "variants": [
+      {
+        "id": "var-005-1",
+        "title": "Purple",
+        "sku": "YOGA-PUR-005",
+        "price": { "amount": 59.99, "currency": "USD" },
+        "stock": 50,
+        "options": { "color": "Purple" },
+        "available": true
+      },
+      {
+        "id": "var-005-2",
+        "title": "Blue",
+        "sku": "YOGA-BLU-005",
+        "price": { "amount": 59.99, "currency": "USD" },
+        "stock": 45,
+        "options": { "color": "Blue" },
+        "available": true
+      }
+    ]
+  },
+  {
+    "id": "prod-006",
+    "slug": "smart-led-bulbs-4pack",
+    "title": "Smart LED Bulbs (4-Pack)",
+    "description": "Wi-Fi enabled smart bulbs with 16 million color options and voice control compatibility. Set schedules, create scenes, and control from anywhere with the mobile app. Energy-efficient and long-lasting with 25,000-hour lifespan.",
+    "shortDescription": "Voice-controlled smart bulbs with millions of colors",
+    "price": {
+      "amount": 49.99,
+      "currency": "USD"
+    },
+    "media": [
+      {
+        "id": "img-006-1",
+        "url": "https://images.unsplash.com/photo-1563089145-599997674d42?w=800&h=800&fit=crop",
+        "alt": "Smart LED bulbs",
+        "type": "image",
+        "width": 800,
+        "height": 800
+      }
+    ],
+    "specs": [
+      { "label": "Wattage", "value": "9W (60W equivalent)" },
+      { "label": "Colors", "value": "16 million" },
+      { "label": "Lifespan", "value": "25,000 hours" },
+      { "label": "Connectivity", "value": "Wi-Fi 2.4GHz" }
+    ],
+    "tags": ["electronics", "smart-home", "lighting", "iot"],
+    "category": "electronics",
+    "featured": false,
+    "stock": 150,
+    "available": true
+  },
+  {
+    "id": "prod-007",
+    "slug": "leather-crossbody-bag",
+    "title": "Genuine Leather Crossbody Bag",
+    "description": "Timeless crossbody bag crafted from premium full-grain leather. Features adjustable strap, multiple compartments, and brass hardware. Perfect for daily use, combining style with functionality. Ages beautifully over time.",
+    "shortDescription": "Premium leather bag with adjustable strap",
+    "price": {
+      "amount": 159.99,
+      "currency": "USD"
+    },
+    "compareAtPrice": 199.99,
+    "media": [
+      {
+        "id": "img-007-1",
+        "url": "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=800&h=800&fit=crop",
+        "alt": "Brown leather crossbody bag",
+        "type": "image",
+        "width": 800,
+        "height": 800
+      }
+    ],
+    "specs": [
+      { "label": "Material", "value": "Full-grain leather" },
+      { "label": "Dimensions", "value": "10\" x 8\" x 3\"" },
+      { "label": "Strap", "value": "Adjustable 24-52\"" },
+      { "label": "Closure", "value": "Magnetic snap" }
+    ],
+    "tags": ["fashion", "accessories", "leather", "bag"],
+    "category": "fashion",
+    "featured": true,
+    "stock": 42,
+    "available": true,
+    "variants": [
+      {
+        "id": "var-007-1",
+        "title": "Cognac",
+        "sku": "BAG-COG-007",
+        "price": { "amount": 159.99, "currency": "USD" },
+        "stock": 25,
+        "options": { "color": "Cognac" },
+        "available": true
+      },
+      {
+        "id": "var-007-2",
+        "title": "Black",
+        "sku": "BAG-BLK-007",
+        "price": { "amount": 159.99, "currency": "USD" },
+        "stock": 17,
+        "options": { "color": "Black" },
+        "available": true
+      }
+    ]
+  },
+  {
+    "id": "prod-008",
+    "slug": "bamboo-cutting-board-set",
+    "title": "Bamboo Cutting Board Set (3 Pieces)",
+    "description": "Eco-friendly bamboo cutting board set includes small, medium, and large boards. Naturally antimicrobial, gentle on knives, and sustainable. Features juice grooves and non-slip feet. Easy to clean and maintain.",
+    "shortDescription": "Sustainable bamboo boards in 3 sizes",
+    "price": {
+      "amount": 39.99,
+      "currency": "USD"
+    },
+    "media": [
+      {
+        "id": "img-008-1",
+        "url": "https://images.unsplash.com/photo-1565894040464-d95015179317?w=800&h=800&fit=crop",
+        "alt": "Bamboo cutting boards stacked",
+        "type": "image",
+        "width": 800,
+        "height": 800
+      }
+    ],
+    "specs": [
+      { "label": "Material", "value": "100% Bamboo" },
+      { "label": "Set Includes", "value": "Small, Medium, Large" },
+      { "label": "Large Size", "value": "15\" x 11\"" },
+      { "label": "Care", "value": "Hand wash only" }
+    ],
+    "tags": ["home", "kitchen", "eco-friendly", "bamboo"],
+    "category": "home",
+    "featured": false,
+    "stock": 88,
+    "available": true
+  },
+  {
+    "id": "prod-009",
+    "slug": "running-shoes-ultralight",
+    "title": "Ultralight Running Shoes",
+    "description": "High-performance running shoes engineered for speed and comfort. Features responsive cushioning, breathable mesh upper, and lightweight design. Perfect for road running, training, and racing. Includes reflective elements for low-light visibility.",
+    "shortDescription": "Lightweight runners with responsive cushioning",
+    "price": {
+      "amount": 139.99,
+      "currency": "USD"
+    },
+    "media": [
+      {
+        "id": "img-009-1",
+        "url": "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800&h=800&fit=crop",
+        "alt": "Red running shoes",
+        "type": "image",
+        "width": 800,
+        "height": 800
+      }
+    ],
+    "specs": [
+      { "label": "Weight", "value": "220g (per shoe)" },
+      { "label": "Drop", "value": "8mm" },
+      { "label": "Upper", "value": "Engineered mesh" },
+      { "label": "Outsole", "value": "Rubber with traction" }
+    ],
+    "tags": ["sports", "running", "shoes", "performance"],
+    "category": "sports",
+    "featured": true,
+    "stock": 65,
+    "available": true,
+    "variants": [
+      {
+        "id": "var-009-1",
+        "title": "Size 9",
+        "sku": "SHOE-RED-09",
+        "price": { "amount": 139.99, "currency": "USD" },
+        "stock": 15,
+        "options": { "size": "9" },
+        "available": true
+      },
+      {
+        "id": "var-009-2",
+        "title": "Size 10",
+        "sku": "SHOE-RED-10",
+        "price": { "amount": 139.99, "currency": "USD" },
+        "stock": 25,
+        "options": { "size": "10" },
+        "available": true
+      },
+      {
+        "id": "var-009-3",
+        "title": "Size 11",
+        "sku": "SHOE-RED-11",
+        "price": { "amount": 139.99, "currency": "USD" },
+        "stock": 25,
+        "options": { "size": "11" },
+        "available": true
+      }
+    ]
+  },
+  {
+    "id": "prod-010",
+    "slug": "wireless-charging-station",
+    "title": "3-in-1 Wireless Charging Station",
+    "description": "Charge your phone, watch, and earbuds simultaneously with this sleek charging station. Supports fast charging, includes adjustable phone stand, and features LED indicators. Compatible with all Qi-enabled devices.",
+    "shortDescription": "Fast wireless charger for phone, watch, and earbuds",
+    "price": {
+      "amount": 79.99,
+      "currency": "USD"
+    },
+    "media": [
+      {
+        "id": "img-010-1",
+        "url": "https://images.unsplash.com/photo-1591290619762-c588e6d3ba3f?w=800&h=800&fit=crop",
+        "alt": "Wireless charging station",
+        "type": "image",
+        "width": 800,
+        "height": 800
+      }
+    ],
+    "specs": [
+      { "label": "Output", "value": "15W Max" },
+      { "label": "Compatibility", "value": "Qi-enabled devices" },
+      { "label": "Includes", "value": "Power adapter" },
+      { "label": "Material", "value": "Aluminum & silicone" }
+    ],
+    "tags": ["electronics", "charging", "wireless", "accessories"],
+    "category": "electronics",
+    "featured": false,
+    "stock": 110,
+    "available": true
+  },
+  {
+    "id": "prod-011",
+    "slug": "cotton-throw-blanket",
+    "title": "Organic Cotton Throw Blanket",
+    "description": "Luxuriously soft throw blanket made from 100% organic cotton. Perfect for cozying up on the couch or adding a layer of warmth to your bed. Machine washable and gets softer with each wash. Available in versatile neutral colors.",
+    "shortDescription": "Soft organic cotton throw in neutral colors",
+    "price": {
+      "amount": 69.99,
+      "currency": "USD"
+    },
+    "media": [
+      {
+        "id": "img-011-1",
+        "url": "https://images.unsplash.com/photo-1615800002234-0cf334e6da82?w=800&h=800&fit=crop",
+        "alt": "Beige cotton throw blanket",
+        "type": "image",
+        "width": 800,
+        "height": 800
+      }
+    ],
+    "specs": [
+      { "label": "Material", "value": "100% Organic Cotton" },
+      { "label": "Size", "value": "50\" x 60\"" },
+      { "label": "Weight", "value": "1.5 lbs" },
+      { "label": "Care", "value": "Machine washable" }
+    ],
+    "tags": ["home", "textiles", "organic", "blanket"],
+    "category": "home",
+    "featured": false,
+    "stock": 75,
+    "available": true,
+    "variants": [
+      {
+        "id": "var-011-1",
+        "title": "Beige",
+        "sku": "BLNK-BEG-011",
+        "price": { "amount": 69.99, "currency": "USD" },
+        "stock": 40,
+        "options": { "color": "Beige" },
+        "available": true
+      },
+      {
+        "id": "var-011-2",
+        "title": "Gray",
+        "sku": "BLNK-GRY-011",
+        "price": { "amount": 69.99, "currency": "USD" },
+        "stock": 35,
+        "options": { "color": "Gray" },
+        "available": true
+      }
+    ]
+  },
+  {
+    "id": "prod-012",
+    "slug": "stainless-steel-water-bottle",
+    "title": "Insulated Stainless Steel Water Bottle",
+    "description": "Keep drinks cold for 24 hours or hot for 12 hours with this vacuum-insulated water bottle. Made from durable 18/8 stainless steel, BPA-free, and features a leak-proof lid. Wide mouth for easy cleaning and adding ice. Perfect for sports, travel, or daily hydration.",
+    "shortDescription": "24hr cold / 12hr hot insulated bottle",
+    "price": {
+      "amount": 34.99,
+      "currency": "USD"
+    },
+    "media": [
+      {
+        "id": "img-012-1",
+        "url": "https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=800&h=800&fit=crop",
+        "alt": "Stainless steel water bottle",
+        "type": "image",
+        "width": 800,
+        "height": 800
+      }
+    ],
+    "specs": [
+      { "label": "Material", "value": "18/8 Stainless Steel" },
+      { "label": "Capacity", "value": "32 oz" },
+      { "label": "Insulation", "value": "Double-wall vacuum" },
+      { "label": "Lid Type", "value": "Leak-proof screw cap" }
+    ],
+    "tags": ["sports", "hydration", "insulated", "eco-friendly"],
+    "category": "sports",
+    "featured": false,
+    "stock": 132,
+    "available": true,
+    "variants": [
+      {
+        "id": "var-012-1",
+        "title": "Black",
+        "sku": "BTL-BLK-012",
+        "price": { "amount": 34.99, "currency": "USD" },
+        "stock": 70,
+        "options": { "color": "Black" },
+        "available": true
+      },
+      {
+        "id": "var-012-2",
+        "title": "White",
+        "sku": "BTL-WHT-012",
+        "price": { "amount": 34.99, "currency": "USD" },
+        "stock": 62,
+        "options": { "color": "White" },
+        "available": true
+      }
+    ]
+  }
+]

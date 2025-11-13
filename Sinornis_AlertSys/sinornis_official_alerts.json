@@ -1,0 +1,522 @@
+{
+  "sinornis_alerts_official": {
+    "version": "1.0",
+    "source": "Alerts Sinornis check list.csv",
+    "total_alerts": 28,
+    "alerts": [
+      {
+        "id": "ALERT_001",
+        "number": 1,
+        "severity": "critical",
+        "title": "Bird Breathing Difficulty",
+        "description_he": "ציפור מתקשה לנשום בעת לחץ חם או שילוב אדי מים ושמש אדומה",
+        "description_en": "Bird struggling breathing under heat stress or combination of water vapors and red sun",
+        "thresholds": {
+          "temperature": ">25°C in houses A, B, C (above 150 birds)"
+        },
+        "sensor_type": "temperature",
+        "priority": "immediate",
+        "recommended_action": "Activate cooling system immediately, reduce heat stress",
+        "notification_channels": ["sms", "email", "web", "audio_alarm"],
+        "visual_indicator": "bird struggling breathing",
+        "category": "environmental_stress"
+      },
+      {
+        "id": "ALERT_002", 
+        "number": 2,
+        "severity": "warning",
+        "title": "High CO2 Levels Detected",
+        "description_he": "רמות CO2 גבוהות מעל הסף המותר - 5 דקות מעל 5000 PPM",
+        "description_en": "High CO2 levels detected above permitted threshold - 5 minutes above 5000 PPM",
+        "thresholds": {
+          "co2": ">5000 PPM for 5+ minutes"
+        },
+        "sensor_type": "air_quality",
+        "priority": "high",
+        "recommended_action": "Increase ventilation immediately, check air circulation",
+        "notification_channels": ["email", "web", "sms"],
+        "visual_indicator": "bird with CO2 molecules around",
+        "category": "air_quality"
+      },
+      {
+        "id": "ALERT_003",
+        "number": 3, 
+        "severity": "warning",
+        "title": "High H2S Levels Detected",
+        "description_he": "רמות H2S גבוהות - 30PPM למעל 5 דקות רצוף",
+        "description_en": "High H2S levels detected - 30PPM for over 5 consecutive minutes",
+        "thresholds": {
+          "h2s": ">30 PPM for 5+ minutes"
+        },
+        "sensor_type": "air_quality",
+        "priority": "high", 
+        "recommended_action": "Increase ventilation, check waste management system",
+        "notification_channels": ["email", "web", "sms"],
+        "visual_indicator": "bird with H2S molecules around",
+        "category": "air_quality"
+      },
+      {
+        "id": "ALERT_004",
+        "number": 4,
+        "severity": "critical",
+        "title": "Critical Air Quality - Multi-Gas Alert", 
+        "description_he": "רמות מסוכנות של מספר גזים - NH3 מעל 6 דקות, CO2 מעל 4000 PPM, H2S מעל 20 PPM",
+        "description_en": "Dangerous levels of multiple gases - NH3 over 6 minutes, CO2 >4000 PPM, H2S >20 PPM",
+        "thresholds": {
+          "nh3": ">20 PPM for 6+ minutes",
+          "co2": ">4000 PPM", 
+          "h2s": ">20 PPM"
+        },
+        "sensor_type": "air_quality",
+        "priority": "immediate",
+        "recommended_action": "Emergency ventilation, evacuate if necessary",
+        "notification_channels": ["sms", "email", "web", "audio_alarm"],
+        "visual_indicator": "bird with danger sign and molecules around",
+        "category": "emergency"
+      },
+      {
+        "id": "ALERT_005",
+        "number": 5,
+        "severity": "warning", 
+        "title": "Insufficient Cooling System",
+        "description_he": "מערכת קירור לא מספקת למניעת מתח חום",
+        "description_en": "Insufficient cooling system for heat stress prevention",
+        "thresholds": {
+          "fan_speed": "<2.5 m/s during hot periods"
+        },
+        "sensor_type": "system",
+        "priority": "medium",
+        "recommended_action": "Check cooling pads, increase fan speed",
+        "notification_channels": ["email", "web"],
+        "visual_indicator": "fan blowing wind",
+        "category": "cooling_system"
+      },
+      {
+        "id": "ALERT_006",
+        "number": 6,
+        "severity": "warning",
+        "title": "Heating System Malfunction",
+        "description_he": "תקלה במערכת החימום במהלך תקופה קרה",
+        "description_en": "Heating system malfunction during cold period", 
+        "thresholds": {
+          "fan_speed": "<2.5 m/s during cold periods"
+        },
+        "sensor_type": "system",
+        "priority": "medium",
+        "recommended_action": "Check heater functionality, repair if needed",
+        "notification_channels": ["email", "web"],
+        "visual_indicator": "broken heater",
+        "category": "heating_system"
+      },
+      {
+        "id": "ALERT_007",
+        "number": 7,
+        "severity": "critical",
+        "title": "Cooling Pad System Failure",
+        "description_he": "תקלה במערכת הפד קירור - מים לא זורמים למשך 3 שעות",
+        "description_en": "Cooling pad system failure - no water flow for 3 hours in sections A-C",
+        "thresholds": {
+          "water_flow": "0 for 3+ hours in sections A-C"
+        },
+        "sensor_type": "water_flow",
+        "priority": "immediate",
+        "recommended_action": "Check water pumps and cooling pad system immediately",
+        "notification_channels": ["sms", "email", "web"],
+        "visual_indicator": "running water on cooling pad and timer", 
+        "category": "cooling_system"
+      },
+      {
+        "id": "ALERT_008", 
+        "number": 8,
+        "severity": "warning",
+        "title": "High PM2.5 Dust Levels",
+        "description_he": "רמות אבק PM2.5 גבוהות - AQI מעל 3 או MODERATE למעל 3 שעות",
+        "description_en": "High PM2.5 dust levels - AQI above 3 or MODERATE for over 3 hours",
+        "thresholds": {
+          "pm25": "AQI >3 or MODERATE for 3+ hours"
+        },
+        "sensor_type": "air_quality",
+        "priority": "medium", 
+        "recommended_action": "Clean environment, check dust sources",
+        "notification_channels": ["email", "web"],
+        "visual_indicator": "bird in a room full with dust",
+        "category": "air_quality"
+      },
+      {
+        "id": "ALERT_009",
+        "number": 9,
+        "severity": "critical",
+        "title": "Severe Dust and H2S Combination",
+        "description_he": "שילוב מסוכן של אבק PM2.5 גבוה ו-H2S במשך 6 שעות",  
+        "description_en": "Dangerous combination of high PM2.5 dust and H2S for 6 hours",
+        "thresholds": {
+          "aqi": "Unhealthy for 6+ hours",
+          "h2s": ">40 PPM for 6+ hours"
+        },
+        "sensor_type": "air_quality",
+        "priority": "immediate",
+        "recommended_action": "Emergency cleaning and ventilation",
+        "notification_channels": ["sms", "email", "web", "audio_alarm"],
+        "visual_indicator": "flying dust and H2S molecules flashing",
+        "category": "emergency"
+      },
+      {
+        "id": "ALERT_010",
+        "number": 10,
+        "severity": "critical", 
+        "title": "High Ammonia (NH3) Levels",
+        "description_he": "רמות אמוניה גבוהות - מעל 25 PPM למעל 6 שעות רצוף",
+        "description_en": "High ammonia levels - above 25 PPM for over 6 consecutive hours",
+        "thresholds": {
+          "nh3": ">25 PPM for 6+ hours"
+        },
+        "sensor_type": "air_quality", 
+        "priority": "immediate",
+        "recommended_action": "Increase ventilation, clean waste immediately",
+        "notification_channels": ["sms", "email", "web"],
+        "visual_indicator": "flying NH3 molecules flashing",
+        "category": "air_quality"
+      },
+      {
+        "id": "ALERT_011",
+        "number": 11,
+        "severity": "warning",
+        "title": "High Humidity with Ammonia",
+        "description_he": "לחות גבוהה עם אמוניה - RH מעל 70% + אמוניה מעל 30PPM למשך 6 שעות",
+        "description_en": "High humidity with ammonia - RH above 70% + ammonia above 30PPM for 6 hours", 
+        "thresholds": {
+          "humidity": ">70% for 6+ hours",
+          "nh3": ">30 PPM for 6+ hours"
+        },
+        "sensor_type": "environmental",
+        "priority": "high",
+        "recommended_action": "Reduce humidity, increase ventilation",
+        "notification_channels": ["email", "web", "sms"],
+        "visual_indicator": "flying NH3 molecules and water drops flashing",
+        "category": "environmental"
+      },
+      {
+        "id": "ALERT_012",
+        "number": 12,
+        "severity": "critical",
+        "title": "Extremely Low Humidity",
+        "description_he": "לחות נמוכה ביותר - RH מתחת ל-45% למשך 5 שעות רצוף",
+        "description_en": "Extremely low humidity - RH below 45% for 5 consecutive hours",
+        "thresholds": {
+          "humidity": "<45% for 5+ hours"
+        },
+        "sensor_type": "humidity",
+        "priority": "immediate", 
+        "recommended_action": "Add moisture to environment immediately",
+        "notification_channels": ["sms", "email", "web"],
+        "visual_indicator": "desert",
+        "category": "environmental"
+      },
+      {
+        "id": "ALERT_013",
+        "number": 13,
+        "severity": "warning",
+        "title": "High Bacteria Growth Conditions",
+        "description_he": "תנאים מתאימים לגידול חיידקים - AQI מעל 150 + RH מעל 70% למשך 10 שעות",
+        "description_en": "Conditions suitable for bacteria growth - AQI above 150 + RH above 70% for 10 hours",
+        "thresholds": {
+          "aqi": ">150 for 10+ hours", 
+          "humidity": ">70% for 10+ hours"
+        },
+        "sensor_type": "environmental",
+        "priority": "high",
+        "recommended_action": "Sanitize environment, reduce humidity",
+        "notification_channels": ["email", "web", "sms"],
+        "visual_indicator": "happy bacteria flying",
+        "category": "health_risk"
+      },
+      {
+        "id": "ALERT_014",
+        "number": 14,
+        "severity": "critical",
+        "title": "Cold Draft on Young Chicks",
+        "description_he": "רוח קרה על אפרוחים צעירים - מהירות רוח מעל 0.3 m/s במשך 14 ימים רצופים",
+        "description_en": "Cold draft on young chicks - wind speed above 0.3 m/s for 14 consecutive days",
+        "thresholds": {
+          "wind_speed": ">0.3 m/s for 14+ days on young chicks"
+        },
+        "sensor_type": "airflow",
+        "priority": "immediate",
+        "recommended_action": "Reduce drafts, protect young chicks",
+        "notification_channels": ["sms", "email", "web"],
+        "visual_indicator": "wind on chilled chicks", 
+        "category": "chick_welfare"
+      },
+      {
+        "id": "ALERT_015",
+        "number": 15,
+        "severity": "critical",
+        "title": "Excessive Ventilation During Cold",
+        "description_he": "אוורור חזק מדי בתקופה קרה - מהירות מעל 2.5 מטר בשנייה",
+        "description_en": "Excessive ventilation during cold period - speed above 2.5 m/s",
+        "thresholds": {
+          "fan_speed": ">2.5 m/s during cold + sections A+C + wind speed >0.5"
+        },
+        "sensor_type": "ventilation",
+        "priority": "immediate",
+        "recommended_action": "Reduce ventilation speed, maintain temperature",
+        "notification_channels": ["sms", "email", "web"],
+        "visual_indicator": "fan blowing wind",
+        "category": "ventilation"
+      },
+      {
+        "id": "ALERT_016",
+        "number": 16,
+        "severity": "critical", 
+        "title": "Cooling System Temperature Difference",
+        "description_he": "הפרש טמפרטורות במערכת קירור - בין חלקים A ו-B הפרש של 1-1.5 מעלות, בין A ו-C הפרש של 3-4 מעלות",
+        "description_en": "Cooling system temperature difference - between sections A & B difference of 1-1.5°C, between A & C difference of 3-4°C",
+        "thresholds": {
+          "temp_diff_ab": "1-1.5°C difference",
+          "temp_diff_ac": "3-4°C difference"
+        },
+        "sensor_type": "temperature",
+        "priority": "immediate",
+        "recommended_action": "Balance cooling system, check water flow",
+        "notification_channels": ["sms", "email", "web"],
+        "visual_indicator": "running water on cooling pad and timer",
+        "category": "cooling_system"
+      },
+      {
+        "id": "ALERT_017",
+        "number": 17,
+        "severity": "warning",
+        "title": "Bird Vocalization Alert", 
+        "description_he": "קולות ציפורים חריגים המעידים על מתח",
+        "description_en": "Unusual bird vocalizations indicating stress",
+        "thresholds": {
+          "sound_level": "Abnormal vocalization patterns"
+        },
+        "sensor_type": "audio",
+        "priority": "medium",
+        "recommended_action": "Check environmental conditions, investigate stress causes",
+        "notification_channels": ["email", "web"],
+        "visual_indicator": "loud voice out of bird",
+        "category": "behavior"
+      },
+      {
+        "id": "ALERT_018",
+        "number": 18,
+        "severity": "critical",
+        "title": "Emergency Bird Distress Calls",
+        "description_he": "קריאות מצוקה של ציפורים - רעש חירום",
+        "description_en": "Emergency bird distress calls - emergency noise level",
+        "thresholds": {
+          "distress_calls": "Emergency level distress"
+        },
+        "sensor_type": "audio", 
+        "priority": "immediate",
+        "recommended_action": "Immediate intervention required, check for predators or emergency",
+        "notification_channels": ["sms", "email", "web", "audio_alarm"],
+        "visual_indicator": "loud voice out of bird",
+        "category": "emergency"
+      },
+      {
+        "id": "ALERT_019", 
+        "number": 19,
+        "severity": "warning",
+        "title": "Unusual Feeding Behavior Sounds",
+        "description_he": "קולות חריגים הקשורים להתנהגות אכילה חריגה",
+        "description_en": "Unusual sounds related to abnormal feeding behavior",
+        "thresholds": {
+          "feeding_sounds": "Abnormal feeding audio patterns"
+        },
+        "sensor_type": "audio",
+        "priority": "medium", 
+        "recommended_action": "Check feed quality and availability",
+        "notification_channels": ["email", "web"],
+        "visual_indicator": "loud voice out of bird with question mark",
+        "category": "feeding"
+      },
+      {
+        "id": "ALERT_020",
+        "number": 20,
+        "severity": "critical",
+        "title": "No Bird Sounds - Silence Alert",
+        "description_he": "אין קולות ציפורים - שקט חשוד",
+        "description_en": "No bird sounds detected - suspicious silence",
+        "thresholds": {
+          "sound_level": "Complete silence for extended period"
+        },
+        "sensor_type": "audio",
+        "priority": "immediate",
+        "recommended_action": "Immediate inspection required - check bird welfare",
+        "notification_channels": ["sms", "email", "web"],
+        "visual_indicator": "loud voice out of bird", 
+        "category": "emergency"
+      },
+      {
+        "id": "ALERT_021",
+        "number": 21,
+        "severity": "critical",
+        "title": "Heater System Failure", 
+        "description_he": "כשל במערכת החימום - מתחת ל-2 שעות מהזמן הנדרש",
+        "description_en": "Heater system failure - below 2 hours of required time",
+        "thresholds": {
+          "heater_time": "<2 hours of required heating"
+        },
+        "sensor_type": "heating",
+        "priority": "immediate",
+        "recommended_action": "Check heater functionality, activate backup heating",
+        "notification_channels": ["sms", "email", "web"],
+        "visual_indicator": "flashing heater",
+        "category": "heating_system"
+      },
+      {
+        "id": "ALERT_022",
+        "number": 22,
+        "severity": "warning",
+        "title": "Partial Heater Malfunction",
+        "description_he": "תקלה חלקית במחממים - מתחת ל-3.5 שעות מהזמן הנדרש", 
+        "description_en": "Partial heater malfunction - below 3.5 hours of required time",
+        "thresholds": {
+          "heater_time": "<3.5 hours of required heating"
+        },
+        "sensor_type": "heating",
+        "priority": "high",
+        "recommended_action": "Check heater efficiency, schedule maintenance",
+        "notification_channels": ["email", "web", "sms"],
+        "visual_indicator": "flashing heater",
+        "category": "heating_system"
+      },
+      {
+        "id": "ALERT_023",
+        "number": 23,
+        "severity": "critical", 
+        "title": "Multiple Heater Failure",
+        "description_he": "כשל במספר מחממים - מתחת ל-4 שעות חימום",
+        "description_en": "Multiple heater failure - below 4 hours of heating",
+        "thresholds": {
+          "heater_time": "<4 hours with multiple heaters"
+        },
+        "sensor_type": "heating",
+        "priority": "immediate",
+        "recommended_action": "Emergency heating repair, activate all backup systems",
+        "notification_channels": ["sms", "email", "web"],
+        "visual_indicator": "flashing 2 heaters",
+        "category": "heating_system"
+      },
+      {
+        "id": "ALERT_024",
+        "number": 24,
+        "severity": "critical",
+        "title": "Critical Heating System Failure",
+        "description_he": "כשל חמור במערכת החימום - מתחת ל-6 שעות חימום",
+        "description_en": "Critical heating system failure - below 6 hours of heating", 
+        "thresholds": {
+          "heater_time": "<6 hours of heating"
+        },
+        "sensor_type": "heating",
+        "priority": "immediate",
+        "recommended_action": "Emergency intervention, check all heating systems",
+        "notification_channels": ["sms", "email", "web", "phone_call"],
+        "visual_indicator": "flashing 3 heaters",
+        "category": "heating_system"
+      },
+      {
+        "id": "ALERT_025",
+        "number": 25,
+        "severity": "critical",
+        "title": "Short-term Cold Stress (10 days)",
+        "description_he": "מתח קור לטווח קצר - 1.5 מעלות מתחת לנורמה למשך 10 ימים",
+        "description_en": "Short-term cold stress - 1.5°C below normal for 10 days",
+        "thresholds": {
+          "temperature": "1.5°C below normal for 10 days"
+        },
+        "sensor_type": "temperature",
+        "priority": "immediate",
+        "recommended_action": "Increase heating, check insulation",
+        "notification_channels": ["sms", "email", "web"],
+        "visual_indicator": "falling snow", 
+        "category": "temperature"
+      },
+      {
+        "id": "ALERT_026",
+        "number": 26,
+        "severity": "critical",
+        "title": "Long-term Cold Stress (30 days)", 
+        "description_he": "מתח קור לטווח ארוך - 1.5 מעלות מתחת לנורמה למשך 30 ימים",
+        "description_en": "Long-term cold stress - 1.5°C below normal for 30 days",
+        "thresholds": {
+          "temperature": "1.5°C below normal for 30 days"
+        },
+        "sensor_type": "temperature",
+        "priority": "immediate",
+        "recommended_action": "Major heating system overhaul required",
+        "notification_channels": ["sms", "email", "web", "phone_call"],
+        "visual_indicator": "falling snow",
+        "category": "temperature"
+      },
+      {
+        "id": "ALERT_027A",
+        "number": 27,
+        "severity": "critical",
+        "title": "Extreme Cold Event (10 days)",
+        "description_he": "אירוע קור קיצוני - 3 מעלות מתחת לנורמה למשך 10 ימים",
+        "description_en": "Extreme cold event - 3°C below normal for 10 days",
+        "thresholds": {
+          "temperature": "3°C below normal for 10 days"
+        },
+        "sensor_type": "temperature", 
+        "priority": "emergency",
+        "recommended_action": "Emergency heating protocol, bird welfare check",
+        "notification_channels": ["sms", "email", "web", "phone_call", "audio_alarm"],
+        "visual_indicator": "falling snow flashing",
+        "category": "emergency"
+      },
+      {
+        "id": "ALERT_027B", 
+        "number": 28,
+        "severity": "critical",
+        "title": "Extended Extreme Cold (30 days)",
+        "description_he": "קור קיצוני מתמשך - 3 מעלות מתחת לנורמה למשך 30 ימים",
+        "description_en": "Extended extreme cold - 3°C below normal for 30 days",
+        "thresholds": {
+          "temperature": "3°C below normal for 30 days"
+        },
+        "sensor_type": "temperature",
+        "priority": "emergency",
+        "recommended_action": "Emergency intervention, consider bird relocation",
+        "notification_channels": ["sms", "email", "web", "phone_call", "audio_alarm"],
+        "visual_indicator": "falling snow flashing",
+        "category": "emergency"
+      }
+    ],
+    "notification_settings": {
+      "critical": {
+        "response_time": "immediate",
+        "channels": ["sms", "email", "web", "audio_alarm"],
+        "escalation_time": "5_minutes"
+      },
+      "warning": {
+        "response_time": "30_minutes", 
+        "channels": ["email", "web", "sms"],
+        "escalation_time": "2_hours"
+      },
+      "emergency": {
+        "response_time": "immediate",
+        "channels": ["sms", "email", "web", "phone_call", "audio_alarm"],
+        "escalation_time": "2_minutes"
+      }
+    },
+    "categories": {
+      "environmental_stress": "Temperature and environmental conditions",
+      "air_quality": "Air quality and gas concentrations", 
+      "cooling_system": "Cooling system functionality",
+      "heating_system": "Heating system functionality",
+      "ventilation": "Ventilation system alerts",
+      "behavior": "Bird behavior monitoring",
+      "emergency": "Emergency situations requiring immediate action",
+      "feeding": "Feeding system and behavior",
+      "temperature": "Temperature control alerts",
+      "environmental": "General environmental conditions",
+      "health_risk": "Conditions risking bird health",
+      "chick_welfare": "Young chick specific alerts"
+    }
+  }
+}

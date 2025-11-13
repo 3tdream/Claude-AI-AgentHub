@@ -1,0 +1,18 @@
+{
+  "slideshows": [
+    {
+      "id": "light-theme",
+      "name": "Light Theme Example",
+      "description": "A bright and modern presentation template with clean design",
+      "theme": "light",
+      "slides": 6
+    },
+    {
+      "id": "dark-theme",
+      "name": "Dark Professional Pitch",
+      "description": "Complete pitch deck with dark theme and professional styling",
+      "theme": "dark",
+      "slides": 12
+    }
+  ]
+}

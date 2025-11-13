@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Figma Auto Layout - Professional Guide</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* Color Palette */
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-light: #818cf8;
+            --accent: #a855f7;
+            --bg-dark: #0f172a;
+            --bg-medium: #1e293b;
+            --bg-light: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-alt: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+
+            /* Typography Scale (8pt grid) - Optimized for FHD */
+            --text-xs: 13px;
+            --text-sm: 15px;
+            --text-base: 18px;
+            --text-lg: 22px;
+            --text-xl: 28px;
+            --text-2xl: 42px;
+            --text-3xl: 56px;
+
+            /* Spacing (8pt grid) - Optimized for FHD */
+            --space-xs: 8px;
+            --space-sm: 12px;
+            --space-md: 16px;
+            --space-lg: 24px;
+            --space-xl: 32px;
+            --space-2xl: 48px;
+            --space-3xl: 64px;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            overflow: hidden;
+            line-height: 1.6;
+        }
+
+        .presentation {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        .slide {
+            width: 1920px;
+            height: 1080px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(var(--slide-scale, 1));
+            transform-origin: center center;
+            background: var(--bg-dark);
+            padding: var(--space-3xl);
+            display: none;
+            opacity: 0;
+            transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .slide.active {
+            display: block;
+            opacity: 1;
+            animation: slideIn 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translate(-50%, calc(-50% + 30px)) scale(var(--slide-scale, 1));
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(var(--slide-scale, 1));
+            }
+        }
+
+        /* Hero Slide */
+        .hero-slide {
+            background: var(--gradient);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-slide::before {
+            content: '';
+            position: absolute;
+            width: 800px;
+            height: 800px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            top: -400px;
+            right: -200px;
+            animation: float 20s infinite ease-in-out;
+        }
+
+        .hero-slide::after {
+            content: '';
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 50%;
+            bottom: -300px;
+            left: -100px;
+            animation: float 15s infinite ease-in-out reverse;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-50px) rotate(180deg); }
+        }
+
+        .hero-content {
+            z-index: 1;
+        }
+
+        .hero-title {
+            font-size: var(--text-3xl);
+            font-weight: 800;
+            margin-bottom: var(--space-md);
+            letter-spacing: -2px;
+        }
+
+        .hero-subtitle {
+            font-size: var(--text-xl);
+            font-weight: 300;
+            margin-bottom: var(--space-xl);
+            opacity: 0.9;
+        }
+
+        .hero-badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            padding: var(--space-sm) var(--space-lg);
+            border-radius: 50px;
+            font-size: var(--text-base);
+            backdrop-filter: blur(10px);
+        }
+
+        /* Content Slide Layouts */
+        .slide-header {
+            margin-bottom: var(--space-lg);
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: var(--space-sm);
+        }
+
+        .slide-title {
+            font-size: var(--text-2xl);
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: var(--space-xs);
+        }
+
+        .slide-subtitle {
+            font-size: var(--text-base);
+            color: var(--text-muted);
+        }
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--space-lg);
+            margin-top: var(--space-md);
+        }
+
+        .content-card {
+            background: var(--bg-medium);
+            padding: var(--space-md) var(--space-lg);
+            border-radius: 12px;
+            border: 1px solid var(--bg-light);
+            transition: all 0.3s ease;
+        }
+
+        .content-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--primary);
+            box-shadow: 0 8px 32px rgba(99, 102, 241, 0.2);
+        }
+
+        .card-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--gradient);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: var(--text-lg);
+            margin-bottom: var(--space-sm);
+        }
+
+        .card-title {
+            font-size: var(--text-lg);
+            font-weight: 600;
+            margin-bottom: var(--space-sm);
+            color: var(--text-primary);
+        }
+
+        .card-description {
+            font-size: var(--text-sm);
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .feature-list {
+            list-style: none;
+            margin-top: var(--space-sm);
+        }
+
+        .feature-list li {
+            padding: var(--space-xs) var(--space-sm);
+            margin-bottom: var(--space-xs);
+            background: var(--bg-light);
+            border-radius: 6px;
+            font-size: var(--text-sm);
+            display: flex;
+            align-items: center;
+            gap: var(--space-xs);
+        }
+
+        .feature-list li::before {
+            content: '✓';
+            color: var(--success);
+            font-weight: bold;
+            font-size: var(--text-lg);
+        }
+
+        .demo-section {
+            background: var(--bg-medium);
+            padding: var(--space-md);
+            border-radius: 12px;
+            margin-top: var(--space-md);
+        }
+
+        .demo-title {
+            font-size: var(--text-lg);
+            font-weight: 600;
+            margin-bottom: var(--space-sm);
+            color: var(--primary-light);
+        }
+
+        .step-list {
+            counter-reset: step-counter;
+            list-style: none;
+        }
+
+        .step-list li {
+            counter-increment: step-counter;
+            padding: var(--space-xs) var(--space-sm);
+            margin-bottom: var(--space-xs);
+            background: var(--bg-dark);
+            border-radius: 6px;
+            font-size: var(--text-sm);
+            position: relative;
+            padding-left: var(--space-lg);
+        }
+
+        .step-list li::before {
+            content: counter(step-counter);
+            position: absolute;
+            left: var(--space-xs);
+            top: 50%;
+            transform: translateY(-50%);
+            width: 24px;
+            height: 24px;
+            background: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: var(--text-xs);
+        }
+
+        .code-block {
+            background: var(--bg-dark);
+            padding: var(--space-md);
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: var(--text-sm);
+            color: var(--primary-light);
+            border-left: 4px solid var(--primary);
+            margin-top: var(--space-md);
+        }
+
+        .highlight {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        /* Table of Contents */
+        .toc-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--space-md);
+            margin-top: var(--space-lg);
+        }
+
+        .toc-item {
+            background: var(--bg-medium);
+            padding: var(--space-md);
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .toc-item:hover {
+            border-color: var(--primary);
+            transform: scale(1.05);
+        }
+
+        .toc-number {
+            font-size: var(--text-2xl);
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: var(--space-sm);
+        }
+
+        .toc-title {
+            font-size: var(--text-base);
+            color: var(--text-primary);
+        }
+
+        /* Navigation */
+        .nav-controls {
+            position: fixed;
+            bottom: var(--space-lg);
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: var(--space-md);
+            z-index: 1000;
+        }
+
+        .nav-btn {
+            background: var(--bg-medium);
+            border: 1px solid var(--bg-light);
+            color: var(--text-primary);
+            padding: var(--space-sm) var(--space-lg);
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: var(--text-base);
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .nav-btn:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 4px;
+            background: var(--primary);
+            transition: width 0.3s ease;
+            z-index: 1001;
+        }
+
+        .slide-number {
+            position: fixed;
+            top: var(--space-md);
+            right: var(--space-md);
+            background: var(--bg-medium);
+            padding: var(--space-sm) var(--space-md);
+            border-radius: 50px;
+            font-size: var(--text-sm);
+            border: 1px solid var(--bg-light);
+            z-index: 1000;
+        }
+
+        /* Property Grid */
+        .property-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--space-sm);
+            margin-top: var(--space-md);
+        }
+
+        .property-card {
+            background: var(--bg-medium);
+            padding: var(--space-sm) var(--space-md);
+            border-radius: 10px;
+            border-left: 4px solid var(--primary);
+        }
+
+        .property-name {
+            font-size: var(--text-lg);
+            font-weight: 600;
+            color: var(--primary-light);
+            margin-bottom: var(--space-xs);
+        }
+
+        .property-description {
+            font-size: var(--text-sm);
+            color: var(--text-secondary);
+        }
+
+        /* Tips Section */
+        .tips-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: var(--space-sm);
+            margin-top: var(--space-md);
+        }
+
+        .tip-card {
+            background: linear-gradient(135deg, var(--bg-medium) 0%, var(--bg-light) 100%);
+            padding: var(--space-sm) var(--space-md);
+            border-radius: 10px;
+            border-left: 4px solid var(--accent);
+        }
+
+        .tip-title {
+            font-size: var(--text-base);
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: var(--space-xs);
+        }
+
+        .tip-description {
+            font-size: var(--text-sm);
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        /* Responsive scaling - handled by JavaScript for better control */
+
+        /* Print styles */
+        @media print {
+            .slide {
+                page-break-after: always;
+                position: relative;
+                transform: none;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100vh;
+            }
+            .nav-controls, .progress-bar, .slide-number {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation">
+        <div class="progress-bar" id="progressBar"></div>
+        <div class="slide-number" id="slideNumber">1 / 13</div>
+
+        <!-- Slide 1: Hero -->
+        <div class="slide hero-slide active">
+            <div class="hero-content">
+                <h1 class="hero-title">Figma Auto Layout</h1>
+                <p class="hero-subtitle">Master the Power of Dynamic, Responsive Design</p>
+                <div class="hero-badge">Complete UX/UI Guide for Students</div>
+            </div>
+        </div>
+
+        <!-- Slide 2: Table of Contents -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2 class="slide-title">What We'll Cover Today</h2>
+                <p class="slide-subtitle">Your journey to Auto Layout mastery</p>
+            </div>
+            <div class="toc-grid">
+                <div class="toc-item">
+                    <div class="toc-number">01</div>
+                    <div class="toc-title">What is Auto Layout?</div>
+                </div>
+                <div class="toc-item">
+                    <div class="toc-number">02</div>
+                    <div class="toc-title">How to Activate</div>
+                </div>
+                <div class="toc-item">
+                    <div class="toc-number">03</div>
+                    <div class="toc-title">Key Properties</div>
+                </div>
+                <div class="toc-item">
+                    <div class="toc-number">04</div>
+                    <div class="toc-title">Demo: Button</div>
+                </div>
+                <div class="toc-item">
+                    <div class="toc-number">05</div>
+                    <div class="toc-title">Demo: Navigation</div>
+                </div>
+                <div class="toc-item">
+                    <div class="toc-number">06</div>
+                    <div class="toc-title">Demo: Card</div>
+                </div>
+                <div class="toc-item">
+                    <div class="toc-number">07</div>
+                    <div class="toc-title">Demo: Form</div>
+                </div>
+                <div class="toc-item">
+                    <div class="toc-number">08</div>
+                    <div class="toc-title">Demo: List</div>
+                </div>
+                <div class="toc-item">
+                    <div class="toc-number">09</div>
+                    <div class="toc-title">Pro Tips</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: What is Auto Layout -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2 class="slide-title">What is Auto Layout?</h2>
+                <p class="slide-subtitle">The foundation of responsive design in Figma</p>
+            </div>
+            <div class="content-grid">
+                <div class="content-card">
+                    <div class="card-icon">🎯</div>
+                    <h3 class="card-title">Smart Containers</h3>
+                    <p class="card-description">
+                        Auto Layout transforms static frames into intelligent containers that automatically
+                        resize and reposition content based on predefined rules.
+                    </p>
+                </div>
+                <div class="content-card">
+                    <div class="card-icon">⚡</div>
+                    <h3 class="card-title">Like CSS Flexbox</h3>
+                    <p class="card-description">
+                        If you're familiar with web development, Auto Layout works similarly to CSS Flexbox,
+                        giving you powerful layout control with minimal effort.
+                    </p>
+                </div>
+                <div class="content-card">
+                    <div class="card-icon">🔄</div>
+                    <h3 class="card-title">Dynamic Adaptation</h3>
+                    <p class="card-description">
+                        Content changes? No problem. Auto Layout automatically adjusts spacing, sizing,
+                        and positioning without manual tweaking.
+                    </p>
+                </div>
+                <div class="content-card">
+                    <div class="card-icon">🚀</div>
+                    <h3 class="card-title">Design Faster</h3>
+                    <p class="card-description">
+                        Build responsive components and design systems 10x faster. Update once,
+                        propagate everywhere. Perfect for maintaining consistency.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 4: How to Activate -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2 class="slide-title">3 Ways to Activate Auto Layout</h2>
+                <p class="slide-subtitle">Choose the method that fits your workflow</p>
+            </div>
+            <div class="content-grid">
+                <div class="content-card">
+                    <div class="card-icon">⌨️</div>
+                    <h3 class="card-title">Keyboard Shortcut</h3>
+                    <p class="card-description">The fastest way for power users</p>
+                    <ul class="feature-list">
+                        <li>Select frame, group, or objects</li>
+                        <li>Press <span class="highlight">Shift + A</span></li>
+                        <li>Instantly converts to Auto Layout</li>
+                    </ul>
+                </div>
+                <div class="content-card">
+                    <div class="card-icon">📐</div>
+                    <h3 class="card-title">Right Sidebar</h3>
+                    <p class="card-description">Visual approach using the Design panel</p>
+                    <ul class="feature-list">
+                        <li>Select your frame or objects</li>
+                        <li>Find "Auto Layout" section in sidebar</li>
+                        <li>Click the <span class="highlight">+ button</span></li>
+                    </ul>
+                </div>
+                <div class="content-card">
+                    <div class="card-icon">🖱️</div>
+                    <h3 class="card-title">Top Toolbar</h3>
+                    <p class="card-description">Great for beginners learning the interface</p>
+                    <ul class="feature-list">
+                        <li>Select your objects</li>
+                        <li>Click <span class="highlight">+</span> icon in top toolbar</li>
+                        <li>Select "Add Auto Layout"</li>
+                    </ul>
+                </div>
+                <div class="content-card">
+                    <div class="card-icon">💜</div>
+                    <h3 class="card-title">Visual Indicator</h3>
+                    <p class="card-description">How to know it's working</p>
+                    <ul class="feature-list">
+                        <li>Purple outline appears around frame</li>
+                        <li>Purple resize handles show up</li>
+                        <li>Properties panel updates with options</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 5: Key Properties -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2 class="slide-title">Key Auto Layout Properties</h2>
+                <p class="slide-subtitle">Master these controls to unlock full potential</p>
+            </div>
+            <div class="property-grid">
+                <div class="property-card">
+                    <div class="property-name">Direction</div>
+                    <div class="property-description">
+                        Controls how child elements stack: <span class="highlight">Horizontal</span> (left to right)
+                        or <span class="highlight">Vertical</span> (top to bottom). Essential for layout structure.
+                    </div>
+                </div>
+                <div class="property-card">
+                    <div class="property-name">Spacing</div>
+                    <div class="property-description">
+                        Gap between child elements. Use <span class="highlight">8pt multiples</span> (8px, 16px, 24px)
+                        for consistent design system spacing.
+                    </div>
+                </div>
+                <div class="property-card">
+                    <div class="property-name">Padding</div>
+                    <div class="property-description">
+                        Space inside the frame around content. Can be set <span class="highlight">uniformly</span>
+                        or individually for top, right, bottom, left.
+                    </div>
+                </div>
+                <div class="property-card">
+                    <div class="property-name">Alignment</div>
+                    <div class="property-description">
+                        How items align within container: <span class="highlight">start, center, end</span>,
+                        or space-between. Critical for visual balance.
+                    </div>
+                </div>
+                <div class="property-card">
+                    <div class="property-name">Resizing - Hug</div>
+                    <div class="property-description">
+                        Frame automatically <span class="highlight">wraps tightly</span> around its content.
+                        Perfect for buttons and dynamic components.
+                    </div>
+                </div>
+                <div class="property-card">
+                    <div class="property-name">Resizing - Fill</div>
+                    <div class="property-description">
+                        Child elements <span class="highlight">expand to fill</span> available space in container.
+                        Great for responsive designs and flexible layouts.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 6: Demo Case 1 - Button -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2 class="slide-title">Demo Case 1: Responsive Button</h2>
+                <p class="slide-subtitle">Create buttons that adapt to text length automatically</p>
+            </div>
+            <div class="demo-section">
+                <h3 class="demo-title">🎯 Use Case</h3>
+                <p style="font-size: var(--text-base); color: var(--text-secondary); margin-bottom: var(--space-md);">
+                    Build a button that automatically adjusts its width based on text content while maintaining consistent padding.
+                </p>
+
+                <h3 class="demo-title">📋 Steps to Create</h3>
+                <ol class="step-list">
+                    <li>Create a text layer with "Click Me"</li>
+                    <li>Select the text and press <span class="highlight">Shift + A</span></li>
+                    <li>Set padding: <span class="highlight">16px horizontal, 12px vertical</span></li>
+                    <li>Set alignment to <span class="highlight">Center</span></li>
+                    <li>Apply button background color and corner radius (8px)</li>
+                </ol>
+
+                <h3 class="demo-title">✨ Result</h3>
+                <p style="font-size: var(--text-base); color: var(--text-secondary);">
+                    Change text from "Click Me" to "Submit Application" → Button automatically expands!
+                    Maintains perfect padding and proportions without any manual adjustment.
+                </p>
+            </div>
+            <div class="content-card" style="margin-top: var(--space-lg);">
+                <h4 class="card-title">💡 Why It's Useful</h4>
+                <ul class="feature-list">
+                    <li>Maintains design consistency across all button variations</li>
+                    <li>Speeds up creation of Primary, Secondary, Tertiary buttons</li>
+                    <li>Easy to update text without breaking layout</li>
+                    <li>Perfect for design systems and component libraries</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Slide 7: Demo Case 2 - Navigation -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2 class="slide-title">Demo Case 2: Navigation Bar</h2>
+                <p class="slide-subtitle">Build horizontal menus with perfect spacing</p>
+            </div>
+            <div class="demo-section">
+                <h3 class="demo-title">🎯 Use Case</h3>
+                <p style="font-size: var(--text-base); color: var(--text-secondary); margin-bottom: var(--space-md);">
+                    Create a horizontal navigation menu where items are evenly spaced and easy to add or remove.
+                </p>
+
+                <h3 class="demo-title">📋 Steps to Create</h3>
+                <ol class="step-list">
+                    <li>Create text layers: Home, About, Services, Contact</li>
+                    <li>Select all text layers and press <span class="highlight">Shift + A</span></li>
+                    <li>Set direction to <span class="highlight">Horizontal</span></li>
+                    <li>Set spacing between items: <span class="highlight">32px</span></li>
+                    <li>Add padding all around: <span class="highlight">20px</span></li>
+                    <li>Set alignment to <span class="highlight">Center</span></li>
+                </ol>
+
+                <h3 class="demo-title">✨ Result</h3>
+                <p style="font-size: var(--text-base); color: var(--text-secondary);">
+                    A perfectly spaced nav bar that automatically adjusts when you add or remove menu items.
+                    No manual repositioning needed!
+                </p>
+            </div>
+            <div class="content-card" style="margin-top: var(--space-lg);">
+                <h4 class="card-title">💡 Why It's Useful</h4>
+                <ul class="feature-list">
+                    <li>Consistent spacing without manual measurements</li>
+                    <li>Instantly add/remove navigation items</li>
+                    <li>Quick to create mobile, tablet, desktop variations</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Slide 8: Demo Case 3 - Card -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2 class="slide-title">Demo Case 3: Card Component</h2>
+                <p class="slide-subtitle">Design system cards that adapt to content</p>
+            </div>
+            <div class="demo-section">
+                <h3 class="demo-title">🎯 Use Case</h3>
+                <p style="font-size: var(--text-base); color: var(--text-secondary); margin-bottom: var(--space-md);">
+                    Design a content card with image, title, description, and button that maintains structure regardless of content length.
+                </p>
+
+                <h3 class="demo-title">📋 Steps to Create</h3>
+                <ol class="step-list">
+                    <li>Create: Image placeholder, Title text, Description, Button</li>
+                    <li>Select all elements and press <span class="highlight">Shift + A</span></li>
+                    <li>Set direction to <span class="highlight">Vertical</span></li>
+                    <li>Set spacing: <span class="highlight">16px between elements</span></li>
+                    <li>Add padding: <span class="highlight">24px all around</span></li>
+                    <li>Set fixed width: <span class="highlight">320px</span></li>
+                </ol>
+
+                <h3 class="demo-title">✨ Result</h3>
+                <p style="font-size: var(--text-base); color: var(--text-secondary);">
+                    Card height automatically adjusts based on description length, image size, or added elements.
+                    Perfect vertical rhythm maintained!
+                </p>
+            </div>
+            <div class="content-card" style="margin-top: var(--space-lg);">
+                <h4 class="card-title">💡 Why It's Useful</h4>
+                <ul class="feature-list">
+                    <li>Essential for design systems and component libraries</li>
+                    <li>Cards adapt to different content automatically</li>
+                    <li>Maintains consistent vertical spacing and rhythm</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Slide 9: Demo Case 4 - Form -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2 class="slide-title">Demo Case 4: Form with Fields</h2>
+                <p class="slide-subtitle">Create perfectly structured forms in minutes</p>
+            </div>
+            <div class="content-grid">
+                <div class="demo-section">
+                    <h3 class="demo-title">🎯 Use Case</h3>
+                    <p style="font-size: var(--text-base); color: var(--text-secondary); margin-bottom: var(--space-md);">
+                        Build a form where each field (label + input) is consistently spaced and easy to maintain.
+                    </p>
+
+                    <h3 class="demo-title">📋 Steps - Individual Field</h3>
+                    <ol class="step-list">
+                        <li>Create label text and input rectangle</li>
+                        <li>Select both, press <span class="highlight">Shift + A</span></li>
+                        <li>Direction: <span class="highlight">Vertical</span></li>
+                        <li>Spacing: <span class="highlight">8px</span></li>
+                        <li>Alignment: <span class="highlight">Left</span></li>
+                    </ol>
+                </div>
+                <div class="demo-section">
+                    <h3 class="demo-title">📋 Steps - Full Form</h3>
+                    <ol class="step-list">
+                        <li>Create field pairs: Name, Email, Password</li>
+                        <li>Select all groups, press <span class="highlight">Shift + A</span></li>
+                        <li>Direction: <span class="highlight">Vertical</span></li>
+                        <li>Spacing: <span class="highlight">24px between fields</span></li>
+                        <li>Padding: <span class="highlight">32px</span></li>
+                    </ol>
+
+                    <h3 class="demo-title">✨ Result</h3>
+                    <p style="font-size: var(--text-base); color: var(--text-secondary);">
+                        Perfect form structure! Add or remove fields, everything stays aligned and properly spaced.
+                    </p>
+                </div>
+            </div>
+            <div class="content-card" style="margin-top: var(--space-lg);">
+                <h4 class="card-title">💡 Why It's Useful</h4>
+                <ul class="feature-list">
+                    <li>Rapid form prototyping for any project</li>
+                    <li>Consistent field spacing across all forms</li>
+                    <li>Easy to maintain and update field structure</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Slide 10: Demo Case 5 - List -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2 class="slide-title">Demo Case 5: Dynamic List Items</h2>
+                <p class="slide-subtitle">Perfect for to-do lists, messages, and menus</p>
+            </div>
+            <div class="content-grid">
+                <div class="demo-section">
+                    <h3 class="demo-title">🎯 Use Case</h3>
+                    <p style="font-size: var(--text-base); color: var(--text-secondary); margin-bottom: var(--space-md);">
+                        Create a list (task list, chat thread, menu items) where items can be easily added or removed.
+                    </p>
+
+                    <h3 class="demo-title">📋 Steps - Single Item</h3>
+                    <ol class="step-list">
+                        <li>Create: Icon/checkbox, Text, Delete button</li>
+                        <li>Select all parts, press <span class="highlight">Shift + A</span></li>
+                        <li>Direction: <span class="highlight">Horizontal</span></li>
+                        <li>Spacing: <span class="highlight">12px</span></li>
+                        <li>Padding: <span class="highlight">16px</span></li>
+                        <li>Alignment: <span class="highlight">Center vertically</span></li>
+                    </ol>
+                </div>
+                <div class="demo-section">
+                    <h3 class="demo-title">📋 Steps - Full List</h3>
+                    <ol class="step-list">
+                        <li>Duplicate item 3-4 times</li>
+                        <li>Select all items, press <span class="highlight">Shift + A</span></li>
+                        <li>Direction: <span class="highlight">Vertical</span></li>
+                        <li>Spacing: <span class="highlight">8px</span></li>
+                    </ol>
+
+                    <h3 class="demo-title">✨ Result</h3>
+                    <p style="font-size: var(--text-base); color: var(--text-secondary);">
+                        Add items by duplicating → automatic stacking! Delete items → list adjusts perfectly. No manual work!
+                    </p>
+                </div>
+            </div>
+            <div class="content-card" style="margin-top: var(--space-lg);">
+                <h4 class="card-title">💡 Why It's Useful</h4>
+                <ul class="feature-list">
+                    <li>Perfect for to-do lists, chat interfaces, menu items</li>
+                    <li>Instant updates when content changes</li>
+                    <li>Professional, consistent appearance automatically</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Slide 11: Pro Tips -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2 class="slide-title">Pro Tips & Advanced Techniques</h2>
+                <p class="slide-subtitle">Level up your Auto Layout mastery</p>
+            </div>
+            <div class="tips-grid">
+                <div class="tip-card">
+                    <div class="tip-title">🎭 Nested Auto Layouts</div>
+                    <div class="tip-description">
+                        Nest Auto Layout frames inside each other for complex, responsive designs. Example: Card with Auto Layout → Contains header with Auto Layout → Contains icon + title with Auto Layout.
+                    </div>
+                </div>
+                <div class="tip-card">
+                    <div class="tip-title">🤗 Hug Contents</div>
+                    <div class="tip-description">
+                        Set frame resizing to "Hug contents" to make the frame automatically match its content size. Perfect for buttons, badges, and tags that need to wrap tightly around text.
+                    </div>
+                </div>
+                <div class="tip-card">
+                    <div class="tip-title">📏 Fill Container</div>
+                    <div class="tip-description">
+                        Set child elements to "Fill container" to make them expand to available space. Great for creating responsive layouts where elements should stretch to fill their parent.
+                    </div>
+                </div>
+                <div class="tip-card">
+                    <div class="tip-title">📍 Absolute Position</div>
+                    <div class="tip-description">
+                        Hold <span class="highlight">Alt (Win)</span> or <span class="highlight">Option (Mac)</span> while placing an element to keep it in absolute position. Won't follow Auto Layout rules - useful for overlays and floating elements.
+                    </div>
+                </div>
+                <div class="tip-card">
+                    <div class="tip-title">⌨️ Keyboard Shortcuts</div>
+                    <div class="tip-description">
+                        • <span class="highlight">Shift + A</span> - Add Auto Layout<br>
+                        • <span class="highlight">Alt + Arrow Keys</span> - Adjust spacing between items<br>
+                        • <span class="highlight">Shift + Arrow Keys</span> - Adjust padding
+                    </div>
+                </div>
+                <div class="tip-card">
+                    <div class="tip-title">🎨 8-Point Grid System</div>
+                    <div class="tip-description">
+                        Always use multiples of 8 for spacing and padding (8px, 16px, 24px, 32px). This creates visual consistency and makes your designs feel more polished and professional.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 12: Practice Exercise -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2 class="slide-title">Practice Exercise</h2>
+                <p class="slide-subtitle">Apply what you've learned to build a complete screen</p>
+            </div>
+            <div class="content-grid">
+                <div class="content-card">
+                    <div class="card-icon">📱</div>
+                    <h3 class="card-title">Challenge: Mobile App Screen</h3>
+                    <p class="card-description" style="margin-bottom: var(--space-md);">
+                        Create a complete mobile app screen using nested Auto Layouts. This exercise combines all the techniques you've learned.
+                    </p>
+                    <ul class="feature-list">
+                        <li><span class="highlight">Header</span> - Logo + menu icon (horizontal Auto Layout)</li>
+                        <li><span class="highlight">Content Area</span> - Multiple cards (vertical Auto Layout)</li>
+                        <li><span class="highlight">Card Structure</span> - Image, title, text, button (nested Auto Layout)</li>
+                        <li><span class="highlight">Bottom Nav</span> - 4-5 icons (horizontal Auto Layout)</li>
+                    </ul>
+                </div>
+                <div class="content-card">
+                    <div class="card-icon">🎯</div>
+                    <h3 class="card-title">Learning Objectives</h3>
+                    <p class="card-description" style="margin-bottom: var(--space-md);">
+                        This exercise will help you master:
+                    </p>
+                    <ul class="feature-list">
+                        <li>Nested Auto Layout structures</li>
+                        <li>Mixing horizontal and vertical layouts</li>
+                        <li>Proper spacing and padding hierarchy</li>
+                        <li>Creating flexible, responsive components</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="demo-section" style="margin-top: var(--space-xl);">
+                <h3 class="demo-title">💡 Bonus Challenges</h3>
+                <div class="content-grid" style="margin-top: var(--space-md);">
+                    <div>
+                        <h4 style="font-size: var(--text-base); color: var(--primary-light); margin-bottom: var(--space-sm);">Add Variants</h4>
+                        <p style="font-size: var(--text-sm); color: var(--text-secondary);">Create different card styles (with/without image, different button styles) using Auto Layout properties.</p>
+                    </div>
+                    <div>
+                        <h4 style="font-size: var(--text-base); color: var(--primary-light); margin-bottom: var(--space-sm);">Make it Responsive</h4>
+                        <p style="font-size: var(--text-sm); color: var(--text-secondary);">Use "Fill container" and "Hug contents" to make your design work at different screen sizes.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 13: Thank You -->
+        <div class="slide hero-slide" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+            <div class="hero-content">
+                <h1 class="hero-title">You're Ready! 🚀</h1>
+                <p class="hero-subtitle">Start building flexible, responsive designs with Auto Layout</p>
+                <div style="margin-top: var(--space-xl);">
+                    <div class="hero-badge" style="margin-bottom: var(--space-md);">Remember the 8-Point Grid</div>
+                    <div class="hero-badge" style="margin-bottom: var(--space-md);">Practice Nested Layouts</div>
+                    <div class="hero-badge">Build Component Libraries</div>
+                </div>
+                <p style="font-size: var(--text-base); margin-top: var(--space-2xl); opacity: 0.8;">
+                    Questions? Practice with the exercises and explore the Figma community!
+                </p>
+            </div>
+        </div>
+
+        <!-- Navigation Controls -->
+        <div class="nav-controls">
+            <button class="nav-btn" id="prevBtn">← Previous</button>
+            <button class="nav-btn" id="nextBtn">Next →</button>
+        </div>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+        const progressBar = document.getElementById('progressBar');
+        const slideNumber = document.getElementById('slideNumber');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+
+        // Slide dimensions (FHD)
+        const SLIDE_WIDTH = 1920;
+        const SLIDE_HEIGHT = 1080;
+
+        // Calculate and apply responsive scale
+        function updateScale() {
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+
+            // Calculate scale to fit window while maintaining aspect ratio
+            const scaleX = windowWidth / SLIDE_WIDTH;
+            const scaleY = windowHeight / SLIDE_HEIGHT;
+            const scale = Math.min(scaleX, scaleY) * 0.95; // 0.95 for slight padding
+
+            // Set CSS variable for scale
+            document.documentElement.style.setProperty('--slide-scale', scale);
+        }
+
+        function updateSlide() {
+            slides.forEach((slide, index) => {
+                slide.classList.remove('active');
+                if (index === currentSlide) {
+                    slide.classList.add('active');
+                }
+            });
+
+            // Update progress bar
+            const progress = ((currentSlide + 1) / totalSlides) * 100;
+            progressBar.style.width = progress + '%';
+
+            // Update slide number
+            slideNumber.textContent = `${currentSlide + 1} / ${totalSlides}`;
+
+            // Update button states
+            prevBtn.disabled = currentSlide === 0;
+            nextBtn.disabled = currentSlide === totalSlides - 1;
+        }
+
+        function nextSlide() {
+            if (currentSlide < totalSlides - 1) {
+                currentSlide++;
+                updateSlide();
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlide > 0) {
+                currentSlide--;
+                updateSlide();
+            }
+        }
+
+        // Event listeners
+        nextBtn.addEventListener('click', nextSlide);
+        prevBtn.addEventListener('click', prevSlide);
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                e.preventDefault();
+                nextSlide();
+            } else if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                prevSlide();
+            }
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', updateScale);
+
+        // Initialize
+        updateScale();
+        updateSlide();
+    </script>
+</body>
+</html>

@@ -1,0 +1,369 @@
+{
+  "presentation": {
+    "title": "Bank Presentation",
+    "subtitle": "Digital Banking Excellence",
+    "totalSlides": 12
+  },
+  "slides": [
+    {
+      "id": 1,
+      "type": "title",
+      "background": {
+        "type": "gradient",
+        "source": "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)"
+      },
+      "overlay": false,
+      "content": {
+        "alignment": "center",
+        "badge": {
+          "text": "INNOVATION IN BANKING",
+          "color": "white/20",
+          "textColor": "white"
+        },
+        "title": "The Future of Banking",
+        "subtitle": "Digital Excellence, Human Touch"
+      }
+    },
+    {
+      "id": 2,
+      "type": "content",
+      "background": {
+        "type": "gradient",
+        "source": "linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%)"
+      },
+      "overlay": false,
+      "content": {
+        "alignment": "left",
+        "badge": {
+          "text": "ABOUT US",
+          "color": "blue-500"
+        },
+        "title": "Who We Are",
+        "subtitle": "A Legacy of Trust, A Vision for Tomorrow",
+        "paragraphs": [
+          "For over 75 years, we've been at the forefront of financial innovation, serving millions of customers worldwide.",
+          "From traditional banking to cutting-edge digital solutions, we combine heritage with innovation."
+        ],
+        "items": [
+          "[Building2] 500+ Branches Globally",
+          "[Users] 12M+ Active Customers",
+          "[Shield] AAA Credit Rating",
+          "[Award] Top 10 Global Banks"
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "type": "content",
+      "background": {
+        "type": "gradient",
+        "source": "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)"
+      },
+      "overlay": false,
+      "content": {
+        "alignment": "center",
+        "badge": {
+          "text": "OUR VISION",
+          "color": "purple-500"
+        },
+        "title": "Vision & Mission",
+        "quote": {
+          "text": "To empower every individual and business with intelligent, accessible financial solutions",
+          "color": "purple-200"
+        },
+        "items": [
+          "[Target] Customer-First Innovation",
+          "[Sparkles] Digital Excellence",
+          "[Globe] Global Reach, Local Touch",
+          "[Heart] Financial Inclusion for All"
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "type": "cards",
+      "background": {
+        "type": "gradient",
+        "source": "linear-gradient(135deg, #0f766e 0%, #0d9488 100%)"
+      },
+      "overlay": false,
+      "content": {
+        "alignment": "center",
+        "badge": {
+          "text": "DIGITAL TRANSFORMATION",
+          "color": "teal-500"
+        },
+        "title": "Digital Banking Evolution",
+        "cards": [
+          {
+            "icon": "Smartphone",
+            "title": "Mobile First",
+            "description": "Award-winning app with 4.9★ rating, 10M+ downloads, and seamless experience"
+          },
+          {
+            "icon": "Cloud",
+            "title": "Cloud Native",
+            "description": "100% cloud infrastructure for unmatched scalability and 99.99% uptime"
+          },
+          {
+            "icon": "Bot",
+            "title": "AI-Powered",
+            "description": "Smart assistants handling 85% of queries instantly with personalized insights"
+          }
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "type": "content",
+      "background": {
+        "type": "gradient",
+        "source": "linear-gradient(135deg, #dc2626 0%, #ef4444 100%)"
+      },
+      "overlay": false,
+      "content": {
+        "alignment": "left",
+        "badge": {
+          "text": "INNOVATION",
+          "color": "red-500"
+        },
+        "title": "Innovation Hub",
+        "subtitle": "Pioneering Financial Technology",
+        "items": [
+          "[Brain] AI-Driven Financial Advisory",
+          "[Blocks] Blockchain Settlement in Seconds",
+          "[Fingerprint] Biometric Security",
+          "[Wallet] Integrated Digital Wallets",
+          "[LineChart] Real-Time Spending Analytics",
+          "[ShieldAlert] Proactive Fraud Detection",
+          "[Coins] Cryptocurrency Integration",
+          "[Zap] Instant Cross-Border Transfers"
+        ],
+        "highlight": {
+          "text": "$75M Annual R&D Investment",
+          "color": "red-200"
+        }
+      }
+    },
+    {
+      "id": 6,
+      "type": "stats",
+      "background": {
+        "type": "gradient",
+        "source": "linear-gradient(135deg, #0891b2 0%, #06b6d4 100%)"
+      },
+      "overlay": false,
+      "content": {
+        "alignment": "center",
+        "badge": {
+          "text": "CUSTOMER EXPERIENCE",
+          "color": "cyan-500"
+        },
+        "title": "Customer Satisfaction",
+        "stats": [
+          {
+            "number": "98%",
+            "label": "Customer Satisfaction Score"
+          },
+          {
+            "number": "24/7",
+            "label": "Omnichannel Support"
+          },
+          {
+            "number": "90 sec",
+            "label": "Average Response Time"
+          }
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "type": "dual-list",
+      "background": {
+        "type": "gradient",
+        "source": "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)"
+      },
+      "overlay": false,
+      "content": {
+        "alignment": "left",
+        "badge": {
+          "text": "TECHNOLOGY",
+          "color": "indigo-500"
+        },
+        "title": "Technology Stack",
+        "lists": [
+          {
+            "title": "Infrastructure",
+            "items": [
+              "[Server] Multi-Cloud Deployment",
+              "[Database] Real-Time Processing",
+              "[Lock] Zero-Trust Security",
+              "[Gauge] 99.99% Uptime SLA",
+              "[RefreshCw] Auto-Scaling Systems"
+            ]
+          },
+          {
+            "title": "Innovation",
+            "items": [
+              "[Code] Open Banking APIs",
+              "[Workflow] Automated Processes",
+              "[BarChart3] Predictive Analytics",
+              "[GitBranch] Continuous Delivery",
+              "[Sparkles] Machine Learning Models"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 8,
+      "type": "content",
+      "background": {
+        "type": "gradient",
+        "source": "linear-gradient(135deg, #059669 0%, #10b981 100%)"
+      },
+      "overlay": false,
+      "content": {
+        "alignment": "center",
+        "badge": {
+          "text": "SUSTAINABILITY",
+          "color": "green-500"
+        },
+        "title": "Environmental Commitment",
+        "subtitle": "Banking for a Better Planet",
+        "items": [
+          "[Leaf] Carbon Neutral Operations by 2025",
+          "[Recycle] 100% Paperless Banking",
+          "[Sun] Renewable Energy Data Centers",
+          "[Trees] $2B Green Financing Portfolio",
+          "[Heart] Community Impact Programs",
+          "[Wind] Sustainable Investment Funds"
+        ],
+        "highlight": {
+          "text": "ESG Excellence Award 2024 & 2025",
+          "color": "green-200"
+        }
+      }
+    },
+    {
+      "id": 9,
+      "type": "cards",
+      "background": {
+        "type": "gradient",
+        "source": "linear-gradient(135deg, #b91c1c 0%, #dc2626 100%)"
+      },
+      "overlay": false,
+      "content": {
+        "alignment": "center",
+        "badge": {
+          "text": "SECURITY",
+          "color": "red-600"
+        },
+        "title": "Bank-Grade Security",
+        "cards": [
+          {
+            "icon": "ShieldCheck",
+            "title": "Military Encryption",
+            "description": "256-bit end-to-end encryption protecting all transactions and data"
+          },
+          {
+            "icon": "Fingerprint",
+            "title": "Biometric Auth",
+            "description": "Fingerprint, Face ID, and multi-factor authentication for maximum security"
+          },
+          {
+            "icon": "Eye",
+            "title": "24/7 Monitoring",
+            "description": "AI-powered fraud detection preventing $500M+ in fraudulent transactions annually"
+          }
+        ]
+      }
+    },
+    {
+      "id": 10,
+      "type": "content",
+      "background": {
+        "type": "gradient",
+        "source": "linear-gradient(135deg, #ea580c 0%, #f97316 100%)"
+      },
+      "overlay": false,
+      "content": {
+        "alignment": "left",
+        "badge": {
+          "text": "PARTNERSHIPS",
+          "color": "orange-500"
+        },
+        "title": "Strategic Partnerships",
+        "subtitle": "Building the Financial Ecosystem",
+        "items": [
+          "[Handshake] 300+ Fintech Integrations",
+          "[Building] Fortune 500 Corporate Clients",
+          "[Globe] SWIFT & International Networks",
+          "[Store] 75,000+ Merchant Partners",
+          "[CreditCard] Visa, Mastercard, AmEx Partners",
+          "[Smartphone] Apple Pay, Google Pay Integration"
+        ],
+        "footer": "Together, we're shaping the future of finance"
+      }
+    },
+    {
+      "id": 11,
+      "type": "stats",
+      "background": {
+        "type": "gradient",
+        "source": "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)"
+      },
+      "overlay": false,
+      "content": {
+        "alignment": "center",
+        "badge": {
+          "text": "RESULTS",
+          "color": "purple-500"
+        },
+        "title": "Outstanding Performance",
+        "stats": [
+          {
+            "number": "$120B",
+            "label": "Assets Under Management"
+          },
+          {
+            "number": "52%",
+            "label": "YoY Digital Revenue Growth"
+          },
+          {
+            "number": "#1",
+            "label": "Digital Banking Innovation Leader"
+          }
+        ]
+      }
+    },
+    {
+      "id": 12,
+      "type": "cta",
+      "background": {
+        "type": "gradient",
+        "source": "linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)"
+      },
+      "overlay": false,
+      "content": {
+        "alignment": "center",
+        "title": "Start Your Journey",
+        "subtitle": "Experience the future of banking, today",
+        "buttons": [
+          {
+            "text": "Open Account",
+            "variant": "primary"
+          },
+          {
+            "text": "Schedule Demo",
+            "variant": "secondary"
+          }
+        ],
+        "footer": [
+          "Available on iOS, Android, and Web",
+          "Open your account in under 5 minutes"
+        ]
+      }
+    }
+  ]
+}

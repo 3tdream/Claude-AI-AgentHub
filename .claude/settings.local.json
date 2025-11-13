@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(robocopy:*)",
+      "Bash(for dir in \"BankPresentation2\" \"BankPresentation2-nextjs\" \"bank-presentation-modern\")",
+      "Bash(do echo \"Moving $dir...\")",
+      "Bash(/dev/null)",
+      "Bash(echo:*)",
+      "Bash(done)",
+      "Bash(pnpm install:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run sync:tokens:*)",
+      "Bash(npm run dev:*)",
+      "Bash(mkdir:*)",
+      "Bash(xcopy:*)",
+      "Bash(tree:*)",
+      "Bash(git check-ignore:*)",
+      "Bash(for:*)",
+      "Bash(do if [ -d \"$dir\" ])",
+      "Bash([ ! \"$dir\" = \"C:\\Users\\Ro050\\Desktop\\ai-projects/node_modules\" ])",
+      "Bash(fi)",
+      "Bash(sed:*)",
+      "Bash(git add:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(git init:*)",
+      "Bash(git commit:*)",
+      "Bash(do rm -rf \"$dir\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

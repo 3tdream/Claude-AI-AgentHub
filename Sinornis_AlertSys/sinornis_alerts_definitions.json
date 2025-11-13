@@ -1,0 +1,335 @@
+{
+  "sinornis_alerts": {
+    "version": "1.0",
+    "total_alerts": 28,
+    "categories": {
+      "environmental": {
+        "alerts": [
+          {
+            "id": "TEMP_HIGH_CRITICAL",
+            "severity": "critical",
+            "title": "Temperature Critical High",
+            "description": "Temperature exceeded critical maximum threshold",
+            "thresholds": {
+              "warning": ">25°C",
+              "critical": ">27°C"
+            },
+            "sensor_type": "temperature",
+            "recommended_action": "Activate cooling system immediately, check ventilation",
+            "notification_channels": ["sms", "email", "web", "audio_alarm"]
+          },
+          {
+            "id": "TEMP_LOW_CRITICAL", 
+            "severity": "critical",
+            "title": "Temperature Critical Low",
+            "description": "Temperature dropped below critical minimum threshold",
+            "thresholds": {
+              "warning": "<18°C",
+              "critical": "<15°C"
+            },
+            "sensor_type": "temperature",
+            "recommended_action": "Activate heating system immediately, check insulation",
+            "notification_channels": ["sms", "email", "web", "audio_alarm"]
+          },
+          {
+            "id": "HUMIDITY_HIGH",
+            "severity": "warning",
+            "title": "Humidity Level High",
+            "description": "Humidity exceeded optimal range",
+            "thresholds": {
+              "warning": ">75%",
+              "critical": ">85%"
+            },
+            "sensor_type": "humidity",
+            "recommended_action": "Increase ventilation, check for water leaks",
+            "notification_channels": ["email", "web"]
+          },
+          {
+            "id": "HUMIDITY_LOW",
+            "severity": "warning", 
+            "title": "Humidity Level Low",
+            "description": "Humidity below optimal range",
+            "thresholds": {
+              "warning": "<45%",
+              "critical": "<35%"
+            },
+            "sensor_type": "humidity",
+            "recommended_action": "Add moisture to environment, check water systems",
+            "notification_channels": ["email", "web"]
+          },
+          {
+            "id": "AIR_QUALITY_POOR",
+            "severity": "critical",
+            "title": "Air Quality Critical",
+            "description": "Dangerous levels of CO2 or NH3 detected",
+            "thresholds": {
+              "warning": ">1500ppm CO2",
+              "critical": ">3000ppm CO2"
+            },
+            "sensor_type": "air_quality",
+            "recommended_action": "Increase ventilation immediately, evacuate if necessary",
+            "notification_channels": ["sms", "email", "web", "audio_alarm"]
+          },
+          {
+            "id": "VENTILATION_FAILURE",
+            "severity": "critical",
+            "title": "Ventilation System Failure",
+            "description": "Ventilation fan or system malfunction detected",
+            "sensor_type": "system",
+            "recommended_action": "Check fan motors, activate backup ventilation",
+            "notification_channels": ["sms", "email", "web"]
+          }
+        ]
+      },
+      "feed_management": {
+        "alerts": [
+          {
+            "id": "FEED_LEVEL_LOW",
+            "severity": "warning",
+            "title": "Feed Level Low",
+            "description": "Feed supply below recommended threshold",
+            "thresholds": {
+              "warning": "<25%",
+              "critical": "<10%"
+            },
+            "sensor_type": "feed_level",
+            "recommended_action": "Schedule feed delivery, check consumption patterns",
+            "notification_channels": ["email", "web", "sms"]
+          },
+          {
+            "id": "FEED_LEVEL_CRITICAL",
+            "severity": "critical", 
+            "title": "Feed Level Critical",
+            "description": "Feed supply critically low - immediate attention required",
+            "thresholds": {
+              "critical": "<5%"
+            },
+            "sensor_type": "feed_level",
+            "recommended_action": "Emergency feed delivery required immediately",
+            "notification_channels": ["sms", "email", "web", "phone_call"]
+          },
+          {
+            "id": "FEEDER_MALFUNCTION",
+            "severity": "critical",
+            "title": "Feeder System Malfunction",
+            "description": "Automated feeder mechanism failure detected",
+            "sensor_type": "system",
+            "recommended_action": "Check feeder motor and mechanisms, manual feeding if needed",
+            "notification_channels": ["sms", "email", "web"]
+          },
+          {
+            "id": "FEED_CONSUMPTION_ABNORMAL",
+            "severity": "warning",
+            "title": "Abnormal Feed Consumption",
+            "description": "Feed consumption pattern outside normal range",
+            "sensor_type": "analytics",
+            "recommended_action": "Check bird health, investigate consumption patterns",
+            "notification_channels": ["email", "web"]
+          }
+        ]
+      },
+      "water_management": {
+        "alerts": [
+          {
+            "id": "WATER_LEVEL_LOW",
+            "severity": "warning",
+            "title": "Water Level Low",
+            "description": "Water supply below recommended level",
+            "thresholds": {
+              "warning": "<35%",
+              "critical": "<15%"
+            },
+            "sensor_type": "water_level",
+            "recommended_action": "Check water supply, refill tanks",
+            "notification_channels": ["email", "web"]
+          },
+          {
+            "id": "WATER_LEVEL_CRITICAL",
+            "severity": "critical",
+            "title": "Water Level Critical",
+            "description": "Water supply critically low - immediate action required",
+            "thresholds": {
+              "critical": "<10%"
+            },
+            "sensor_type": "water_level",
+            "recommended_action": "Emergency water supply needed immediately",
+            "notification_channels": ["sms", "email", "web", "phone_call"]
+          },
+          {
+            "id": "WATER_PRESSURE_LOW",
+            "severity": "warning",
+            "title": "Water Pressure Low",
+            "description": "Water system pressure below optimal range",
+            "sensor_type": "water_pressure",
+            "recommended_action": "Check pumps and water lines for blockages",
+            "notification_channels": ["email", "web"]
+          },
+          {
+            "id": "WATER_LEAK_DETECTED",
+            "severity": "critical",
+            "title": "Water Leak Detected",
+            "description": "Significant water leak detected in system",
+            "sensor_type": "water_leak",
+            "recommended_action": "Locate and repair leak immediately, check water damage",
+            "notification_channels": ["sms", "email", "web"]
+          },
+          {
+            "id": "WATER_QUALITY_POOR",
+            "severity": "critical",
+            "title": "Water Quality Alert",
+            "description": "Water quality parameters outside safe range",
+            "sensor_type": "water_quality",
+            "recommended_action": "Test water immediately, provide alternative water source",
+            "notification_channels": ["sms", "email", "web"]
+          }
+        ]
+      },
+      "health_monitoring": {
+        "alerts": [
+          {
+            "id": "MORTALITY_HIGH",
+            "severity": "critical",
+            "title": "High Mortality Rate",
+            "description": "Bird mortality rate exceeded normal threshold",
+            "sensor_type": "analytics",
+            "recommended_action": "Veterinary consultation required, isolate affected areas",
+            "notification_channels": ["sms", "email", "web", "phone_call"]
+          },
+          {
+            "id": "BIRD_ACTIVITY_LOW",
+            "severity": "warning",
+            "title": "Low Bird Activity",
+            "description": "Unusual decrease in bird movement and activity",
+            "sensor_type": "motion",
+            "recommended_action": "Check bird health, environmental conditions",
+            "notification_channels": ["email", "web"]
+          },
+          {
+            "id": "WEIGHT_GAIN_ABNORMAL",
+            "severity": "warning",
+            "title": "Abnormal Weight Gain Pattern",
+            "description": "Bird weight gain outside expected range",
+            "sensor_type": "analytics",
+            "recommended_action": "Review feeding program, check bird health",
+            "notification_channels": ["email", "web"]
+          },
+          {
+            "id": "DISEASE_OUTBREAK_SUSPECTED",
+            "severity": "critical",
+            "title": "Suspected Disease Outbreak",
+            "description": "Multiple health indicators suggest disease outbreak",
+            "sensor_type": "analytics",
+            "recommended_action": "Immediate veterinary consultation, quarantine procedures",
+            "notification_channels": ["sms", "email", "web", "phone_call"]
+          }
+        ]
+      },
+      "security_safety": {
+        "alerts": [
+          {
+            "id": "UNAUTHORIZED_ACCESS",
+            "severity": "critical",
+            "title": "Unauthorized Access Detected",
+            "description": "Unauthorized entry to restricted farm areas",
+            "sensor_type": "security",
+            "recommended_action": "Check security cameras, verify personnel access",
+            "notification_channels": ["sms", "email", "web", "security_alarm"]
+          },
+          {
+            "id": "PREDATOR_DETECTED",
+            "severity": "critical",
+            "title": "Predator Activity Detected",
+            "description": "Motion sensors detected potential predator activity",
+            "sensor_type": "motion",
+            "recommended_action": "Activate deterrent systems, check perimeter security",
+            "notification_channels": ["sms", "email", "web"]
+          },
+          {
+            "id": "FIRE_SMOKE_DETECTED",
+            "severity": "critical",
+            "title": "Fire/Smoke Detection",
+            "description": "Smoke or fire detected in facility",
+            "sensor_type": "smoke",
+            "recommended_action": "Evacuate immediately, contact emergency services",
+            "notification_channels": ["sms", "email", "web", "fire_alarm", "phone_call"]
+          },
+          {
+            "id": "POWER_OUTAGE",
+            "severity": "critical",
+            "title": "Power System Failure",
+            "description": "Main power supply interruption detected",
+            "sensor_type": "power",
+            "recommended_action": "Check backup generators, ensure critical systems operational",
+            "notification_channels": ["sms", "email", "web"]
+          }
+        ]
+      },
+      "system_maintenance": {
+        "alerts": [
+          {
+            "id": "EQUIPMENT_MALFUNCTION",
+            "severity": "warning",
+            "title": "Equipment Malfunction",
+            "description": "General equipment malfunction detected",
+            "sensor_type": "system",
+            "recommended_action": "Inspect equipment, schedule maintenance",
+            "notification_channels": ["email", "web"]
+          },
+          {
+            "id": "SENSOR_OFFLINE",
+            "severity": "warning",
+            "title": "Sensor Communication Lost",
+            "description": "One or more sensors not responding",
+            "sensor_type": "system",
+            "recommended_action": "Check sensor connections and power supply",
+            "notification_channels": ["email", "web"]
+          },
+          {
+            "id": "MAINTENANCE_DUE",
+            "severity": "info",
+            "title": "Scheduled Maintenance Due",
+            "description": "Routine maintenance schedule reminder",
+            "sensor_type": "system",
+            "recommended_action": "Schedule maintenance appointment",
+            "notification_channels": ["email", "web"]
+          },
+          {
+            "id": "BATTERY_LOW",
+            "severity": "warning",
+            "title": "Backup Battery Low",
+            "description": "Backup battery power below threshold",
+            "sensor_type": "power",
+            "recommended_action": "Replace or charge backup batteries",
+            "notification_channels": ["email", "web"]
+          },
+          {
+            "id": "SYSTEM_REBOOT_REQUIRED",
+            "severity": "info",
+            "title": "System Reboot Required",
+            "description": "System requires restart for updates",
+            "sensor_type": "system",
+            "recommended_action": "Schedule system restart during low-activity period",
+            "notification_channels": ["email", "web"]
+          }
+        ]
+      }
+    },
+    "notification_priority": {
+      "critical": {
+        "response_time": "immediate",
+        "channels": ["sms", "email", "web", "audio_alarm", "phone_call"],
+        "escalation": "5_minutes"
+      },
+      "warning": {
+        "response_time": "30_minutes",
+        "channels": ["email", "web", "sms"],
+        "escalation": "2_hours"
+      },
+      "info": {
+        "response_time": "4_hours",
+        "channels": ["email", "web"],
+        "escalation": "24_hours"
+      }
+    }
+  }
+}
