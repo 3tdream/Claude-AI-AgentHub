@@ -1,8 +1,0 @@
-node_modules
-.git
-.env
-.env.local
-*.log
-.DS_Store
-src/components/Snake3DGame_ORIGINAL.jsx
-README.md
