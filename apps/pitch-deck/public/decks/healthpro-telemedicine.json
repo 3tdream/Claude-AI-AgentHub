@@ -1,0 +1,61 @@
+{
+  "id": 3,
+  "title": "HealthPro Telemedicine",
+  "description": "Next-generation virtual healthcare platform",
+  "date": "Oct 20, 2025",
+  "slideCount": 6,
+  "colorScheme": {
+    "primary": "bg-gradient-to-br from-rose-600 to-orange-600",
+    "secondary": "bg-rose-50",
+    "accent": "text-rose-600",
+    "button": "bg-rose-600 hover:bg-rose-700"
+  },
+  "slides": [
+    {
+      "type": "title",
+      "title": "HealthPro",
+      "subtitle": "Healthcare Without Boundaries",
+      "content": "Connecting Patients and Providers"
+    },
+    {
+      "type": "problem",
+      "title": "Healthcare Access Gap",
+      "points": [
+        "Rural areas lack specialist access",
+        "Wait times exceed 3 weeks average",
+        "Emergency care is overutilized",
+        "Chronic care management is inefficient"
+      ]
+    },
+    {
+      "type": "solution",
+      "title": "HealthPro Solution",
+      "description": "24/7 access to board-certified physicians via video, chat, and phone",
+      "features": ["Instant Consultations", "Prescription Services", "Health Records", "Specialist Network"]
+    },
+    {
+      "type": "market",
+      "title": "Market Dynamics",
+      "stat": "$85B",
+      "description": "Telemedicine Market 2025",
+      "details": "Growing 30% annually post-pandemic"
+    },
+    {
+      "type": "traction",
+      "title": "Growth Metrics",
+      "metrics": [
+        { "label": "Consultations", "value": "50K+" },
+        { "label": "Physicians", "value": "500+" },
+        { "label": "Satisfaction", "value": "4.8/5" },
+        { "label": "Revenue", "value": "$3M ARR" }
+      ]
+    },
+    {
+      "type": "ask",
+      "title": "Series A Round",
+      "amount": "$8M",
+      "usage": "Provider Network • Technology • Geographic Expansion",
+      "goal": "Serve 500K patients by end of 2026"
+    }
+  ]
+}
