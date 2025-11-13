@@ -26,7 +26,8 @@
       "Bash(git commit:*)",
       "Bash(do rm -rf \"$dir\")",
       "Bash(git config:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(test:*)"
     ],
     "deny": [],
     "ask": []
