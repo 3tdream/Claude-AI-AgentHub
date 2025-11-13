@@ -27,7 +27,8 @@
       "Bash(do rm -rf \"$dir\")",
       "Bash(git config:*)",
       "Bash(cat:*)",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []
