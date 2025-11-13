@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sinornis Alert System - Integrator Dashboard</title>
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <div class="header-content">
+                <h1 class="dashboard-title">Sinornis Alert System</h1>
+                <nav class="breadcrumb">
+                    <span class="breadcrumb-item active">Dashboard</span>
+                </nav>
+                <div class="header-actions">
+                    <div class="alert-summary">
+                        <span class="alert-count critical" id="critical-alerts">0</span>
+                        <span class="alert-count warning" id="warning-alerts">0</span>
+                        <span class="alert-count info" id="info-alerts">0</span>
+                    </div>
+                    <div class="system-status" id="system-status">
+                        <span class="status-indicator healthy"></span>
+                        <span>System Healthy</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="dashboard-main">
+            <!-- Farm Overview Grid -->
+            <section class="farms-grid">
+                <h2>Farms Overview</h2>
+                <div class="grid-container" id="farms-container">
+                    <!-- Farm cards will be dynamically populated -->
+                    <div class="farm-card" data-farm-id="farm-001">
+                        <div class="farm-header">
+                            <h3>Farm Alpha</h3>
+                            <div class="farm-status healthy">
+                                <span class="status-dot"></span>
+                                <span>Operational</span>
+                            </div>
+                        </div>
+                        <div class="farm-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">Coops</span>
+                                <span class="stat-value">4</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Birds</span>
+                                <span class="stat-value">2,450</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Avg Temp</span>
+                                <span class="stat-value">22°C</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Alerts</span>
+                                <span class="stat-value alert-indicator">2</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- System Metrics Dashboard -->
+            <section class="metrics-section">
+                <div class="metrics-grid">
+                    <!-- Environmental Metrics -->
+                    <div class="metric-card">
+                        <h3>Temperature Overview</h3>
+                        <canvas id="temperature-chart"></canvas>
+                        <div class="metric-summary">
+                            <div class="summary-item">
+                                <span class="label">Average</span>
+                                <span class="value" id="temp-avg">21.5°C</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="label">Range</span>
+                                <span class="value" id="temp-range">18-24°C</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Humidity Metrics -->
+                    <div class="metric-card">
+                        <h3>Humidity Overview</h3>
+                        <canvas id="humidity-chart"></canvas>
+                        <div class="metric-summary">
+                            <div class="summary-item">
+                                <span class="label">Average</span>
+                                <span class="value" id="humidity-avg">62%</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="label">Range</span>
+                                <span class="value" id="humidity-range">50-70%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Air Quality Metrics -->
+                    <div class="metric-card">
+                        <h3>Air Quality</h3>
+                        <div class="air-quality-gauge" id="air-quality-gauge">
+                            <div class="gauge-value">
+                                <span class="value" id="air-quality-value">420</span>
+                                <span class="unit">ppm CO₂</span>
+                            </div>
+                        </div>
+                        <div class="quality-status good">Good</div>
+                    </div>
+
+                    <!-- Feed & Water Levels -->
+                    <div class="metric-card">
+                        <h3>Feed & Water Status</h3>
+                        <div class="level-indicators">
+                            <div class="level-item">
+                                <span class="level-label">Feed Level</span>
+                                <div class="level-bar">
+                                    <div class="level-fill" style="width: 75%" data-level="75"></div>
+                                </div>
+                                <span class="level-value">75%</span>
+                            </div>
+                            <div class="level-item">
+                                <span class="level-label">Water Level</span>
+                                <div class="level-bar">
+                                    <div class="level-fill" style="width: 85%" data-level="85"></div>
+                                </div>
+                                <span class="level-value">85%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Recent Alerts -->
+            <section class="alerts-section">
+                <div class="section-header">
+                    <h2>Recent Alerts</h2>
+                    <a href="/alerts" class="view-all-btn">View All</a>
+                </div>
+                <div class="alerts-list" id="recent-alerts">
+                    <!-- Alerts will be dynamically populated -->
+                    <div class="alert-item warning">
+                        <div class="alert-icon">⚠️</div>
+                        <div class="alert-content">
+                            <div class="alert-title">Temperature Warning - Coop B2</div>
+                            <div class="alert-message">Temperature reached 25.2°C (above normal range)</div>
+                            <div class="alert-time">2 minutes ago</div>
+                        </div>
+                        <div class="alert-actions">
+                            <button class="btn-ack">Acknowledge</button>
+                            <button class="btn-details">Details</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/static/js/dashboard.js"></script>
+    <script>
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            Dashboard.init();
+        });
+    </script>
+</body>
+</html>

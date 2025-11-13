@@ -1,0 +1,79 @@
+{
+  "id": 1,
+  "title": "TechVenture AI Platform",
+  "description": "Revolutionary AI-powered analytics platform",
+  "date": "Oct 28, 2025",
+  "slideCount": 8,
+  "colorScheme": {
+    "primary": "bg-gradient-to-br from-blue-600 to-purple-700",
+    "secondary": "bg-blue-50",
+    "accent": "text-blue-600",
+    "button": "bg-blue-600 hover:bg-blue-700"
+  },
+  "slides": [
+    {
+      "type": "title",
+      "title": "TechVenture AI",
+      "subtitle": "Transforming Data into Intelligence",
+      "content": "The Future of Business Analytics"
+    },
+    {
+      "type": "problem",
+      "title": "The Problem",
+      "points": [
+        "Companies struggle with data overload",
+        "Traditional analytics tools are complex",
+        "Insights take weeks to generate",
+        "Teams lack AI expertise"
+      ]
+    },
+    {
+      "type": "solution",
+      "title": "Our Solution",
+      "description": "AI-powered platform that turns raw data into actionable insights in minutes",
+      "features": ["Natural Language Queries", "Real-time Analytics", "Predictive Models", "Automated Reporting"]
+    },
+    {
+      "type": "market",
+      "title": "Market Opportunity",
+      "stat": "$50B",
+      "description": "Total Addressable Market",
+      "details": "Growing at 25% CAGR through 2030"
+    },
+    {
+      "type": "business",
+      "title": "Business Model",
+      "tiers": [
+        { "name": "Starter", "price": "$99/mo", "users": "Up to 10 users" },
+        { "name": "Professional", "price": "$499/mo", "users": "Up to 50 users" },
+        { "name": "Enterprise", "price": "Custom", "users": "Unlimited users" }
+      ]
+    },
+    {
+      "type": "traction",
+      "title": "Traction",
+      "metrics": [
+        { "label": "Active Users", "value": "10K+" },
+        { "label": "Revenue", "value": "$2M ARR" },
+        { "label": "Growth", "value": "40% MoM" },
+        { "label": "Retention", "value": "95%" }
+      ]
+    },
+    {
+      "type": "team",
+      "title": "Team",
+      "members": [
+        { "name": "Sarah Chen", "role": "CEO", "background": "Ex-Google AI Lead" },
+        { "name": "Marcus Davis", "role": "CTO", "background": "Stanford PhD, ML" },
+        { "name": "Elena Rodriguez", "role": "CPO", "background": "Ex-Microsoft PM" }
+      ]
+    },
+    {
+      "type": "ask",
+      "title": "The Ask",
+      "amount": "$5M Series A",
+      "usage": "Product Development • Sales & Marketing • Team Growth",
+      "goal": "Scale to 100K users by Q4 2026"
+    }
+  ]
+}

@@ -1,0 +1,116 @@
+{
+  "theme": {
+    "name": "Light & Bright",
+    "colors": {
+      "primary": "#2563eb",
+      "secondary": "#7c3aed",
+      "accent": "#f59e0b",
+      "background": "#ffffff",
+      "panelBackground": "#f8fafc",
+      "text": "#1e293b",
+      "textSecondary": "#64748b",
+      "border": "#e2e8f0",
+      "controlBg": "#2563eb",
+      "controlText": "#ffffff",
+      "controlHover": "#1d4ed8"
+    },
+    "fonts": {
+      "title": "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+      "body": "'Inter', -apple-system, BlinkMacSystemFont, sans-serif"
+    },
+    "effects": {
+      "borderRadius": "16px",
+      "shadow": "0 10px 40px rgba(0,0,0,0.1)"
+    }
+  },
+  "slides": [
+    {
+      "layout": "centered",
+      "animation": "fade",
+      "background": "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+      "badge": "Welcome",
+      "title": "Your Presentation Title",
+      "subtitle": "Your Subtitle Here",
+      "content": "Introduction text goes here",
+      "footer": "Footer text",
+      "textColor": "#ffffff",
+      "badgeColor": "rgba(255,255,255,0.2)",
+      "badgeBorder": "rgba(255,255,255,0.3)",
+      "badgeText": "#ffffff"
+    },
+    {
+      "layout": "split-left",
+      "animation": "slide-right",
+      "badge": "Section Label",
+      "title": "Content with Image",
+      "subtitle": "Image on left, content on right",
+      "image": "app-logo",
+      "items": [
+        "First bullet point",
+        "Second bullet point",
+        "Third bullet point"
+      ]
+    },
+    {
+      "layout": "split-right",
+      "animation": "slide-left",
+      "badge": "Another Section",
+      "title": "Reversed Layout",
+      "subtitle": "Content on left, image on right",
+      "image": "hero-banner",
+      "content": "Description paragraph text here",
+      "items": [
+        "Point one",
+        "Point two",
+        "Point three"
+      ]
+    },
+    {
+      "layout": "grid",
+      "animation": "zoom",
+      "badge": "Features",
+      "title": "Grid Layout",
+      "subtitle": "Display multiple items in a grid",
+      "gridItems": [
+        {
+          "title": "Feature 1",
+          "content": "Description of feature 1"
+        },
+        {
+          "title": "Feature 2",
+          "content": "Description of feature 2"
+        },
+        {
+          "title": "Feature 3",
+          "content": "Description of feature 3"
+        },
+        {
+          "title": "Feature 4",
+          "content": "Description of feature 4"
+        }
+      ]
+    },
+    {
+      "layout": "minimal",
+      "animation": "slide-bottom",
+      "badge": "Simple",
+      "title": "Minimal Layout",
+      "subtitle": "Clean and focused",
+      "content": "Main content paragraph",
+      "items": [
+        "Clean design",
+        "Left-aligned",
+        "Spacious layout"
+      ]
+    },
+    {
+      "layout": "image-focus",
+      "animation": "fade",
+      "badge": "Visual",
+      "title": "Image Focus",
+      "subtitle": "Large image with caption",
+      "image": "product-demo",
+      "content": "Description below the image"
+    }
+  ]
+}

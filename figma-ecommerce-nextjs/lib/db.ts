@@ -1,0 +1,162 @@
+import { join } from 'path';
+import { Low } from 'lowdb';
+import { JSONFile } from 'lowdb/node';
+
+export interface Product {
+  id: number;
+  name: string;
+  price: number;
+  originalPrice?: number;
+  discount?: number;
+  rating: number;
+  image: string;
+  category: string;
+  sizes: string[];
+  colors: string[];
+  style: string;
+}
+
+interface Data {
+  products: Product[];
+}
+
+let db: Low<Data> | null = null;
+
+export async function getDB() {
+  if (db) return db;
+
+  const file = join(process.cwd(), 'db.json');
+  const adapter = new JSONFile<Data>(file);
+  db = new Low<Data>(adapter, { products: [] });
+
+  await db.read();
+
+  // Initialize with default data if empty
+  if (!db.data.products || db.data.products.length === 0) {
+    db.data = {
+      products: [
+        {
+          id: 1,
+          name: 'Gradient Graphic T-shirt',
+          price: 145,
+          rating: 3.5,
+          image: '👕',
+          category: 'T-shirts',
+          sizes: ['Small', 'Medium', 'Large', 'X-Large'],
+          colors: ['purple', 'pink'],
+          style: 'Casual'
+        },
+        {
+          id: 2,
+          name: 'Polo with Tipping Details',
+          price: 180,
+          rating: 4.5,
+          image: '👔',
+          category: 'Shirts',
+          sizes: ['Small', 'Medium', 'Large'],
+          colors: ['red', 'blue'],
+          style: 'Casual'
+        },
+        {
+          id: 3,
+          name: 'Black Striped T-shirt',
+          price: 120,
+          originalPrice: 150,
+          discount: 30,
+          rating: 5.0,
+          image: '👕',
+          category: 'T-shirts',
+          sizes: ['Small', 'Medium', 'Large', 'X-Large'],
+          colors: ['black', 'white'],
+          style: 'Casual'
+        },
+        {
+          id: 4,
+          name: 'Skinny Fit Jeans',
+          price: 240,
+          originalPrice: 260,
+          discount: 20,
+          rating: 3.5,
+          image: '👖',
+          category: 'Jeans',
+          sizes: ['Small', 'Medium', 'Large'],
+          colors: ['blue'],
+          style: 'Casual'
+        },
+        {
+          id: 5,
+          name: 'Checkered Shirt',
+          price: 180,
+          rating: 4.5,
+          image: '👔',
+          category: 'Shirts',
+          sizes: ['Medium', 'Large', 'X-Large'],
+          colors: ['red', 'black'],
+          style: 'Casual'
+        },
+        {
+          id: 6,
+          name: 'Sleeve Striped T-shirt',
+          price: 130,
+          originalPrice: 160,
+          discount: 30,
+          rating: 4.5,
+          image: '👕',
+          category: 'T-shirts',
+          sizes: ['Small', 'Medium', 'Large'],
+          colors: ['orange', 'black'],
+          style: 'Casual'
+        },
+        {
+          id: 7,
+          name: 'Vertical Striped Shirt',
+          price: 212,
+          originalPrice: 232,
+          discount: 20,
+          rating: 5.0,
+          image: '👔',
+          category: 'Shirts',
+          sizes: ['Medium', 'Large', 'X-Large'],
+          colors: ['green', 'white'],
+          style: 'Formal'
+        },
+        {
+          id: 8,
+          name: 'Courage Graphic T-shirt',
+          price: 145,
+          rating: 4.0,
+          image: '👕',
+          category: 'T-shirts',
+          sizes: ['Small', 'Medium', 'Large', 'X-Large'],
+          colors: ['orange'],
+          style: 'Casual'
+        },
+        {
+          id: 9,
+          name: 'Loose Fit Bermuda Shorts',
+          price: 80,
+          rating: 3.0,
+          image: '🩳',
+          category: 'Shorts',
+          sizes: ['Small', 'Medium', 'Large'],
+          colors: ['blue'],
+          style: 'Casual'
+        },
+        {
+          id: 10,
+          name: 'Faded Skinny Jeans',
+          price: 210,
+          rating: 4.5,
+          image: '👖',
+          category: 'Jeans',
+          sizes: ['Small', 'Medium', 'Large', 'X-Large'],
+          colors: ['blue'],
+          style: 'Casual'
+        }
+      ]
+    };
+    await db.write();
+  }
+
+  return db;
+}

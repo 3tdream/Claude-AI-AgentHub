@@ -1,0 +1,230 @@
+{
+  "theme": {
+    "name": "Dark Professional",
+    "colors": {
+      "primary": "#a78bfa",
+      "secondary": "#f472b6",
+      "accent": "#fbbf24",
+      "background": "#0f172a",
+      "panelBackground": "#1e293b",
+      "text": "#ffffff",
+      "textSecondary": "#94a3b8",
+      "border": "#334155",
+      "controlBg": "#4c1d95",
+      "controlText": "#ffffff",
+      "controlHover": "#6d28d9"
+    },
+    "fonts": {
+      "title": "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+      "body": "'Inter', -apple-system, BlinkMacSystemFont, sans-serif"
+    },
+    "effects": {
+      "borderRadius": "16px",
+      "shadow": "0 20px 60px rgba(0,0,0,0.5)"
+    }
+  },
+  "slides": [
+    {
+      "layout": "centered",
+      "animation": "fade",
+      "background": "linear-gradient(135deg, #1e1b4b 0%, #4c1d95 100%)",
+      "badge": "Company Pitch Deck",
+      "title": "Your Company Name",
+      "subtitle": "Transforming the Industry",
+      "content": "Building the future, one innovation at a time",
+      "footer": "Confidential - 2025",
+      "textColor": "#ffffff",
+      "badgeColor": "rgba(167, 139, 250, 0.2)",
+      "badgeBorder": "rgba(167, 139, 250, 0.3)",
+      "badgeText": "#c4b5fd"
+    },
+    {
+      "layout": "split-left",
+      "animation": "slide-right",
+      "badge": "The Problem",
+      "title": "Market Challenge",
+      "subtitle": "Current industry pain points",
+      "image": "problem-illustration",
+      "items": [
+        "Outdated technology limits growth",
+        "Manual processes waste 40% of time",
+        "Customer expectations rising rapidly",
+        "Competition increasing pressure",
+        "Compliance becoming more complex"
+      ]
+    },
+    {
+      "layout": "split-right",
+      "animation": "slide-left",
+      "badge": "Our Solution",
+      "title": "Revolutionary Platform",
+      "subtitle": "AI-powered automation at scale",
+      "image": "solution-demo",
+      "content": "We've built a platform that combines cutting-edge AI with intuitive design, enabling companies to automate complex workflows while maintaining full control.",
+      "items": [
+        "10x faster processing",
+        "99.9% accuracy rate",
+        "Zero-code integration",
+        "Enterprise-grade security"
+      ]
+    },
+    {
+      "layout": "grid",
+      "animation": "zoom",
+      "badge": "Core Features",
+      "title": "Platform Capabilities",
+      "subtitle": "Everything you need in one place",
+      "gridItems": [
+        {
+          "title": "AI Automation",
+          "content": "Intelligent workflows that learn and adapt"
+        },
+        {
+          "title": "Real-time Analytics",
+          "content": "Deep insights into every operation"
+        },
+        {
+          "title": "Seamless Integration",
+          "content": "Connect with 1000+ tools instantly"
+        },
+        {
+          "title": "Enterprise Security",
+          "content": "Bank-level encryption and compliance"
+        },
+        {
+          "title": "24/7 Support",
+          "content": "Expert help whenever you need it"
+        },
+        {
+          "title": "Custom Workflows",
+          "content": "Tailored to your specific needs"
+        }
+      ]
+    },
+    {
+      "layout": "minimal",
+      "animation": "slide-bottom",
+      "badge": "Market Opportunity",
+      "title": "$50 Billion TAM",
+      "subtitle": "Massive addressable market",
+      "content": "The global market for automation solutions is growing at 23% CAGR, with enterprises increasingly seeking AI-powered platforms.",
+      "items": [
+        "50,000+ potential enterprise customers",
+        "Average deal size: $100K+ ARR",
+        "90% customer retention rate",
+        "Market growing 23% year over year"
+      ]
+    },
+    {
+      "layout": "image-focus",
+      "animation": "fade",
+      "badge": "Product Demo",
+      "title": "See It In Action",
+      "subtitle": "Intuitive interface, powerful features",
+      "image": "product-screenshot",
+      "content": "Our platform makes complex automation simple with drag-and-drop workflows, real-time monitoring, and intelligent recommendations."
+    },
+    {
+      "layout": "split-left",
+      "animation": "slide-right",
+      "badge": "Traction",
+      "title": "Proven Success",
+      "subtitle": "Real results from real customers",
+      "image": "growth-chart",
+      "items": [
+        "$3M ARR with 200% YoY growth",
+        "50+ enterprise customers",
+        "98% customer satisfaction score",
+        "15 Fortune 500 companies in pipeline",
+        "Featured in TechCrunch & Forbes"
+      ]
+    },
+    {
+      "layout": "grid",
+      "animation": "zoom",
+      "badge": "Team",
+      "title": "World-Class Team",
+      "subtitle": "Experience from the best companies",
+      "gridItems": [
+        {
+          "title": "CEO - Jane Smith",
+          "content": "Former VP at Google, MIT CS"
+        },
+        {
+          "title": "CTO - John Doe",
+          "content": "Ex-Amazon, Stanford PhD"
+        },
+        {
+          "title": "CPO - Sarah Johnson",
+          "content": "Product Lead at Microsoft"
+        },
+        {
+          "title": "CFO - Mike Chen",
+          "content": "Former Goldman Sachs VP"
+        }
+      ]
+    },
+    {
+      "layout": "minimal",
+      "animation": "slide-bottom",
+      "badge": "Business Model",
+      "title": "Sustainable Growth",
+      "subtitle": "Multiple revenue streams",
+      "items": [
+        "SaaS subscription: $1K-$10K/month per customer",
+        "Professional services: Implementation & training",
+        "API access: Usage-based pricing",
+        "Enterprise licenses: Custom pricing",
+        "Marketplace: 20% commission on integrations"
+      ]
+    },
+    {
+      "layout": "split-right",
+      "animation": "slide-left",
+      "badge": "Competitive Advantage",
+      "title": "Why We Win",
+      "subtitle": "Our unique moat",
+      "image": "competitive-landscape",
+      "items": [
+        "Proprietary AI models with 2-year lead",
+        "1M+ hours of training data",
+        "Patent-pending technology",
+        "Network effects from platform",
+        "Switching costs increase over time"
+      ]
+    },
+    {
+      "layout": "minimal",
+      "animation": "fade",
+      "badge": "Financial Projections",
+      "title": "5-Year Forecast",
+      "subtitle": "Path to $100M ARR",
+      "items": [
+        "Year 1: $5M ARR (Current)",
+        "Year 2: $15M ARR (3x growth)",
+        "Year 3: $40M ARR",
+        "Year 4: $80M ARR",
+        "Year 5: $150M ARR (Cash flow positive)"
+      ]
+    },
+    {
+      "layout": "centered",
+      "animation": "zoom",
+      "background": "linear-gradient(135deg, #c026d3 0%, #7c3aed 100%)",
+      "badge": "The Ask",
+      "title": "Series A Round",
+      "subtitle": "$10M at $50M valuation",
+      "content": "Join us in revolutionizing the industry. We're raising $10M to scale our team, expand our product, and accelerate growth.",
+      "items": [
+        "Scale sales team to 50+ reps",
+        "Double engineering team",
+        "Launch 3 major product features",
+        "Expand to European market"
+      ],
+      "textColor": "#ffffff",
+      "badgeColor": "rgba(255,255,255,0.2)",
+      "badgeBorder": "rgba(255,255,255,0.3)",
+      "badgeText": "#ffffff"
+    }
+  ]
+}

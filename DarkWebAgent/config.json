@@ -1,0 +1,104 @@
+{
+  "security_checks": {
+    "system_security": {
+      "enabled": true,
+      "checks": [
+        "firewall_status",
+        "auto_updates",
+        "disk_encryption",
+        "antivirus_status",
+        "uac_settings"
+      ]
+    },
+    "network_security": {
+      "enabled": true,
+      "checks": [
+        "open_ports",
+        "active_connections",
+        "dns_security",
+        "wifi_encryption",
+        "public_ip_exposure"
+      ]
+    },
+    "privacy_settings": {
+      "enabled": true,
+      "checks": [
+        "telemetry_settings",
+        "location_services",
+        "camera_permissions",
+        "microphone_permissions",
+        "app_permissions"
+      ]
+    },
+    "file_security": {
+      "enabled": true,
+      "checks": [
+        "sensitive_file_permissions",
+        "ssh_key_permissions",
+        "config_file_exposure",
+        "temporary_files"
+      ],
+      "sensitive_patterns": [
+        ".ssh/*",
+        "*.key",
+        "*.pem",
+        ".env",
+        "credentials.*",
+        "secrets.*"
+      ]
+    },
+    "browser_privacy": {
+      "enabled": true,
+      "checks": [
+        "cookie_count",
+        "tracking_protection",
+        "https_enforcement",
+        "password_manager",
+        "autofill_settings"
+      ]
+    },
+    "software_vulnerabilities": {
+      "enabled": true,
+      "checks": [
+        "outdated_packages",
+        "python_packages",
+        "npm_packages",
+        "os_version"
+      ]
+    }
+  },
+  "risk_levels": {
+    "critical": {
+      "color": "red",
+      "weight": 10,
+      "examples": ["No firewall", "Unencrypted disk", "Default passwords"]
+    },
+    "high": {
+      "color": "orange",
+      "weight": 7,
+      "examples": ["Outdated OS", "Open unnecessary ports", "Weak permissions"]
+    },
+    "medium": {
+      "color": "yellow",
+      "weight": 4,
+      "examples": ["Telemetry enabled", "Many cookies", "No HTTPS enforcement"]
+    },
+    "low": {
+      "color": "blue",
+      "weight": 1,
+      "examples": ["Minor privacy settings", "Informational findings"]
+    }
+  },
+  "output_formats": [
+    "console",
+    "json",
+    "html",
+    "markdown"
+  ],
+  "scanning": {
+    "deep_scan": false,
+    "parallel_execution": true,
+    "timeout_seconds": 300,
+    "verbose_mode": true
+  }
+}

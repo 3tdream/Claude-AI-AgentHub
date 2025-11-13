@@ -1,0 +1,506 @@
+{
+  "presentation": {
+    "title": "AIkinsey — Autonomous AI Workforce for SMEs",
+    "subtitle": "Seed/Series A Investor Pitch Deck",
+    "totalSlides": 16
+  },
+  "slides": [
+    {
+      "id": 1,
+      "type": "title",
+      "background": {
+        "type": "gradient",
+        "source": "linear-gradient(135deg, #1e293b 0%, #334155 50%, #1e40af 100%)"
+      },
+      "overlay": false,
+      "content": {
+        "alignment": "center",
+        "badge": {
+          "text": "Seed/Series A Investment Opportunity",
+          "color": "yellow-500",
+          "textColor": "black"
+        },
+        "title": "AIkinsey",
+        "subtitle": "An Autonomous Workforce of AI Employees for Organizational Management, Consulting & Operations"
+      }
+    },
+    {
+      "id": 2,
+      "type": "content",
+      "background": {
+        "type": "image",
+        "source": "/assets/slide-2-problem.jpg",
+        "fallback": "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1920"
+      },
+      "overlay": true,
+      "content": {
+        "alignment": "left",
+        "badge": {
+          "text": "The Problem",
+          "color": "red-500"
+        },
+        "title": "SME Operational Inefficiency",
+        "subtitle": "Small Companies Face Enterprise Challenges Without Enterprise Resources",
+        "items": [
+          "[TrendingDown] Analytical Capacity Gap — Limited access to advanced analytics; intuition-driven decisions",
+          "[Database] Information Silos — Data scattered across ERP/CRM/Slack without unified visibility",
+          "[Users] Limited Human Expertise — SMEs (5–100 employees) can't afford specialists in HR, Finance, Data, Legal",
+          "[DollarSign] Reliance on External Consultants — Expensive ($150–500/hr), slow, static reports",
+          "[AlertCircle] Data Utilization Deficit — Organizations collect data but rarely learn or act in real time"
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "type": "stats",
+      "background": {
+        "type": "image",
+        "source": "/assets/slide-3-market.jpg",
+        "fallback": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1920"
+      },
+      "overlay": true,
+      "content": {
+        "alignment": "center",
+        "badge": {
+          "text": "Market Opportunity",
+          "color": "green-500"
+        },
+        "title": "$47B+ Addressable Market in AI-Powered SME Productivity",
+        "stats": [
+          {
+            "number": "$47B",
+            "label": "TAM — Global AI Productivity Market"
+          },
+          {
+            "number": "$12.3B",
+            "label": "SAM — SMEs (5–200 employees)"
+          },
+          {
+            "number": "34%",
+            "label": "CAGR Through 2028"
+          }
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "type": "content",
+      "background": {
+        "type": "gradient",
+        "source": "linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)"
+      },
+      "overlay": false,
+      "content": {
+        "alignment": "center",
+        "badge": {
+          "text": "The Solution",
+          "color": "blue-500"
+        },
+        "title": "Autonomous AI Workforce",
+        "subtitle": "Not a Tool. A Workforce.",
+        "items": [
+          "[User] Personal AI Coworker for Every Human — Dedicated AI assistant trained on role, tools, workflows",
+          "[Users] Departmental AI Employees — Virtual specialists in Finance, HR, Data, Legal, Operations",
+          "[Network] AI-to-AI Collaboration — AI employees communicate across tools to create unified organizational memory",
+          "[Brain] Chief AI Officer — Coordinates all AI employees; performs system-wide optimization and planning",
+          "[Clock] Always-On Consultancy — 24/7 monitoring, learning, and improvement"
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "type": "cards",
+      "background": {
+        "type": "image",
+        "source": "/assets/slide-5-how-it-works.jpg",
+        "fallback": "https://images.unsplash.com/photo-1552664730-d307ca884978?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1920"
+      },
+      "overlay": true,
+      "content": {
+        "alignment": "center",
+        "badge": {
+          "text": "How It Works",
+          "color": "purple-500"
+        },
+        "title": "Phased Deployment: POC to Full Org Synergy",
+        "cards": [
+          {
+            "icon": "Search",
+            "title": "Phase 1: POC (Week 1)",
+            "description": "Organizational diagnosis; map workflows, identify bottlenecks, baseline metrics"
+          },
+          {
+            "icon": "Rocket",
+            "title": "Phase 2: MVP (Weeks 2–4)",
+            "description": "Deploy AI to one dept; 20–35% productivity improvement Week 1"
+          },
+          {
+            "icon": "TrendingUp",
+            "title": "Phase 3: Expansion (Mo 2–6)",
+            "description": "Roll out to Finance → HR → Sales → Ops; AI-to-AI collaboration"
+          },
+          {
+            "icon": "Zap",
+            "title": "Phase 4: Synergy (Mo 6+)",
+            "description": "Reinforcement learning; continuous optimization; compounding advantage"
+          }
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "type": "dual-list",
+      "background": {
+        "type": "image",
+        "source": "/assets/slide-6-product-demo.jpg",
+        "fallback": "https://images.unsplash.com/photo-1460925895917-afdab827c52f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1920"
+      },
+      "overlay": true,
+      "content": {
+        "alignment": "center",
+        "badge": {
+          "text": "Product Demo",
+          "color": "cyan-500"
+        },
+        "title": "Meet Your New Team Members",
+        "lists": [
+          {
+            "title": "AI Employees",
+            "items": [
+              "[DollarSign] Alex (Finance AI) — Cash flow forecasting, invoice reconciliation",
+              "[Users] Jordan (HR AI) — Onboarding automation, compliance tracking",
+              "[BarChart3] Sam (Data AI) — Analytics dashboards, predictive modeling",
+              "[Settings] Morgan (Ops AI) — Process optimization, task automation"
+            ]
+          },
+          {
+            "title": "AI-to-AI Collaboration",
+            "items": [
+              "Finance AI detects budget overrun",
+              "Operations AI analyzes timelines",
+              "HR AI suggests resource reallocation",
+              "Chief AI Officer presents recommendation to CEO"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "type": "content",
+      "background": {
+        "type": "image",
+        "source": "/assets/slide-7-competition.jpg",
+        "fallback": "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1920"
+      },
+      "overlay": true,
+      "content": {
+        "alignment": "left",
+        "badge": {
+          "text": "Competitive Landscape",
+          "color": "orange-500"
+        },
+        "title": "AIkinsey = AI Assistants + AI Agents + Consulting, Unified",
+        "items": [
+          "[MessageSquare] AI Assistants (ChatGPT, Copilot) — Single-task tools; no memory | AIkinsey: Multi-agent system with org memory",
+          "[Bot] AI Agent Teams (AutoGPT, LangChain) — Technical complexity | AIkinsey: Pre-trained for SMEs; turnkey",
+          "[Briefcase] Consulting Firms (McKinsey, Deloitte) — Expensive, static reports | AIkinsey: Always-on 24/7 at 10% cost",
+          "[Building2] Enterprise AI (Salesforce Einstein) — Built for large enterprises | AIkinsey: Designed for SMEs; operational Week 1"
+        ],
+        "highlight": {
+          "text": "Unique Moat: Continuous consulting + operations + analytics with reinforcement learning",
+          "color": "orange-200"
+        }
+      }
+    },
+    {
+      "id": 8,
+      "type": "stats",
+      "background": {
+        "type": "image",
+        "source": "/assets/slide-8-traction.jpg",
+        "fallback": "https://images.unsplash.com/photo-1551135049-8a33b5883817?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1920"
+      },
+      "overlay": true,
+      "content": {
+        "alignment": "center",
+        "badge": {
+          "text": "Traction & Validation",
+          "color": "green-500"
+        },
+        "title": "Early Pilots Demonstrate 22–35% Efficiency Gains",
+        "stats": [
+          {
+            "number": "20–35%",
+            "label": "Week 1 Productivity Improvement"
+          },
+          {
+            "number": "3–5",
+            "label": "Active Pilots (SaaS, Services, Mfg)"
+          },
+          {
+            "number": "$420K",
+            "label": "ARR Projected from Pipeline"
+          }
+        ]
+      }
+    },
+    {
+      "id": 9,
+      "type": "content",
+      "background": {
+        "type": "gradient",
+        "source": "linear-gradient(135deg, #065f46 0%, #10b981 100%)"
+      },
+      "overlay": false,
+      "content": {
+        "alignment": "left",
+        "badge": {
+          "text": "Business Model",
+          "color": "emerald-500"
+        },
+        "title": "Value-First Billing: We Only Get Paid After Proven ROI",
+        "items": [
+          "[CreditCard] Subscription Pricing — $150–300/employee/month or $2,500–5,000/dept/month",
+          "[CheckCircle2] Value-Based Billing — Payment after analysis approval and measurable ROI",
+          "[TrendingUp] Upsell & Expansion — Additional departments, integration add-ons, white-label partnerships",
+          "[DollarSign] Unit Economics — ACV: $36K | CAC: $8.5K | Payback: 3–4 mo | LTV:CAC 5.2:1",
+          "[PieChart] Gross Margin — 78% (cloud infrastructure ~22%)"
+        ]
+      }
+    },
+    {
+      "id": 10,
+      "type": "dual-list",
+      "background": {
+        "type": "image",
+        "source": "/assets/slide-10-gtm.jpg",
+        "fallback": "https://images.unsplash.com/photo-1556761175-b413da4baf72?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1920"
+      },
+      "overlay": true,
+      "content": {
+        "alignment": "center",
+        "badge": {
+          "text": "Go-to-Market Strategy",
+          "color": "blue-500"
+        },
+        "title": "Land & Expand via Direct Sales + Integration Partnerships",
+        "lists": [
+          {
+            "title": "Phase 1: Israel & US East Coast",
+            "items": [
+              "[Target] Direct sales to 50–200 employee SMEs",
+              "[Users] Target: CEOs/COOs (efficiency), CFOs (analytics)",
+              "[Megaphone] LinkedIn outbound + content marketing",
+              "[Calendar] Industry conferences: SaaStr, SaaStock"
+            ]
+          },
+          {
+            "title": "Phase 2–3: Partnerships + PLG",
+            "items": [
+              "[Puzzle] ERP/CRM integrations: Monday, Salesforce, NetSuite",
+              "[Handshake] White-label consulting firm partnerships",
+              "[Gift] Free trial for 1 department (14 days)",
+              "[Rocket] Self-serve onboarding for <20 employee companies"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 11,
+      "type": "content",
+      "background": {
+        "type": "image",
+        "source": "/assets/slide-11-financials.jpg",
+        "fallback": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1920"
+      },
+      "overlay": true,
+      "content": {
+        "alignment": "center",
+        "badge": {
+          "text": "Financial Projections",
+          "color": "yellow-500",
+          "textColor": "black"
+        },
+        "title": "$12M ARR by Year 3 with Strong Unit Economics",
+        "subtitle": "3-Year Forecast (Assumptions)",
+        "items": [
+          "[Calendar] Year 1 (2025): 25 customers | $900K ARR | 68% gross margin",
+          "[TrendingUp] Year 2 (2026): 120 customers | $4.3M ARR | 75% gross margin | CAC improves",
+          "[Rocket] Year 3 (2027): 340 customers | $12.2M ARR | 78% gross margin | Break-even targeted",
+          "[Target] Burn Rate: $120K/mo Y1 → $210K/mo Y2 → $380K/mo Y3",
+          "[Banknote] Runway: 18 months post-raise → Series A readiness"
+        ],
+        "highlight": {
+          "text": "Churn Rate: 8% annually (SME SaaS benchmark)",
+          "color": "yellow-200"
+        }
+      }
+    },
+    {
+      "id": 12,
+      "type": "cards",
+      "background": {
+        "type": "image",
+        "source": "/assets/slide-12-risk.jpg",
+        "fallback": "https://images.unsplash.com/photo-1563986768609-322da13575f3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1920"
+      },
+      "overlay": true,
+      "content": {
+        "alignment": "center",
+        "badge": {
+          "text": "Risk & Compliance",
+          "color": "red-500"
+        },
+        "title": "Trust-by-Design: Security, Privacy, and Governance Built-In",
+        "cards": [
+          {
+            "icon": "Shield",
+            "title": "Governance Agent",
+            "description": "GDPR/ISO controls, audit trails, data minimization, real-time compliance monitoring"
+          },
+          {
+            "icon": "UserCheck",
+            "title": "Gradual Adoption",
+            "description": "AI starts in 'suggest' mode → 'automate' after approval; onboarding & coaching flows"
+          },
+          {
+            "icon": "Lock",
+            "title": "Enterprise Security",
+            "description": "SOC 2 Type II, end-to-end encryption, RBAC, on-premise deployment option"
+          },
+          {
+            "icon": "Eye",
+            "title": "Explainability",
+            "description": "All AI recommendations include reasoning and data sources; human-in-the-loop for high-stakes decisions"
+          }
+        ]
+      }
+    },
+    {
+      "id": 13,
+      "type": "content",
+      "background": {
+        "type": "gradient",
+        "source": "linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)"
+      },
+      "overlay": false,
+      "content": {
+        "alignment": "left",
+        "badge": {
+          "text": "Competitive Moat",
+          "color": "purple-500"
+        },
+        "title": "Compounding Advantage Through Continuous Learning",
+        "items": [
+          "[RefreshCw] Reinforcement Learning Flywheel — AI learns from every interaction → improves recommendations → better outcomes → attracts more customers",
+          "[Database] Organizational Memory as Moat — Deep integration creates switching costs; AI becomes embedded in workflows",
+          "[Target] Vertical-Specific AI Employees — Pre-trained for industry niches (Legal AI for law firms, Clinical Ops for healthcare)",
+          "[Network] Data Network Effect — Aggregated anonymized data enables better forecasting and benchmarking; competitors lack training data"
+        ],
+        "highlight": {
+          "text": "First-mover advantage in SME-specific AI workforce category",
+          "color": "purple-200"
+        }
+      }
+    },
+    {
+      "id": 14,
+      "type": "dual-list",
+      "background": {
+        "type": "image",
+        "source": "/assets/slide-14-team.jpg",
+        "fallback": "https://images.unsplash.com/photo-1522071820081-009f0129c71c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1920"
+      },
+      "overlay": true,
+      "content": {
+        "alignment": "center",
+        "badge": {
+          "text": "Team",
+          "color": "indigo-500"
+        },
+        "title": "AI + Operations + Product Expertise",
+        "lists": [
+          {
+            "title": "Founders [Placeholder]",
+            "items": [
+              "[User] CEO — AI/ML expert, previous exits, MIT Computer Science",
+              "[Code] CTO — Ex-OpenAI Engineer, Stanford PhD (Reinforcement Learning), 10+ years ML",
+              "[Briefcase] COO — Ex-McKinsey Consultant, Harvard MBA, led digital transformation for 50+ SMEs"
+            ]
+          },
+          {
+            "title": "Advisors & Key Hires [Placeholder]",
+            "items": [
+              "[Scale] Legal/Compliance Advisor — GDPR and AI governance expert",
+              "[Network] Enterprise Architect — Integrations and API strategy",
+              "[Target] Head of Sales (to be hired) — SME SaaS sales leader, 10+ years experience"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 15,
+      "type": "content",
+      "background": {
+        "type": "image",
+        "source": "/assets/slide-15-vision.jpg",
+        "fallback": "https://images.unsplash.com/photo-1451187580459-43490279c0fa?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1920"
+      },
+      "overlay": true,
+      "content": {
+        "alignment": "center",
+        "badge": {
+          "text": "Vision & Future State",
+          "color": "blue-500"
+        },
+        "title": "The Future of Work is Hybrid: Humans + AI Employees, Together",
+        "subtitle": "2025–2030 Roadmap",
+        "items": [
+          "[Target] 2025–2027: Build the Autonomous SME Workforce — 500+ SMEs running hybrid operations",
+          "[TrendingUp] 2028+: Expand to Mid-Market — 200–1,000 employee companies; vertical solutions (healthcare, legal, mfg)",
+          "[Globe] Long-Term Vision: Not a tool. A workforce. — Every org has access to enterprise-grade intelligence",
+          "[Users] Impact: AI handles complexity; humans focus on strategy, creativity, relationships",
+          "[Sparkles] 10M+ human employees augmented by AIkinsey by 2030"
+        ],
+        "highlight": {
+          "text": "SMEs compete on equal footing with Fortune 500 companies",
+          "color": "blue-200"
+        }
+      }
+    },
+    {
+      "id": 16,
+      "type": "cta",
+      "background": {
+        "type": "gradient",
+        "source": "linear-gradient(135deg, #1e293b 0%, #3b82f6 50%, #8b5cf6 100%)"
+      },
+      "overlay": false,
+      "content": {
+        "alignment": "center",
+        "title": "The Ask: $3M Seed Round",
+        "subtitle": "18-Month Runway to Scale Pilot → Product-Market Fit → Growth",
+        "buttons": [
+          {
+            "text": "Schedule Meeting",
+            "variant": "primary",
+            "action": "schedule"
+          },
+          {
+            "text": "View Appendix",
+            "variant": "outline",
+            "action": "appendix"
+          }
+        ],
+        "footer": [
+          "Use of Funds: 50% Product Dev | 30% Sales & Marketing | 15% Infrastructure | 5% Legal/Compliance",
+          "Milestones: 50 customers @ Month 6 | 100 customers @ Month 12 | 150 customers @ Month 18 | Series A ready",
+          "What We're Offering: Ground floor in AI workforce category • 20–35% Week 1 productivity gains • 5.2:1 LTV:CAC • Clear path to $50M+ ARR"
+        ]
+      }
+    }
+  ]
+}
