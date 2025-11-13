@@ -28,7 +28,8 @@
       "Bash(git config:*)",
       "Bash(cat:*)",
       "Bash(test:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(pnpm --version:*)"
     ],
     "deny": [],
     "ask": []
