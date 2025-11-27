@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Clock, DollarSign, Calendar, Mic, Plus, Pencil, Trash2, Users } from 'lucide-react';
+import { Clock, DollarSign, Calendar, Mic, Plus, Pencil, Trash2, Users, ChevronDown, ChevronRight } from 'lucide-react';
 import { VoiceChatSession } from '@/components/voice-chat-session';
 import { AddEntryDialog } from '@/components/add-entry-dialog';
 import { EditEntryDialog } from '@/components/edit-entry-dialog';
@@ -25,6 +25,7 @@ export default function Dashboard() {
   const [editEntryOpen, setEditEntryOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<any>(null);
   const [currency, setCurrency] = useState('USD');
+  const [collapsedMonths, setCollapsedMonths] = useState<Set<string>>(new Set());
 
   // Load currency from localStorage on mount
   useEffect(() => {
@@ -165,6 +166,57 @@ export default function Dashboard() {
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
+  };
+
+  // Group entries by month
+  const groupEntriesByMonth = (entries: any[]) => {
+    const groups: Record<string, any[]> = {};
+
+    entries.forEach((entry) => {
+      const date = new Date(entry.date);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      if (!groups[monthKey]) {
+        groups[monthKey] = [];
+      }
+      groups[monthKey].push(entry);
+    });
+
+    // Sort entries within each month by date descending
+    Object.keys(groups).forEach((key) => {
+      groups[key].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    });
+
+    // Return sorted by month descending (most recent first)
+    return Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0]));
+  };
+
+  const formatMonthYear = (monthKey: string) => {
+    const [year, month] = monthKey.split('-');
+    const date = new Date(parseInt(year), parseInt(month) - 1);
+    return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  };
+
+  const toggleMonth = (monthKey: string) => {
+    setCollapsedMonths((prev) => {
+      const next = new Set(prev);
+      if (next.has(monthKey)) {
+        next.delete(monthKey);
+      } else {
+        next.add(monthKey);
+      }
+      return next;
+    });
+  };
+
+  const getMonthStats = (monthEntries: any[]) => {
+    let totalHours = 0;
+    let totalEarnings = 0;
+    monthEntries.forEach((entry) => {
+      const hours = calculateHours(entry.startTime, entry.endTime);
+      totalHours += hours;
+      totalEarnings += hours * entry.hourlyRate;
+    });
+    return { totalHours, totalEarnings, count: monthEntries.length };
   };
 
   if (loading) {
@@ -314,110 +366,154 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Recent Entries */}
+        {/* Work Sessions Calendar */}
         <div className="bg-white rounded-xl shadow-sm border">
           <div className="px-6 py-5 border-b">
-            <h2 className="text-xl font-semibold text-gray-900">Recent Work Sessions</h2>
-            <p className="text-sm text-gray-600 mt-1">Your latest tracked work sessions</p>
+            <h2 className="text-xl font-semibold text-gray-900">Work Sessions</h2>
+            <p className="text-sm text-gray-600 mt-1">All tracked work sessions organized by month</p>
           </div>
 
-          <div className="overflow-x-auto">
-            {entries.length === 0 ? (
-              <div className="text-center py-16">
-                <Clock className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No work sessions yet</h3>
-                <p className="text-gray-600 mb-6">Get started by adding your first work session</p>
-                <button className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition-colors">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Your First Entry
-                </button>
-              </div>
-            ) : (
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Date
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Client
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Project
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Hours
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Rate
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Earnings
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {[...entries].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 10).map((entry, index) => {
-                    const hours = calculateHours(entry.startTime, entry.endTime);
-                    const earnings = hours * entry.hourlyRate;
+          {entries.length === 0 ? (
+            <div className="text-center py-16">
+              <Clock className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No work sessions yet</h3>
+              <p className="text-gray-600 mb-6">Get started by adding your first work session</p>
+              <button
+                onClick={() => setAddEntryOpen(true)}
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition-colors"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Your First Entry
+              </button>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-200">
+              {groupEntriesByMonth(entries).map(([monthKey, monthEntries]) => {
+                const isCollapsed = collapsedMonths.has(monthKey);
+                const monthStats = getMonthStats(monthEntries);
 
-                    return (
-                      <tr key={entry.id || index} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {formatDate(entry.date)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">{entry.clientName}</div>
-                          <div className="text-sm text-gray-500">{entry.startTime} - {entry.endTime}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {entry.project || '-'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {hours.toFixed(1)}h
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {formatCurrency(entry.hourlyRate)}/h
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {formatCurrency(earnings)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(entry.paymentStatus)}`}>
-                            {entry.paymentStatus}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center gap-1">
-                            <button
-                              onClick={() => handleEditEntry(entry)}
-                              className="inline-flex items-center px-2 py-1 text-sm text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
-                              title="Edit entry"
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteEntry(entry.id)}
-                              className="inline-flex items-center px-2 py-1 text-sm text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                              title="Delete entry"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
-          </div>
+                return (
+                  <div key={monthKey}>
+                    {/* Month Header */}
+                    <button
+                      onClick={() => toggleMonth(monthKey)}
+                      className="w-full px-6 py-4 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        {isCollapsed ? (
+                          <ChevronRight className="w-5 h-5 text-gray-500" />
+                        ) : (
+                          <ChevronDown className="w-5 h-5 text-gray-500" />
+                        )}
+                        <Calendar className="w-5 h-5 text-indigo-600" />
+                        <span className="font-semibold text-gray-900">{formatMonthYear(monthKey)}</span>
+                        <span className="text-sm text-gray-500">({monthStats.count} sessions)</span>
+                      </div>
+                      <div className="flex items-center gap-6 text-sm">
+                        <div className="flex items-center gap-1">
+                          <Clock className="w-4 h-4 text-purple-600" />
+                          <span className="font-medium text-gray-700">{monthStats.totalHours.toFixed(1)}h</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <DollarSign className="w-4 h-4 text-green-600" />
+                          <span className="font-medium text-gray-700">{formatCurrency(monthStats.totalEarnings)}</span>
+                        </div>
+                      </div>
+                    </button>
+
+                    {/* Month Entries */}
+                    {!isCollapsed && (
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead className="bg-white border-b">
+                            <tr>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Date
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Client
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Project
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Hours
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Rate
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Earnings
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Status
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Actions
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100">
+                            {monthEntries.map((entry, index) => {
+                              const hours = calculateHours(entry.startTime, entry.endTime);
+                              const earnings = hours * entry.hourlyRate;
+
+                              return (
+                                <tr key={entry.id || index} className="hover:bg-gray-50 transition-colors">
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    {formatDate(entry.date)}
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap">
+                                    <div className="text-sm font-medium text-gray-900">{entry.clientName}</div>
+                                    <div className="text-sm text-gray-500">{entry.startTime} - {entry.endTime}</div>
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    {entry.project || '-'}
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    {hours.toFixed(1)}h
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    {formatCurrency(entry.hourlyRate)}/h
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    {formatCurrency(earnings)}
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap">
+                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(entry.paymentStatus)}`}>
+                                      {entry.paymentStatus}
+                                    </span>
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap">
+                                    <div className="flex items-center gap-1">
+                                      <button
+                                        onClick={() => handleEditEntry(entry)}
+                                        className="inline-flex items-center px-2 py-1 text-sm text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
+                                        title="Edit entry"
+                                      >
+                                        <Pencil className="w-4 h-4" />
+                                      </button>
+                                      <button
+                                        onClick={() => handleDeleteEntry(entry.id)}
+                                        className="inline-flex items-center px-2 py-1 text-sm text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                                        title="Delete entry"
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </main>
 
