@@ -26,6 +26,20 @@ export default function Dashboard() {
   const [editingEntry, setEditingEntry] = useState<any>(null);
   const [currency, setCurrency] = useState('USD');
 
+  // Load currency from localStorage on mount
+  useEffect(() => {
+    const savedCurrency = localStorage.getItem('secretutka-currency');
+    if (savedCurrency) {
+      setCurrency(savedCurrency);
+    }
+  }, []);
+
+  // Save currency to localStorage when it changes
+  const handleCurrencyChange = (newCurrency: string) => {
+    setCurrency(newCurrency);
+    localStorage.setItem('secretutka-currency', newCurrency);
+  };
+
   const handleEditEntry = (entry: any) => {
     setEditingEntry(entry);
     setEditEntryOpen(true);
@@ -177,7 +191,7 @@ export default function Dashboard() {
             <div className="flex gap-3">
               <select
                 value={currency}
-                onChange={(e) => setCurrency(e.target.value)}
+                onChange={(e) => handleCurrencyChange(e.target.value)}
                 className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 <option value="USD">USD $</option>
