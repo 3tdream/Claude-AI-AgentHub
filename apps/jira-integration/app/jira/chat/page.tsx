@@ -196,7 +196,7 @@ Could you be more specific about what you'd like to do? Or try one of the quick 
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
-    } catch (error) {
+    } catch {
       const errorMessage: Message = {
         id: crypto.randomUUID(),
         role: 'system',

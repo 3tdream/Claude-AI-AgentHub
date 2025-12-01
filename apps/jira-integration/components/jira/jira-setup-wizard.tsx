@@ -403,8 +403,8 @@ export function JiraSetupWizard({
                 </p>
                 <ol className="text-sm text-amber-700 dark:text-amber-300 space-y-2 list-decimal list-inside">
                   <li>Click the button below to open Atlassian settings</li>
-                  <li>Click "Create API token"</li>
-                  <li>Give it a name (e.g., "Jira Integration")</li>
+                  <li>Click &quot;Create API token&quot;</li>
+                  <li>Give it a name (e.g., &quot;Jira Integration&quot;)</li>
                   <li>Copy the generated token</li>
                   <li>Paste it in the field below</li>
                 </ol>
