@@ -1,0 +1,1630 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tiltan Gaming Product Track</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-blue: #00E4FF;
+            --neon-pink: #FF3EC9;
+            --neon-purple: #A36CFF;
+            --gold-coin: #FFD85A;
+            --dark-bg1: #0D0E11;
+            --dark-bg2: #13151B;
+            --dark-bg3: #1B1D24;
+            --text-light: #F5F5F7;
+            --text-dim: #A7A7AF;
+            --border-neon: rgba(255,255,255,0.12);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--dark-bg1) 0%, var(--dark-bg2) 100%);
+            color: var(--text-light);
+            min-height: 100vh;
+        }
+
+        /* Top Navigation */
+        .top-nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: rgba(13, 14, 17, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-neon);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 40px;
+            z-index: 2000;
+        }
+
+        .nav-logo {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 20px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            cursor: pointer;
+        }
+
+        .nav-menu {
+            display: flex;
+            align-items: center;
+            gap: 30px;
+        }
+
+        .nav-item {
+            position: relative;
+        }
+
+        .nav-link {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 14px;
+            color: var(--text-dim);
+            text-decoration: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-link:hover {
+            color: var(--neon-blue);
+            background: rgba(0, 228, 255, 0.1);
+        }
+
+        .nav-link.active {
+            color: var(--neon-blue);
+        }
+
+        .dropdown-arrow {
+            font-size: 10px;
+            transition: transform 0.3s ease;
+        }
+
+        .nav-item:hover .dropdown-arrow {
+            transform: rotate(180deg);
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: var(--dark-bg2);
+            border: 1px solid var(--border-neon);
+            border-radius: 12px;
+            padding: 10px;
+            min-width: 200px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .nav-item:hover .dropdown-menu {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(5px);
+        }
+
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 15px;
+            color: var(--text-dim);
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .dropdown-item:hover {
+            background: rgba(0, 228, 255, 0.1);
+            color: var(--neon-blue);
+        }
+
+        .dropdown-item.active {
+            background: rgba(0, 228, 255, 0.15);
+            color: var(--neon-blue);
+        }
+
+        .dropdown-item.locked {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .dropdown-item .lesson-num {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 12px;
+            color: var(--neon-purple);
+            min-width: 24px;
+        }
+
+        .dropdown-item .lock-icon {
+            margin-right: auto;
+            font-size: 12px;
+        }
+
+        /* Main Content Area */
+        .main-content {
+            padding-top: 60px;
+            min-height: 100vh;
+        }
+
+        /* Home View */
+        .home-view {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: calc(100vh - 60px);
+            padding: 40px;
+        }
+
+        .home-view.hidden {
+            display: none;
+        }
+
+        .home-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 56px;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .home-subtitle {
+            font-size: 24px;
+            color: var(--text-dim);
+            margin-bottom: 60px;
+            text-align: center;
+        }
+
+        .lessons-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        .lesson-card {
+            background: var(--dark-bg3);
+            border: 1px solid var(--border-neon);
+            border-radius: 16px;
+            padding: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .lesson-card:hover {
+            border-color: var(--neon-blue);
+            transform: translateY(-5px);
+            box-shadow: 0 10px 40px rgba(0, 228, 255, 0.2);
+        }
+
+        .lesson-card.locked {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .lesson-card.locked:hover {
+            transform: none;
+            box-shadow: none;
+            border-color: var(--border-neon);
+        }
+
+        .lesson-card-number {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 14px;
+            color: var(--neon-purple);
+            margin-bottom: 10px;
+        }
+
+        .lesson-card-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 18px;
+            color: var(--text-light);
+            margin-bottom: 10px;
+        }
+
+        .lesson-card-desc {
+            font-size: 14px;
+            color: var(--text-dim);
+            line-height: 1.5;
+        }
+
+        .lesson-card .lock-overlay {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            font-size: 20px;
+        }
+
+        /* Presentation View */
+        .presentation-view {
+            display: none;
+            width: 100vw;
+            height: calc(100vh - 60px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .presentation-view.active {
+            display: block;
+        }
+
+        .presentation {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            flex-direction: column;
+            background: linear-gradient(135deg, var(--dark-bg1) 0%, var(--dark-bg2) 100%);
+            opacity: 0;
+            transform: translateX(100px);
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .slide.active {
+            display: flex;
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .slide.prev {
+            display: flex;
+            opacity: 0;
+            transform: translateX(-100px);
+        }
+
+        /* Header */
+        .header {
+            width: 100%;
+            height: 80px;
+            background: var(--dark-bg2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 60px;
+            position: relative;
+            border-bottom: 3px solid var(--neon-blue);
+            box-shadow: 0 4px 30px rgba(0, 228, 255, 0.2);
+        }
+
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--neon-blue), var(--neon-purple), var(--neon-pink));
+            animation: shimmer 3s ease-in-out infinite;
+        }
+
+        @keyframes shimmer {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .header-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--neon-blue);
+            text-shadow: 0 0 20px rgba(0, 228, 255, 0.5);
+        }
+
+        .slide-counter {
+            position: absolute;
+            left: 60px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 14px;
+            color: var(--text-dim);
+            direction: ltr;
+        }
+
+        /* Content area */
+        .content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 40px 80px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Title Slide */
+        .slide-title .content {
+            align-items: center;
+            text-align: center;
+        }
+
+        .main-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 64px;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: none;
+            margin-bottom: 30px;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { filter: drop-shadow(0 0 20px rgba(0, 228, 255, 0.5)); }
+            to { filter: drop-shadow(0 0 40px rgba(163, 108, 255, 0.8)); }
+        }
+
+        .subtitle {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 32px;
+            font-weight: 500;
+            color: var(--gold-coin);
+            text-shadow: 0 0 30px rgba(255, 216, 90, 0.5);
+        }
+
+        /* Section Slide */
+        .slide-section .content {
+            align-items: center;
+            justify-content: center;
+        }
+
+        .section-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 48px;
+            font-weight: 700;
+            color: var(--neon-pink);
+            text-shadow: 0 0 30px rgba(255, 62, 201, 0.5);
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .section-subtitle {
+            font-family: 'Inter', sans-serif;
+            font-size: 24px;
+            color: var(--text-dim);
+        }
+
+        /* Content Slide */
+        .slide-content .slide-heading {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--neon-blue);
+            text-shadow: 0 0 20px rgba(0, 228, 255, 0.4);
+            margin-bottom: 40px;
+        }
+
+        .bullets {
+            list-style: none;
+            padding: 0;
+        }
+
+        .bullets li {
+            font-size: 24px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            padding-right: 40px;
+            position: relative;
+            color: var(--text-light);
+            opacity: 0;
+            transform: translateX(30px);
+            animation: fadeInRight 0.5s ease forwards;
+        }
+
+        .bullets li:nth-child(1) { animation-delay: 0.1s; }
+        .bullets li:nth-child(2) { animation-delay: 0.2s; }
+        .bullets li:nth-child(3) { animation-delay: 0.3s; }
+        .bullets li:nth-child(4) { animation-delay: 0.4s; }
+        .bullets li:nth-child(5) { animation-delay: 0.5s; }
+        .bullets li:nth-child(6) { animation-delay: 0.6s; }
+
+        @keyframes fadeInRight {
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .bullets li::before {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 12px;
+            width: 10px;
+            height: 10px;
+            background: var(--neon-purple);
+            border-radius: 50%;
+            box-shadow: 0 0 15px var(--neon-purple);
+        }
+
+        /* Exercise Slide */
+        .slide-exercise .slide-heading {
+            color: var(--gold-coin);
+            text-shadow: 0 0 20px rgba(255, 216, 90, 0.4);
+        }
+
+        .slide-exercise .bullets li::before {
+            background: var(--gold-coin);
+            box-shadow: 0 0 15px var(--gold-coin);
+        }
+
+        /* End Slide */
+        .slide-end .content {
+            align-items: center;
+            text-align: center;
+        }
+
+        .slide-end .main-title {
+            font-size: 72px;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .slide-end .subtitle {
+            font-size: 28px;
+            color: var(--neon-pink);
+            margin-top: 30px;
+            animation: blink 1s ease-in-out infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Navigation */
+        .nav {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            z-index: 1000;
+            direction: ltr;
+        }
+
+        .nav button {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 2px solid var(--neon-blue);
+            background: rgba(0, 228, 255, 0.1);
+            color: var(--neon-blue);
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .nav button:hover {
+            background: var(--neon-blue);
+            color: var(--dark-bg1);
+            box-shadow: 0 0 30px rgba(0, 228, 255, 0.5);
+        }
+
+        .nav button:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        /* Progress bar */
+        .progress {
+            position: fixed;
+            top: 60px;
+            left: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--neon-blue), var(--neon-purple), var(--neon-pink));
+            transition: width 0.3s ease;
+            z-index: 1001;
+        }
+
+        .grid-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image:
+                linear-gradient(rgba(0, 228, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 228, 255, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+        }
+
+        /* Visual diagrams */
+        .loop-diagram {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+
+        .loop-step {
+            background: var(--dark-bg3);
+            border: 2px solid var(--neon-purple);
+            border-radius: 12px;
+            padding: 15px 20px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 16px;
+            color: var(--text-light);
+            box-shadow: 0 0 20px rgba(163, 108, 255, 0.3);
+            animation: floatStep 3s ease-in-out infinite;
+        }
+
+        .loop-step:nth-child(odd) { animation-delay: 0.5s; }
+
+        @keyframes floatStep {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .loop-arrow {
+            font-size: 24px;
+            color: var(--neon-blue);
+            text-shadow: 0 0 10px var(--neon-blue);
+        }
+
+        /* Icon styles */
+        .slide-icon {
+            position: absolute;
+            left: 60px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 100px;
+            opacity: 0.15;
+        }
+
+        /* Keyboard hint */
+        .keyboard-hint {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 13px;
+            color: var(--text-dim);
+            opacity: 0.6;
+        }
+
+        .keyboard-hint kbd {
+            background: var(--dark-bg3);
+            border: 1px solid var(--border-neon);
+            border-radius: 4px;
+            padding: 3px 6px;
+            margin: 0 3px;
+        }
+
+        /* Coin Master Phone Mockup */
+        .slide-with-phone .content {
+            flex-direction: row;
+            align-items: center;
+            gap: 60px;
+        }
+
+        .slide-with-phone .text-content {
+            flex: 1;
+        }
+
+        .phone-mockup {
+            width: 240px;
+            height: 480px;
+            background: #1a1a2e;
+            border-radius: 35px;
+            padding: 10px;
+            box-shadow:
+                0 0 0 3px #333,
+                0 0 30px rgba(255, 216, 90, 0.3),
+                0 20px 60px rgba(0, 0, 0, 0.5);
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .phone-screen {
+            width: 100%;
+            height: 100%;
+            border-radius: 26px;
+            overflow: hidden;
+            background: linear-gradient(180deg, #1e3a5f 0%, #0d1b2a 100%);
+            position: relative;
+        }
+
+        .cm-loading {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cm-loading::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(ellipse at 50% 20%, rgba(255, 216, 90, 0.2) 0%, transparent 50%),
+                radial-gradient(ellipse at 30% 80%, rgba(255, 100, 100, 0.15) 0%, transparent 40%),
+                radial-gradient(ellipse at 70% 70%, rgba(100, 200, 255, 0.15) 0%, transparent 40%);
+        }
+
+        .cm-logo {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--gold-coin);
+            text-shadow:
+                0 0 10px var(--gold-coin),
+                0 4px 0 #b8860b,
+                0 6px 10px rgba(0,0,0,0.5);
+            margin-bottom: 15px;
+            z-index: 1;
+        }
+
+        .cm-slot-machine {
+            width: 150px;
+            height: 100px;
+            background: linear-gradient(180deg, #8B4513 0%, #654321 50%, #8B4513 100%);
+            border-radius: 12px;
+            border: 3px solid var(--gold-coin);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 12px;
+            box-shadow:
+                inset 0 5px 15px rgba(255,255,255,0.2),
+                0 10px 30px rgba(0,0,0,0.5);
+            z-index: 1;
+            position: relative;
+        }
+
+        .cm-slot-machine::before {
+            content: '';
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60%;
+            height: 16px;
+            background: linear-gradient(180deg, var(--gold-coin) 0%, #b8860b 100%);
+            border-radius: 8px 8px 0 0;
+        }
+
+        .slot-reel {
+            width: 38px;
+            height: 58px;
+            background: #fff;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.3);
+            animation: slotSpin 0.5s ease-in-out infinite;
+        }
+
+        .slot-reel:nth-child(2) { animation-delay: 0.1s; }
+        .slot-reel:nth-child(3) { animation-delay: 0.2s; }
+
+        @keyframes slotSpin {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-3px); }
+        }
+
+        .cm-coins {
+            display: flex;
+            gap: 8px;
+            margin-top: 20px;
+            z-index: 1;
+        }
+
+        .cm-coin {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--gold-coin) 0%, #b8860b 50%, var(--gold-coin) 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #654321;
+            font-size: 16px;
+            box-shadow:
+                0 4px 8px rgba(0,0,0,0.3),
+                inset 0 2px 4px rgba(255,255,255,0.4);
+            animation: coinBounce 1s ease-in-out infinite;
+        }
+
+        .cm-coin:nth-child(2) { animation-delay: 0.2s; }
+        .cm-coin:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes coinBounce {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-10px) rotate(10deg); }
+        }
+
+        .cm-loading-bar {
+            width: 80%;
+            height: 10px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 8px;
+            margin-top: 25px;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        .cm-loading-progress {
+            height: 100%;
+            width: 75%;
+            background: linear-gradient(90deg, var(--gold-coin), #fff, var(--gold-coin));
+            background-size: 200% 100%;
+            border-radius: 8px;
+            animation: loadingShimmer 1.5s ease-in-out infinite;
+        }
+
+        @keyframes loadingShimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .cm-text {
+            color: #fff;
+            font-size: 11px;
+            margin-top: 8px;
+            opacity: 0.8;
+            z-index: 1;
+        }
+
+        .floating-coin {
+            position: absolute;
+            font-size: 20px;
+            animation: floatCoin 3s ease-in-out infinite;
+            opacity: 0.6;
+        }
+
+        .floating-coin:nth-child(1) { top: 10%; left: 10%; animation-delay: 0s; }
+        .floating-coin:nth-child(2) { top: 15%; right: 15%; animation-delay: 0.5s; }
+        .floating-coin:nth-child(3) { bottom: 20%; left: 15%; animation-delay: 1s; }
+        .floating-coin:nth-child(4) { bottom: 25%; right: 10%; animation-delay: 1.5s; }
+
+        @keyframes floatCoin {
+            0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.6; }
+            50% { transform: translateY(-15px) rotate(180deg); opacity: 1; }
+        }
+
+        /* Back button */
+        .back-btn {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            padding: 10px 20px;
+            background: rgba(0, 228, 255, 0.1);
+            border: 1px solid var(--neon-blue);
+            border-radius: 8px;
+            color: var(--neon-blue);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 1500;
+        }
+
+        .back-btn:hover {
+            background: var(--neon-blue);
+            color: var(--dark-bg1);
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Navigation -->
+    <nav class="top-nav">
+        <div class="nav-logo" onclick="showHome()">TILTAN GAMING</div>
+        <div class="nav-menu">
+            <div class="nav-item">
+                <span class="nav-link">
+                    Lessons
+                    <span class="dropdown-arrow">▼</span>
+                </span>
+                <div class="dropdown-menu">
+                    <div class="dropdown-item" onclick="loadLesson(1)">
+                        <span class="lesson-num">01</span>
+                        <span>Core Loop & Team Roles</span>
+                    </div>
+                    <div class="dropdown-item locked">
+                        <span class="lesson-num">02</span>
+                        <span>Meta Progression</span>
+                        <span class="lock-icon">🔒</span>
+                    </div>
+                    <div class="dropdown-item locked">
+                        <span class="lesson-num">03</span>
+                        <span>Monetization Basics</span>
+                        <span class="lock-icon">🔒</span>
+                    </div>
+                    <div class="dropdown-item locked">
+                        <span class="lesson-num">04</span>
+                        <span>Economy Design</span>
+                        <span class="lock-icon">🔒</span>
+                    </div>
+                    <div class="dropdown-item locked">
+                        <span class="lesson-num">05</span>
+                        <span>LiveOps Strategy</span>
+                        <span class="lock-icon">🔒</span>
+                    </div>
+                    <div class="dropdown-item locked">
+                        <span class="lesson-num">06</span>
+                        <span>Data & Analytics</span>
+                        <span class="lock-icon">🔒</span>
+                    </div>
+                    <div class="dropdown-item locked">
+                        <span class="lesson-num">07</span>
+                        <span>User Acquisition</span>
+                        <span class="lock-icon">🔒</span>
+                    </div>
+                    <div class="dropdown-item locked">
+                        <span class="lesson-num">08</span>
+                        <span>Retention Mechanics</span>
+                        <span class="lock-icon">🔒</span>
+                    </div>
+                    <div class="dropdown-item locked">
+                        <span class="lesson-num">09</span>
+                        <span>Social Features</span>
+                        <span class="lock-icon">🔒</span>
+                    </div>
+                    <div class="dropdown-item locked">
+                        <span class="lesson-num">10</span>
+                        <span>A/B Testing</span>
+                        <span class="lock-icon">🔒</span>
+                    </div>
+                    <div class="dropdown-item locked">
+                        <span class="lesson-num">11</span>
+                        <span>Game Balancing</span>
+                        <span class="lock-icon">🔒</span>
+                    </div>
+                    <div class="dropdown-item locked">
+                        <span class="lesson-num">12</span>
+                        <span>Product Roadmap</span>
+                        <span class="lock-icon">🔒</span>
+                    </div>
+                    <div class="dropdown-item locked">
+                        <span class="lesson-num">13</span>
+                        <span>Final Project</span>
+                        <span class="lock-icon">🔒</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Home View -->
+        <div class="home-view" id="homeView">
+            <h1 class="home-title">Gaming Product Track</h1>
+            <p class="home-subtitle">Master the art of mobile game product management</p>
+
+            <div class="lessons-grid">
+                <div class="lesson-card" onclick="loadLesson(1)">
+                    <div class="lesson-card-number">Lesson 01</div>
+                    <div class="lesson-card-title">Core Loop & Team Roles</div>
+                    <div class="lesson-card-desc">Coin Master Case Study - Learn the fundamentals of game loops and team structure</div>
+                </div>
+                <div class="lesson-card locked">
+                    <div class="lock-overlay">🔒</div>
+                    <div class="lesson-card-number">Lesson 02</div>
+                    <div class="lesson-card-title">Meta Progression</div>
+                    <div class="lesson-card-desc">Building long-term player engagement systems</div>
+                </div>
+                <div class="lesson-card locked">
+                    <div class="lock-overlay">🔒</div>
+                    <div class="lesson-card-number">Lesson 03</div>
+                    <div class="lesson-card-title">Monetization Basics</div>
+                    <div class="lesson-card-desc">IAP, Ads, and hybrid monetization models</div>
+                </div>
+                <div class="lesson-card locked">
+                    <div class="lock-overlay">🔒</div>
+                    <div class="lesson-card-number">Lesson 04</div>
+                    <div class="lesson-card-title">Economy Design</div>
+                    <div class="lesson-card-desc">Currencies, sinks, and faucets</div>
+                </div>
+                <div class="lesson-card locked">
+                    <div class="lock-overlay">🔒</div>
+                    <div class="lesson-card-number">Lesson 05</div>
+                    <div class="lesson-card-title">LiveOps Strategy</div>
+                    <div class="lesson-card-desc">Events, seasons, and content updates</div>
+                </div>
+                <div class="lesson-card locked">
+                    <div class="lock-overlay">🔒</div>
+                    <div class="lesson-card-number">Lesson 06</div>
+                    <div class="lesson-card-title">Data & Analytics</div>
+                    <div class="lesson-card-desc">KPIs, funnels, and player behavior</div>
+                </div>
+                <div class="lesson-card locked">
+                    <div class="lock-overlay">🔒</div>
+                    <div class="lesson-card-number">Lesson 07</div>
+                    <div class="lesson-card-title">User Acquisition</div>
+                    <div class="lesson-card-desc">Marketing, creatives, and LTV optimization</div>
+                </div>
+                <div class="lesson-card locked">
+                    <div class="lock-overlay">🔒</div>
+                    <div class="lesson-card-number">Lesson 08</div>
+                    <div class="lesson-card-title">Retention Mechanics</div>
+                    <div class="lesson-card-desc">Daily rewards, streaks, and habits</div>
+                </div>
+                <div class="lesson-card locked">
+                    <div class="lock-overlay">🔒</div>
+                    <div class="lesson-card-number">Lesson 09</div>
+                    <div class="lesson-card-title">Social Features</div>
+                    <div class="lesson-card-desc">Guilds, friends, and viral mechanics</div>
+                </div>
+                <div class="lesson-card locked">
+                    <div class="lock-overlay">🔒</div>
+                    <div class="lesson-card-number">Lesson 10</div>
+                    <div class="lesson-card-title">A/B Testing</div>
+                    <div class="lesson-card-desc">Experimentation and data-driven decisions</div>
+                </div>
+                <div class="lesson-card locked">
+                    <div class="lock-overlay">🔒</div>
+                    <div class="lesson-card-number">Lesson 11</div>
+                    <div class="lesson-card-title">Game Balancing</div>
+                    <div class="lesson-card-desc">Difficulty curves and player segmentation</div>
+                </div>
+                <div class="lesson-card locked">
+                    <div class="lock-overlay">🔒</div>
+                    <div class="lesson-card-number">Lesson 12</div>
+                    <div class="lesson-card-title">Product Roadmap</div>
+                    <div class="lesson-card-desc">Planning and prioritization</div>
+                </div>
+                <div class="lesson-card locked">
+                    <div class="lock-overlay">🔒</div>
+                    <div class="lesson-card-number">Lesson 13</div>
+                    <div class="lesson-card-title">Final Project</div>
+                    <div class="lesson-card-desc">Build your own game design document</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Presentation View -->
+        <div class="presentation-view" id="presentationView">
+            <div class="progress" id="progress"></div>
+            <button class="back-btn" onclick="showHome()">Back to Lessons</button>
+
+            <div class="presentation" id="presentation">
+                <!-- Slide 1: Title -->
+                <div class="slide slide-title active" data-slide="1">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 1: Core Loop & Team Roles</span>
+                        <span class="slide-counter">01 / 25</span>
+                    </div>
+                    <div class="content">
+                        <h1 class="main-title">Gaming Product Manager</h1>
+                        <h2 class="subtitle">Coin Master Case Study</h2>
+                    </div>
+                </div>
+
+                <!-- Slide 2: Why Coin Master -->
+                <div class="slide slide-content slide-with-phone" data-slide="2">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 1: Core Loop & Team Roles</span>
+                        <span class="slide-counter">02 / 25</span>
+                    </div>
+                    <div class="content">
+                        <div class="text-content">
+                            <h2 class="slide-heading">למה דווקא Coin Master?</h2>
+                            <ul class="bullets">
+                                <li>Core Loop מאוד פשוט וברור</li>
+                                <li>פסיכולוגיית תגמולים מאוד חכמה</li>
+                                <li>LiveOps אגרסיבי ושוטף</li>
+                                <li>מוניטיזציה "רכה" אבל מאוד אפקטיבית</li>
+                            </ul>
+                        </div>
+                        <div class="phone-mockup">
+                            <div class="phone-screen">
+                                <div class="cm-loading">
+                                    <span class="floating-coin">🪙</span>
+                                    <span class="floating-coin">💰</span>
+                                    <span class="floating-coin">🪙</span>
+                                    <span class="floating-coin">💰</span>
+                                    <div class="cm-logo">COIN MASTER</div>
+                                    <div class="cm-slot-machine">
+                                        <div class="slot-reel">🪙</div>
+                                        <div class="slot-reel">💰</div>
+                                        <div class="slot-reel">🪙</div>
+                                    </div>
+                                    <div class="cm-coins">
+                                        <div class="cm-coin">$</div>
+                                        <div class="cm-coin">$</div>
+                                        <div class="cm-coin">$</div>
+                                    </div>
+                                    <div class="cm-loading-bar">
+                                        <div class="cm-loading-progress"></div>
+                                    </div>
+                                    <div class="cm-text">Loading...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Slide 3: Learning Objectives -->
+                <div class="slide slide-content" data-slide="3">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 1: Core Loop & Team Roles</span>
+                        <span class="slide-counter">03 / 25</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">מה נלמד היום?</h2>
+                        <ul class="bullets">
+                            <li>מהו Core Loop ואיך מפרקים אותו</li>
+                            <li>Meta Progression והחיבור ללופ</li>
+                            <li>תפקידים שונים בצוות משחק (Product, Monetization, UX ועוד)</li>
+                            <li>דילמות בין מחלקות ואיך פותרים אותן</li>
+                            <li>תרגיל כיתתי: בניית משחק דמה בקבוצות</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Slide 4: Core Loop Definition -->
+                <div class="slide slide-content" data-slide="4">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 1: Core Loop & Team Roles</span>
+                        <span class="slide-counter">04 / 25</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">מה זה Core Loop?</h2>
+                        <ul class="bullets">
+                            <li>רצף הפעולות המרכזיות שהשחקן חוזר עליהן שוב ושוב</li>
+                            <li>כל לופ טוב כולל פעולה, תגמול, התקדמות וחזרה</li>
+                            <li>בלי לופ ברור – המשחק מרגיש אקראי וחסר כיוון</li>
+                        </ul>
+                        <div class="loop-diagram">
+                            <div class="loop-step">Action</div>
+                            <span class="loop-arrow">→</span>
+                            <div class="loop-step">Reward</div>
+                            <span class="loop-arrow">→</span>
+                            <div class="loop-step">Progress</div>
+                            <span class="loop-arrow">→</span>
+                            <div class="loop-step">Return</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Slide 5: CM Loop -->
+                <div class="slide slide-content" data-slide="5">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 1: Core Loop & Team Roles</span>
+                        <span class="slide-counter">05 / 25</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">Core Loop של Coin Master</h2>
+                        <div class="loop-diagram" style="margin-top: 50px;">
+                            <div class="loop-step">🎰 Spin</div>
+                            <span class="loop-arrow">→</span>
+                            <div class="loop-step">💰 Rewards</div>
+                            <span class="loop-arrow">→</span>
+                            <div class="loop-step">🏠 Build</div>
+                            <span class="loop-arrow">→</span>
+                            <div class="loop-step">⚔️ Attack/Raid</div>
+                            <span class="loop-arrow">→</span>
+                            <div class="loop-step">⚠️ Need Spins</div>
+                            <span class="loop-arrow">→</span>
+                            <div class="loop-step">🔄 Spin Again</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Slide 6-25: Rest of the slides -->
+                <div class="slide slide-content" data-slide="6">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 1: Core Loop & Team Roles</span>
+                        <span class="slide-counter">06 / 25</span>
+                    </div>
+                    <div class="content">
+                        <span class="slide-icon">🎰</span>
+                        <h2 class="slide-heading">שלב 1: Spin</h2>
+                        <ul class="bullets">
+                            <li>הפעולה המרכזית שהשחקן עושה</li>
+                            <li>כמות מוגבלת של Spins – משאב חסר שמנהל את הקצב</li>
+                            <li>יוצר ציפייה ותחושת "עוד רגע אני זוכה בגדול"</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="slide slide-content" data-slide="7">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 1: Core Loop & Team Roles</span>
+                        <span class="slide-counter">07 / 25</span>
+                    </div>
+                    <div class="content">
+                        <span class="slide-icon">💰</span>
+                        <h2 class="slide-heading">שלב 2: Rewards</h2>
+                        <ul class="bullets">
+                            <li>השחקן מקבל Coins, Shields, Attacks, Raids ועוד</li>
+                            <li>כל תוצאה מרגישה כמו Reward גם אם היא לא אופטימלית</li>
+                            <li>חיזוק חיובי מיידי שיוצר רצון לסיבוב נוסף</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="slide slide-content" data-slide="8">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 1: Core Loop & Team Roles</span>
+                        <span class="slide-counter">08 / 25</span>
+                    </div>
+                    <div class="content">
+                        <span class="slide-icon">🏠</span>
+                        <h2 class="slide-heading">שלב 3: Build – בניית הכפר</h2>
+                        <ul class="bullets">
+                            <li>השחקן מוציא Coins כדי לבנות ולשדרג מבנים</li>
+                            <li>יצירת תחושת התקדמות ברורה (Progression)</li>
+                            <li>סיום כפר ופתיחת כפר חדש – Reset שנותן תחושת הישג</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="slide slide-content" data-slide="9">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 1: Core Loop & Team Roles</span>
+                        <span class="slide-counter">09 / 25</span>
+                    </div>
+                    <div class="content">
+                        <span class="slide-icon">⚔️</span>
+                        <h2 class="slide-heading">שלב 4: תקיפות ו-Raids</h2>
+                        <ul class="bullets">
+                            <li>תקיפה או Raid על שחקנים אחרים מייצרת רגש (כוח/נקמה)</li>
+                            <li>מכניס מימד תחרותי חברתי</li>
+                            <li>עוד מקור לתגמול ומטבעות</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="slide slide-content" data-slide="10">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 1: Core Loop & Team Roles</span>
+                        <span class="slide-counter">10 / 25</span>
+                    </div>
+                    <div class="content">
+                        <span class="slide-icon">⚠️</span>
+                        <h2 class="slide-heading">שלב 5: נגמרים הספינים</h2>
+                        <ul class="bullets">
+                            <li>המשחק יוצר Bottleneck מכוון</li>
+                            <li>השחקן צריך לבחור: לחכות או לשלם</li>
+                            <li>כאן יושבת המוניטיזציה הבסיסית של המשחק</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="slide slide-content" data-slide="11">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 1: Core Loop & Team Roles</span>
+                        <span class="slide-counter">11 / 25</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">הלופ השלם</h2>
+                        <ul class="bullets">
+                            <li>Spin → Rewards → Build → Attack/Raid → Need Spins → Spin Again</li>
+                            <li>חיבור חזק בין כיף מיידי, תחושת התקדמות ולחץ עדין לשלם</li>
+                            <li>זה הבסיס לכל שאר המערכת (Meta, Events, Monetization)</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="slide slide-section" data-slide="12">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 1: Core Loop & Team Roles</span>
+                        <span class="slide-counter">12 / 25</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="section-title">מי מרכיב את הצוות של Coin Master?</h2>
+                        <p class="section-subtitle">חלוקת תפקידים בפועל</p>
+                    </div>
+                </div>
+
+                <div class="slide slide-content" data-slide="13">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 1: Core Loop & Team Roles</span>
+                        <span class="slide-counter">13 / 25</span>
+                    </div>
+                    <div class="content">
+                        <span class="slide-icon">🧠</span>
+                        <h2 class="slide-heading">Product – מוח המערכת</h2>
+                        <ul class="bullets">
+                            <li>מגדיר חזון, פיצ'רים ו-Roadmap</li>
+                            <li>אחראי על החוויה הכוללת וה-Core Loop</li>
+                            <li>מתאם בין Monetization, Economy, UX, LiveOps ו-Data</li>
+                            <li>מחליט אילו פיצ'רים נכנסים לאירוע הבא ובאיזה סדר</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="slide slide-content" data-slide="14">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 1: Core Loop & Team Roles</span>
+                        <span class="slide-counter">14 / 25</span>
+                    </div>
+                    <div class="content">
+                        <span class="slide-icon">💵</span>
+                        <h2 class="slide-heading">Monetization – אמני הספינים בתשלום</h2>
+                        <ul class="bullets">
+                            <li>מעצבים חבילות, מבצעים ו-Bundles</li>
+                            <li>קובעים מחירים לספינים, מטבעות וחבילות ערך</li>
+                            <li>עובדים צמוד עם Economy כדי לא לשבור את הכלכלה</li>
+                            <li>משתמשים ב-A/B כדי להבין אילו הצעות עובדות הכי טוב</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="slide slide-content" data-slide="15">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 1: Core Loop & Team Roles</span>
+                        <span class="slide-counter">15 / 25</span>
+                    </div>
+                    <div class="content">
+                        <span class="slide-icon">⚖️</span>
+                        <h2 class="slide-heading">Game Economy – הכלכלנים של העולם הווירטואלי</h2>
+                        <ul class="bullets">
+                            <li>קובעים כמה שווה כל Coin במשחק</li>
+                            <li>מגדירים כמה עולה לבנות ולשדרג כפרים</li>
+                            <li>מונעים אינפלציה ו"הצפה" של משאבים</li>
+                            <li>מאזנים בין שחקנים משלמים ללא-משלמים</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="slide slide-content" data-slide="16">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 1: Core Loop & Team Roles</span>
+                        <span class="slide-counter">16 / 25</span>
+                    </div>
+                    <div class="content">
+                        <span class="slide-icon">🎨</span>
+                        <h2 class="slide-heading">UI/UX – הקוסמים של החוויה</h2>
+                        <ul class="bullets">
+                            <li>מעצבים מסכים ברורים ומהירים</li>
+                            <li>בונים פידבקים ויזואליים וסאונדיים ממכרים</li>
+                            <li>דואגים שהחנויות וההצעות יהיו ברורות אבל מפתות</li>
+                            <li>מתאימים הכל למובייל, לזרימה ולרמת עומס המוח</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="slide slide-content" data-slide="17">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 1: Core Loop & Team Roles</span>
+                        <span class="slide-counter">17 / 25</span>
+                    </div>
+                    <div class="content">
+                        <span class="slide-icon">📅</span>
+                        <h2 class="slide-heading">LiveOps – הלב הפועם של המשחק</h2>
+                        <ul class="bullets">
+                            <li>בונים Events שבועיים וחודשיים</li>
+                            <li>מתזמנים טורנירים, Bonus Events ו-Seasonal Content</li>
+                            <li>מעלים החזרות של שחקנים רדומים</li>
+                            <li>משנים את הקצבים והתגמולים לפי ביצועים בזמן אמת</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="slide slide-content" data-slide="18">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 1: Core Loop & Team Roles</span>
+                        <span class="slide-counter">18 / 25</span>
+                    </div>
+                    <div class="content">
+                        <span class="slide-icon">📊</span>
+                        <h2 class="slide-heading">Data – מי שמספר לכולם מה באמת קורה</h2>
+                        <ul class="bullets">
+                            <li>מודדים Retention, DAU, ARPDAU, LTV ועוד</li>
+                            <li>מריצים A/B Tests על פיצ'רים, הצעות ואירועים</li>
+                            <li>נותנים תובנות לכל מחלקה – מה עובד ומה לא</li>
+                            <li>עוזרים למוצר לקבל החלטות מבוססות נתונים ולא תחושות</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="slide slide-content" data-slide="19">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 1: Core Loop & Team Roles</span>
+                        <span class="slide-counter">19 / 25</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">איך כל המחלקות עובדות יחד?</h2>
+                        <ul class="bullets">
+                            <li><strong style="color: var(--neon-blue);">Product:</strong> רוצה פיצ'ר חדש שישפר Retention</li>
+                            <li><strong style="color: var(--gold-coin);">Monetization:</strong> רוצה לוודא שזה מייצר הכנסה</li>
+                            <li><strong style="color: var(--neon-purple);">Economy:</strong> בודק שזה לא הורס את ערך המטבע</li>
+                            <li><strong style="color: var(--neon-pink);">UX:</strong> דואג שזה לא יעמיס על השחקן</li>
+                            <li><strong style="color: #4CAF50;">LiveOps:</strong> צריך את זה מוכן לאירוע הבא</li>
+                            <li><strong style="color: #FF9800;">Data:</strong> מבקש להגדיר מטריקות ברורות למדידה</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="slide slide-exercise" data-slide="20">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 1: Core Loop & Team Roles</span>
+                        <span class="slide-counter">20 / 25</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">תרגיל: בונים משחק דמה בקבוצות</h2>
+                        <ul class="bullets">
+                            <li>התחלקו לתפקידי צוות: Product / Monetization / UX / Economy / LiveOps / Data</li>
+                            <li>בחרו רעיון למשחק פשוט (Mobile, Casual)</li>
+                            <li>הגדירו Core Loop אחד ברור למשחק שלכם</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="slide slide-exercise" data-slide="21">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 1: Core Loop & Team Roles</span>
+                        <span class="slide-counter">21 / 25</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">עבודה בקבוצות: Fake Game Design</h2>
+                        <ul class="bullets">
+                            <li>שם המשחק</li>
+                            <li>Core Loop</li>
+                            <li>Meta Progression בסיסי</li>
+                            <li>מנגנון מוניטיזציה ראשוני</li>
+                            <li>Event ראשון שתריצו ב-LiveOps</li>
+                            <li>איך Data מודד אם הצלחתם</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="slide slide-exercise" data-slide="22">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 1: Core Loop & Team Roles</span>
+                        <span class="slide-counter">22 / 25</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">סימולציית קונפליקט בין מחלקות</h2>
+                        <ul class="bullets">
+                            <li>בחרו פיצ'ר אחד למשחק הדמה שלכם</li>
+                            <li>תארו קונפליקט בין שני תפקידים (למשל Product vs Monetization)</li>
+                            <li>נסו לפתור אותו בצורה מקצועית ולא אמוציונלית</li>
+                            <li>הציגו בכיתה את הוויכוח והפתרון</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="slide slide-exercise" data-slide="23">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 1: Core Loop & Team Roles</span>
+                        <span class="slide-counter">23 / 25</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">הצגת פרויקט הקבוצה</h2>
+                        <ul class="bullets">
+                            <li>הציגו את שם המשחק וה-Core Loop</li>
+                            <li>הסבירו מה התפקיד של כל מחלקה בתוך המשחק שלכם</li>
+                            <li>הראו דוגמה ל-Event ראשון ולקונפליקט שפתרתם</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="slide slide-content" data-slide="24">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 1: Core Loop & Team Roles</span>
+                        <span class="slide-counter">24 / 25</span>
+                    </div>
+                    <div class="content">
+                        <span class="slide-icon">📝</span>
+                        <h2 class="slide-heading">שיעורי בית</h2>
+                        <ul class="bullets">
+                            <li>פרק את ה-Core Loop של Coin Master במילים שלך</li>
+                            <li>בחר משחק אחר (לדוגמה: Clash Royale, Brawl Stars, Candy Crush) ופרק גם אותו ל-Core Loop</li>
+                            <li>כתוב 5 דילמות אפשריות בין מחלקות שונות בצוות משחק</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="slide slide-end" data-slide="25">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 1: Core Loop & Team Roles</span>
+                        <span class="slide-counter">25 / 25</span>
+                    </div>
+                    <div class="content">
+                        <h1 class="main-title">Level Complete</h1>
+                        <h2 class="subtitle">Press Start to Continue → Lesson 2</h2>
+                    </div>
+                </div>
+            </div>
+
+            <div class="nav">
+                <button id="prevBtn" disabled>◀</button>
+                <button id="nextBtn">▶</button>
+            </div>
+
+            <div class="keyboard-hint">
+                Use <kbd>←</kbd> <kbd>→</kbd> or <kbd>Space</kbd> to navigate
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // View management
+        const homeView = document.getElementById('homeView');
+        const presentationView = document.getElementById('presentationView');
+
+        function showHome() {
+            homeView.classList.remove('hidden');
+            presentationView.classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+
+        function loadLesson(lessonNum) {
+            if (lessonNum === 1) {
+                homeView.classList.add('hidden');
+                presentationView.classList.add('active');
+                document.body.style.overflow = 'hidden';
+                // Reset to first slide
+                currentSlide = 0;
+                slides.forEach(s => s.classList.remove('active', 'prev'));
+                slides[0].classList.add('active');
+                updateProgress();
+                updateButtons();
+            }
+        }
+
+        // Presentation logic
+        const slides = document.querySelectorAll('.slide');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const progress = document.getElementById('progress');
+        let currentSlide = 0;
+        const totalSlides = slides.length;
+
+        function updateProgress() {
+            progress.style.width = ((currentSlide + 1) / totalSlides * 100) + '%';
+        }
+
+        function updateButtons() {
+            prevBtn.disabled = currentSlide === 0;
+            nextBtn.disabled = currentSlide === totalSlides - 1;
+        }
+
+        function updateSlide(newIndex) {
+            if (newIndex < 0 || newIndex >= totalSlides) return;
+
+            slides[currentSlide].classList.remove('active');
+            slides[currentSlide].classList.add('prev');
+
+            setTimeout(() => {
+                slides[currentSlide].classList.remove('prev');
+                currentSlide = newIndex;
+                slides[currentSlide].classList.add('active');
+                updateProgress();
+                updateButtons();
+            }, 50);
+        }
+
+        prevBtn.addEventListener('click', () => updateSlide(currentSlide - 1));
+        nextBtn.addEventListener('click', () => updateSlide(currentSlide + 1));
+
+        document.addEventListener('keydown', (e) => {
+            if (!presentationView.classList.contains('active')) return;
+
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                e.preventDefault();
+                updateSlide(currentSlide + 1);
+            } else if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                updateSlide(currentSlide - 1);
+            } else if (e.key === 'Escape') {
+                showHome();
+            }
+        });
+
+        // Touch support
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        document.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        });
+
+        document.addEventListener('touchend', (e) => {
+            if (!presentationView.classList.contains('active')) return;
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        });
+
+        function handleSwipe() {
+            const diff = touchStartX - touchEndX;
+            if (Math.abs(diff) > 50) {
+                if (diff > 0) {
+                    updateSlide(currentSlide + 1);
+                } else {
+                    updateSlide(currentSlide - 1);
+                }
+            }
+        }
+
+        // Initial progress
+        updateProgress();
+    </script>
+</body>
+</html>
