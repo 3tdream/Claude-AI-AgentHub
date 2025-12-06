@@ -107,7 +107,7 @@
         .dropdown-menu {
             position: absolute;
             top: 100%;
-            right: 0;
+            left: 0;
             background: var(--dark-bg2);
             border: 1px solid var(--border-neon);
             border-radius: 12px;
@@ -120,6 +120,12 @@
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
             max-height: 400px;
             overflow-y: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .dropdown-menu::-webkit-scrollbar {
+            display: none;
         }
 
         .nav-item:hover .dropdown-menu {
@@ -130,6 +136,8 @@
 
         .dropdown-item {
             display: flex;
+            flex-direction: row-reverse;
+            justify-content: flex-end;
             align-items: center;
             gap: 12px;
             padding: 12px 15px;
@@ -164,7 +172,7 @@
         }
 
         .dropdown-item .lock-icon {
-            margin-right: auto;
+            margin-left: auto;
             font-size: 12px;
         }
 
@@ -208,11 +216,16 @@
         }
 
         .lessons-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            display: flex;
+            flex-wrap: wrap;
+            flex-direction: row-reverse;
             gap: 20px;
             max-width: 1200px;
             width: 100%;
+        }
+
+        .lessons-grid .lesson-card {
+            flex: 0 0 calc(25% - 15px);
         }
 
         .lesson-card {
