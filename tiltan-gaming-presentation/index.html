@@ -303,6 +303,16 @@
             overflow: hidden;
         }
 
+        .lesson-slides {
+            display: none;
+            width: 100%;
+            height: 100%;
+        }
+
+        .lesson-slides.active {
+            display: block;
+        }
+
         .slide {
             position: absolute;
             top: 0;
@@ -503,6 +513,37 @@
         .slide-exercise .bullets li::before {
             background: var(--gold-coin);
             box-shadow: 0 0 15px var(--gold-coin);
+        }
+
+        .exercise-badge {
+            display: inline-block;
+            padding: 8px 20px;
+            background: linear-gradient(135deg, var(--gold-coin), #FFA500);
+            color: var(--dark-bg1);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 14px;
+            font-weight: 700;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Section Slide */
+        .slide-section .content {
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .slide-section .section-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 52px;
+            font-weight: 700;
+            color: var(--neon-purple);
+            text-shadow: 0 0 30px rgba(163, 108, 255, 0.5);
+            text-transform: uppercase;
+            letter-spacing: 3px;
         }
 
         /* End Slide */
@@ -900,10 +941,9 @@
                         <span class="lesson-num">01</span>
                         <span>Core Loop & Team Roles</span>
                     </div>
-                    <div class="dropdown-item locked">
+                    <div class="dropdown-item" onclick="loadLesson(2)">
                         <span class="lesson-num">02</span>
-                        <span>Meta Progression</span>
-                        <span class="lock-icon">🔒</span>
+                        <span>Market & Players</span>
                     </div>
                     <div class="dropdown-item locked">
                         <span class="lesson-num">03</span>
@@ -978,11 +1018,10 @@
                     <div class="lesson-card-title">Core Loop & Team Roles</div>
                     <div class="lesson-card-desc">Coin Master Case Study - Learn the fundamentals of game loops and team structure</div>
                 </div>
-                <div class="lesson-card locked">
-                    <div class="lock-overlay">🔒</div>
+                <div class="lesson-card" onclick="loadLesson(2)">
                     <div class="lesson-card-number">Lesson 02</div>
-                    <div class="lesson-card-title">Meta Progression</div>
-                    <div class="lesson-card-desc">Building long-term player engagement systems</div>
+                    <div class="lesson-card-title">Market & Players</div>
+                    <div class="lesson-card-desc">Understanding who we build for - Personas, user journeys and research tools</div>
                 </div>
                 <div class="lesson-card locked">
                     <div class="lock-overlay">🔒</div>
@@ -1059,6 +1098,8 @@
             <button class="back-btn" onclick="showHome()">Back to Lessons</button>
 
             <div class="presentation" id="presentation">
+                <!-- LESSON 1 SLIDES -->
+                <div class="lesson-slides active" data-lesson="1">
                 <!-- Slide 1: Title -->
                 <div class="slide slide-title active" data-slide="1">
                     <div class="grid-bg"></div>
@@ -1524,6 +1565,462 @@
                         <h2 class="subtitle">Press Start to Continue → Lesson 2</h2>
                     </div>
                 </div>
+                </div><!-- END LESSON 1 SLIDES -->
+
+                <!-- LESSON 2 SLIDES -->
+                <div class="lesson-slides" data-lesson="2">
+                <!-- Slide 1: Title -->
+                <div class="slide slide-title" data-slide="1">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 2: Market & Players</span>
+                        <span class="slide-counter">01 / 26</span>
+                    </div>
+                    <div class="content">
+                        <h1 class="main-title">Market, Players & Research</h1>
+                        <h2 class="subtitle">Understanding Who We Are Building For</h2>
+                    </div>
+                </div>
+
+                <!-- Slide 2: Intro -->
+                <div class="slide slide-content" data-slide="2">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 2: Market & Players</span>
+                        <span class="slide-counter">02 / 26</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">נכנסים עכשיו לטריטוריה של מחקר משתמשים</h2>
+                        <ul class="bullets">
+                            <li>אתה לא בונה משחק רק כי יש לך רעיון</li>
+                            <li>בוא נדבר על איך להבין שוק ומשתמשים</li>
+                            <li>למה אנשים בכלל יתנו ספין אחד?</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Slide 3: What We Cover -->
+                <div class="slide slide-content" data-slide="3">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 2: Market & Players</span>
+                        <span class="slide-counter">03 / 26</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">מה נלמד היום?</h2>
+                        <ul class="bullets">
+                            <li>שיטות מחקר שוק למשחקים</li>
+                            <li>כלים למחקר אמיתי</li>
+                            <li>איך בונים פרסונות גיימינג</li>
+                            <li>מה זה מסע משתמש במשחק</li>
+                            <li>מיפוי UX / UI / Monetization</li>
+                            <li>ועוד בונוסים של השמן</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Slide 4: Section - Market Research -->
+                <div class="slide slide-section" data-slide="4">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 2: Market & Players</span>
+                        <span class="slide-counter">04 / 26</span>
+                    </div>
+                    <div class="content">
+                        <h1 class="section-title">מחקר שוק – מה בכלל מחפשים?</h1>
+                    </div>
+                </div>
+
+                <!-- Slide 5: Market Questions -->
+                <div class="slide slide-content" data-slide="5">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 2: Market & Players</span>
+                        <span class="slide-counter">05 / 26</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">שלוש שאלות בסיסיות</h2>
+                        <ul class="bullets">
+                            <li>מי משחק במשחקים כאלה?</li>
+                            <li>איזה משחקים מתחרים על אותם אנשים?</li>
+                            <li>למה אנשים חוזרים ונשארים?</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Slide 6: Competitive Analysis -->
+                <div class="slide slide-content" data-slide="6">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 2: Market & Players</span>
+                        <span class="slide-counter">06 / 26</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">שיטה: ניתוח מתחרים</h2>
+                        <ul class="bullets">
+                            <li>מי המשחקים הכי דומים לרעיון שלנו?</li>
+                            <li>כמה הורדות יש להם?</li>
+                            <li>מה Core Loop שלהם?</li>
+                            <li>איך הם עושים מוניטיזציה?</li>
+                            <li>איזה אירועים הם מריצים?</li>
+                            <li>מה UI בסיסי?</li>
+                            <li>מה הכי שנוא על המשתמשים שם?</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Slide 7: Competitive Examples -->
+                <div class="slide slide-content" data-slide="7">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 2: Market & Players</span>
+                        <span class="slide-counter">07 / 26</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">דוגמאות למשחקים לבדיקה</h2>
+                        <ul class="bullets">
+                            <li>Coin Master</li>
+                            <li>Piggy Go</li>
+                            <li>Monopoly Go</li>
+                            <li>Bingo Blitz</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Slide 8: Data Tools -->
+                <div class="slide slide-content" data-slide="8">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 2: Market & Players</span>
+                        <span class="slide-counter">08 / 26</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">Data Tools – ספריות מידע</h2>
+                        <ul class="bullets">
+                            <li>Sensor Tower</li>
+                            <li>AppMagic</li>
+                            <li>SimilarWeb</li>
+                            <li>App Annie (Data.ai)</li>
+                            <li>GameRefinery</li>
+                            <li>Mobile Action</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Slide 9: What to Check -->
+                <div class="slide slide-content" data-slide="9">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 2: Market & Players</span>
+                        <span class="slide-counter">09 / 26</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">מה בודקים בכלים?</h2>
+                        <ul class="bullets">
+                            <li>הורדות בחודש</li>
+                            <li>ARPDAU</li>
+                            <li>שוק לפי מדינות</li>
+                            <li>מי לוקח כסף – Revenue Share</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Slide 10: User Research -->
+                <div class="slide slide-content" data-slide="10">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 2: Market & Players</span>
+                        <span class="slide-counter">10 / 26</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">User Research בשטח</h2>
+                        <ul class="bullets">
+                            <li>ראיונות עם שחקנים</li>
+                            <li>צפייה במשחק חי</li>
+                            <li>Playtest</li>
+                            <li>קבוצות פוקוס</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Slide 11: Student Exercise -->
+                <div class="slide slide-exercise" data-slide="11">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 2: Market & Players</span>
+                        <span class="slide-counter">11 / 26</span>
+                    </div>
+                    <div class="content">
+                        <div class="exercise-badge">תרגיל לסטודנטים</div>
+                        <h2 class="slide-heading">תרגיל לסטודנטים – ריאיון</h2>
+                        <ul class="bullets">
+                            <li>ראיינו 3 חברים שמשחקים קז'ואל</li>
+                            <li>שאלו מה רגע הכי כיף</li>
+                            <li>שאלו מתי הם נוטשים משחק</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Slide 12: Community Research -->
+                <div class="slide slide-content" data-slide="12">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 2: Market & Players</span>
+                        <span class="slide-counter">12 / 26</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">זירות קהילתיות – דאטה נקי</h2>
+                        <ul class="bullets">
+                            <li>Reddit</li>
+                            <li>Discord</li>
+                            <li>תגובות ב-App Store / Google Play</li>
+                            <li>קבוצות פייסבוק של המשחק</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Slide 13: Community Quotes -->
+                <div class="slide slide-content" data-slide="13">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 2: Market & Players</span>
+                        <span class="slide-counter">13 / 26</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">מה שחקנים באמת אומרים</h2>
+                        <ul class="bullets">
+                            <li>"המשחק טוב אבל שמו לי Paywall מגעיל"</li>
+                            <li>"יותר מדי Popups"</li>
+                            <li>"האירועים חוזרים על עצמם"</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Slide 14: Section - Market Mapping -->
+                <div class="slide slide-section" data-slide="14">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 2: Market & Players</span>
+                        <span class="slide-counter">14 / 26</span>
+                    </div>
+                    <div class="content">
+                        <h1 class="section-title">מיפוי מחקר שוק – כלים</h1>
+                    </div>
+                </div>
+
+                <!-- Slide 15: Market Techniques -->
+                <div class="slide slide-content" data-slide="15">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 2: Market & Players</span>
+                        <span class="slide-counter">15 / 26</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">טכניקות למיפוי שוק</h2>
+                        <ul class="bullets">
+                            <li>SWOT</li>
+                            <li>Benchmarking</li>
+                            <li>Feature Matrix</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Slide 16: Feature Matrix Example -->
+                <div class="slide slide-content" data-slide="16">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 2: Market & Players</span>
+                        <span class="slide-counter">16 / 26</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">דוגמה לטבלת Feature Matrix</h2>
+                        <ul class="bullets">
+                            <li>Coin Master – Spin / Meta: Villages + Cards / Bundles / Weekly Events / Slot UI</li>
+                            <li>Monopoly Go – Roll Dice / Build Board / Energy Packs / Daily Quests / Board UI</li>
+                            <li>Piggy Go – Spin / Islands / VIP Levels / Raid Events / Cute UI</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Slide 17: Section - Personas -->
+                <div class="slide slide-section" data-slide="17">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 2: Market & Players</span>
+                        <span class="slide-counter">17 / 26</span>
+                    </div>
+                    <div class="content">
+                        <h1 class="section-title">פרסונות במשחקים</h1>
+                    </div>
+                </div>
+
+                <!-- Slide 18: Persona Definition -->
+                <div class="slide slide-content" data-slide="18">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 2: Market & Players</span>
+                        <span class="slide-counter">18 / 26</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">מה זה פרסונה?</h2>
+                        <ul class="bullets">
+                            <li>דמות דמיונית שמייצגת משתמש אמיתי</li>
+                            <li>מסייעת להבין מוטיבציות והרגלי משחק</li>
+                            <li>משפיעה על החלטות מוצר</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Slide 19: Persona Fields -->
+                <div class="slide slide-content" data-slide="19">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 2: Market & Players</span>
+                        <span class="slide-counter">19 / 26</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">איך בונים פרסונה לגיימינג?</h2>
+                        <ul class="bullets">
+                            <li>גיל</li>
+                            <li>מדינה</li>
+                            <li>הרגלי משחק</li>
+                            <li>Meta Motivation</li>
+                            <li>Spending Habit (F2P / Dolphin / Whale)</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Slide 20: Persona Example -->
+                <div class="slide slide-content" data-slide="20">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 2: Market & Players</span>
+                        <span class="slide-counter">20 / 26</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">דוגמה לפרסונה</h2>
+                        <ul class="bullets">
+                            <li>שם: סיוון, 32</li>
+                            <li>משחקת: בזמן קפה ובאוטובוס</li>
+                            <li>דלק: אוסף סטים של קלפים</li>
+                            <li>Pain: צריך לחכות לספינים</li>
+                            <li>Trigger: עוד 10 ספינים ב-8.90 ₪</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Slide 21: Section - User Journey -->
+                <div class="slide slide-section" data-slide="21">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 2: Market & Players</span>
+                        <span class="slide-counter">21 / 26</span>
+                    </div>
+                    <div class="content">
+                        <h1 class="section-title">מסע משתמש – User Journey</h1>
+                    </div>
+                </div>
+
+                <!-- Slide 22: User Journey Steps -->
+                <div class="slide slide-content" data-slide="22">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 2: Market & Players</span>
+                        <span class="slide-counter">22 / 26</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">שלבים במסע משתמש</h2>
+                        <ul class="bullets">
+                            <li>חנות (App Store)</li>
+                            <li>אונבורדינג</li>
+                            <li>Core Loop ראשון</li>
+                            <li>Reward ראשון</li>
+                            <li>מפגש ראשון עם Meta</li>
+                            <li>חסר משאבים</li>
+                            <li>Monetization Offer</li>
+                            <li>שגרה יומית</li>
+                            <li>Event</li>
+                            <li>Retention Hook</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Slide 23: User Flow -->
+                <div class="slide slide-content" data-slide="23">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 2: Market & Players</span>
+                        <span class="slide-counter">23 / 26</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">User Flow – UX Mapping</h2>
+                        <ul class="bullets">
+                            <li>Main → Spin → Reward → Build → Event Popup → Shop → Back</li>
+                            <li>סימון Popups / Bottlenecks / Entry למוניטיזציה</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Slide 24: Monetization Research -->
+                <div class="slide slide-content" data-slide="24">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 2: Market & Players</span>
+                        <span class="slide-counter">24 / 26</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">מחקר מוניטיזציה</h2>
+                        <ul class="bullets">
+                            <li>סוגי Offers</li>
+                            <li>מיקום בחנות</li>
+                            <li>Timing</li>
+                            <li>מחיר</li>
+                            <li>מספר לחיצות לרכישה</li>
+                            <li>Paywall לפני Meta או אחרי?</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Slide 25: Bonuses -->
+                <div class="slide slide-content" data-slide="25">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 2: Market & Players</span>
+                        <span class="slide-counter">25 / 26</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">בונוסים של השמן</h2>
+                        <ul class="bullets">
+                            <li>Dark UX</li>
+                            <li>Psychology of Wait</li>
+                            <li>Hook Model (Nir Eyal)</li>
+                            <li>Variable Rewards</li>
+                            <li>מזל מדומה בסלוטים</li>
+                            <li>Loss Aversion</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Slide 26: Research Tools -->
+                <div class="slide slide-content" data-slide="26">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 2: Market & Players</span>
+                        <span class="slide-counter">26 / 26</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">כלים ממשיים למחקר UX במשחקים</h2>
+                        <ul class="bullets">
+                            <li>GameRefinery UX Insights</li>
+                            <li>Figma UX Flow</li>
+                            <li>Miro User Journey Maps</li>
+                            <li>Hotjar for Games</li>
+                            <li>Google Forms</li>
+                            <li>Maze Playtest</li>
+                        </ul>
+                    </div>
+                </div>
+                </div><!-- END LESSON 2 SLIDES -->
             </div>
 
             <div class="nav">
@@ -1541,37 +2038,63 @@
         // View management
         const homeView = document.getElementById('homeView');
         const presentationView = document.getElementById('presentationView');
+        const lessonContainers = document.querySelectorAll('.lesson-slides');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const progress = document.getElementById('progress');
+
+        let currentLesson = 1;
+        let currentSlide = 0;
+        let slides = [];
+        let totalSlides = 0;
 
         function showHome() {
             homeView.classList.remove('hidden');
             presentationView.classList.remove('active');
             document.body.style.overflow = 'auto';
+            // Hide all lesson containers
+            lessonContainers.forEach(lc => lc.classList.remove('active'));
         }
 
         function loadLesson(lessonNum) {
-            if (lessonNum === 1) {
+            currentLesson = lessonNum;
+
+            // Hide all lesson containers
+            lessonContainers.forEach(lc => {
+                lc.classList.remove('active');
+                // Reset all slides in this container
+                lc.querySelectorAll('.slide').forEach(s => s.classList.remove('active', 'prev'));
+            });
+
+            // Show the selected lesson container
+            const lessonContainer = document.querySelector(`.lesson-slides[data-lesson="${lessonNum}"]`);
+            if (lessonContainer) {
+                lessonContainer.classList.add('active');
+
+                // Get slides for this lesson
+                slides = Array.from(lessonContainer.querySelectorAll('.slide'));
+                totalSlides = slides.length;
+
+                // Reset to first slide
+                currentSlide = 0;
+                if (slides.length > 0) {
+                    slides[0].classList.add('active');
+                }
+
+                // Show presentation view
                 homeView.classList.add('hidden');
                 presentationView.classList.add('active');
                 document.body.style.overflow = 'hidden';
-                // Reset to first slide
-                currentSlide = 0;
-                slides.forEach(s => s.classList.remove('active', 'prev'));
-                slides[0].classList.add('active');
+
                 updateProgress();
                 updateButtons();
             }
         }
 
-        // Presentation logic
-        const slides = document.querySelectorAll('.slide');
-        const prevBtn = document.getElementById('prevBtn');
-        const nextBtn = document.getElementById('nextBtn');
-        const progress = document.getElementById('progress');
-        let currentSlide = 0;
-        const totalSlides = slides.length;
-
         function updateProgress() {
-            progress.style.width = ((currentSlide + 1) / totalSlides * 100) + '%';
+            if (totalSlides > 0) {
+                progress.style.width = ((currentSlide + 1) / totalSlides * 100) + '%';
+            }
         }
 
         function updateButtons() {
