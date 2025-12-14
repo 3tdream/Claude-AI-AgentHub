@@ -551,6 +551,180 @@
             letter-spacing: 1px;
         }
 
+        .time-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            background: rgba(0, 228, 255, 0.2);
+            border: 1px solid var(--neon-blue);
+            color: var(--neon-blue);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 20px;
+            margin-top: 20px;
+        }
+
+        /* Case Study Slide */
+        .slide-case-study .slide-heading {
+            color: var(--neon-pink);
+            text-shadow: 0 0 20px rgba(255, 62, 201, 0.4);
+        }
+
+        .slide-case-study .bullets li::before {
+            background: var(--neon-pink);
+            box-shadow: 0 0 15px var(--neon-pink);
+        }
+
+        .case-study-badge {
+            display: inline-block;
+            padding: 8px 20px;
+            background: linear-gradient(135deg, var(--neon-pink), #FF6B9D);
+            color: var(--dark-bg1);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 14px;
+            font-weight: 700;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Table Slide */
+        .slide-table .content {
+            padding: 30px 60px;
+        }
+
+        .data-table {
+            width: 100%;
+            margin-top: 20px;
+            overflow-x: auto;
+        }
+
+        .data-table table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 16px;
+        }
+
+        .data-table th {
+            background: rgba(163, 108, 255, 0.2);
+            color: var(--neon-purple);
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 600;
+            padding: 12px 16px;
+            text-align: right;
+            border-bottom: 2px solid var(--neon-purple);
+        }
+
+        .data-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-light);
+        }
+
+        .data-table tr:hover {
+            background: rgba(0, 228, 255, 0.05);
+        }
+
+        /* Risk Level Colors */
+        .risk-high {
+            color: #FF4757;
+            font-weight: 600;
+        }
+
+        .risk-medium {
+            color: #FFA502;
+            font-weight: 600;
+        }
+
+        .risk-low {
+            color: #2ED573;
+            font-weight: 600;
+        }
+
+        /* MoSCoW Colors */
+        .moscow-must {
+            color: #FF4757;
+            font-weight: 700;
+            background: rgba(255, 71, 87, 0.2);
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .moscow-should {
+            color: #FFA502;
+            font-weight: 700;
+            background: rgba(255, 165, 2, 0.2);
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .moscow-could {
+            color: #00E4FF;
+            font-weight: 700;
+            background: rgba(0, 228, 255, 0.2);
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .moscow-wont {
+            color: #A7A7AF;
+            font-weight: 700;
+            background: rgba(167, 167, 175, 0.2);
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        /* Timeline Box */
+        .timeline-box {
+            margin-top: 20px;
+            padding: 20px;
+            background: rgba(163, 108, 255, 0.1);
+            border-right: 3px solid var(--neon-purple);
+            border-radius: 8px;
+        }
+
+        .timeline-item {
+            padding: 8px 15px;
+            margin-bottom: 8px;
+            font-size: 16px;
+            color: var(--text-light);
+            position: relative;
+        }
+
+        .timeline-item::before {
+            content: '▸';
+            color: var(--neon-purple);
+            margin-left: 10px;
+            position: absolute;
+            right: 0;
+        }
+
+        /* Slide Context */
+        .slide-context {
+            font-size: 18px;
+            color: var(--neon-blue);
+            margin-bottom: 20px;
+            font-style: italic;
+        }
+
+        /* End Prompt */
+        .end-prompt {
+            margin-top: 30px;
+            font-size: 18px;
+            color: var(--text-dim);
+            font-style: italic;
+        }
+
+        /* Sub Tagline */
+        .sub-tagline {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 24px;
+            color: var(--neon-blue);
+            margin-top: 20px;
+            text-shadow: 0 0 20px rgba(0, 228, 255, 0.4);
+        }
+
         /* Section Slide */
         .slide-section .content {
             align-items: center;
@@ -967,10 +1141,9 @@
                         <span class="lesson-num">02</span>
                         <span>Market & Players</span>
                     </div>
-                    <div class="dropdown-item locked">
+                    <div class="dropdown-item" onclick="loadLesson(3)">
                         <span class="lesson-num">03</span>
-                        <span>Monetization Basics</span>
-                        <span class="lock-icon">🔒</span>
+                        <span>Lean, MVP & KPIs</span>
                     </div>
                     <div class="dropdown-item locked">
                         <span class="lesson-num">04</span>
@@ -1045,11 +1218,10 @@
                     <div class="lesson-card-title">Market & Players</div>
                     <div class="lesson-card-desc">Understanding who we build for - Personas, user journeys and research tools</div>
                 </div>
-                <div class="lesson-card locked">
-                    <div class="lock-overlay">🔒</div>
+                <div class="lesson-card" onclick="loadLesson(3)">
                     <div class="lesson-card-number">Lesson 03</div>
-                    <div class="lesson-card-title">Monetization Basics</div>
-                    <div class="lesson-card-desc">IAP, Ads, and hybrid monetization models</div>
+                    <div class="lesson-card-title">Lean, MVP & KPIs</div>
+                    <div class="lesson-card-desc">Build Less. Learn More. Move Faster - Assumptions, MVP planning and metrics</div>
                 </div>
                 <div class="lesson-card locked">
                     <div class="lock-overlay">🔒</div>
@@ -2114,6 +2286,637 @@
                     </div>
                 </div>
                 </div><!-- END LESSON 2 SLIDES -->
+
+                <!-- LESSON 3 SLIDES -->
+                <div class="lesson-slides" data-lesson="3">
+                <!-- Slide 1: Title -->
+                <div class="slide slide-title" data-slide="1">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 3: Lean, MVP & KPIs</span>
+                        <span class="slide-counter">01 / 29</span>
+                    </div>
+                    <div class="content">
+                        <h1 class="title">Gaming Product Design</h1>
+                        <h2 class="subtitle">Lesson 3</h2>
+                        <p class="tagline">Lean, MVP, Backlog & KPIs</p>
+                        <p class="sub-tagline">Build Less. Learn More. Move Faster.</p>
+                    </div>
+                </div>
+
+                <!-- Slide 2: Hook -->
+                <div class="slide slide-content" data-slide="2">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 3: Lean, MVP & KPIs</span>
+                        <span class="slide-counter">02 / 29</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">למה בכלל Lean?</h2>
+                        <ul class="bullets">
+                            <li>80% מהמשחקים שמתוכננים – לא יוצאים לעולם</li>
+                            <li>לא בגלל רעיון רע, אלא בגלל שבונים יותר מדי, מוקדם מדי</li>
+                            <li>המטרה שלנו: להבין איך בונים חכם, מהר, עם מינימום בזבוז</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Slide 3: Recap -->
+                <div class="slide slide-content" data-slide="3">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 3: Lean, MVP & KPIs</span>
+                        <span class="slide-counter">03 / 29</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">איפה אנחנו עומדים?</h2>
+                        <ul class="bullets">
+                            <li>יש לנו רעיון למשחק</li>
+                            <li>הבנו Core Loop ו-Meta בשיעורים הקודמים</li>
+                            <li>עשינו מחקר שוק ראשוני והגדרנו קהל יעד</li>
+                            <li>עכשיו: איך לא נשרוף חצי שנה על משהו שאף אחד לא רוצה?</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Slide 4: Failure Story -->
+                <div class="slide slide-case-study" data-slide="4">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 3: Lean, MVP & KPIs</span>
+                        <span class="slide-counter">04 / 29</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">סיפור קלאסי של כישלון</h2>
+                        <div class="case-study-badge">Case Study</div>
+                        <ul class="bullets">
+                            <li>סטודיו אינדי מפתח משחק פאזלים 8 חודשים</li>
+                            <li>40 לבלים, חנות, Guilds, Daily Quests, Meta עמוקה</li>
+                            <li>ביום ההשקה: Retention נמוך, אין הכנסות</li>
+                            <li>מגלים: אף אחד לא באמת נהנה מהפאזל עצמו</li>
+                        </ul>
+                        <div class="highlight-box">המסר: בנו יותר מדי בלי לבדוק את ההנחה הכי בסיסית – שהלופ כיף</div>
+                    </div>
+                </div>
+
+                <!-- Slide 5: Lean Mindset -->
+                <div class="slide slide-content" data-slide="5">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 3: Lean, MVP & KPIs</span>
+                        <span class="slide-counter">05 / 29</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">Lean Mindset – איך לחשוב כמו PM של גיימינג</h2>
+                        <ul class="bullets">
+                            <li>לא בונים משחק – בונים ניסויים</li>
+                            <li>מה שהכי מסוכן נבדק ראשון</li>
+                            <li>Build → Measure → Learn → Repeat</li>
+                            <li>פחות פיצ'רים, יותר למידה</li>
+                            <li>המטרה: להבין שחקנים, לא להרשים את עצמנו</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Slide 6: Assumptions Definition -->
+                <div class="slide slide-content" data-slide="6">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 3: Lean, MVP & KPIs</span>
+                        <span class="slide-counter">06 / 29</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">מה הן הנחות יסוד (Assumptions)?</h2>
+                        <ul class="bullets">
+                            <li>הנחה = משהו שאנחנו מאמינים שהוא נכון, אבל עוד לא בדקנו</li>
+                            <li>בגיימינג: קהל, לופ, Meta, מוניטיזציה, Social, רגש</li>
+                            <li>אם הנחת יסוד קריטית לא נכונה → כל המשחק יכול ליפול</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Slide 7: Assumptions Example -->
+                <div class="slide slide-content" data-slide="7">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 3: Lean, MVP & KPIs</span>
+                        <span class="slide-counter">07 / 29</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">דוגמה: משחק Puzzle + Social</h2>
+                        <p class="slide-context">רעיון: משחק פאזל קצר עם פיצ'רים חברתיים</p>
+                        <ul class="bullets">
+                            <li>קהל: נשים בגיל 25–40 שמשחקות בהפסקות</li>
+                            <li>Core Loop: פאזל של 2–3 דקות הוא כיף ומספק</li>
+                            <li>מוניטיזציה: ישלמו על Hints</li>
+                            <li>Social: ירצו לשחק מול חברות / לשתף תוצאות</li>
+                            <li>Retention: בונוס יומי יחזיר אותן כל יום</li>
+                        </ul>
+                        <div class="highlight-box">מה ההנחה הכי מסוכנת? ← ההנחה שה-Core Loop כיף</div>
+                    </div>
+                </div>
+
+                <!-- Slide 8: Risk Levels -->
+                <div class="slide slide-content" data-slide="8">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 3: Lean, MVP & KPIs</span>
+                        <span class="slide-counter">08 / 29</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">דירוג ריסק – High / Medium / Low</h2>
+                        <ul class="bullets">
+                            <li><span class="risk-high">High Risk</span> – אם זה נופל, המשחק נכשל (למשל: הלופ לא כיף)</li>
+                            <li><span class="risk-medium">Medium Risk</span> – אפשר לתקן, לא שובר את המשחק (למשל: Social לא עובד)</li>
+                            <li><span class="risk-low">Low Risk</span> – כמעט לא משפיע על ה-MVP (למשל: צבע הכפתור)</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Slide 9: Risk Matrix -->
+                <div class="slide slide-table" data-slide="9">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 3: Lean, MVP & KPIs</span>
+                        <span class="slide-counter">09 / 29</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">טבלת תיעדוף ריסק</h2>
+                        <div class="data-table">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Assumption</th>
+                                        <th>Risk</th>
+                                        <th>Impact</th>
+                                        <th>Priority</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>ה-Core Loop כיף</td>
+                                        <td><span class="risk-high">High</span></td>
+                                        <td>עצום – בלי זה אין משחק</td>
+                                        <td>1</td>
+                                    </tr>
+                                    <tr>
+                                        <td>שחקנים ישלמו על Hints</td>
+                                        <td><span class="risk-high">High</span></td>
+                                        <td>גבוה – בלי זה אין מודל הכנסה</td>
+                                        <td>2</td>
+                                    </tr>
+                                    <tr>
+                                        <td>פיצ'רים חברתיים</td>
+                                        <td><span class="risk-medium">Medium</span></td>
+                                        <td>בינוני – משפיע על Engagement</td>
+                                        <td>3</td>
+                                    </tr>
+                                    <tr>
+                                        <td>בונוס יומי יחזיר שחקנים</td>
+                                        <td><span class="risk-medium">Medium</span></td>
+                                        <td>בינוני – משפיע על Retention</td>
+                                        <td>4</td>
+                                    </tr>
+                                    <tr>
+                                        <td>צבעים ואנימציות</td>
+                                        <td><span class="risk-low">Low</span></td>
+                                        <td>נמוך – לא קריטי לשלב ראשון</td>
+                                        <td>5</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Slide 10: Central Question -->
+                <div class="slide slide-content" data-slide="10">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 3: Lean, MVP & KPIs</span>
+                        <span class="slide-counter">10 / 29</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">השאלה המרכזית (Central Question)</h2>
+                        <ul class="bullets">
+                            <li>מתוך כל ההנחות – מגדירים שאלה אחת מרכזית לבדיקה</li>
+                            <li>דוגמאות:</li>
+                            <li>• האם השחקנים נהנים מה-Core Loop?</li>
+                            <li>• האם שווה להם לחזור למחרת?</li>
+                            <li>• האם הם מוכנים לשלם כדי להתקדם במטה?</li>
+                        </ul>
+                        <div class="highlight-box">השאלה המרכזית תגדיר מה יהיה ה-MVP שלנו</div>
+                    </div>
+                </div>
+
+                <!-- Slide 11: What To Build -->
+                <div class="slide slide-content" data-slide="11">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 3: Lean, MVP & KPIs</span>
+                        <span class="slide-counter">11 / 29</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">איזה מוצר צריך לבנות?</h2>
+                        <ul class="bullets">
+                            <li>לא בונים את כל המשחק</li>
+                            <li>לא בונים Meta, חנות, Events, Guilds בגרסה הראשונה</li>
+                            <li>בונים רק את המינימום שיכול לענות על השאלה המרכזית</li>
+                            <li>אם השאלה: "האם הלופ כיף?" → צריך רק לופ, לא מערכת שלמה</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Slide 12: MVP Definition -->
+                <div class="slide slide-content" data-slide="12">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 3: Lean, MVP & KPIs</span>
+                        <span class="slide-counter">12 / 29</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">מהו MVP באמת?</h2>
+                        <ul class="bullets">
+                            <li>MVP = Minimum Viable Product</li>
+                            <li>לא גרסה "זולה" או "חצי משחק"</li>
+                            <li>זה ניסוי שמאפשר לנו ללמוד משהו משמעותי</li>
+                            <li>Play → Measure → Learn → Decide</li>
+                            <li>המטרה: למקסם למידה, למזער עבודה מיותרת</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Slide 13: MVP Examples -->
+                <div class="slide slide-content" data-slide="13">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 3: Lean, MVP & KPIs</span>
+                        <span class="slide-counter">13 / 29</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">דוגמאות ל-MVP לפי סוג משחק</h2>
+                        <ul class="bullets">
+                            <li><strong>Puzzle Game:</strong> 5–10 שלבים קצרים, מכניקה אחת, UI בסיסי</li>
+                            <li><strong>Multiplayer Battle:</strong> מפה אחת, 2–3 דמויות, קרב בסיסי</li>
+                            <li><strong>Story / Narrative:</strong> פרק ראשון, מכניקת בחירה אחת</li>
+                        </ul>
+                        <div class="highlight-box">המטרה: לבדוק אם השחקן רוצה עוד</div>
+                    </div>
+                </div>
+
+                <!-- Slide 14: Backlog -->
+                <div class="slide slide-content" data-slide="14">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 3: Lean, MVP & KPIs</span>
+                        <span class="slide-counter">14 / 29</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">מהו Product Backlog?</h2>
+                        <ul class="bullets">
+                            <li>Backlog = רשימה של כל הפיצ'רים, המשימות והרעיונות</li>
+                            <li>לא הכל נכנס עכשיו – זה מקור לתעדוף</li>
+                            <li>הוא חי: מוסיפים, מוחקים, משנים</li>
+                            <li>חשוב שכל פריט יהיה קצר, ברור ועם עדיפות</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Slide 15: Roadmap -->
+                <div class="slide slide-content" data-slide="15">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 3: Lean, MVP & KPIs</span>
+                        <span class="slide-counter">15 / 29</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">מהו Roadmap?</h2>
+                        <ul class="bullets">
+                            <li>Roadmap = תוכנית זמנים ברמת מאקרו</li>
+                            <li>מראה מה נבנה בכל תקופה / Sprint</li>
+                            <li>לא חוזה חתום – כלי ניהול וגמיש</li>
+                            <li>עוזר לצוות להבין איפה אנחנו ולאן הולכים</li>
+                        </ul>
+                        <div class="timeline-box">
+                            <div class="timeline-item">שבוע 1–2: Prototype ל-Core Loop</div>
+                            <div class="timeline-item">שבוע 3–4: בניית MVP</div>
+                            <div class="timeline-item">שבוע 5: Playtest ראשון</div>
+                            <div class="timeline-item">שבוע 6–8: שיפור לפי פידבק</div>
+                            <div class="timeline-item">שבוע 9–10: מוניטיזציה בסיסית</div>
+                            <div class="timeline-item">שבוע 11–12: Soft Launch</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Slide 16: MoSCoW -->
+                <div class="slide slide-content" data-slide="16">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 3: Lean, MVP & KPIs</span>
+                        <span class="slide-counter">16 / 29</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">תעדוף פיצ'רים – שיטת MoSCoW</h2>
+                        <ul class="bullets">
+                            <li><span class="moscow-must">Must Have</span> – בלי זה אין MVP</li>
+                            <li><span class="moscow-should">Should Have</span> – חשוב, אבל יכול לחכות לגרסה הבאה</li>
+                            <li><span class="moscow-could">Could Have</span> – נחמד, אבל לא חובה</li>
+                            <li><span class="moscow-wont">Won't Have</span> – מחוץ לסקופ לגרסה הזאת</li>
+                        </ul>
+                        <div class="highlight-box">ה-Mustים יחד = MVP</div>
+                    </div>
+                </div>
+
+                <!-- Slide 17: RPG Prioritization -->
+                <div class="slide slide-table" data-slide="17">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 3: Lean, MVP & KPIs</span>
+                        <span class="slide-counter">17 / 29</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">דוגמה: תעדוף פיצ'רים למשחק RPG</h2>
+                        <div class="data-table">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Feature</th>
+                                        <th>Priority</th>
+                                        <th>Reason</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Core combat (tap to attack)</td>
+                                        <td><span class="moscow-must">Must</span></td>
+                                        <td>בלי זה אין משחק</td>
+                                    </tr>
+                                    <tr>
+                                        <td>3 enemy types</td>
+                                        <td><span class="moscow-must">Must</span></td>
+                                        <td>צריך קצת גיוון לבדוק Engagement</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Basic progression (XP, level up)</td>
+                                        <td><span class="moscow-must">Must</span></td>
+                                        <td>Core loop של התקדמות</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Shop (buy weapons)</td>
+                                        <td><span class="moscow-should">Should</span></td>
+                                        <td>אפשר לבדוק לופ לפני חנות</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Multiplayer co-op</td>
+                                        <td><span class="moscow-could">Could</span></td>
+                                        <td>מורכב מדי ל-MVP</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Story cutscenes</td>
+                                        <td><span class="moscow-wont">Won't</span></td>
+                                        <td>יותר מדי השקעה לשלב ראשון</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Slide 18: KPI Intro -->
+                <div class="slide slide-content" data-slide="18">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 3: Lean, MVP & KPIs</span>
+                        <span class="slide-counter">18 / 29</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">מהו KPI?</h2>
+                        <ul class="bullets">
+                            <li>KPI = Key Performance Indicator</li>
+                            <li>מדד ביצוע מרכזי שמספר אם המוצר מצליח</li>
+                            <li>לא כל מדד הוא KPI – רק מה שבאמת חשוב להחלטות</li>
+                            <li>במשחקים: Retention, Engagement, Monetization, Acquisition, Progression</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Slide 19: KPI Choosing -->
+                <div class="slide slide-content" data-slide="19">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 3: Lean, MVP & KPIs</span>
+                        <span class="slide-counter">19 / 29</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">איך בוחרים KPI למוצר שלנו?</h2>
+                        <ul class="bullets">
+                            <li>מתחילים מהשאלה המרכזית שלנו</li>
+                            <li>בוחרים 2–3 KPIs מקסימום ל-MVP</li>
+                            <li>מגדירים Target ברור לכל KPI</li>
+                            <li>שומרים את זה פשוט: אם צריך להסביר יותר מדי – זה לא KPI טוב</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Slide 20: KPI Targets -->
+                <div class="slide slide-content" data-slide="20">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 3: Lean, MVP & KPIs</span>
+                        <span class="slide-counter">20 / 29</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">דוגמאות ל-KPI ו-Targets</h2>
+                        <ul class="bullets">
+                            <li><strong>Casual Puzzle:</strong> D1 Retention > 40%, Session Length > 5 דקות</li>
+                            <li><strong>Multiplayer:</strong> 3+ Matches ביום, Match Completion > 80%</li>
+                            <li><strong>Story-Driven:</strong> 70% מסיימים פרק ראשון</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Slide 21: Measuring -->
+                <div class="slide slide-content" data-slide="21">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 3: Lean, MVP & KPIs</span>
+                        <span class="slide-counter">21 / 29</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">איך מודדים בפועל?</h2>
+                        <ul class="bullets">
+                            <li><strong>כלי אנליטיקה:</strong> GameAnalytics, Firebase, Unity Analytics, Mixpanel</li>
+                            <li><strong>מה למדוד:</strong></li>
+                            <li>• Session start / end</li>
+                            <li>• Level complete / fail</li>
+                            <li>• Clicks בחנות</li>
+                            <li>• אירועי Meta (איסוף קלפים, השלמת סט)</li>
+                        </ul>
+                        <div class="highlight-box">ב-MVP גם צפייה ידנית + סקרים זה בסדר</div>
+                    </div>
+                </div>
+
+                <!-- Slide 22: Lean Flow -->
+                <div class="slide slide-content" data-slide="22">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 3: Lean, MVP & KPIs</span>
+                        <span class="slide-counter">22 / 29</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">התהליך המלא ב-Lean לגיימינג</h2>
+                        <ul class="bullets">
+                            <li>1. כותבים הנחות יסוד</li>
+                            <li>2. מדרגים ריסק (High / Medium / Low)</li>
+                            <li>3. מגדירים שאלה מרכזית אחת</li>
+                            <li>4. מתכננים ובונים MVP</li>
+                            <li>5. בוחרים 2–3 KPIs למדידה</li>
+                            <li>6. Build → Measure → Learn → Iterate</li>
+                        </ul>
+                        <div class="highlight-box">Don't build games. Build experiments.</div>
+                    </div>
+                </div>
+
+                <!-- Slide 23: Workshop Assumptions -->
+                <div class="slide slide-exercise" data-slide="23">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 3: Lean, MVP & KPIs</span>
+                        <span class="slide-counter">23 / 29</span>
+                    </div>
+                    <div class="content">
+                        <div class="exercise-badge">תרגיל כיתתי</div>
+                        <h2 class="slide-heading">חלק 1: הנחות ושאלה מרכזית</h2>
+                        <ul class="bullets">
+                            <li>1. כל קבוצה כותבת 5 הנחות יסוד על המשחק שלה</li>
+                            <li>2. דרגו כל הנחה: High / Medium / Low Risk</li>
+                            <li>3. בחרו את ההנחה הכי מסוכנת</li>
+                            <li>4. כתבו שאלה מרכזית אחת שאתם רוצים לבדוק</li>
+                        </ul>
+                        <div class="time-badge">10–15 דקות</div>
+                    </div>
+                </div>
+
+                <!-- Slide 24: Workshop MVP -->
+                <div class="slide slide-exercise" data-slide="24">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 3: Lean, MVP & KPIs</span>
+                        <span class="slide-counter">24 / 29</span>
+                    </div>
+                    <div class="content">
+                        <div class="exercise-badge">תרגיל כיתתי</div>
+                        <h2 class="slide-heading">חלק 2: תכנון MVP</h2>
+                        <ul class="bullets">
+                            <li>1. רשמו 8–10 פיצ'רים שהייתם רוצים במשחק</li>
+                            <li>2. חלקו אותם ל-Must / Should / Could / Won't</li>
+                            <li>3. ה-Mustים = ה-MVP שלכם</li>
+                            <li>4. תארו את ה-MVP במשפט אחד</li>
+                        </ul>
+                        <div class="time-badge">10–15 דקות</div>
+                    </div>
+                </div>
+
+                <!-- Slide 25: Workshop KPIs -->
+                <div class="slide slide-exercise" data-slide="25">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 3: Lean, MVP & KPIs</span>
+                        <span class="slide-counter">25 / 29</span>
+                    </div>
+                    <div class="content">
+                        <div class="exercise-badge">תרגיל כיתתי</div>
+                        <h2 class="slide-heading">חלק 3: בחירת KPIs</h2>
+                        <ul class="bullets">
+                            <li>1. בחרו 2–3 KPIs שיעזרו לענות על השאלה המרכזית</li>
+                            <li>2. לכל KPI הגדירו:</li>
+                            <li>• מה מודדים</li>
+                            <li>• Target ברור</li>
+                            <li>• למה זה חשוב</li>
+                        </ul>
+                        <div class="time-badge">10 דקות</div>
+                    </div>
+                </div>
+
+                <!-- Slide 26: Group Presentations -->
+                <div class="slide slide-content" data-slide="26">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 3: Lean, MVP & KPIs</span>
+                        <span class="slide-counter">26 / 29</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">הצגת קבוצות + משימות להמשך</h2>
+                        <ul class="bullets">
+                            <li><strong>כל קבוצה מציגה:</strong></li>
+                            <li>• ההנחה המסוכנת + השאלה המרכזית</li>
+                            <li>• ה-MVP (Must בלבד) + ה-KPIs שנבחרו</li>
+                            <li><strong>משימות להמשך:</strong></li>
+                            <li>• לדייק את ה-MVP ולבנות Backlog בסיסי</li>
+                            <li>• לבחור כלי מדידה ולהתכונן ל-Playtest</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Slide 27: Supercell Case -->
+                <div class="slide slide-case-study" data-slide="27">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 3: Lean, MVP & KPIs</span>
+                        <span class="slide-counter">27 / 29</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">Case Study: Supercell וחשיבה Lean</h2>
+                        <div class="case-study-badge">Case Study</div>
+                        <ul class="bullets">
+                            <li>Supercell ידועה בכך שהיא מפתחת מאות אב-טיפוסים</li>
+                            <li>בודקת מהר, מודדת, לא מפחדת "להרוג" משחקים</li>
+                            <li>לא מתאהבים ברעיון – מתאהבים בדאטה</li>
+                            <li>Clash of Clans / Brawl Stars הגיעו אחרי הרבה כישלונות</li>
+                        </ul>
+                        <div class="highlight-box">"We don't kill games. Players kill them."</div>
+                    </div>
+                </div>
+
+                <!-- Slide 28: Mistakes -->
+                <div class="slide slide-content" data-slide="28">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 3: Lean, MVP & KPIs</span>
+                        <span class="slide-counter">28 / 29</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">טעויות נפוצות ומה לומדים מהן</h2>
+                        <ul class="bullets">
+                            <li><strong>טעויות:</strong> לבנות יותר מדי לפני שבודקים, לא לרשום הנחות</li>
+                            <li>לבחור יותר מדי KPIs, להתעלם מדאטה</li>
+                            <li>להוסיף Meta / Social לפני שהלופ עובד</li>
+                            <li><strong>מה לוקחים:</strong> לבנות פחות, ללמוד יותר</li>
+                            <li>לחשוב כמו מדענים, לא רק כמו אמנים</li>
+                        </ul>
+                        <div class="highlight-box">Lean = Mindset, לא רק שיטה</div>
+                    </div>
+                </div>
+
+                <!-- Slide 29: Wrap Up -->
+                <div class="slide slide-end" data-slide="29">
+                    <div class="grid-bg"></div>
+                    <div class="header">
+                        <span class="header-title">Lesson 3: Lean, MVP & KPIs</span>
+                        <span class="slide-counter">29 / 29</span>
+                    </div>
+                    <div class="content">
+                        <h2 class="slide-heading">סיכום + Q&A</h2>
+                        <ul class="bullets">
+                            <li>Lean = Build Less, Learn More, Move Faster</li>
+                            <li>Assumptions → Risk → Question → MVP → KPIs → Iteration</li>
+                            <li>הגרסה הראשונה כנראה לא תהיה מושלמת – וזה טוב</li>
+                        </ul>
+                        <div class="highlight-box">"The only way to win is to learn faster than anyone else." – Eric Ries</div>
+                        <p class="end-prompt">מה עדיין לא ברור? איזה חלק הכי מאתגר – Assumptions, MVP או KPIs?</p>
+                    </div>
+                </div>
+                </div><!-- END LESSON 3 SLIDES -->
             </div>
 
             <div class="nav">
