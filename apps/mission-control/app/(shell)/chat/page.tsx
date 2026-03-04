@@ -26,12 +26,31 @@ type ChatSource = "agent-hub" | "openai-fallback" | null;
 export default function ChatPage() {
   const { agents } = useAgents();
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  // Per-agent chat history: agentId → messages
+  const [chatsByAgent, setChatsByAgent] = useState<Record<string, ChatMessage[]>>({});
+  // Per-agent source indicator
+  const [sourceByAgent, setSourceByAgent] = useState<Record<string, ChatSource>>({});
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
-  const [chatSource, setChatSource] = useState<ChatSource>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const agentId = selectedAgent?.id || "";
+  const messages = chatsByAgent[agentId] || [];
+  const chatSource = sourceByAgent[agentId] || null;
+
+  // Helpers to update per-agent state
+  function setMessages(updater: ChatMessage[] | ((prev: ChatMessage[]) => ChatMessage[])) {
+    setChatsByAgent((prev) => {
+      const current = prev[agentId] || [];
+      const next = typeof updater === "function" ? updater(current) : updater;
+      return { ...prev, [agentId]: next };
+    });
+  }
+
+  function setChatSource(source: ChatSource) {
+    setSourceByAgent((prev) => ({ ...prev, [agentId]: source }));
+  }
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -51,16 +70,36 @@ export default function ChatPage() {
   }, [input]);
 
   function selectAgent(agent: Agent) {
+    if (selectedAgent?.id === agent.id) return;
     setSelectedAgent(agent);
-    setMessages([]);
     setInput("");
-    setChatSource(null);
     setTimeout(() => textareaRef.current?.focus(), 100);
   }
 
   function clearChat() {
+    if (!selectedAgent || messages.length === 0) return;
+
+    // Save full conversation to logs
+    const fullConversation = messages
+      .filter((m) => m.content)
+      .map((m) => `${m.role === "user" ? "User" : "Agent"}: ${m.content}`)
+      .join("\n\n");
+
+    fetch("/api/logs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "chat",
+        agentId: selectedAgent.id,
+        agentName: selectedAgent.name,
+        content: fullConversation,
+        metadata: { messageCount: messages.length, savedAt: new Date().toISOString() },
+      }),
+    }).catch(() => {});
+
     setMessages([]);
     setChatSource(null);
+    setTimeout(() => textareaRef.current?.focus(), 100);
   }
 
   async function handleSend() {
@@ -79,14 +118,13 @@ export default function ChatPage() {
     setIsStreaming(true);
 
     // Create placeholder assistant message for streaming
-    const assistantId = crypto.randomUUID();
+    const assistantMsgId = crypto.randomUUID();
     setMessages((prev) => [
       ...prev,
-      { id: assistantId, role: "assistant", content: "", timestamp: Date.now() },
+      { id: assistantMsgId, role: "assistant", content: "", timestamp: Date.now() },
     ]);
 
     try {
-      // Timeout after 60 seconds (Agent Hub can take longer)
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 60000);
 
@@ -140,7 +178,7 @@ export default function ChatPage() {
                 fullText += parsed.text;
                 setMessages((prev) =>
                   prev.map((m) =>
-                    m.id === assistantId ? { ...m, content: fullText } : m,
+                    m.id === assistantMsgId ? { ...m, content: fullText } : m,
                   ),
                 );
               }
@@ -159,7 +197,7 @@ export default function ChatPage() {
             : "Failed to get response";
       setMessages((prev) =>
         prev.map((m) =>
-          m.id === assistantId
+          m.id === assistantMsgId
             ? { ...m, content: `Error: ${msg}` }
             : m,
         ),
@@ -167,6 +205,11 @@ export default function ChatPage() {
     } finally {
       setIsStreaming(false);
     }
+  }
+
+  // Show dot on agents that have active chats
+  function hasChat(id: string) {
+    return (chatsByAgent[id]?.length || 0) > 0;
   }
 
   return (
@@ -191,8 +234,13 @@ export default function ChatPage() {
               <span className="text-lg flex-shrink-0">
                 {agentIcons[agent.name.toLowerCase()] || "\u{1F916}"}
               </span>
-              <div className="overflow-hidden">
-                <div className="text-base font-medium truncate">{agent.name}</div>
+              <div className="overflow-hidden flex-1">
+                <div className="text-base font-medium truncate flex items-center gap-1.5">
+                  {agent.name}
+                  {hasChat(agent.id) && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
+                  )}
+                </div>
                 <div className="font-mono text-sm text-muted-foreground truncate">
                   {agent.llmModel}
                 </div>
@@ -242,10 +290,12 @@ export default function ChatPage() {
             {messages.length > 0 && (
               <button
                 onClick={clearChat}
-                className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                title="Clear chat"
+                disabled={isStreaming}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-destructive/10 text-muted-foreground hover:text-destructive disabled:opacity-30 transition-colors"
+                title="Save conversation to logs and clear"
               >
-                <Trash2 className="w-4 h-4" />
+                <Trash2 className="w-3.5 h-3.5" />
+                Clear Chat
               </button>
             )}
           </div>
