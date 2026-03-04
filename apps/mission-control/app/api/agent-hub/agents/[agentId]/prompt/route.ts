@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { agentHubFetch } from "@/lib/agent-hub-client";
+import { agentPrompts } from "@/lib/agent-prompts-cache";
 
 type RouteParams = { params: Promise<{ agentId: string }> };
 
@@ -21,11 +22,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const data = await agentHubFetch(`/agents/${agentId}/prompt`);
     return NextResponse.json({ success: true, data });
   } catch (error) {
-    console.error("[API] Get prompt error:", error);
-    return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "Unknown error" },
-      { status: 500 },
-    );
+    const { agentId } = await params;
+    // Fallback: return cached prompt or empty
+    const cachedPrompt = agentPrompts[agentId] || "";
+    const { searchParams } = new URL(request.url);
+
+    if (searchParams.get("history") === "true") {
+      return NextResponse.json({ success: true, data: [], cached: true });
+    }
+    return NextResponse.json({ success: true, data: cachedPrompt, cached: true });
   }
 }
 
