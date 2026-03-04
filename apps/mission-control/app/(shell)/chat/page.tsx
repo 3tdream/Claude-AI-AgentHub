@@ -21,14 +21,17 @@ interface ChatMessage {
   timestamp: number;
 }
 
+type ChatSource = "agent-hub" | "openai-fallback" | null;
+
 export default function ChatPage() {
   const { agents } = useAgents();
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
+  const [chatSource, setChatSource] = useState<ChatSource>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -38,15 +41,26 @@ export default function ChatPage() {
     scrollToBottom();
   }, [messages, scrollToBottom]);
 
+  // Auto-resize textarea
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (el) {
+      el.style.height = "auto";
+      el.style.height = Math.min(el.scrollHeight, 150) + "px";
+    }
+  }, [input]);
+
   function selectAgent(agent: Agent) {
     setSelectedAgent(agent);
     setMessages([]);
     setInput("");
-    setTimeout(() => inputRef.current?.focus(), 100);
+    setChatSource(null);
+    setTimeout(() => textareaRef.current?.focus(), 100);
   }
 
   function clearChat() {
     setMessages([]);
+    setChatSource(null);
   }
 
   async function handleSend() {
@@ -72,9 +86,9 @@ export default function ChatPage() {
     ]);
 
     try {
-      // Timeout after 30 seconds
+      // Timeout after 60 seconds (Agent Hub can take longer)
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 30000);
+      const timeout = setTimeout(() => controller.abort(), 60000);
 
       const res = await fetch("/api/chat", {
         method: "POST",
@@ -96,6 +110,10 @@ export default function ChatPage() {
         throw new Error(err.error || "Chat failed");
       }
 
+      // Read source header
+      const source = res.headers.get("X-Chat-Source") as ChatSource;
+      if (source) setChatSource(source);
+
       const reader = res.body?.getReader();
       const decoder = new TextDecoder();
 
@@ -109,7 +127,6 @@ export default function ChatPage() {
 
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split("\n");
-        // Keep the last potentially incomplete line in buffer
         buffer = lines.pop() || "";
 
         for (const line of lines) {
@@ -136,7 +153,7 @@ export default function ChatPage() {
     } catch (error) {
       const msg =
         error instanceof DOMException && error.name === "AbortError"
-          ? "Request timed out (30s). Try again."
+          ? "Request timed out (60s). Try again."
           : error instanceof Error
             ? error.message
             : "Failed to get response";
@@ -201,8 +218,24 @@ export default function ChatPage() {
               </span>
               <div>
                 <div className="font-bold text-base">{selectedAgent.name}</div>
-                <div className="font-mono text-sm text-muted-foreground">
-                  {selectedAgent.llmModel} &middot; via OpenAI
+                <div className="font-mono text-sm text-muted-foreground flex items-center gap-2">
+                  <span>{selectedAgent.llmModel}</span>
+                  {chatSource && (
+                    <>
+                      <span>&middot;</span>
+                      <span className="flex items-center gap-1">
+                        <span
+                          className={`w-2 h-2 rounded-full ${
+                            chatSource === "agent-hub" ? "bg-emerald-500" : "bg-amber-500"
+                          }`}
+                        />
+                        <span className={chatSource === "agent-hub" ? "text-emerald-600" : "text-amber-600"}>
+                          {chatSource === "agent-hub" ? "Agent Hub" : "OpenAI fallback"}
+                        </span>
+                      </span>
+                    </>
+                  )}
+                  {!chatSource && <span>&middot; via OpenAI</span>}
                 </div>
               </div>
             </div>
@@ -267,12 +300,11 @@ export default function ChatPage() {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input */}
+        {/* Input — textarea: Enter sends, Shift+Enter newline */}
         <div className="border-t border-border p-4">
-          <div className="flex gap-3">
-            <input
-              ref={inputRef}
-              type="text"
+          <div className="flex gap-3 items-end">
+            <textarea
+              ref={textareaRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
@@ -287,12 +319,13 @@ export default function ChatPage() {
                   : "Select an agent first..."
               }
               disabled={!selectedAgent || isStreaming}
-              className="flex-1 bg-background border border-border rounded-xl px-5 py-3 text-base placeholder:text-muted-foreground focus:border-primary focus:outline-none disabled:opacity-50 transition-colors"
+              rows={1}
+              className="flex-1 bg-background border border-border rounded-xl px-5 py-3 text-base placeholder:text-muted-foreground focus:border-primary focus:outline-none disabled:opacity-50 transition-colors resize-none overflow-hidden"
             />
             <button
               onClick={handleSend}
               disabled={!input.trim() || !selectedAgent || isStreaming}
-              className="px-5 py-3 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-30 transition-all flex items-center gap-2"
+              className="px-5 py-3 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-30 transition-all flex items-center gap-2 flex-shrink-0"
             >
               {isStreaming ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
