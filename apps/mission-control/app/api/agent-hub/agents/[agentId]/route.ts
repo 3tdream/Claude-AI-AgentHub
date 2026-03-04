@@ -28,19 +28,25 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
 
 // PATCH /api/agent-hub/agents/[agentId] — update agent
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
+  const { agentId } = await params;
+  const body = await request.json();
+
   try {
-    const { agentId } = await params;
-    const body = await request.json();
     const data = await agentHubFetch(`/agents/${agentId}`, {
       method: "PATCH",
       body: JSON.stringify(body),
     });
     return NextResponse.json({ success: true, data });
-  } catch (error) {
-    console.error("[API] Update agent error:", error);
+  } catch {
+    // Offline mode: merge updates into cached agent and return
+    const cached = cachedAgents.find((a) => a.id === agentId);
+    if (cached) {
+      const updated = { ...cached, ...body };
+      return NextResponse.json({ success: true, data: updated, cached: true });
+    }
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "Unknown error" },
-      { status: 500 },
+      { success: false, error: "Agent not found in cache" },
+      { status: 404 },
     );
   }
 }
