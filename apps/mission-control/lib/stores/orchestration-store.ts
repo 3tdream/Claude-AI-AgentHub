@@ -8,19 +8,24 @@ interface OrchestrationState {
   workflows: Workflow[];
   activeExecution: PipelineExecution | null;
   executionHistory: PipelineExecution[];
+  selectedStageId: string | null;
   addWorkflow: (workflow: Workflow) => void;
   updateWorkflow: (id: string, workflow: Partial<Workflow>) => void;
   deleteWorkflow: (id: string) => void;
   setActiveExecution: (execution: PipelineExecution | null) => void;
   addToHistory: (execution: PipelineExecution) => void;
+  selectStage: (id: string | null) => void;
+  approveCheckpoint: (executionId: string) => void;
+  rejectCheckpoint: (executionId: string, reason: string) => void;
 }
 
 export const useOrchestrationStore = create<OrchestrationState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       workflows: [],
       activeExecution: null,
       executionHistory: [],
+      selectedStageId: null,
       addWorkflow: (workflow) =>
         set((s) => ({ workflows: [...s.workflows, workflow] })),
       updateWorkflow: (id, updates) =>
@@ -39,6 +44,43 @@ export const useOrchestrationStore = create<OrchestrationState>()(
         set((s) => ({
           executionHistory: [execution, ...s.executionHistory].slice(0, 50),
         })),
+      selectStage: (id) =>
+        set({ selectedStageId: id }),
+      approveCheckpoint: (executionId) => {
+        const { activeExecution } = get();
+        if (!activeExecution || activeExecution.id !== executionId) return;
+        set({
+          activeExecution: {
+            ...activeExecution,
+            checkpointPending: false,
+            status: "running",
+          },
+        });
+      },
+      rejectCheckpoint: (executionId, reason) => {
+        const { activeExecution } = get();
+        if (!activeExecution || activeExecution.id !== executionId) return;
+        const updated: PipelineExecution = {
+          ...activeExecution,
+          checkpointPending: false,
+          checkpointRejectionReason: reason,
+          status: "failed",
+          completedAt: new Date().toISOString(),
+        };
+        // Mark checkpoint step as failed
+        const checkpointStep = Object.values(updated.stepResults).find(
+          (r) => r.status === "awaiting_approval",
+        );
+        if (checkpointStep) {
+          updated.stepResults[checkpointStep.stepId] = {
+            ...checkpointStep,
+            status: "failed",
+            error: `Rejected: ${reason}`,
+            completedAt: new Date().toISOString(),
+          };
+        }
+        set({ activeExecution: updated });
+      },
     }),
     {
       name: "mission-control-orchestration",

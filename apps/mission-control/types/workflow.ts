@@ -1,3 +1,21 @@
+export interface StageMetadata {
+  qualityThreshold: number;
+  leadAgent: string;
+  model: string;
+  isCheckpoint?: boolean;
+  isParallel?: boolean;
+  group?: string;
+  stageNumber: string;
+  conditional?: string;
+}
+
+export interface QualityScore {
+  completeness: number;
+  specificity: number;
+  actionability: number;
+  overall: number;
+}
+
 export interface WorkflowStep {
   id: string;
   agentId: string;
@@ -5,6 +23,7 @@ export interface WorkflowStep {
   promptTemplate: string;
   dependsOn: string[];
   outputKey: string;
+  metadata?: StageMetadata;
 }
 
 export interface Workflow {
@@ -15,7 +34,7 @@ export interface Workflow {
   createdAt: string;
 }
 
-export type StepStatus = "pending" | "running" | "completed" | "failed" | "skipped";
+export type StepStatus = "pending" | "running" | "completed" | "failed" | "skipped" | "awaiting_approval" | "retrying";
 
 export interface StepResult {
   stepId: string;
@@ -25,9 +44,12 @@ export interface StepResult {
   duration?: number;
   startedAt?: string;
   completedAt?: string;
+  retryCount?: number;
+  evaluationFeedback?: string;
+  escalated?: boolean;
 }
 
-export type PipelineStatus = "pending" | "running" | "completed" | "failed";
+export type PipelineStatus = "pending" | "running" | "completed" | "failed" | "paused";
 
 export interface PipelineExecution {
   id: string;
@@ -39,4 +61,8 @@ export interface PipelineExecution {
   startedAt: string;
   completedAt?: string;
   totalDuration?: number;
+  checkpointPending?: boolean;
+  checkpointRejectionReason?: string;
+  qualityScores?: Record<string, QualityScore>;
+  escalatedSteps?: string[];
 }
