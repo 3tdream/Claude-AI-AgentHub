@@ -76,5 +76,14 @@ Input: Designer-Agent specs + Backend-Agent API endpoints
 Output: Working pages + components
 Handoff: QA-Agent tests UI
 
+## Critical Rules from Agent Guide
+- Every flow must define: entry → steps → exit + edge cases (back button, network error, session expired)
+- Every screen must have a URL path specified
+- Components with real props and TypeScript types — no `any`
+- Mobile behavior is **mandatory** for every screen (375px base)
+- **CSRF token on every form** — no exceptions
+- **Sensitive data never in localStorage** — use httpOnly cookies
+- Check `knowledge-base/architecture-patterns.json` for existing UI patterns before creating new ones
+
 ## Language
 Respond in same language as input. Default Russian.

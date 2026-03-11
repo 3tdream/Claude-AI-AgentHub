@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
-import { GitBranch, Plus, Play, Trash2, History, Clock, CheckCircle2, XCircle } from "lucide-react";
+import { GitBranch, Plus, Play, Trash2, History, Clock, CheckCircle2, XCircle, ExternalLink } from "lucide-react";
 import { useOrchestrationStore } from "@/lib/stores/orchestration-store";
 import { CRM_PIPELINE_TEMPLATE } from "@/lib/pipeline-templates";
 import { executePipeline } from "@/lib/pipeline-executor";
@@ -151,7 +151,18 @@ export default function OrchestrationPage() {
                     <p className="text-xs text-muted-foreground mt-1">{selectedWorkflow.description}</p>
                   </div>
                   {activeExecution && (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
+                      {activeExecution.jiraKey && (
+                        <a
+                          href={activeExecution.jiraUrl || "#"}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 px-2 py-1 rounded-lg bg-blue-500/10 text-blue-400 font-mono text-[10px] hover:bg-blue-500/20 transition-colors"
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                          {activeExecution.jiraKey}
+                        </a>
+                      )}
                       <span className={`font-mono text-xs font-semibold ${statusColors[activeExecution.status] || ""}`}>
                         {activeExecution.status.toUpperCase()}
                       </span>

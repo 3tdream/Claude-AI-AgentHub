@@ -1,0 +1,58 @@
+{
+  "_description": "Reusable patterns and anti-patterns — maintained by Architect-Agent and Backend-Agent",
+  "_updated": "2026-03-10",
+  "patterns": [
+    {
+      "id": "PAT-001",
+      "name": "API proxy with cached fallback",
+      "context": "All Agent Hub API calls from Mission Control frontend",
+      "pattern": "Try agentHubFetch() → on failure, return cached data from lib/agent-hub-cache.ts",
+      "code_reference": "lib/agent-hub-client.ts, app/api/agent-hub/*/route.ts",
+      "when_to_use": "Any new API route that proxies to Agent Hub"
+    },
+    {
+      "id": "PAT-002",
+      "name": "File-based storage with ensureDataDir",
+      "context": "Local persistence for logs, config, prompt overrides",
+      "pattern": "ensureDataDir() → fs.readFile/writeFile in data/ directory",
+      "code_reference": "lib/logs-storage.ts, lib/jira/config.ts",
+      "when_to_use": "Any new local data that needs to persist across restarts"
+    },
+    {
+      "id": "PAT-003",
+      "name": "Dual-source streaming (Agent Hub + OpenAI)",
+      "context": "Chat needs resilience when Agent Hub is down",
+      "pattern": "Try Agent Hub executeAgent() → on failure, fall back to OpenAI with cached system prompt",
+      "code_reference": "app/api/chat/route.ts",
+      "when_to_use": "Only for chat endpoint. Do not duplicate this pattern elsewhere."
+    },
+    {
+      "id": "PAT-004",
+      "name": "SWR hooks with revalidateOnFocus: false",
+      "context": "All client-side data fetching",
+      "pattern": "useSWR(url, fetcher, { revalidateOnFocus: false })",
+      "code_reference": "lib/hooks/use-agents.ts",
+      "when_to_use": "Any new client-side data fetching hook"
+    }
+  ],
+  "anti_patterns": [
+    {
+      "id": "ANTI-001",
+      "name": "Using npx next instead of local binary",
+      "problem": "Root monorepo has next@16.1.1, mission-control needs 15.5.4",
+      "solution": "Always use node_modules/.bin/next for build/dev commands"
+    },
+    {
+      "id": "ANTI-002",
+      "name": "Hardcoding Jira project key",
+      "problem": "Project key may change, breaks automation",
+      "solution": "Always use listProjects API or read from jira-config.json defaultProjectKey"
+    },
+    {
+      "id": "ANTI-003",
+      "name": "Date.now() or Math.random() in SSR components",
+      "problem": "Causes hydration mismatch between server and client",
+      "solution": "Use useEffect for dynamic values, or pass as props from server"
+    }
+  ]
+}

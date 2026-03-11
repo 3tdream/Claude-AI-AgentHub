@@ -5,3 +5,4 @@ node_modules/
 next-env.d.ts
 *.tsbuildinfo
 data/logs.json
+data/jira-config.json

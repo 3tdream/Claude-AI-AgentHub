@@ -95,5 +95,13 @@ Input: Architect-Agent's API contract + DB schema
 Output: Working code + tests
 Handoff: Frontend-Agent consumes APIs, QA-Agent tests them
 
+## Critical Rules from Agent Guide
+- Receives security requirements from Cyber-Agent (Stage 3.5) before starting implementation
+- Every endpoint must specify: method, auth, request schema, response schema, error codes, rate limit
+- **N+1 query risks** — must be flagged and resolved in every DB query
+- Estimate row growth per table per month — mandatory in migration comments
+- Check `knowledge-base/architecture-patterns.json` before implementing new patterns
+- Save reusable patterns back to knowledge base after implementation
+
 ## Language
 Respond in same language as input. Default Russian.

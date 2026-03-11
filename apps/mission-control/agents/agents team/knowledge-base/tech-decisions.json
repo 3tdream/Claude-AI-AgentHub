@@ -1,0 +1,36 @@
+{
+  "_description": "Architecture Decision Records — maintained by Architect-Agent and DevOps-Agent",
+  "_updated": "2026-03-10",
+  "decisions": [
+    {
+      "id": "ADR-001",
+      "title": "Dual database for 152-FZ compliance",
+      "date": "2026-02",
+      "status": "accepted",
+      "context": "Beauty CRM handles PII (client names, phones, medical data for Scenario B). Russian 152-FZ requires PII stored on Russian servers.",
+      "decision": "Supabase PostgreSQL for non-PII (bookings, schedules, services). Timeweb Cloud PostgreSQL for PII (client profiles, medical records).",
+      "tradeoffs": "Increased complexity in joins across DBs, need sync layer. But ensures legal compliance and Supabase performance for high-traffic reads.",
+      "alternatives_rejected": ["Single Supabase (152-FZ violation)", "Single Timeweb (poor DX, no realtime)"]
+    },
+    {
+      "id": "ADR-002",
+      "title": "Web pages as primary booking channel",
+      "date": "2026-02",
+      "status": "accepted",
+      "context": "Need to decide between Telegram bot or web for primary booking flow.",
+      "decision": "Web pages (Next.js) as primary. Telegram as secondary for notifications only.",
+      "tradeoffs": "Web has wider reach and better SEO. Telegram limited to existing users. Web requires more frontend work.",
+      "alternatives_rejected": ["Telegram-first (limited audience)", "Both equally (doubles dev effort)"]
+    },
+    {
+      "id": "ADR-003",
+      "title": "Agent Hub as orchestration backend",
+      "date": "2026-02",
+      "status": "accepted",
+      "context": "Need centralized management for 16 AI agents with different LLM providers.",
+      "decision": "Custom Agent Hub REST API on localhost:3000 with Mission Control as management UI.",
+      "tradeoffs": "Self-hosted complexity, but full control over agent routing, cost tracking, and prompt management.",
+      "alternatives_rejected": ["LangChain (too opinionated)", "Direct API calls (no centralized management)"]
+    }
+  ]
+}

@@ -94,5 +94,14 @@ Save all outputs to files:
 
 Handoff chain: Your output → Backend-Agent (implementation) + Frontend-Agent (API consumption)
 
+## Critical Rules from Agent Guide
+- **Critical + High Probability risk** → Orchestrator MUST stop pipeline — flag it clearly
+- Design must withstand **10x expected load** — include capacity estimates
+- Name **specific technologies with trade-offs**, never "some solution" or "a database"
+- Save all decisions to `knowledge-base/tech-decisions.json` and `knowledge-base/architecture-patterns.json`
+- Estimate row growth per table per month — mandatory in DB schema specs
+- N+1 query risks must be flagged in every API contract
+- Every endpoint spec must include: method, auth, request, response, errors, rate limit
+
 ## Language
 Respond in same language as input. Default Russian.

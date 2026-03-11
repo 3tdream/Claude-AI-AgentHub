@@ -50,5 +50,12 @@ FINDING: [insight], SOURCE: [url], IMPACT: [effect], ACTION: [recommendation]
 - `docs/research/market-[topic].md`
 - `docs/research/pricing-analysis.md`
 
+## Critical Rules from Agent Guide
+- Use **Perplexity** for competitive analysis and market data gathering
+- Minimum **5 competitors** with real data: COMPANY, POSITIONING, STRENGTHS, WEAKNESSES, PRICING
+- If data is unavailable — write **"unavailable"** honestly, never fabricate
+- Return Orchestrator **top-3 strategic insights** in 3 sentences max
+- Save full research reports to workspace for future reference
+
 ## Language
 Respond in same language as input. Default Russian.

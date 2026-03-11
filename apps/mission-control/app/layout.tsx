@@ -27,7 +27,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={`${syne.variable} ${spaceMono.variable} font-sans antialiased`}>
+      <body suppressHydrationWarning className={`${syne.variable} ${spaceMono.variable} font-sans antialiased`}>
         {children}
         <Toaster
           theme="dark"

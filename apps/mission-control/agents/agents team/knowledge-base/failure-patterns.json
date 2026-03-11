@@ -1,0 +1,36 @@
+{
+  "_description": "Known issues, root causes, and solutions — maintained by QA-Agent and all agents",
+  "_updated": "2026-03-10",
+  "patterns": [
+    {
+      "id": "FAIL-001",
+      "category": "build",
+      "title": "Next.js version mismatch in monorepo",
+      "symptoms": "Build fails with 'Jest worker encountered child process exceptions' or Turbopack internal error",
+      "root_cause": "Root monorepo has next@16.1.1, mission-control needs 15.5.4. npx resolves to root version.",
+      "solution": "Use node_modules/.bin/next build instead of npx next build",
+      "date_discovered": "2026-03-10",
+      "recurrence": "Every time someone runs npx next"
+    },
+    {
+      "id": "FAIL-002",
+      "category": "hydration",
+      "title": "SSR hydration mismatch with dynamic values",
+      "symptoms": "React hydration error: server rendered text didn't match client",
+      "root_cause": "Using Date.now(), Math.random(), or locale-dependent formatting in SSR components",
+      "solution": "Move dynamic values to useEffect or pass stable values from server",
+      "date_discovered": "2026-03",
+      "recurrence": "When adding date displays or random IDs in page components"
+    },
+    {
+      "id": "FAIL-003",
+      "category": "api",
+      "title": "Agent Hub connection timeout",
+      "symptoms": "Chat returns OpenAI fallback, API routes return cached: true",
+      "root_cause": "Agent Hub server on localhost:3000 not running or network timeout (3s limit)",
+      "solution": "Start Agent Hub server. Check AGENT_HUB_LIVE env var. Cached data serves as fallback.",
+      "date_discovered": "2026-02",
+      "recurrence": "After system restart or when Agent Hub is updating"
+    }
+  ]
+}

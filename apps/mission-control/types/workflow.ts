@@ -65,4 +65,6 @@ export interface PipelineExecution {
   checkpointRejectionReason?: string;
   qualityScores?: Record<string, QualityScore>;
   escalatedSteps?: string[];
+  jiraKey?: string;
+  jiraUrl?: string;
 }

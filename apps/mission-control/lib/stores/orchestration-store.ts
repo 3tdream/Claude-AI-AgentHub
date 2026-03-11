@@ -84,7 +84,10 @@ export const useOrchestrationStore = create<OrchestrationState>()(
     }),
     {
       name: "mission-control-orchestration",
-      partialize: (state) => ({ workflows: state.workflows }),
+      partialize: (state) => ({
+        workflows: state.workflows,
+        executionHistory: state.executionHistory,
+      }),
     },
   ),
 );

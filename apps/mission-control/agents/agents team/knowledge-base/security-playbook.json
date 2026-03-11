@@ -1,0 +1,45 @@
+{
+  "_description": "Threat responses and recurring vulnerabilities — maintained by Cyber-Agent and QA-Agent",
+  "_updated": "2026-03-10",
+  "threat_model": {
+    "framework": "STRIDE + OWASP Top 10",
+    "mandatory_triggers": [
+      "Public API endpoints",
+      "Authentication/authorization flows",
+      "Payment processing",
+      "PII handling (152-FZ data)",
+      "File upload functionality",
+      "Third-party integrations"
+    ],
+    "response_protocol": "Critical + High Probability → STOP pipeline, report to user immediately"
+  },
+  "recurring_vulnerabilities": [],
+  "security_checklist": {
+    "api_endpoints": [
+      "Rate limiting on all public endpoints",
+      "Input validation with Zod schemas",
+      "SQL injection prevention (parameterized queries only)",
+      "IDOR checks — always verify ownership before returning data",
+      "JWT expiration and refresh token rotation"
+    ],
+    "frontend": [
+      "XSS prevention — sanitize all user-rendered content",
+      "CSRF tokens on every form",
+      "Sensitive data never in localStorage (use httpOnly cookies)",
+      "Content Security Policy headers"
+    ],
+    "infrastructure": [
+      "Secrets in env vars only, never in code",
+      "HTTPS everywhere, HSTS headers",
+      "Database backups daily with tested restore",
+      "Audit logging for all admin actions"
+    ],
+    "152_fz_compliance": [
+      "PII stored on Russian servers (Timeweb) only",
+      "Consent collection before PII processing",
+      "Data deletion on user request within 30 days",
+      "Access logging for all PII reads"
+    ]
+  },
+  "cve_alerts": []
+}

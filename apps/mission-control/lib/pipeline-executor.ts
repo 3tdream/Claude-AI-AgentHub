@@ -1,4 +1,4 @@
-import type { WorkflowStep, PipelineExecution } from "@/types";
+import type { WorkflowStep, PipelineExecution, QualityScore } from "@/types";
 import { postLog } from "@/lib/hooks/use-logs";
 import { evaluateStepOutput, buildRetryPrompt } from "@/lib/quality-evaluator";
 
@@ -7,6 +7,21 @@ const ESCALATION_THRESHOLD = 5;
 
 function generateId() {
   return Math.random().toString(36).substring(2, 10);
+}
+
+// --- Jira sync helper (calls server-side API route, never imports fs) ---
+
+async function jiraSyncAction(action: string, payload: Record<string, unknown>): Promise<unknown> {
+  try {
+    const res = await fetch("/api/jira/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, ...payload }),
+    });
+    return await res.json();
+  } catch {
+    return null; // Non-blocking — Jira failures never stop the pipeline
+  }
 }
 
 interface ExecutorCallbacks {
@@ -45,16 +60,29 @@ export async function executePipeline(
     content: `Pipeline "${workflowName}" started with input: ${input.slice(0, 200)}`,
   }).catch(() => {});
 
+  // --- Jira: Check if enabled + create Epic ---
+  let jiraKey: string | null = null;
+
+  const jiraCheck = await jiraSyncAction("check-enabled", {}) as { enabled?: boolean } | null;
+  const jiraEnabled = jiraCheck?.enabled === true;
+
+  if (jiraEnabled) {
+    const epicResult = await jiraSyncAction("create-epic", { execution }) as {
+      result?: { jiraKey: string; jiraUrl: string } | null;
+    } | null;
+    if (epicResult?.result) {
+      jiraKey = epicResult.result.jiraKey;
+      execution.jiraKey = epicResult.result.jiraKey;
+      execution.jiraUrl = epicResult.result.jiraUrl;
+      callbacks.onUpdate({ ...execution });
+    }
+  }
+
   const completed = new Set<string>();
   const context: Record<string, string> = {};
 
-  /**
-   * Execute a single agent step, then evaluate via Orchestrator.
-   * Retries up to MAX_RETRIES times if quality < threshold.
-   * Escalates to user if score < ESCALATION_THRESHOLD after all retries.
-   */
   async function executeStep(step: WorkflowStep): Promise<boolean> {
-    // --- Checkpoint handling (unchanged) ---
+    // --- Checkpoint handling ---
     if (step.metadata?.isCheckpoint) {
       execution.stepResults[step.id] = {
         stepId: step.id,
@@ -70,7 +98,16 @@ export async function executePipeline(
         content: `Pipeline "${workflowName}" paused at Human Checkpoint — awaiting approval`,
       }).catch(() => {});
 
+      if (jiraKey) jiraSyncAction("checkpoint-reached", { jiraKey });
+
       const approved = await callbacks.onCheckpointReached();
+
+      if (jiraKey) {
+        const checkStatus = callbacks.getCheckpointStatus();
+        jiraSyncAction("checkpoint-decision", {
+          jiraKey, approved, reason: checkStatus.reason,
+        });
+      }
 
       if (approved) {
         execution.stepResults[step.id] = {
@@ -106,9 +143,16 @@ export async function executePipeline(
     let retryCount = 0;
     let lastFeedback = "";
     let currentPrompt = buildPrompt(step, input, context);
+    const model = step.metadata?.model || "unknown";
+
+    // Jira: stage start
+    if (jiraKey) {
+      jiraSyncAction("stage-start", {
+        jiraKey, stageId: step.id, agentName: step.agentName, model,
+      });
+    }
 
     while (retryCount <= MAX_RETRIES) {
-      // Update status
       execution.stepResults[step.id] = {
         stepId: step.id,
         status: retryCount === 0 ? "running" : "retrying",
@@ -119,7 +163,6 @@ export async function executePipeline(
       callbacks.onUpdate({ ...execution });
 
       try {
-        // 1. Execute agent
         const res = await fetch("/api/agent-hub/execute", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -134,11 +177,9 @@ export async function executePipeline(
         const agentOutput = data.content;
         context[`step_${step.id}_output`] = agentOutput;
 
-        // 2. Evaluate via Orchestrator (skip for Orchestrator's own steps to avoid self-evaluation)
         const skipEvaluation = step.agentId === "orchestrator" || threshold === 0;
 
         if (skipEvaluation) {
-          // Auto-pass for orchestrator steps and checkpoint steps
           execution.stepResults[step.id] = {
             stepId: step.id,
             status: "completed",
@@ -161,11 +202,20 @@ export async function executePipeline(
             content: `Step completed (auto-pass) in pipeline "${workflowName}": ${agentOutput.slice(0, 200)}`,
           }).catch(() => {});
 
+          // Jira: stage pass
+          if (jiraKey) {
+            jiraSyncAction("stage-pass", {
+              jiraKey, stageId: step.id, agentName: step.agentName, model,
+              duration: execution.stepResults[step.id].duration,
+              qualityScore: execution.qualityScores?.[step.id],
+              retryCount,
+            });
+          }
+
           completed.add(step.id);
           return true;
         }
 
-        // 3. Call Orchestrator for quality evaluation
         const evaluation = await evaluateStepOutput(
           step.agentName,
           step.metadata?.stageNumber || "?",
@@ -185,7 +235,6 @@ export async function executePipeline(
         }).catch(() => {});
 
         if (evaluation.passed) {
-          // Quality passed — mark completed
           execution.stepResults[step.id] = {
             stepId: step.id,
             status: "completed",
@@ -204,15 +253,22 @@ export async function executePipeline(
             content: `Step PASSED (${evaluation.score.overall}/10, attempt ${retryCount + 1}) in pipeline "${workflowName}"`,
           }).catch(() => {});
 
+          if (jiraKey) {
+            jiraSyncAction("stage-pass", {
+              jiraKey, stageId: step.id, agentName: step.agentName, model,
+              duration: execution.stepResults[step.id].duration,
+              qualityScore: evaluation.score,
+              retryCount,
+            });
+          }
+
           completed.add(step.id);
           return true;
         }
 
-        // Quality failed
         lastFeedback = evaluation.feedback;
 
         if (retryCount < MAX_RETRIES) {
-          // Will retry — build retry prompt with feedback
           postLog({
             type: "system",
             agentId: step.agentId,
@@ -233,7 +289,6 @@ export async function executePipeline(
 
         // Max retries exhausted
         if (evaluation.score.overall < ESCALATION_THRESHOLD) {
-          // Escalate to user — score critically low
           execution.stepResults[step.id] = {
             stepId: step.id,
             status: "failed",
@@ -253,6 +308,13 @@ export async function executePipeline(
             agentName: step.agentName,
             content: `ESCALATION: ${step.agentName} scored ${evaluation.score.overall}/10 after ${MAX_RETRIES + 1} attempts — pipeline halted, user intervention required`,
           }).catch(() => {});
+
+          if (jiraKey) {
+            jiraSyncAction("stage-escalation", {
+              jiraKey, stageId: step.id, agentName: step.agentName,
+              score: evaluation.score.overall, feedback: evaluation.feedback,
+            });
+          }
 
           callbacks.onEscalation?.(step.id, step.agentName, evaluation.score.overall, evaluation.feedback);
 
@@ -279,6 +341,15 @@ export async function executePipeline(
           content: `Step accepted with warning (${evaluation.score.overall}/10) after ${MAX_RETRIES + 1} attempts in pipeline "${workflowName}"`,
         }).catch(() => {});
 
+        if (jiraKey) {
+          jiraSyncAction("stage-pass", {
+            jiraKey, stageId: step.id, agentName: step.agentName, model,
+            duration: execution.stepResults[step.id].duration,
+            qualityScore: evaluation.score,
+            retryCount,
+          });
+        }
+
         completed.add(step.id);
         return true;
 
@@ -304,7 +375,6 @@ export async function executePipeline(
       }
     }
 
-    // Should not reach here, but safety net
     completed.add(step.id);
     return false;
   }
@@ -316,7 +386,6 @@ export async function executePipeline(
     const ready = remaining.filter((s) => s.dependsOn.every((d) => completed.has(d)));
     if (ready.length === 0) break;
 
-    // Check if ready steps form a parallel group
     const parallelGroup = ready.filter((s) => s.metadata?.isParallel && s.metadata?.group);
     const groupName = parallelGroup[0]?.metadata?.group;
 
@@ -339,10 +408,7 @@ export async function executePipeline(
       const idx = remaining.findIndex((s) => s.id === step.id);
       if (idx >= 0) remaining.splice(idx, 1);
 
-      if (!success && step.metadata?.isCheckpoint) {
-        break;
-      }
-      // If non-checkpoint step failed with escalation, pause pipeline
+      if (!success && step.metadata?.isCheckpoint) break;
       if (!success && execution.stepResults[step.id]?.escalated) {
         execution.status = "paused";
         break;
@@ -363,10 +429,23 @@ export async function executePipeline(
   execution.totalDuration = Date.now() - new Date(execution.startedAt).getTime();
   callbacks.onUpdate({ ...execution });
 
+  // Jira: Finalize pipeline
+  if (jiraKey) {
+    jiraSyncAction("finalize", { jiraKey, execution });
+  }
+
+  // Auto-enrich knowledge base (fire-and-forget)
+  if (execution.status === "completed" || execution.status === "failed") {
+    fetch("/api/knowledge/enrich", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(execution),
+    }).catch(() => {});
+  }
+
   return execution;
 }
 
-/** Build prompt with template variable substitution */
 function buildPrompt(step: WorkflowStep, input: string, context: Record<string, string>): string {
   let prompt = step.promptTemplate.replace(/\{\{input\}\}/g, input);
   for (const [key, val] of Object.entries(context)) {

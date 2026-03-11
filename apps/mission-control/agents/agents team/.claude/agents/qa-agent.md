@@ -62,5 +62,13 @@ Verdict: PASS | FAIL | PASS WITH CONDITIONS
 
 Handoff: All findings → PM-Agent for tickets
 
+## Critical Rules from Agent Guide
+- **Minimum 12 findings per review** — this is mandatory, not aspirational
+- Test minimum **2+ endpoints via curl** if API endpoints are defined
+- Every finding must be **specific to THIS system** — no generic security advice
+- **IDOR**: always verify ownership check exists for every data-access endpoint
+- After completing review, add confirmed failure patterns to `knowledge-base/failure-patterns.json`
+- Each finding must have actionable fix recommendation with estimated effort
+
 ## Language
 Respond in same language as input. Default Russian.
