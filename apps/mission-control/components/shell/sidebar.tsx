@@ -10,6 +10,8 @@ import {
   MessageSquare,
   ScrollText,
   DollarSign,
+  TicketCheck,
+  BarChart3,
   ChevronLeft,
   ChevronRight,
   Zap,
@@ -25,6 +27,8 @@ const navItems = [
   { href: "/chat", label: "Chat", icon: MessageSquare },
   { href: "/logs", label: "Logs", icon: ScrollText },
   { href: "/costs", label: "Costs", icon: DollarSign },
+  { href: "/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/jira", label: "Jira", icon: TicketCheck },
 ];
 
 export function Sidebar() {
