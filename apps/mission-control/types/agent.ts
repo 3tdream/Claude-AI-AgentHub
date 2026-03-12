@@ -1,7 +1,5 @@
 export type LLMProvider = "anthropic" | "openai" | "google" | "openrouter";
 
-export type AgentStatus = "active" | "standby" | "offline";
-
 export interface Agent {
   id: string;
   name: string;
@@ -28,8 +26,6 @@ export interface AgentKPI {
   tokens: number;
   lastAccessed: string | null;
 }
-
-export type Priority = "critical" | "high" | "medium" | "low";
 
 export interface CreateAgentParams {
   name: string;

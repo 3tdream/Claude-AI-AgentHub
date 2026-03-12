@@ -12,6 +12,7 @@ import {
   DollarSign,
   TicketCheck,
   BarChart3,
+  BookOpen,
   ChevronLeft,
   ChevronRight,
   Zap,
@@ -29,6 +30,7 @@ const navItems = [
   { href: "/costs", label: "Costs", icon: DollarSign },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/jira", label: "Jira", icon: TicketCheck },
+  { href: "/guide", label: "Guide", icon: BookOpen },
 ];
 
 export function Sidebar() {

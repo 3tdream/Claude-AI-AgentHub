@@ -39,8 +39,13 @@ async function jiraFetch<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json();
 }
 
-export async function getProjects(): Promise<JiraProject[]> {
-  return jiraFetch<JiraProject[]>("/project?expand=description,lead");
+export async function getProjects(maxResults = 50, startAt = 0): Promise<JiraProject[]> {
+  const params = new URLSearchParams({
+    expand: "description,lead",
+    maxResults: String(maxResults),
+    startAt: String(startAt),
+  });
+  return jiraFetch<JiraProject[]>(`/project?${params}`);
 }
 
 export async function searchIssues(

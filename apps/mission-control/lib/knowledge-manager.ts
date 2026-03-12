@@ -1,6 +1,7 @@
 import { promises as fs } from "fs";
 import path from "path";
 import type { PipelineExecution, QualityScore } from "@/types";
+import { AGENT_IDS } from "@/lib/config";
 
 const KB_DIR = path.join(process.cwd(), "agents", "agents team", "knowledge-base");
 
@@ -161,7 +162,7 @@ export async function enrichKnowledgeBase(execution: PipelineExecution): Promise
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        assistantId: "orchestrator",
+        assistantId: AGENT_IDS.ORCHESTRATOR,
         userInput: prompt,
       }),
     });
@@ -411,6 +412,7 @@ async function addSecurityVuln(lesson: ParsedLesson, execution: PipelineExecutio
 // --- Utility ---
 
 function getBaseUrl(): string {
-  if (typeof window !== "undefined") return "";
-  return process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3070";
+  // Server-side only — always use absolute URL
+  const port = process.env.PORT || "3070";
+  return process.env.NEXT_PUBLIC_BASE_URL || `http://localhost:${port}`;
 }

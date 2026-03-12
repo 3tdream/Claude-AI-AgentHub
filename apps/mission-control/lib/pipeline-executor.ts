@@ -1,12 +1,12 @@
 import type { WorkflowStep, PipelineExecution, QualityScore } from "@/types";
 import { postLog } from "@/lib/hooks/use-logs";
 import { evaluateStepOutput, buildRetryPrompt } from "@/lib/quality-evaluator";
+import { PIPELINE } from "@/lib/config";
 
-const MAX_RETRIES = 2;
-const ESCALATION_THRESHOLD = 5;
+const { MAX_RETRIES, ESCALATION_THRESHOLD, STEP_TIMEOUT_MS } = PIPELINE;
 
 function generateId() {
-  return Math.random().toString(36).substring(2, 10);
+  return crypto.randomUUID();
 }
 
 // --- Jira sync helper (calls server-side API route, never imports fs) ---
@@ -38,6 +38,14 @@ export async function executePipeline(
   workflowName: string,
   callbacks: ExecutorCallbacks,
 ): Promise<PipelineExecution> {
+  if (!steps.length) throw new Error("Pipeline must have at least one step");
+  if (!input.trim()) throw new Error("Pipeline input cannot be empty");
+
+  for (const step of steps) {
+    if (!step.agentId) throw new Error(`Step "${step.id}" is missing agentId`);
+    if (!step.promptTemplate) throw new Error(`Step "${step.id}" is missing promptTemplate`);
+  }
+
   const execution: PipelineExecution = {
     id: generateId(),
     workflowId,
@@ -163,11 +171,17 @@ export async function executePipeline(
       callbacks.onUpdate({ ...execution });
 
       try {
+        const controller = STEP_TIMEOUT_MS > 0 ? new AbortController() : undefined;
+        const timer = controller ? setTimeout(() => controller.abort(), STEP_TIMEOUT_MS) : undefined;
+
         const res = await fetch("/api/agent-hub/execute", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ assistantId: step.agentId, userInput: currentPrompt }),
+          signal: controller?.signal,
         });
+
+        if (timer) clearTimeout(timer);
         const data = await res.json();
 
         if (!data.success || !data.content) {

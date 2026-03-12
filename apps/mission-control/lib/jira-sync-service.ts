@@ -17,25 +17,26 @@ import type { PipelineExecution, QualityScore } from "@/types";
 
 // --- ADF helpers (Atlassian Document Format) ---
 
+/** Convert plain text blocks (separated by \n\n) into ADF paragraph nodes. */
+function textToAdfParagraphs(text: string) {
+  return text
+    .split("\n\n")
+    .filter(Boolean)
+    .map((block) => ({
+      type: "paragraph" as const,
+      content: block.split("\n").map((line) => ({
+        type: "text" as const,
+        text: line,
+      })).reduce((acc: unknown[], item, i, arr) => {
+        acc.push(item);
+        if (i < arr.length - 1) acc.push({ type: "hardBreak" });
+        return acc;
+      }, []),
+    }));
+}
+
 function textAdf(text: string) {
-  return {
-    type: "doc",
-    version: 1,
-    content: text
-      .split("\n\n")
-      .filter(Boolean)
-      .map((block) => ({
-        type: "paragraph",
-        content: block.split("\n").map((line) => ({
-          type: "text",
-          text: line,
-        })).reduce((acc: unknown[], item, i, arr) => {
-          acc.push(item);
-          if (i < arr.length - 1) acc.push({ type: "hardBreak" });
-          return acc;
-        }, []),
-      })),
-  };
+  return { type: "doc", version: 1, content: textToAdfParagraphs(text) };
 }
 
 function commentAdf(heading: string, body: string) {
@@ -48,13 +49,7 @@ function commentAdf(heading: string, body: string) {
         attrs: { level: 3 },
         content: [{ type: "text", text: heading }],
       },
-      ...body
-        .split("\n\n")
-        .filter(Boolean)
-        .map((block) => ({
-          type: "paragraph",
-          content: [{ type: "text", text: block.replace(/\n/g, " ") }],
-        })),
+      ...textToAdfParagraphs(body),
     ],
   };
 }
