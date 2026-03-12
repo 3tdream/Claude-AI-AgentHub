@@ -51,6 +51,30 @@ export interface StepResult {
 
 export type PipelineStatus = "pending" | "running" | "completed" | "failed" | "paused";
 
+export type ExecutionMode = "quick" | "medium" | "full";
+
+export interface RoutingDecisionData {
+  mode: ExecutionMode;
+  selectedAgents: string[];
+  selectedStepIds: string[];
+  skippedStepIds: string[];
+  reasoning: string;
+  complexity: number;
+  estimatedDuration: string;
+  includeCheckpoint: boolean;
+  includeQualityEval: boolean;
+  routedAt: string;
+  routerModel: string;
+}
+
+export interface StepTokenUsage {
+  provider: string;
+  model: string;
+  input: number;
+  output: number;
+  durationMs: number;
+}
+
 export interface PipelineExecution {
   id: string;
   workflowId: string;
@@ -67,4 +91,6 @@ export interface PipelineExecution {
   escalatedSteps?: string[];
   jiraKey?: string;
   jiraUrl?: string;
+  routingDecision?: RoutingDecisionData;
+  tokenUsage?: Record<string, StepTokenUsage>;
 }

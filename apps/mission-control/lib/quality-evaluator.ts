@@ -62,11 +62,12 @@ export async function evaluateStepOutput(
     .replace("{{agentOutput}}", agentOutput.slice(0, 2000));
 
   try {
-    const res = await fetch("/api/agent-hub/execute", {
+    const res = await fetch("/api/ai/execute", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        assistantId: AGENT_IDS.ORCHESTRATOR,
+        agentId: AGENT_IDS.ORCHESTRATOR,
+        model: "sonnet-4-6",
         userInput: prompt,
       }),
     });
