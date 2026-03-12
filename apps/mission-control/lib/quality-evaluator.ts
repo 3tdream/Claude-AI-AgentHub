@@ -1,4 +1,5 @@
 import type { QualityScore } from "@/types";
+import { AGENT_IDS, PIPELINE } from "@/lib/config";
 
 export interface EvaluationResult {
   score: QualityScore;
@@ -65,7 +66,7 @@ export async function evaluateStepOutput(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        assistantId: "orchestrator",
+        assistantId: AGENT_IDS.ORCHESTRATOR,
         userInput: prompt,
       }),
     });
@@ -78,7 +79,7 @@ export async function evaluateStepOutput(
     // If evaluation fails, default to pass with placeholder
   }
 
-  // Fallback: generate a conservative pass
+  // Fallback: conservative fail — will trigger retry
   return {
     score: { completeness: 7.5, specificity: 7.5, actionability: 7.5, overall: 7.5 },
     passed: false,
@@ -140,7 +141,7 @@ function parseEvaluationResponse(response: string): EvaluationResult {
   const overall = round((completeness + specificity + actionability) / 3);
 
   // Override pass/fail based on actual score (trust the math over LLM text)
-  passed = overall >= 8;
+  passed = overall >= PIPELINE.QUALITY_PASS_THRESHOLD;
 
   return {
     score: { completeness, specificity, actionability, overall },

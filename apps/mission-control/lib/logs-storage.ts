@@ -1,10 +1,11 @@
 import { promises as fs } from "fs";
 import path from "path";
 import type { LogEntry, CreateLogParams } from "@/types";
+import { LOGS } from "@/lib/config";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const LOGS_FILE = path.join(DATA_DIR, "logs.json");
-const MAX_ENTRIES = 2000;
+const { MAX_ENTRIES } = LOGS;
 
 async function ensureDataDir() {
   try {
