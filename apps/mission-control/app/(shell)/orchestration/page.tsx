@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
-import { GitBranch, Plus, Play, Trash2, History, Clock, CheckCircle2, XCircle, ExternalLink } from "lucide-react";
+import { GitBranch, Plus, Play, Trash2, History, Clock, CheckCircle2, XCircle, ExternalLink, Brain, Loader2 } from "lucide-react";
 import { useOrchestrationStore } from "@/lib/stores/orchestration-store";
 import { CRM_PIPELINE_TEMPLATE } from "@/lib/pipeline-templates";
 import { executePipeline } from "@/lib/pipeline-executor";
+import { filterStepsForRouting } from "@/lib/pipeline-step-filter";
 import { PipelineGraph } from "@/components/orchestration/pipeline-graph";
 import { StageDetailPanel } from "@/components/orchestration/stage-detail-panel";
-import type { Workflow, PipelineExecution } from "@/types";
+import { RoutingDecisionPanel } from "@/components/orchestration/routing-decision-panel";
+import type { Workflow, PipelineExecution, RoutingDecisionData, ExecutionMode } from "@/types";
 
 function generateId() {
   return Math.random().toString(36).substring(2, 10);
@@ -23,6 +25,8 @@ export default function OrchestrationPage() {
   } = useOrchestrationStore();
   const [input, setInput] = useState("");
   const [selectedWorkflow, setSelectedWorkflow] = useState<Workflow | null>(null);
+  const [routingDecision, setRoutingDecision] = useState<RoutingDecisionData | null>(null);
+  const [isRouting, setIsRouting] = useState(false);
 
   // Checkpoint resolution refs
   const checkpointResolveRef = useRef<((approved: boolean) => void) | null>(null);
@@ -57,13 +61,69 @@ export default function OrchestrationPage() {
     checkpointResolveRef.current = null;
   }, [activeExecution, rejectCheckpoint]);
 
-  async function executeWorkflow() {
+  // Step 1: Route the task (Smart Router)
+  async function routeTask() {
     if (!selectedWorkflow || !input.trim()) return;
+    setIsRouting(true);
+    setRoutingDecision(null);
+
+    try {
+      const res = await fetch("/api/pipeline/route", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ input }),
+      });
+      const data = await res.json();
+
+      if (data.success && data.decision) {
+        setRoutingDecision(data.decision);
+      } else {
+        // Fallback: full pipeline
+        setRoutingDecision({
+          mode: "full",
+          selectedAgents: selectedWorkflow.steps.map((s) => s.agentId),
+          selectedStepIds: selectedWorkflow.steps.map((s) => s.id),
+          skippedStepIds: [],
+          reasoning: "Router unavailable — using full pipeline",
+          complexity: 7,
+          estimatedDuration: "~5min",
+          includeCheckpoint: true,
+          includeQualityEval: true,
+          routedAt: new Date().toISOString(),
+          routerModel: "fallback",
+        });
+      }
+    } catch {
+      // Network error — default to full
+      setRoutingDecision({
+        mode: "full",
+        selectedAgents: selectedWorkflow.steps.map((s) => s.agentId),
+        selectedStepIds: selectedWorkflow.steps.map((s) => s.id),
+        skippedStepIds: [],
+        reasoning: "Router error — using full pipeline",
+        complexity: 7,
+        estimatedDuration: "~5min",
+        includeCheckpoint: true,
+        includeQualityEval: true,
+        routedAt: new Date().toISOString(),
+        routerModel: "fallback",
+      });
+    } finally {
+      setIsRouting(false);
+    }
+  }
+
+  // Step 2: Execute with the routing decision
+  async function executeWithRouting() {
+    if (!selectedWorkflow || !input.trim() || !routingDecision) return;
 
     checkpointStatusRef.current = { approved: false, rejected: false };
 
+    // Filter steps based on routing decision
+    const steps = filterStepsForRouting(selectedWorkflow.steps, routingDecision);
+
     const result = await executePipeline(
-      selectedWorkflow.steps,
+      steps,
       input,
       selectedWorkflow.id,
       selectedWorkflow.name,
@@ -78,9 +138,36 @@ export default function OrchestrationPage() {
         },
         getCheckpointStatus: () => checkpointStatusRef.current,
       },
+      routingDecision,
     );
 
     addToHistory(result);
+    setRoutingDecision(null);
+  }
+
+  // Override routing mode
+  function handleOverrideMode(mode: ExecutionMode) {
+    if (!routingDecision || !selectedWorkflow) return;
+
+    if (mode === "full") {
+      setRoutingDecision({
+        ...routingDecision,
+        mode: "full",
+        selectedAgents: [...new Set(selectedWorkflow.steps.map((s) => s.agentId))],
+        selectedStepIds: selectedWorkflow.steps.map((s) => s.id),
+        skippedStepIds: [],
+        includeCheckpoint: true,
+        includeQualityEval: true,
+        reasoning: "Manual override: full pipeline",
+      });
+    } else {
+      // Re-route with the new mode hint (use same decision but change mode)
+      setRoutingDecision({
+        ...routingDecision,
+        mode,
+        reasoning: `Manual override: ${mode} mode`,
+      });
+    }
   }
 
   const selectedStep = selectedWorkflow?.steps.find((s) => s.id === selectedStageId);
@@ -99,7 +186,7 @@ export default function OrchestrationPage() {
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight">Orchestration</h1>
           <p className="font-mono text-xs text-muted-foreground mt-1 tracking-wider uppercase">
-            Multi-agent workflow pipelines
+            Smart multi-agent workflow pipelines
           </p>
         </div>
         <div className="flex gap-2">
@@ -152,6 +239,17 @@ export default function OrchestrationPage() {
                   </div>
                   {activeExecution && (
                     <div className="flex items-center gap-3">
+                      {activeExecution.routingDecision && (
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
+                          activeExecution.routingDecision.mode === "quick"
+                            ? "bg-emerald-500/10 text-emerald-400"
+                            : activeExecution.routingDecision.mode === "medium"
+                            ? "bg-amber-500/10 text-amber-400"
+                            : "bg-blue-500/10 text-blue-400"
+                        }`}>
+                          {activeExecution.routingDecision.mode}
+                        </span>
+                      )}
                       {activeExecution.jiraKey && (
                         <a
                           href={activeExecution.jiraUrl || "#"}
@@ -176,6 +274,18 @@ export default function OrchestrationPage() {
                 </div>
               </div>
 
+              {/* Routing decision panel */}
+              {routingDecision && !activeExecution?.status?.match(/running|paused/) && (
+                <div className="px-6 py-4">
+                  <RoutingDecisionPanel
+                    decision={routingDecision}
+                    onConfirm={executeWithRouting}
+                    onOverrideMode={handleOverrideMode}
+                    isExecuting={activeExecution?.status === "running"}
+                  />
+                </div>
+              )}
+
               {/* Pipeline visualization */}
               <div className="flex-1 overflow-y-auto">
                 <PipelineGraph
@@ -198,22 +308,33 @@ export default function OrchestrationPage() {
                 )}
               </div>
 
-              {/* Execute bar */}
+              {/* Execute bar — two-step: Route → then Confirm */}
               <div className="border-t border-border p-4">
                 <div className="flex gap-3">
                   <input
                     type="text"
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    placeholder="Enter task to execute pipeline..."
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && input.trim() && !isRouting) routeTask();
+                    }}
+                    placeholder="Describe your task — Smart Router will pick the right agents..."
                     className="flex-1 bg-background border border-border rounded-lg px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none transition-colors"
                   />
                   <button
-                    onClick={executeWorkflow}
-                    disabled={!input.trim() || activeExecution?.status === "running"}
+                    onClick={routeTask}
+                    disabled={!input.trim() || isRouting || activeExecution?.status === "running"}
                     className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-30 transition-all font-mono text-xs uppercase tracking-wider"
                   >
-                    <Play className="w-4 h-4" /> Execute
+                    {isRouting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" /> Routing...
+                      </>
+                    ) : (
+                      <>
+                        <Brain className="w-4 h-4" /> Route
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
@@ -244,7 +365,20 @@ export default function OrchestrationPage() {
                     <XCircle className="w-4 h-4 text-red-500" />
                   )}
                   <div>
-                    <p className="text-sm font-medium">{exec.workflowName}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium">{exec.workflowName}</p>
+                      {exec.routingDecision && (
+                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase ${
+                          exec.routingDecision.mode === "quick"
+                            ? "bg-emerald-500/10 text-emerald-400"
+                            : exec.routingDecision.mode === "medium"
+                            ? "bg-amber-500/10 text-amber-400"
+                            : "bg-blue-500/10 text-blue-400"
+                        }`}>
+                          {exec.routingDecision.mode}
+                        </span>
+                      )}
+                    </div>
                     <p className="font-mono text-[10px] text-muted-foreground truncate max-w-[300px]">
                       {exec.input}
                     </p>

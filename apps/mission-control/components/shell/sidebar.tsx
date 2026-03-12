@@ -13,6 +13,8 @@ import {
   TicketCheck,
   BarChart3,
   BookOpen,
+  FolderOpen,
+  Plug,
   ChevronLeft,
   ChevronRight,
   Zap,
@@ -30,6 +32,8 @@ const navItems = [
   { href: "/costs", label: "Costs", icon: DollarSign },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/jira", label: "Jira", icon: TicketCheck },
+  { href: "/projects", label: "Projects", icon: FolderOpen },
+  { href: "/integrations", label: "Integrations", icon: Plug },
   { href: "/guide", label: "Guide", icon: BookOpen },
 ];
 

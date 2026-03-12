@@ -2,6 +2,7 @@ import type { WorkflowStep, PipelineExecution, QualityScore } from "@/types";
 import { postLog } from "@/lib/hooks/use-logs";
 import { evaluateStepOutput, buildRetryPrompt } from "@/lib/quality-evaluator";
 import { PIPELINE } from "@/lib/config";
+import type { RoutingDecisionData } from "@/types";
 
 const { MAX_RETRIES, ESCALATION_THRESHOLD, STEP_TIMEOUT_MS } = PIPELINE;
 
@@ -37,6 +38,7 @@ export async function executePipeline(
   workflowId: string,
   workflowName: string,
   callbacks: ExecutorCallbacks,
+  routingDecision?: RoutingDecisionData,
 ): Promise<PipelineExecution> {
   if (!steps.length) throw new Error("Pipeline must have at least one step");
   if (!input.trim()) throw new Error("Pipeline input cannot be empty");
@@ -56,6 +58,7 @@ export async function executePipeline(
     startedAt: new Date().toISOString(),
     qualityScores: {},
     escalatedSteps: [],
+    routingDecision: routingDecision || undefined,
   };
 
   steps.forEach((s) => {
@@ -174,10 +177,14 @@ export async function executePipeline(
         const controller = STEP_TIMEOUT_MS > 0 ? new AbortController() : undefined;
         const timer = controller ? setTimeout(() => controller.abort(), STEP_TIMEOUT_MS) : undefined;
 
-        const res = await fetch("/api/agent-hub/execute", {
+        const res = await fetch("/api/ai/execute", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ assistantId: step.agentId, userInput: currentPrompt }),
+          body: JSON.stringify({
+            agentId: step.agentId,
+            model: step.metadata?.model || "sonnet-4-6",
+            userInput: currentPrompt,
+          }),
           signal: controller?.signal,
         });
 
