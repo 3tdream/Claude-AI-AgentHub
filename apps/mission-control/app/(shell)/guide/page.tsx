@@ -340,6 +340,26 @@ const sections: GuideSection[] = [
     ),
   },
   {
+    id: "background-mode",
+    icon: Settings,
+    title: "Background Mode",
+    subtitle: "Run Mission Control without a terminal",
+    content: (
+      <div className="space-y-4">
+        <p className="text-sm text-muted-foreground">
+          Mission Control can run as a background service using PM2, so you don&apos;t need to keep a terminal window open.
+        </p>
+        <div className="space-y-3">
+          <Step n={1}>Start in background: <Kbd>npm run pm2:dev</Kbd></Step>
+          <Step n={2}>Check status on the <strong>Integrations</strong> page — real-time CPU, RAM, uptime</Step>
+          <Step n={3}>View logs: <Kbd>npm run pm2:logs</Kbd></Step>
+          <Step n={4}>Stop: <Kbd>npm run pm2:stop</Kbd></Step>
+        </div>
+        <Tip>You can also restart the server from the Integrations page without touching the terminal.</Tip>
+      </div>
+    ),
+  },
+  {
     id: "troubleshooting",
     icon: AlertTriangle,
     title: "Troubleshooting",

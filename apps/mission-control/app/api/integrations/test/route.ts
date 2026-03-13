@@ -4,13 +4,15 @@ import path from "path";
 
 const KEYS_FILE = path.join(process.cwd(), "data", "api-keys.json");
 
-async function getKey(envKey: string): Promise<string> {
-  // .env.local takes priority
+async function getKey(envKey: string, overrides?: Record<string, string>): Promise<string> {
+  // 1. Direct override from request (unsaved form values)
+  if (overrides?.[envKey]) return overrides[envKey];
+  // 2. .env.local
   const envVal = process.env[envKey];
   if (envVal && envVal !== "your-anthropic-api-key" && envVal !== "your-api-token") {
     return envVal;
   }
-  // Fallback: saved keys
+  // 3. Saved keys file
   try {
     const raw = await fs.readFile(KEYS_FILE, "utf-8");
     const keys = JSON.parse(raw);
@@ -22,14 +24,15 @@ async function getKey(envKey: string): Promise<string> {
 
 /**
  * POST /api/integrations/test — test a specific integration connection
+ * Accepts optional `keys` object with unsaved form values to test before saving
  */
 export async function POST(request: NextRequest) {
   try {
-    const { integrationId } = await request.json();
+    const { integrationId, keys } = await request.json();
 
     switch (integrationId) {
       case "anthropic": {
-        const key = await getKey("ANTHROPIC_API_KEY");
+        const key = await getKey("ANTHROPIC_API_KEY", keys);
         if (!key) return NextResponse.json({ success: false, error: "API key not configured" });
 
         const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -54,7 +57,7 @@ export async function POST(request: NextRequest) {
       }
 
       case "openai": {
-        const key = await getKey("OPENAI_API_KEY");
+        const key = await getKey("OPENAI_API_KEY", keys);
         if (!key) return NextResponse.json({ success: false, error: "API key not configured" });
 
         const res = await fetch("https://api.openai.com/v1/models", {
@@ -69,8 +72,8 @@ export async function POST(request: NextRequest) {
       }
 
       case "agent-hub": {
-        const url = await getKey("AGENT_HUB_API_URL");
-        const key = await getKey("AGENT_HUB_API_KEY");
+        const url = await getKey("AGENT_HUB_API_URL", keys);
+        const key = await getKey("AGENT_HUB_API_KEY", keys);
         if (!url || !key) return NextResponse.json({ success: false, error: "URL or API key not configured" });
 
         try {
@@ -92,9 +95,9 @@ export async function POST(request: NextRequest) {
       }
 
       case "jira": {
-        const baseUrl = await getKey("JIRA_BASE_URL");
-        const email = await getKey("JIRA_EMAIL");
-        const token = await getKey("JIRA_API_TOKEN");
+        const baseUrl = await getKey("JIRA_BASE_URL", keys);
+        const email = await getKey("JIRA_EMAIL", keys);
+        const token = await getKey("JIRA_API_TOKEN", keys);
         if (!baseUrl || !email || !token) {
           return NextResponse.json({ success: false, error: "Jira credentials not fully configured" });
         }

@@ -1,6 +1,6 @@
 {
   "_description": "Architecture Decision Records — maintained by Architect-Agent and DevOps-Agent",
-  "_updated": "2026-03-10",
+  "_updated": "2026-03-12",
   "decisions": [
     {
       "id": "ADR-001",
@@ -31,6 +31,61 @@
       "decision": "Custom Agent Hub REST API on localhost:3000 with Mission Control as management UI.",
       "tradeoffs": "Self-hosted complexity, but full control over agent routing, cost tracking, and prompt management.",
       "alternatives_rejected": ["LangChain (too opinionated)", "Direct API calls (no centralized management)"]
+    },
+    {
+      "id": "ADR-004",
+      "title": "Vercel AI SDK v5 for multi-provider abstraction",
+      "date": "2026-03",
+      "status": "accepted",
+      "context": "SingularityBridge needs to support OpenAI, Anthropic, and Google LLMs with unified interface.",
+      "decision": "Use Vercel AI SDK v5 as abstraction layer. Supports streaming, function calling, and token tracking across all providers.",
+      "tradeoffs": "SDK dependency, but eliminates 3 separate client implementations. Unified streaming/SSE pattern.",
+      "alternatives_rejected": ["Direct provider SDKs (3x code duplication)", "LiteLLM (Python, not Node)"],
+      "source_project": "sb"
+    },
+    {
+      "id": "ADR-005",
+      "title": "Hybrid state management Zustand + MobX State Tree",
+      "date": "2026-03",
+      "status": "deprecated",
+      "context": "SB frontend started with MobX State Tree for entity management. New features (chat, audio, screen share) use Zustand.",
+      "decision": "Zustand for all new stores (12 stores). MobX retained for legacy entity CRUD (assistant, company, user, team). Plan: migrate MobX to Zustand.",
+      "tradeoffs": "Two state paradigms increase cognitive load. But avoids risky full rewrite during active development.",
+      "alternatives_rejected": ["Full MobX rewrite (too risky)", "Redux Toolkit (too verbose)"],
+      "source_project": "sb"
+    },
+    {
+      "id": "ADR-006",
+      "title": "Stateless execution endpoint separate from session chat",
+      "date": "2026-03",
+      "status": "accepted",
+      "context": "External API consumers need one-shot agent execution without session overhead. Internal chat needs context history.",
+      "decision": "POST /assistant/:id/execute for stateless. POST /assistant/user-input for session-based with SSE streaming.",
+      "tradeoffs": "Two code paths to maintain, but clear separation of concerns. API keys only on stateless path.",
+      "alternatives_rejected": ["Single endpoint with optional session (confusing API)"],
+      "source_project": "sb"
+    },
+    {
+      "id": "ADR-007",
+      "title": "Company-based multi-tenancy via query filter",
+      "date": "2026-03",
+      "status": "accepted",
+      "context": "SB serves multiple companies. Need data isolation.",
+      "decision": "All MongoDB queries filtered by companyId extracted from JWT/API key. No row-level security in DB.",
+      "tradeoffs": "Simpler implementation but relies on application layer for isolation. A missed filter = data leak. Consider Mongoose middleware for enforcement.",
+      "alternatives_rejected": ["Separate databases per company (operational overhead)", "MongoDB row-level security (limited support)"],
+      "source_project": "sb"
+    },
+    {
+      "id": "ADR-008",
+      "title": "Socket.io + Pusher dual real-time strategy",
+      "date": "2026-03",
+      "status": "accepted",
+      "context": "Need real-time updates for chat streaming and workspace sync. Direct WebSocket unreliable behind some proxies.",
+      "decision": "Socket.io for direct server-client. Pusher as cloud fallback for reliability. Events mirrored to both channels.",
+      "tradeoffs": "Double infrastructure cost, but ensures delivery. Pusher handles reconnection and presence tracking.",
+      "alternatives_rejected": ["Socket.io only (unreliable behind corporate firewalls)", "Pusher only (latency, cost at scale)"],
+      "source_project": "sb"
     }
   ]
 }

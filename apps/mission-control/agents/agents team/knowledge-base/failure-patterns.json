@@ -1,6 +1,6 @@
 {
   "_description": "Known issues, root causes, and solutions — maintained by QA-Agent and all agents",
-  "_updated": "2026-03-10",
+  "_updated": "2026-03-12",
   "patterns": [
     {
       "id": "FAIL-001",
@@ -31,6 +31,27 @@
       "solution": "Start Agent Hub server. Check AGENT_HUB_LIVE env var. Cached data serves as fallback.",
       "date_discovered": "2026-02",
       "recurrence": "After system restart or when Agent Hub is updating"
+    },
+    {
+      "id": "FAIL-004",
+      "category": "api",
+      "title": "Agent Hub execute returns empty on long analytical prompts",
+      "symptoms": "MCP execute call returns empty content for prompts requesting structured analysis (8+ lesson extraction)",
+      "root_cause": "Likely token limit or timeout on stateless /execute endpoint. Agent starts tool calls but response exceeds output token limit (4000-6000 tokens).",
+      "solution": "Break large prompts into smaller focused queries. Or use session-based chat for long interactions. Orchestrator hello works (short response), analysis fails (long response).",
+      "date_discovered": "2026-03-12",
+      "recurrence": "When using MCP execute for complex analytical tasks",
+      "source_project": "mission-control"
+    },
+    {
+      "id": "FAIL-005",
+      "category": "devops",
+      "title": "pnpm hard-link corruption on Windows 11",
+      "symptoms": "node_modules files show as directories with year 1601 timestamps. npm install fails.",
+      "root_cause": "pnpm uses hard-links from global store. Windows NTFS sometimes corrupts these links during forced shutdown or antivirus scan.",
+      "solution": "PowerShell Remove-Item -Recurse -Force on node_modules, then npm install --no-workspaces instead of pnpm.",
+      "date_discovered": "2026-03-12",
+      "recurrence": "On Windows systems using pnpm with hard-links"
     }
   ]
 }
