@@ -32,15 +32,27 @@ export async function GET() {
   const savedKeys = await readKeys();
 
   // Merge: env vars take priority, then saved keys
-  const anthropicKey = process.env.ANTHROPIC_API_KEY && process.env.ANTHROPIC_API_KEY !== "your-anthropic-api-key"
-    ? process.env.ANTHROPIC_API_KEY
-    : savedKeys.ANTHROPIC_API_KEY || "";
-  const openaiKey = process.env.OPENAI_API_KEY || savedKeys.OPENAI_API_KEY || "";
-  const agentHubUrl = process.env.AGENT_HUB_API_URL || savedKeys.AGENT_HUB_API_URL || "";
-  const agentHubKey = process.env.AGENT_HUB_API_KEY || savedKeys.AGENT_HUB_API_KEY || "";
-  const jiraUrl = process.env.JIRA_BASE_URL || savedKeys.JIRA_BASE_URL || "";
-  const jiraEmail = process.env.JIRA_EMAIL || savedKeys.JIRA_EMAIL || "";
-  const jiraToken = process.env.JIRA_API_TOKEN || savedKeys.JIRA_API_TOKEN || "";
+  // Resolve key: env var wins unless it's a placeholder, then fall back to saved keys
+  const PLACEHOLDERS = new Set([
+    "your-anthropic-api-key",
+    "your-api-token",
+    "your-openai-api-key",
+    "https://your-domain.atlassian.net",
+  ]);
+
+  function resolve(envKey: string): string {
+    const envVal = process.env[envKey] || "";
+    if (envVal && !PLACEHOLDERS.has(envVal)) return envVal;
+    return savedKeys[envKey] || "";
+  }
+
+  const anthropicKey = resolve("ANTHROPIC_API_KEY");
+  const openaiKey = resolve("OPENAI_API_KEY");
+  const agentHubUrl = resolve("AGENT_HUB_API_URL");
+  const agentHubKey = resolve("AGENT_HUB_API_KEY");
+  const jiraUrl = resolve("JIRA_BASE_URL");
+  const jiraEmail = resolve("JIRA_EMAIL");
+  const jiraToken = resolve("JIRA_API_TOKEN");
 
   return NextResponse.json({
     integrations: [
@@ -49,7 +61,7 @@ export async function GET() {
         name: "Anthropic (Claude)",
         description: "Smart Router, Orchestrator, quality evaluation, and Claude-based agents",
         category: "ai",
-        configured: !!anthropicKey && anthropicKey !== "your-anthropic-api-key",
+        configured: !!anthropicKey,
         keyPreview: anthropicKey ? `${anthropicKey.slice(0, 10)}...${anthropicKey.slice(-4)}` : "",
         fields: [{ key: "ANTHROPIC_API_KEY", label: "API Key", type: "password", required: true }],
         docs: "https://console.anthropic.com/settings/keys",
@@ -100,7 +112,7 @@ export async function GET() {
         name: "Jira",
         description: "Pipeline sync: auto-create epics, track stages, log features",
         category: "project",
-        configured: !!jiraUrl && jiraUrl !== "https://your-domain.atlassian.net" && !!jiraToken && jiraToken !== "your-api-token",
+        configured: !!jiraUrl && !!jiraToken,
         keyPreview: jiraEmail || "",
         fields: [
           { key: "JIRA_BASE_URL", label: "Jira URL", type: "text", required: true, placeholder: "https://your-domain.atlassian.net" },

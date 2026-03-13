@@ -1,6 +1,6 @@
 {
   "_description": "Reusable patterns and anti-patterns — maintained by Architect-Agent and Backend-Agent",
-  "_updated": "2026-03-10",
+  "_updated": "2026-03-12",
   "patterns": [
     {
       "id": "PAT-001",
@@ -33,6 +33,42 @@
       "pattern": "useSWR(url, fetcher, { revalidateOnFocus: false })",
       "code_reference": "lib/hooks/use-agents.ts",
       "when_to_use": "Any new client-side data fetching hook"
+    },
+    {
+      "id": "PAT-005",
+      "name": "singleFlight request deduplication",
+      "context": "SB frontend makes duplicate API calls from multiple components rendering simultaneously",
+      "pattern": "Wrap fetch in singleFlight(key, fetchFn) — if same key is in-flight, return existing promise instead of new request",
+      "code_reference": "sb/sb-chat-ui/src/utils/singleFlight.ts",
+      "when_to_use": "Any data fetching that multiple components trigger simultaneously",
+      "source_project": "sb"
+    },
+    {
+      "id": "PAT-006",
+      "name": "Metadata-driven integration framework",
+      "context": "SB supports 27 integrations (JIRA, Linear, SendGrid, ElevenLabs, etc.) that need discoverable actions",
+      "pattern": "Each integration exports action metadata (id, name, description, parameters schema). /integrations/discover returns all. AI assistants use as function calling tools.",
+      "code_reference": "sb/sb-api-services-v2/src/integrations/",
+      "when_to_use": "When adding new external service integrations to agent capabilities",
+      "source_project": "sb"
+    },
+    {
+      "id": "PAT-007",
+      "name": "Prompt versioning with AI-generated change descriptions",
+      "context": "SB tracks every system prompt change for auditability",
+      "pattern": "On assistant update, save new PromptHistory record with version++. Use GPT-4o-mini to generate human-readable change description comparing old vs new prompt.",
+      "code_reference": "sb/sb-api-services-v2/src/services/prompt-history.service.ts",
+      "when_to_use": "Any system that manages agent prompts and needs audit trail",
+      "source_project": "sb"
+    },
+    {
+      "id": "PAT-008",
+      "name": "Scope-based file management with TTL",
+      "context": "SB handles file uploads across different lifecycle scopes",
+      "pattern": "Files tagged with scope (temporary/session/agent/team/company). Temporary files auto-deleted after TTL. Multi-backend: memory, disk, GCP, S3.",
+      "code_reference": "sb/sb-api-services-v2/src/services/unified-workspace.service.ts",
+      "when_to_use": "Any file upload system that needs lifecycle management",
+      "source_project": "sb"
     }
   ],
   "anti_patterns": [
@@ -53,6 +89,27 @@
       "name": "Date.now() or Math.random() in SSR components",
       "problem": "Causes hydration mismatch between server and client",
       "solution": "Use useEffect for dynamic values, or pass as props from server"
+    },
+    {
+      "id": "ANTI-004",
+      "name": "Hybrid state management without migration plan",
+      "problem": "SB uses both Zustand (12 stores) and MobX State Tree (4 entity stores). Two paradigms increase onboarding time and bug surface.",
+      "solution": "Freeze MobX stores — no new features. Migrate entity CRUD to Zustand one model at a time. Start with Team (simplest).",
+      "source_project": "sb"
+    },
+    {
+      "id": "ANTI-005",
+      "name": "Company isolation via application-layer filter only",
+      "problem": "Every MongoDB query must include companyId filter. One missed filter = cross-tenant data leak.",
+      "solution": "Add Mongoose middleware (pre-find, pre-findOne) that auto-injects companyId from request context. Defense in depth.",
+      "source_project": "sb"
+    },
+    {
+      "id": "ANTI-006",
+      "name": "27 integrations without circuit breaker",
+      "problem": "One slow/failing integration (e.g., JIRA timeout) blocks the entire request chain.",
+      "solution": "Add circuit breaker pattern per integration: after 3 failures in 60s, stop calling for 30s. Return cached/fallback response.",
+      "source_project": "sb"
     }
   ]
 }

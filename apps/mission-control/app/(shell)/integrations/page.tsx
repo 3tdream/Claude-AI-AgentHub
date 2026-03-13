@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Plug,
   CheckCircle2,
@@ -14,6 +14,11 @@ import {
   Zap,
   Save,
   RefreshCw,
+  Server,
+  Cpu,
+  MemoryStick,
+  Clock,
+  RotateCcw,
 } from "lucide-react";
 
 interface IntegrationField {
@@ -36,7 +41,38 @@ interface Integration {
   steps: string[];
 }
 
+interface PM2Status {
+  managed: boolean;
+  status: string;
+  pid?: number;
+  cpu?: number;
+  memoryMB?: number;
+  uptimeHuman?: string;
+  restarts?: number;
+  nodeEnv?: string;
+  port?: number;
+  message?: string;
+}
+
 type TestStatus = "idle" | "testing" | "success" | "error";
+
+// --- Validation rules per field key ---
+const VALIDATORS: Record<string, { pattern: RegExp; hint: string }> = {
+  ANTHROPIC_API_KEY: { pattern: /^sk-ant-/, hint: "Must start with sk-ant-" },
+  OPENAI_API_KEY: { pattern: /^sk-/, hint: "Must start with sk-" },
+  JIRA_BASE_URL: { pattern: /^https:\/\/.+\.atlassian\.net/, hint: "Must be https://xxx.atlassian.net" },
+  JIRA_EMAIL: { pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, hint: "Must be a valid email" },
+  JIRA_API_TOKEN: { pattern: /^.{10,}$/, hint: "Must be at least 10 characters" },
+  AGENT_HUB_API_URL: { pattern: /^https?:\/\//, hint: "Must be a valid URL" },
+  AGENT_HUB_API_KEY: { pattern: /^.{10,}$/, hint: "Must be at least 10 characters" },
+};
+
+function validateField(key: string, value: string): { valid: boolean; hint?: string } {
+  if (!value.trim()) return { valid: false };
+  const rule = VALIDATORS[key];
+  if (!rule) return { valid: true };
+  return rule.pattern.test(value) ? { valid: true } : { valid: false, hint: rule.hint };
+}
 
 export default function IntegrationsPage() {
   const [integrations, setIntegrations] = useState<Integration[]>([]);
@@ -45,11 +81,30 @@ export default function IntegrationsPage() {
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
   const [testResults, setTestResults] = useState<Record<string, { status: TestStatus; message?: string }>>({});
-  const [saving, setSaving] = useState(false);
+  const [saving, setSaving] = useState<string | null>(null);
+  const [pm2, setPm2] = useState<PM2Status | null>(null);
+  const [pm2Loading, setPm2Loading] = useState(true);
+  const [restarting, setRestarting] = useState(false);
+
+  const fetchPm2Status = useCallback(async () => {
+    try {
+      const res = await fetch("/api/system/pm2-status");
+      const data = await res.json();
+      setPm2(data);
+    } catch {
+      setPm2({ managed: false, status: "fetch-error", message: "Failed to fetch status" });
+    } finally {
+      setPm2Loading(false);
+    }
+  }, []);
 
   useEffect(() => {
     fetchIntegrations();
-  }, []);
+    fetchPm2Status();
+    // Poll PM2 status every 30s
+    const interval = setInterval(fetchPm2Status, 30000);
+    return () => clearInterval(interval);
+  }, [fetchPm2Status]);
 
   async function fetchIntegrations() {
     try {
@@ -66,11 +121,17 @@ export default function IntegrationsPage() {
   async function testConnection(integrationId: string) {
     setTestResults((prev) => ({ ...prev, [integrationId]: { status: "testing" } }));
 
+    // Pass form values directly to test (not saved yet)
+    const formKeys: Record<string, string> = {};
+    for (const [k, v] of Object.entries(fieldValues)) {
+      if (v.trim()) formKeys[k] = v.trim();
+    }
+
     try {
       const res = await fetch("/api/integrations/test", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ integrationId }),
+        body: JSON.stringify({ integrationId, keys: formKeys }),
       });
       const data = await res.json();
 
@@ -89,28 +150,46 @@ export default function IntegrationsPage() {
     }
   }
 
-  async function saveKeys() {
-    // Only save non-empty values
+  async function saveAndActivate(integrationId: string, fields: IntegrationField[]) {
     const keys: Record<string, string> = {};
-    for (const [k, v] of Object.entries(fieldValues)) {
-      if (v.trim()) keys[k] = v.trim();
+    for (const field of fields) {
+      const val = fieldValues[field.key];
+      if (val?.trim()) keys[field.key] = val.trim();
     }
-
     if (Object.keys(keys).length === 0) return;
 
-    setSaving(true);
+    setSaving(integrationId);
     try {
       await fetch("/api/integrations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ keys }),
       });
-      setFieldValues({});
+      // Clear form values for this integration's fields
+      setFieldValues((prev) => {
+        const next = { ...prev };
+        for (const field of fields) delete next[field.key];
+        return next;
+      });
       await fetchIntegrations();
     } catch {
       // silent
     } finally {
-      setSaving(false);
+      setSaving(null);
+    }
+  }
+
+  async function handleRestart() {
+    setRestarting(true);
+    try {
+      await fetch("/api/system/pm2-restart", { method: "POST" });
+      // Wait a bit for restart to take effect
+      setTimeout(() => {
+        fetchPm2Status();
+        setRestarting(false);
+      }, 3000);
+    } catch {
+      setRestarting(false);
     }
   }
 
@@ -119,14 +198,13 @@ export default function IntegrationsPage() {
   }
 
   const categories = [
+    { key: "infra", label: "Infrastructure", description: "Process management and system health" },
     { key: "ai", label: "AI Providers", description: "LLM API keys for Smart Router and agent execution" },
     { key: "platform", label: "Platform", description: "Agent Hub backend connection" },
     { key: "project", label: "Project Management", description: "Issue tracking and pipeline sync" },
   ];
 
   const configuredCount = integrations.filter((i) => i.configured).length;
-  const hasUnsavedChanges = Object.values(fieldValues).some((v) => v.trim());
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-[50vh]">
@@ -134,6 +212,22 @@ export default function IntegrationsPage() {
       </div>
     );
   }
+
+  const statusColor: Record<string, string> = {
+    online: "text-emerald-400",
+    stopped: "text-red-400",
+    errored: "text-red-400",
+    "not-managed": "text-amber-400",
+    "pm2-unavailable": "text-muted-foreground",
+  };
+
+  const statusBg: Record<string, string> = {
+    online: "bg-emerald-500/10 border-emerald-500/20",
+    stopped: "bg-red-500/10 border-red-500/20",
+    errored: "bg-red-500/10 border-red-500/20",
+    "not-managed": "bg-amber-500/10 border-amber-500/20",
+    "pm2-unavailable": "bg-muted border-border",
+  };
 
   return (
     <div className="space-y-6">
@@ -145,24 +239,12 @@ export default function IntegrationsPage() {
             Step-by-step setup for all services
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-card border border-border">
-            <Plug className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm font-mono">
-              <span className="text-emerald-400 font-bold">{configuredCount}</span>
-              <span className="text-muted-foreground">/{integrations.length}</span>
-            </span>
-          </div>
-          {hasUnsavedChanges && (
-            <button
-              onClick={saveKeys}
-              disabled={saving}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-all font-mono text-xs uppercase tracking-wider"
-            >
-              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              Save Keys
-            </button>
-          )}
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-card border border-border">
+          <Plug className="w-4 h-4 text-muted-foreground" />
+          <span className="text-sm font-mono">
+            <span className="text-emerald-400 font-bold">{configuredCount}</span>
+            <span className="text-muted-foreground">/{integrations.length}</span>
+          </span>
         </div>
       </div>
 
@@ -194,8 +276,103 @@ export default function IntegrationsPage() {
         </div>
       </div>
 
-      {/* Integration cards by category */}
-      {categories.map((cat) => {
+      {/* PM2 System Status Card */}
+      <div className="space-y-3">
+        <div>
+          <h2 className="font-bold text-lg">Infrastructure</h2>
+          <p className="text-xs text-muted-foreground">Process management and system health</p>
+        </div>
+
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <div className="px-5 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className={`w-10 h-10 rounded-lg border flex items-center justify-center ${
+                  statusBg[pm2?.status || "pm2-unavailable"] || statusBg["pm2-unavailable"]
+                }`}>
+                  <Server className={`w-5 h-5 ${statusColor[pm2?.status || "pm2-unavailable"] || ""}`} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm">PM2 Process Manager</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Background process management for Mission Control
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                {pm2Loading ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                ) : (
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
+                    statusBg[pm2?.status || "pm2-unavailable"] || ""
+                  } ${statusColor[pm2?.status || "pm2-unavailable"] || ""}`}>
+                    {pm2?.status || "unknown"}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Stats row */}
+            {pm2?.managed && (
+              <div className="mt-4 grid grid-cols-5 gap-3">
+                <div className="bg-muted/50 rounded-lg px-3 py-2">
+                  <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mb-1">
+                    <Cpu className="w-3 h-3" /> CPU
+                  </div>
+                  <p className="text-sm font-mono font-bold">{pm2.cpu ?? 0}%</p>
+                </div>
+                <div className="bg-muted/50 rounded-lg px-3 py-2">
+                  <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mb-1">
+                    <MemoryStick className="w-3 h-3" /> RAM
+                  </div>
+                  <p className="text-sm font-mono font-bold">{pm2.memoryMB ?? 0} MB</p>
+                </div>
+                <div className="bg-muted/50 rounded-lg px-3 py-2">
+                  <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mb-1">
+                    <Clock className="w-3 h-3" /> Uptime
+                  </div>
+                  <p className="text-sm font-mono font-bold">{pm2.uptimeHuman || "—"}</p>
+                </div>
+                <div className="bg-muted/50 rounded-lg px-3 py-2">
+                  <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mb-1">
+                    <RotateCcw className="w-3 h-3" /> Restarts
+                  </div>
+                  <p className="text-sm font-mono font-bold">{pm2.restarts ?? 0}</p>
+                </div>
+                <div className="flex items-center justify-center">
+                  <button
+                    onClick={handleRestart}
+                    disabled={restarting}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-xs hover:border-primary/50 disabled:opacity-50 transition-colors"
+                  >
+                    {restarting ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-3.5 h-3.5" />
+                    )}
+                    Restart
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Not managed hint */}
+            {pm2 && !pm2.managed && (
+              <div className="mt-4 bg-muted/50 rounded-lg px-4 py-3">
+                <p className="text-xs text-muted-foreground">
+                  Mission Control is running in terminal mode. To run in background:
+                </p>
+                <code className="block mt-2 text-xs font-mono text-primary bg-background rounded px-3 py-2 border border-border">
+                  npm run pm2:dev
+                </code>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Integration cards by category (AI, Platform, Project) */}
+      {categories.filter((c) => c.key !== "infra").map((cat) => {
         const items = integrations.filter((i) => i.category === cat.key);
         if (items.length === 0) return null;
 
@@ -296,7 +473,7 @@ export default function IntegrationsPage() {
                           )}
                         </div>
 
-                        {/* Input fields */}
+                        {/* Input fields with validation */}
                         <div className="space-y-3">
                           <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                             Credentials
@@ -304,6 +481,8 @@ export default function IntegrationsPage() {
                           {integration.fields.map((field) => {
                             const isPassword = field.type === "password";
                             const showPw = showPasswords[field.key];
+                            const value = fieldValues[field.key] || "";
+                            const validation = value ? validateField(field.key, value) : null;
                             return (
                               <div key={field.key} className="space-y-1">
                                 <label className="text-xs font-medium text-muted-foreground">
@@ -313,15 +492,27 @@ export default function IntegrationsPage() {
                                 <div className="relative">
                                   <input
                                     type={isPassword && !showPw ? "password" : "text"}
-                                    value={fieldValues[field.key] || ""}
-                                    onChange={(e) =>
+                                    value={value}
+                                    onChange={(e) => {
                                       setFieldValues((prev) => ({
                                         ...prev,
                                         [field.key]: e.target.value,
-                                      }))
-                                    }
+                                      }));
+                                      // Reset test result when field changes
+                                      setTestResults((prev) => {
+                                        const next = { ...prev };
+                                        delete next[integration.id];
+                                        return next;
+                                      });
+                                    }}
                                     placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}...`}
-                                    className="w-full bg-background border border-border rounded-lg px-4 py-2.5 text-sm font-mono placeholder:text-muted-foreground focus:border-primary focus:outline-none transition-colors pr-10"
+                                    className={`w-full bg-background border rounded-lg px-4 py-2.5 text-sm font-mono placeholder:text-muted-foreground focus:outline-none transition-colors pr-10 ${
+                                      validation && !validation.valid
+                                        ? "border-red-500/50 focus:border-red-500"
+                                        : validation?.valid
+                                        ? "border-emerald-500/50 focus:border-emerald-500"
+                                        : "border-border focus:border-primary"
+                                    }`}
                                   />
                                   {isPassword && (
                                     <button
@@ -341,40 +532,75 @@ export default function IntegrationsPage() {
                                     </button>
                                   )}
                                 </div>
+                                {validation && !validation.valid && validation.hint && (
+                                  <p className="text-[10px] text-red-400 font-mono">{validation.hint}</p>
+                                )}
                               </div>
                             );
                           })}
                         </div>
 
-                        {/* Test connection */}
-                        <div className="flex items-center justify-between pt-3 border-t border-border">
-                          <div>
-                            {testResult?.status === "success" && (
-                              <span className="flex items-center gap-1.5 text-xs text-emerald-400">
-                                <CheckCircle2 className="w-3.5 h-3.5" />
-                                {testResult.message}
-                              </span>
-                            )}
-                            {testResult?.status === "error" && (
-                              <span className="flex items-center gap-1.5 text-xs text-red-400">
-                                <XCircle className="w-3.5 h-3.5" />
-                                {testResult.message}
-                              </span>
-                            )}
-                          </div>
-                          <button
-                            onClick={() => testConnection(integration.id)}
-                            disabled={testResult?.status === "testing"}
-                            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-sm hover:border-primary/50 disabled:opacity-50 transition-colors"
-                          >
-                            {testResult?.status === "testing" ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <RefreshCw className="w-4 h-4" />
-                            )}
-                            Test Connection
-                          </button>
-                        </div>
+                        {/* Actions: Test → Save */}
+                        {(() => {
+                          const allFieldsFilled = integration.fields
+                            .filter((f) => f.required)
+                            .every((f) => fieldValues[f.key]?.trim());
+                          const allFieldsValid = integration.fields
+                            .filter((f) => f.required)
+                            .every((f) => {
+                              const val = fieldValues[f.key];
+                              return val && validateField(f.key, val).valid;
+                            });
+                          const testPassed = testResult?.status === "success";
+                          const isTesting = testResult?.status === "testing";
+                          const isSaving = saving === integration.id;
+
+                          return (
+                            <div className="space-y-3 pt-3 border-t border-border">
+                              {/* Test result message */}
+                              {testResult?.status === "success" && (
+                                <div className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                                  <span className="text-xs text-emerald-400 font-medium">{testResult.message}</span>
+                                </div>
+                              )}
+                              {testResult?.status === "error" && (
+                                <div className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20">
+                                  <XCircle className="w-3.5 h-3.5 text-red-400" />
+                                  <span className="text-xs text-red-400 font-medium">{testResult.message}</span>
+                                </div>
+                              )}
+
+                              {/* Buttons row */}
+                              <div className="flex items-center justify-end gap-3">
+                                <button
+                                  onClick={() => testConnection(integration.id)}
+                                  disabled={!allFieldsFilled || !allFieldsValid || isTesting}
+                                  className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-sm hover:border-primary/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                >
+                                  {isTesting ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <RefreshCw className="w-4 h-4" />
+                                  )}
+                                  Test Connection
+                                </button>
+                                <button
+                                  onClick={() => saveAndActivate(integration.id, integration.fields)}
+                                  disabled={!testPassed || isSaving}
+                                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-30 disabled:cursor-not-allowed transition-all font-mono text-xs uppercase tracking-wider"
+                                >
+                                  {isSaving ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <Save className="w-4 h-4" />
+                                  )}
+                                  Save & Activate
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </div>
                     )}
                   </div>

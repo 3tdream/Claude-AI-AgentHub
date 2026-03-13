@@ -1,6 +1,6 @@
 {
   "_description": "Threat responses and recurring vulnerabilities — maintained by Cyber-Agent and QA-Agent",
-  "_updated": "2026-03-10",
+  "_updated": "2026-03-12",
   "threat_model": {
     "framework": "STRIDE + OWASP Top 10",
     "mandatory_triggers": [
@@ -13,7 +13,38 @@
     ],
     "response_protocol": "Critical + High Probability → STOP pipeline, report to user immediately"
   },
-  "recurring_vulnerabilities": [],
+  "recurring_vulnerabilities": [
+    {
+      "id": "VULN-001",
+      "category": "security",
+      "title": "JWT stored in localStorage exposes to XSS",
+      "severity": "high",
+      "description": "SB frontend stores JWT in localStorage. Any XSS vulnerability allows token theft and full account takeover.",
+      "mitigation": "Migrate to httpOnly cookies with SameSite=Strict. Add Content-Security-Policy header. Sanitize all user-rendered content.",
+      "date_found": "2026-03-12",
+      "source_project": "sb"
+    },
+    {
+      "id": "VULN-002",
+      "category": "security",
+      "title": "No rate limiting on SSE streaming endpoint",
+      "severity": "medium",
+      "description": "POST /assistant/user-input supports SSE streaming but has no per-user rate limit. Attacker can open many concurrent streams, exhausting server memory.",
+      "mitigation": "Add per-user concurrent stream limit (max 3). Add request rate limit (20 req/min per user). Implement SSE keepalive timeout (5 min max).",
+      "date_found": "2026-03-12",
+      "source_project": "sb"
+    },
+    {
+      "id": "VULN-003",
+      "category": "security",
+      "title": "API key prefix sk_live_ is predictable",
+      "severity": "low",
+      "description": "API keys use sk_live_ prefix making them easy to identify in logs and code. While not a direct vulnerability, it increases exposure risk.",
+      "mitigation": "Ensure API keys are never logged. Add key rotation mechanism. Monitor for leaked keys in public repos.",
+      "date_found": "2026-03-12",
+      "source_project": "sb"
+    }
+  ],
   "security_checklist": {
     "api_endpoints": [
       "Rate limiting on all public endpoints",
