@@ -54,6 +54,7 @@ export async function evaluateStepOutput(
   stageNumber: string,
   taskInput: string,
   agentOutput: string,
+  passThreshold?: number,
 ): Promise<EvaluationResult> {
   const prompt = EVALUATION_PROMPT
     .replace("{{agentName}}", agentName)
@@ -74,7 +75,7 @@ export async function evaluateStepOutput(
     const data = await res.json();
 
     if (data.success && data.content) {
-      return parseEvaluationResponse(data.content);
+      return parseEvaluationResponse(data.content, passThreshold);
     }
   } catch {
     // If evaluation fails, default to pass with placeholder
@@ -94,7 +95,7 @@ export async function evaluateStepOutput(
  * [SCORE] completeness: 8.5, specificity: 7.0, actionability: 9.0 → PASS
  * [FEEDBACK] The architecture section lacks database schema details.
  */
-function parseEvaluationResponse(response: string): EvaluationResult {
+function parseEvaluationResponse(response: string, passThreshold: number = PIPELINE.QUALITY_PASS_THRESHOLD): EvaluationResult {
   const lines = response.split("\n").map((l) => l.trim()).filter(Boolean);
 
   let completeness = 7;
@@ -142,7 +143,7 @@ function parseEvaluationResponse(response: string): EvaluationResult {
   const overall = round((completeness + specificity + actionability) / 3);
 
   // Override pass/fail based on actual score (trust the math over LLM text)
-  passed = overall >= PIPELINE.QUALITY_PASS_THRESHOLD;
+  passed = overall >= passThreshold;
 
   return {
     score: { completeness, specificity, actionability, overall },

@@ -6,6 +6,7 @@
 import { callAI } from "@/lib/direct-ai-client";
 import { loadAgentPrompt } from "@/lib/agent-prompt-loader";
 import { CRM_PIPELINE_STAGES } from "@/lib/pipeline-templates";
+import { MODE_CONFIG } from "@/lib/config";
 import type { WorkflowStep } from "@/types";
 
 // --- Types ---
@@ -121,8 +122,8 @@ function parseRoutingResponse(
       reasoning: data.reasoning || "No reasoning provided",
       complexity: Math.min(10, Math.max(1, Number(data.complexity) || 5)),
       estimatedDuration: data.estimatedDuration || "~1min",
-      includeCheckpoint: mode === "full",
-      includeQualityEval: mode !== "quick",
+      includeCheckpoint: MODE_CONFIG[mode].includeCheckpoint,
+      includeQualityEval: MODE_CONFIG[mode].evalScope !== "none",
     };
   } catch {
     // Parse failed — default to medium
@@ -141,15 +142,49 @@ function mapAgentsToSteps(
     };
   }
 
+  const modeConf = MODE_CONFIG[mode];
   const agentSet = new Set(agents);
+  const selectedSet = new Set<string>();
+  const stepsById = new Map(CRM_PIPELINE_STAGES.map((s) => [s.id, s]));
+
+  // First pass: mark directly selected steps (skip checkpoints)
+  for (const step of CRM_PIPELINE_STAGES) {
+    if (!step.metadata?.isCheckpoint && agentSet.has(step.agentId)) {
+      selectedSet.add(step.id);
+    }
+  }
+
+  // Second pass: dependency resolution based on mode
+  if (modeConf.resolveDeps === "architect-only") {
+    // Medium: always include architect + PM for context
+    const architectStep = CRM_PIPELINE_STAGES.find(
+      (s) => s.agentId === "architect-agent",
+    );
+    if (architectStep) {
+      selectedSet.add(architectStep.id);
+      // Include architect's direct dependency (PM)
+      for (const depId of architectStep.dependsOn) {
+        const dep = stepsById.get(depId);
+        if (dep && !dep.metadata?.isCheckpoint) {
+          selectedSet.add(depId);
+        }
+      }
+    }
+    // Remove steps whose agent is in skipAgents
+    const skipSet = new Set(modeConf.skipAgents);
+    for (const stepId of [...selectedSet]) {
+      const step = stepsById.get(stepId);
+      if (step && skipSet.has(step.agentId)) {
+        selectedSet.delete(stepId);
+      }
+    }
+  }
+  // resolveDeps === "none" (quick): no dependency resolution at all
+
   const selected: string[] = [];
   const skipped: string[] = [];
-
   for (const step of CRM_PIPELINE_STAGES) {
-    // Include step if its agent is selected (skip checkpoints in non-full mode)
-    if (step.metadata?.isCheckpoint) {
-      skipped.push(step.id);
-    } else if (agentSet.has(step.agentId)) {
+    if (selectedSet.has(step.id)) {
       selected.push(step.id);
     } else {
       skipped.push(step.id);
@@ -177,30 +212,37 @@ function createFallbackDecision(
   };
 }
 
-// --- Filter pipeline steps based on routing decision ---
+// --- Recalculate routing decision for a different mode ---
 
-export function filterStepsForRouting(
-  allSteps: WorkflowStep[],
-  decision: RoutingDecision,
-): WorkflowStep[] {
-  if (decision.mode === "full") return allSteps;
+export function recalculateForMode(
+  currentDecision: RoutingDecision,
+  mode: ExecutionMode,
+): RoutingDecision {
+  if (mode === "full") {
+    return {
+      ...currentDecision,
+      mode: "full",
+      selectedAgents: [...new Set(CRM_PIPELINE_STAGES.map((s) => s.agentId))],
+      selectedStepIds: CRM_PIPELINE_STAGES.map((s) => s.id),
+      skippedStepIds: [],
+      includeCheckpoint: MODE_CONFIG.full.includeCheckpoint,
+      includeQualityEval: true,
+      reasoning: "Manual override: full pipeline",
+    };
+  }
 
-  const selectedSet = new Set(decision.selectedStepIds);
+  const { selectedStepIds, skippedStepIds } = mapAgentsToSteps(
+    currentDecision.selectedAgents,
+    mode,
+  );
 
-  return allSteps
-    .filter((s) => selectedSet.has(s.id))
-    .map((step) => ({
-      ...step,
-      // Re-wire dependsOn: remove dependencies on skipped steps
-      dependsOn: step.dependsOn.filter((d) => selectedSet.has(d)),
-      // Adjust quality threshold for quick mode
-      metadata: step.metadata
-        ? {
-            ...step.metadata,
-            qualityThreshold: decision.includeQualityEval
-              ? step.metadata.qualityThreshold
-              : 0,
-          }
-        : step.metadata,
-    }));
+  return {
+    ...currentDecision,
+    mode,
+    selectedStepIds,
+    skippedStepIds,
+    includeCheckpoint: MODE_CONFIG[mode].includeCheckpoint,
+    includeQualityEval: MODE_CONFIG[mode].evalScope !== "none",
+    reasoning: `Manual override: ${mode} mode`,
+  };
 }

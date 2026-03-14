@@ -11,6 +11,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import type { RoutingDecisionData, ExecutionMode } from "@/types";
+import { MODE_CONFIG } from "@/lib/config";
 
 const modeConfig: Record<
   ExecutionMode,
@@ -101,27 +102,37 @@ export function RoutingDecisionPanel({
         )}
       </div>
 
-      {/* Mode override + Confirm */}
-      <div className="flex items-center justify-between pt-2 border-t border-border">
-        <div className="flex gap-1">
-          {(["quick", "medium", "full"] as ExecutionMode[]).map((m) => {
-            const mc = modeConfig[m];
-            return (
-              <button
-                key={m}
-                onClick={() => onOverrideMode(m)}
-                disabled={isExecuting}
-                className={`px-3 py-1.5 rounded-lg text-xs font-mono uppercase tracking-wider transition-all ${
-                  decision.mode === m
-                    ? `${mc.bg} ${mc.color} border font-bold`
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                }`}
-              >
+      {/* Mode selector with estimates */}
+      <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border">
+        {(["quick", "medium", "full"] as ExecutionMode[]).map((m) => {
+          const mc = modeConfig[m];
+          const conf = MODE_CONFIG[m];
+          const isActive = decision.mode === m;
+          return (
+            <button
+              key={m}
+              onClick={() => onOverrideMode(m)}
+              disabled={isExecuting}
+              className={`p-3 rounded-lg border text-left transition-all ${
+                isActive
+                  ? `${mc.bg} border ${mc.color}`
+                  : "border-border hover:border-primary/30 hover:bg-muted"
+              }`}
+            >
+              <div className={`text-xs font-mono font-bold uppercase tracking-wider ${isActive ? mc.color : "text-muted-foreground"}`}>
                 {mc.label}
-              </button>
-            );
-          })}
-        </div>
+              </div>
+              <div className="text-[10px] text-muted-foreground mt-1 space-y-0.5">
+                <div>{conf.evalScope === "none" ? "No eval" : conf.evalScope === "final-only" ? "Final step eval (≥7)" : "All steps eval (≥8.5)"}</div>
+                <div>{conf.estimatedTokens} · {conf.estimatedTime}</div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Confirm */}
+      <div className="flex items-center justify-between">
         <button
           onClick={onConfirm}
           disabled={isExecuting}

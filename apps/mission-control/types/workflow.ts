@@ -47,6 +47,12 @@ export interface StepResult {
   retryCount?: number;
   evaluationFeedback?: string;
   escalated?: boolean;
+  // Analytics
+  inputTokens?: number;
+  outputTokens?: number;
+  outputChars?: number;
+  provider?: string;
+  model?: string;
 }
 
 export type PipelineStatus = "pending" | "running" | "completed" | "failed" | "paused";

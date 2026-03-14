@@ -113,7 +113,7 @@ async function callAnthropic(
 
   const response = await client.messages.create({
     model: modelId,
-    max_tokens: req.maxTokens || 4096,
+    max_tokens: req.maxTokens || 16384,
     temperature: req.temperature ?? 0.7,
     system: req.systemPrompt,
     messages: [{ role: "user", content: req.userPrompt }],
@@ -150,7 +150,7 @@ async function callOpenAI(
       { role: "system", content: req.systemPrompt },
       { role: "user", content: req.userPrompt },
     ],
-    max_tokens: req.maxTokens || 4096,
+    max_completion_tokens: req.maxTokens || 16384,
     temperature: req.temperature ?? 0.7,
   });
 

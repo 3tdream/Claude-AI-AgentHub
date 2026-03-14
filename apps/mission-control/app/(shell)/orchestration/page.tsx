@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
-import { GitBranch, Plus, Play, Trash2, History, Clock, CheckCircle2, XCircle, ExternalLink, Brain, Loader2 } from "lucide-react";
+import { GitBranch, Plus, Play, Trash2, History, Clock, CheckCircle2, XCircle, ExternalLink, Brain, Loader2, Download } from "lucide-react";
 import { useOrchestrationStore } from "@/lib/stores/orchestration-store";
 import { CRM_PIPELINE_TEMPLATE } from "@/lib/pipeline-templates";
 import { executePipeline } from "@/lib/pipeline-executor";
 import { filterStepsForRouting } from "@/lib/pipeline-step-filter";
+import { recalculateForMode } from "@/lib/pipeline-mode-utils";
 import { PipelineGraph } from "@/components/orchestration/pipeline-graph";
 import { StageDetailPanel } from "@/components/orchestration/stage-detail-panel";
 import { RoutingDecisionPanel } from "@/components/orchestration/routing-decision-panel";
@@ -145,29 +146,10 @@ export default function OrchestrationPage() {
     setRoutingDecision(null);
   }
 
-  // Override routing mode
+  // Override routing mode — recalculates steps and thresholds for the new mode
   function handleOverrideMode(mode: ExecutionMode) {
-    if (!routingDecision || !selectedWorkflow) return;
-
-    if (mode === "full") {
-      setRoutingDecision({
-        ...routingDecision,
-        mode: "full",
-        selectedAgents: [...new Set(selectedWorkflow.steps.map((s) => s.agentId))],
-        selectedStepIds: selectedWorkflow.steps.map((s) => s.id),
-        skippedStepIds: [],
-        includeCheckpoint: true,
-        includeQualityEval: true,
-        reasoning: "Manual override: full pipeline",
-      });
-    } else {
-      // Re-route with the new mode hint (use same decision but change mode)
-      setRoutingDecision({
-        ...routingDecision,
-        mode,
-        reasoning: `Manual override: ${mode} mode`,
-      });
-    }
+    if (!routingDecision) return;
+    setRoutingDecision(recalculateForMode(routingDecision, mode));
   }
 
   const selectedStep = selectedWorkflow?.steps.find((s) => s.id === selectedStageId);
@@ -351,9 +333,26 @@ export default function OrchestrationPage() {
       {/* Execution History */}
       {executionHistory.length > 0 && (
         <div className="bg-card border border-border rounded-xl overflow-hidden">
-          <div className="px-4 py-3 border-b border-border flex items-center gap-2">
-            <History className="w-4 h-4 text-muted-foreground" />
-            <h2 className="font-bold text-sm">Execution History</h2>
+          <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <History className="w-4 h-4 text-muted-foreground" />
+              <h2 className="font-bold text-sm">Execution History</h2>
+            </div>
+            <button
+              onClick={() => {
+                const blob = new Blob([JSON.stringify(executionHistory, null, 2)], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `pipeline-history-${new Date().toISOString().slice(0, 10)}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors font-mono text-[10px] uppercase tracking-wider"
+            >
+              <Download className="w-3 h-3" />
+              Export JSON
+            </button>
           </div>
           <div className="p-2 space-y-1 max-h-[200px] overflow-y-auto">
             {executionHistory.map((exec) => (
@@ -385,6 +384,22 @@ export default function OrchestrationPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3 text-right">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const blob = new Blob([JSON.stringify(exec, null, 2)], { type: "application/json" });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = `pipeline-${exec.routingDecision?.mode || "run"}-${exec.id.slice(0, 8)}.json`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                    className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors"
+                    title="Export this execution"
+                  >
+                    <Download className="w-3 h-3" />
+                  </button>
                   <div>
                     <p className={`font-mono text-xs font-semibold ${statusColors[exec.status] || ""}`}>
                       {exec.status}
