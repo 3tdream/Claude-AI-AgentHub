@@ -174,7 +174,7 @@ export async function executePipeline(
     const threshold = step.metadata?.qualityThreshold ?? 8;
     let retryCount = 0;
     let lastFeedback = "";
-    let currentPrompt = buildPrompt(step, input, context, projectContext);
+    let currentPrompt = buildPrompt(step, input, context, projectContext, routingDecision?.mode);
     const model = step.metadata?.model || "unknown";
 
     // Jira: stage start
@@ -332,7 +332,7 @@ export async function executePipeline(
 
           currentPrompt = buildRetryPrompt(
             step.agentName,
-            buildPrompt(step, input, context, projectContext),
+            buildPrompt(step, input, context, projectContext, routingDecision?.mode),
             agentOutput,
             evaluation.feedback,
           );
@@ -514,22 +514,29 @@ function buildPrompt(
   input: string,
   context: Record<string, string>,
   projectCtx?: ProjectContext | null,
+  routingMode?: string,
 ): string {
   let prompt = step.promptTemplate.replace(/\{\{input\}\}/g, input);
   for (const [key, val] of Object.entries(context)) {
     prompt = prompt.replace(new RegExp(`\\{\\{${key}\\}\\}`, "g"), val);
   }
   // Replace unresolved placeholders (from skipped steps in quick/medium mode)
-  // with instructions to self-derive based on original task input
   const hasUnresolved = /\{\{step_[^}]+\}\}/.test(prompt);
   if (hasUnresolved) {
     prompt = prompt.replace(/\{\{step_[^}]+\}\}/g, "(this step was skipped by the router)");
-    prompt += `\n\n---\nIMPORTANT: Some upstream pipeline steps were skipped (quick/medium routing mode). Do NOT refuse to work or ask for missing data. Instead, derive what you need directly from the original task description below and use your professional judgment to fill in architecture, security, and design decisions yourself.\n\nOriginal task: ${input}`;
+
+    if (projectCtx && (projectCtx.architecture || projectCtx.rules)) {
+      // Project context available — agent must use it, not guess
+      prompt += `\n\n---\nIMPORTANT: Some upstream pipeline steps were skipped (quick/medium routing mode). Do NOT refuse to work or ask for missing data. The PROJECT CONTEXT section below contains the real architecture, file paths, types, stores, and conventions — use it as your single source of truth. Do NOT write [ASSUMED] blocks or invent paths/types. If something is not covered by the project context, derive it from the original task description.\n\nOriginal task: ${input}`;
+    } else {
+      // No project context — agent must self-derive
+      prompt += `\n\n---\nIMPORTANT: Some upstream pipeline steps were skipped (quick/medium routing mode). Do NOT refuse to work or ask for missing data. Instead, derive what you need directly from the original task description below and use your professional judgment to fill in architecture, security, and design decisions yourself.\n\nOriginal task: ${input}`;
+    }
   }
 
   // --- Inject project context ---
   if (projectCtx && (projectCtx.architecture || projectCtx.rules)) {
-    let contextBlock = "\n\n---\n## PROJECT CONTEXT\nThe following is the real project architecture and rules. You MUST follow these conventions, file paths, and technology stack. Do NOT invent your own paths or stack.\n";
+    let contextBlock = "\n\n---\n## PROJECT CONTEXT (AUTHORITATIVE — overrides all assumptions)\nThe following is the real project architecture and rules. You MUST use these exact file paths, type definitions, store names, and conventions. Do NOT write [ASSUMED] sections. Do NOT invent your own paths or stack.\n";
 
     if (projectCtx.architecture) {
       contextBlock += `\n### Architecture\n${projectCtx.architecture}\n`;
@@ -545,6 +552,15 @@ function buildPrompt(
     }
 
     prompt = contextBlock + "\n---\n\n" + prompt;
+  }
+
+  // --- Auto-approve for implementation agents in quick/medium mode ---
+  // In quick/medium mode there is no Human Checkpoint (Stage 4.5),
+  // so the Architect's plan is the final authority. Implementation agents
+  // must produce code immediately without waiting for user confirmation.
+  const implementationAgents = ["backend-agent", "frontend-agent", "designer-agent"];
+  if (routingMode && routingMode !== "full" && implementationAgents.includes(step.agentId)) {
+    prompt += `\n\n---\n### AUTO-APPROVED ARCHITECTURAL PLAN\nThe architectural plan provided by the Architect-Agent is fully validated, correct, and approved. You DO NOT need to wait for user confirmation or ask clarifying questions. Proceed with FULL IMPLEMENTATION immediately — write complete, production-ready code. Do NOT output a "plan" or "pre-flight check" — output the actual code files with proper file paths.`;
   }
 
   return prompt;
