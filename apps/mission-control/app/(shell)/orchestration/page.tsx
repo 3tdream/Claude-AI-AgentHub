@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
-import { GitBranch, Plus, Play, Trash2, History, Clock, CheckCircle2, XCircle, ExternalLink, Brain, Loader2, Download } from "lucide-react";
+import { useState, useCallback, useRef, useEffect } from "react";
+import { GitBranch, Plus, Play, Trash2, History, Clock, CheckCircle2, XCircle, ExternalLink, Brain, Loader2, Download, FolderOpen } from "lucide-react";
 import { useOrchestrationStore } from "@/lib/stores/orchestration-store";
 import { CRM_PIPELINE_TEMPLATE } from "@/lib/pipeline-templates";
 import { executePipeline } from "@/lib/pipeline-executor";
@@ -22,12 +22,22 @@ export default function OrchestrationPage() {
     activeExecution, setActiveExecution, addToHistory,
     executionHistory,
     selectedStageId, selectStage,
+    selectedProject, setSelectedProject,
     approveCheckpoint, rejectCheckpoint,
   } = useOrchestrationStore();
   const [input, setInput] = useState("");
   const [selectedWorkflow, setSelectedWorkflow] = useState<Workflow | null>(null);
   const [routingDecision, setRoutingDecision] = useState<RoutingDecisionData | null>(null);
   const [isRouting, setIsRouting] = useState(false);
+
+  // Available projects for context injection
+  const [availableProjects, setAvailableProjects] = useState<string[]>([]);
+  useEffect(() => {
+    fetch("/api/projects/list")
+      .then((r) => r.json())
+      .then((d) => setAvailableProjects(d.projects || []))
+      .catch(() => {});
+  }, []);
 
   // Checkpoint resolution refs
   const checkpointResolveRef = useRef<((approved: boolean) => void) | null>(null);
@@ -140,6 +150,7 @@ export default function OrchestrationPage() {
         getCheckpointStatus: () => checkpointStatusRef.current,
       },
       routingDecision,
+      selectedProject,
     );
 
     addToHistory(result);
@@ -291,7 +302,29 @@ export default function OrchestrationPage() {
               </div>
 
               {/* Execute bar — two-step: Route → then Confirm */}
-              <div className="border-t border-border p-4">
+              <div className="border-t border-border p-4 space-y-2">
+                {/* Project context selector */}
+                {availableProjects.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <FolderOpen className="w-3.5 h-3.5 text-muted-foreground" />
+                    <span className="font-mono text-[10px] text-muted-foreground uppercase">Project Context:</span>
+                    <select
+                      value={selectedProject || ""}
+                      onChange={(e) => setSelectedProject(e.target.value || null)}
+                      className="bg-background border border-border rounded-md px-2 py-1 font-mono text-xs text-foreground focus:border-primary focus:outline-none transition-colors"
+                    >
+                      <option value="">None (no context injection)</option>
+                      {availableProjects.map((p) => (
+                        <option key={p} value={p}>{p}</option>
+                      ))}
+                    </select>
+                    {selectedProject && (
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 font-mono text-[9px]">
+                        Active
+                      </span>
+                    )}
+                  </div>
+                )}
                 <div className="flex gap-3">
                   <input
                     type="text"

@@ -39,6 +39,7 @@ export async function executePipeline(
   workflowName: string,
   callbacks: ExecutorCallbacks,
   routingDecision?: RoutingDecisionData,
+  selectedProject?: string | null,
 ): Promise<PipelineExecution> {
   if (!steps.length) throw new Error("Pipeline must have at least one step");
   if (!input.trim()) throw new Error("Pipeline input cannot be empty");
@@ -46,6 +47,26 @@ export async function executePipeline(
   for (const step of steps) {
     if (!step.agentId) throw new Error(`Step "${step.id}" is missing agentId`);
     if (!step.promptTemplate) throw new Error(`Step "${step.id}" is missing promptTemplate`);
+  }
+
+  // --- Smart Context Loader: fetch project-specific context ---
+  let projectContext: { architecture: string; rules: string; knowledgeBase: Array<{ name: string; content: string }>; fallbackUsed: boolean } | null = null;
+  if (selectedProject) {
+    try {
+      const ctxRes = await fetch(`/api/projects/context?projectId=${encodeURIComponent(selectedProject)}`);
+      if (ctxRes.ok) {
+        projectContext = await ctxRes.json();
+        postLog({
+          type: "system",
+          content: `Project context loaded: "${selectedProject}"${projectContext?.fallbackUsed ? " (fallback)" : ""} — arch: ${(projectContext?.architecture?.length || 0)} chars, rules: ${(projectContext?.rules?.length || 0)} chars, KB: ${projectContext?.knowledgeBase?.length || 0} files`,
+        }).catch(() => {});
+      }
+    } catch {
+      postLog({
+        type: "system",
+        content: `Warning: Failed to load project context for "${selectedProject}" — agents will run without project context`,
+      }).catch(() => {});
+    }
   }
 
   const execution: PipelineExecution = {
@@ -153,7 +174,7 @@ export async function executePipeline(
     const threshold = step.metadata?.qualityThreshold ?? 8;
     let retryCount = 0;
     let lastFeedback = "";
-    let currentPrompt = buildPrompt(step, input, context);
+    let currentPrompt = buildPrompt(step, input, context, projectContext);
     const model = step.metadata?.model || "unknown";
 
     // Jira: stage start
@@ -311,7 +332,7 @@ export async function executePipeline(
 
           currentPrompt = buildRetryPrompt(
             step.agentName,
-            buildPrompt(step, input, context),
+            buildPrompt(step, input, context, projectContext),
             agentOutput,
             evaluation.feedback,
           );
@@ -481,7 +502,19 @@ export async function executePipeline(
   return execution;
 }
 
-function buildPrompt(step: WorkflowStep, input: string, context: Record<string, string>): string {
+interface ProjectContext {
+  architecture: string;
+  rules: string;
+  knowledgeBase: Array<{ name: string; content: string }>;
+  fallbackUsed: boolean;
+}
+
+function buildPrompt(
+  step: WorkflowStep,
+  input: string,
+  context: Record<string, string>,
+  projectCtx?: ProjectContext | null,
+): string {
   let prompt = step.promptTemplate.replace(/\{\{input\}\}/g, input);
   for (const [key, val] of Object.entries(context)) {
     prompt = prompt.replace(new RegExp(`\\{\\{${key}\\}\\}`, "g"), val);
@@ -493,5 +526,26 @@ function buildPrompt(step: WorkflowStep, input: string, context: Record<string, 
     prompt = prompt.replace(/\{\{step_[^}]+\}\}/g, "(this step was skipped by the router)");
     prompt += `\n\n---\nIMPORTANT: Some upstream pipeline steps were skipped (quick/medium routing mode). Do NOT refuse to work or ask for missing data. Instead, derive what you need directly from the original task description below and use your professional judgment to fill in architecture, security, and design decisions yourself.\n\nOriginal task: ${input}`;
   }
+
+  // --- Inject project context ---
+  if (projectCtx && (projectCtx.architecture || projectCtx.rules)) {
+    let contextBlock = "\n\n---\n## PROJECT CONTEXT\nThe following is the real project architecture and rules. You MUST follow these conventions, file paths, and technology stack. Do NOT invent your own paths or stack.\n";
+
+    if (projectCtx.architecture) {
+      contextBlock += `\n### Architecture\n${projectCtx.architecture}\n`;
+    }
+    if (projectCtx.rules) {
+      contextBlock += `\n### Project Rules\n${projectCtx.rules}\n`;
+    }
+    if (projectCtx.knowledgeBase.length > 0) {
+      contextBlock += `\n### Knowledge Base\n`;
+      for (const kb of projectCtx.knowledgeBase) {
+        contextBlock += `\n#### ${kb.name}\n\`\`\`json\n${kb.content.slice(0, 5000)}\n\`\`\`\n`;
+      }
+    }
+
+    prompt = contextBlock + "\n---\n\n" + prompt;
+  }
+
   return prompt;
 }
