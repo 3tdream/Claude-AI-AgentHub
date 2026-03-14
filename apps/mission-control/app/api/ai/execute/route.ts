@@ -27,7 +27,6 @@ export async function POST(request: NextRequest) {
       model: model || "sonnet-4-6",
       systemPrompt,
       userPrompt: userInput,
-      maxTokens: 4096,
     });
 
     return NextResponse.json({

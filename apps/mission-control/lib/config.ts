@@ -17,6 +17,37 @@ export const PIPELINE = {
   STEP_TIMEOUT_MS: 120_000,
 } as const;
 
+/** Per-mode pipeline configuration */
+export const MODE_CONFIG = {
+  quick: {
+    qualityThreshold: 0,
+    evalScope: "none" as const,
+    resolveDeps: "none" as const,
+    includeCheckpoint: false,
+    skipAgents: [] as string[],
+    estimatedTokens: "~5-10K",
+    estimatedTime: "~30-60s",
+  },
+  medium: {
+    qualityThreshold: 7,
+    evalScope: "final-only" as const,
+    resolveDeps: "architect-only" as const,
+    includeCheckpoint: false,
+    skipAgents: ["research-agent", "cyber-agent"] as string[],
+    estimatedTokens: "~30-50K",
+    estimatedTime: "~2-3 min",
+  },
+  full: {
+    qualityThreshold: 8.5,
+    evalScope: "all" as const,
+    resolveDeps: "full" as const,
+    includeCheckpoint: true,
+    skipAgents: [] as string[],
+    estimatedTokens: "~100K+",
+    estimatedTime: "~5-10 min",
+  },
+} as const;
+
 /** Logs storage config */
 export const LOGS = {
   /** Maximum log entries before oldest are dropped */

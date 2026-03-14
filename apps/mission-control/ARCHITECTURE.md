@@ -70,6 +70,7 @@ All routes proxy through `agentHubFetch()` with cached fallback on failure.
 | `/api/jira/feature-log` | POST | PM Agent hook — creates `[AI-Built]` Jira issue from `FeatureCompletionPayload` |
 | `/api/jira/sync` | POST | Pipeline lifecycle sync — dispatches stage transitions, comments, and epic management |
 | `/api/knowledge/enrich` | POST | Auto-enriches knowledge base from completed pipeline execution |
+| `/api/orchestration/apply` | POST | Auto-Apply: writes parsed code blocks from pipeline output to filesystem |
 
 ## Dual Chat Source
 
@@ -232,12 +233,31 @@ Stage 6   DevOps-Agent        Infrastructure + CI/CD + rollback plan
 Stage 7   Orchestrator        Final Consolidation + Weekly Report
 ```
 
+### Pipeline Modes (Quick / Medium / Full)
+
+The Smart Router classifies each task and selects the minimum agents needed. Users can override the mode manually via the mode selector in the UI.
+
+| | Quick | Medium | Full |
+|---|-------|--------|------|
+| **When to use** | Single-domain task: one component, one endpoint, one fix | Multi-domain: feature with API + UI, design + code | Complete lifecycle: new module, payment system, auth flow |
+| **Agents** | 1-2 (target only) | 3-5 (target + Architect + PM) | All 10 stages |
+| **Upstream deps** | None — agents use `[ASSUMED]` context | Architect + PM included automatically | Full dependency chain |
+| **Quality eval** | Skipped (threshold=0) | Final step only (threshold=7) | Every step (threshold=8.5) |
+| **Human checkpoint** | No | No | Yes (Stage 4.5) |
+| **Estimated tokens** | ~5-10K | ~30-50K | ~100K+ |
+| **Estimated time** | ~30-60 sec | ~2-3 min | ~5-10 min |
+
+**Configuration**: `lib/config.ts` → `MODE_CONFIG` constant. Per-mode settings: `qualityThreshold`, `evalScope`, `resolveDeps`, `includeCheckpoint`, `skipAgents`.
+
+**Key files**: `lib/smart-router.ts` (routing + `recalculateForMode`), `lib/pipeline-step-filter.ts` (per-mode threshold assignment), `lib/pipeline-executor.ts` (execution engine).
+
 ### Stage Rules
-- **Stage 4.5 is BLOCKING** — pipeline MUST NOT proceed without user approval
+- **Stage 4.5 is BLOCKING** (full mode only) — pipeline MUST NOT proceed without user approval
 - **Cyber-Agent is mandatory** when task involves public API, auth, payments, or sensitive data
 - **Critical + High Probability risk** → STOP pipeline, report to user immediately
 - **Max 2 retries per agent** — if quality score < 5 after 2 attempts → escalate to user
 - **Weekly Report** generated every Friday or on demand
+- **Quick/Medium mode**: agents that don't receive upstream data mark assumptions with `[ASSUMED]`
 
 ### Quality Scoring (Orchestrator applies after each agent output)
 Score 1-10 on three axes:
@@ -246,7 +266,11 @@ Score 1-10 on three axes:
 - **Actionability** — next agent can work without questions?
 
 Format: `[SCORE] completeness: X, specificity: X, actionability: X → PASS/FAIL`
-Threshold: 8+ = PASS, < 8 = return with specific feedback, < 5 after 2 retries = escalate
+
+Per-mode thresholds:
+- **Quick**: evaluation skipped entirely (threshold=0, auto-pass)
+- **Medium**: final step must score ≥7, other steps auto-pass
+- **Full**: every step must score ≥8.5, retries on failure, escalation if score <5 after max retries
 
 ## Jira Governance
 

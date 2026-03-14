@@ -68,7 +68,7 @@ export async function executePipeline(
 
   postLog({
     type: "system",
-    content: `Pipeline "${workflowName}" started with input: ${input.slice(0, 200)}`,
+    content: `Pipeline "${workflowName}" started [mode: ${routingDecision?.mode ?? "full"}] with ${steps.length} steps. Input: ${input.slice(0, 200)}`,
   }).catch(() => {});
 
   // --- Jira: Check if enabled + create Epic ---
@@ -198,16 +198,26 @@ export async function executePipeline(
         const agentOutput = data.content;
         context[`step_${step.id}_output`] = agentOutput;
 
+        // Analytics: capture token usage per step
+        const stepAnalytics = {
+          inputTokens: data.tokensUsed?.input || 0,
+          outputTokens: data.tokensUsed?.output || 0,
+          outputChars: agentOutput.length,
+          provider: data.provider || "unknown",
+          model: data.model || model,
+        };
+
         const skipEvaluation = step.agentId === "orchestrator" || threshold === 0;
 
         if (skipEvaluation) {
           execution.stepResults[step.id] = {
             stepId: step.id,
             status: "completed",
-            output: agentOutput.substring(0, 500),
+            output: agentOutput.substring(0, 20000),
             duration: Date.now() - new Date(execution.stepResults[step.id].startedAt!).getTime(),
             completedAt: new Date().toISOString(),
             retryCount,
+            ...stepAnalytics,
           };
           if (execution.qualityScores) {
             execution.qualityScores[step.id] = {
@@ -242,6 +252,7 @@ export async function executePipeline(
           step.metadata?.stageNumber || "?",
           input,
           agentOutput,
+          threshold,
         );
 
         if (execution.qualityScores) {
@@ -259,11 +270,12 @@ export async function executePipeline(
           execution.stepResults[step.id] = {
             stepId: step.id,
             status: "completed",
-            output: agentOutput.substring(0, 500),
+            output: agentOutput.substring(0, 20000),
             duration: Date.now() - new Date(execution.stepResults[step.id].startedAt!).getTime(),
             completedAt: new Date().toISOString(),
             retryCount,
             evaluationFeedback: evaluation.feedback,
+            ...stepAnalytics,
           };
           callbacks.onUpdate({ ...execution });
 
@@ -313,12 +325,13 @@ export async function executePipeline(
           execution.stepResults[step.id] = {
             stepId: step.id,
             status: "failed",
-            output: agentOutput.substring(0, 500),
+            output: agentOutput.substring(0, 20000),
             error: `Escalated: score ${evaluation.score.overall}/10 after ${MAX_RETRIES + 1} attempts. ${evaluation.feedback}`,
             completedAt: new Date().toISOString(),
             retryCount,
             evaluationFeedback: evaluation.feedback,
             escalated: true,
+            ...stepAnalytics,
           };
           execution.escalatedSteps = [...(execution.escalatedSteps || []), step.id];
           callbacks.onUpdate({ ...execution });
@@ -347,11 +360,12 @@ export async function executePipeline(
         execution.stepResults[step.id] = {
           stepId: step.id,
           status: "completed",
-          output: agentOutput.substring(0, 500),
+          output: agentOutput.substring(0, 20000),
           duration: Date.now() - new Date(execution.stepResults[step.id].startedAt!).getTime(),
           completedAt: new Date().toISOString(),
           retryCount,
           evaluationFeedback: `Accepted with warning (${evaluation.score.overall}/10 after ${MAX_RETRIES + 1} attempts): ${evaluation.feedback}`,
+          ...stepAnalytics,
         };
         callbacks.onUpdate({ ...execution });
 
@@ -471,6 +485,13 @@ function buildPrompt(step: WorkflowStep, input: string, context: Record<string, 
   let prompt = step.promptTemplate.replace(/\{\{input\}\}/g, input);
   for (const [key, val] of Object.entries(context)) {
     prompt = prompt.replace(new RegExp(`\\{\\{${key}\\}\\}`, "g"), val);
+  }
+  // Replace unresolved placeholders (from skipped steps in quick/medium mode)
+  // with instructions to self-derive based on original task input
+  const hasUnresolved = /\{\{step_[^}]+\}\}/.test(prompt);
+  if (hasUnresolved) {
+    prompt = prompt.replace(/\{\{step_[^}]+\}\}/g, "(this step was skipped by the router)");
+    prompt += `\n\n---\nIMPORTANT: Some upstream pipeline steps were skipped (quick/medium routing mode). Do NOT refuse to work or ask for missing data. Instead, derive what you need directly from the original task description below and use your professional judgment to fill in architecture, security, and design decisions yourself.\n\nOriginal task: ${input}`;
   }
   return prompt;
 }

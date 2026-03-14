@@ -1,6 +1,6 @@
 {
   "_description": "Threat responses and recurring vulnerabilities — maintained by Cyber-Agent and QA-Agent",
-  "_updated": "2026-03-12",
+  "_updated": "2026-03-14",
   "threat_model": {
     "framework": "STRIDE + OWASP Top 10",
     "mandatory_triggers": [
@@ -43,6 +43,16 @@
       "mitigation": "Ensure API keys are never logged. Add key rotation mechanism. Monitor for leaked keys in public repos.",
       "date_found": "2026-03-12",
       "source_project": "sb"
+    },
+    {
+      "id": "VULN-004",
+      "category": "security",
+      "title": "Security review (cyber-agent) запланирован после backend/frontend — слишком поздно для API key management системы",
+      "severity": "high",
+      "description": "По структуре pipeline, s3.5-cyber и s5.5-cyber-audit стоят после architect и после backend/frontend соответственно. Для задачи с API key management (шифрование, хранение sensitive data в файловой системе, audit log) это означает, что архитектурные решения по шифрованию и хранению принимаются без security input. Cyber-agent на s3.5 получает уже готовую архитектуру и может только реагировать, а не проектировать.",
+      "mitigation": "Для задач с тегами [sensitive-data, encryption, auth, payments]: переместить первый cyber-agent вызов на s2.5 — между PM и Architect. Cyber формирует \"Security Requirements Brief\" (алгоритм шифрования, key derivation, storage constraints, audit requirements), который Architect получает как обязательный input наравне с PM stories. Конкретно для API key management: AES-256-GCM с PBKDF2/Argon2 для key derivation, запрет хранения plaintext даже временно, audit log должен быть append-only с HMAC integrity check.",
+      "date_found": "2026-03-14",
+      "source_pipeline": "6bd3e517-9162-4258-a467-d0a687a3e550"
     }
   ],
   "security_checklist": {

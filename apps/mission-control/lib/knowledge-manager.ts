@@ -158,11 +158,12 @@ export async function enrichKnowledgeBase(execution: PipelineExecution): Promise
   // Call Orchestrator to extract lessons
   let lessonsRaw = "";
   try {
-    const res = await fetch(`${getBaseUrl()}/api/agent-hub/execute`, {
+    const res = await fetch(`${getBaseUrl()}/api/ai/execute`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        assistantId: AGENT_IDS.ORCHESTRATOR,
+        agentId: AGENT_IDS.ORCHESTRATOR,
+        model: "sonnet-4-6",
         userInput: prompt,
       }),
     });
