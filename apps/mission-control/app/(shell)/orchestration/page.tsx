@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
-import { GitBranch, Plus, Play, Trash2, History, Clock, CheckCircle2, XCircle, ExternalLink, Brain, Loader2, Download, FolderOpen } from "lucide-react";
+import { GitBranch, Plus, Play, Trash2, History, Clock, CheckCircle2, XCircle, ExternalLink, Brain, Loader2, Download, FolderOpen, ChevronDown, ChevronRight, FileCode2, Rocket } from "lucide-react";
 import { useOrchestrationStore } from "@/lib/stores/orchestration-store";
 import { CRM_PIPELINE_TEMPLATE } from "@/lib/pipeline-templates";
 import { executePipeline } from "@/lib/pipeline-executor";
 import { filterStepsForRouting } from "@/lib/pipeline-step-filter";
 import { recalculateForMode } from "@/lib/pipeline-mode-utils";
+import { parseCodeBlocks, type ParsedCodeBlock } from "@/lib/code-block-parser";
 import { PipelineGraph } from "@/components/orchestration/pipeline-graph";
 import { StageDetailPanel } from "@/components/orchestration/stage-detail-panel";
 import { RoutingDecisionPanel } from "@/components/orchestration/routing-decision-panel";
@@ -29,6 +30,10 @@ export default function OrchestrationPage() {
   const [selectedWorkflow, setSelectedWorkflow] = useState<Workflow | null>(null);
   const [routingDecision, setRoutingDecision] = useState<RoutingDecisionData | null>(null);
   const [isRouting, setIsRouting] = useState(false);
+  const [expandedExecId, setExpandedExecId] = useState<string | null>(null);
+  const [expandedFileIdx, setExpandedFileIdx] = useState<Record<string, number | null>>({});
+  const [applyingId, setApplyingId] = useState<string | null>(null);
+  const [applyResult, setApplyResult] = useState<Record<string, { success: boolean; summary: { created: number; updated: number; errors: number } | null } | null>>({});
 
   // Available projects for context injection
   const [availableProjects, setAvailableProjects] = useState<string[]>([]);
@@ -161,6 +166,51 @@ export default function OrchestrationPage() {
   function handleOverrideMode(mode: ExecutionMode) {
     if (!routingDecision) return;
     setRoutingDecision(recalculateForMode(routingDecision, mode));
+  }
+
+  function getDetectedFiles(exec: PipelineExecution): ParsedCodeBlock[] {
+    const allOutput = Object.values(exec.stepResults)
+      .map((r) => r.output || "")
+      .join("\n\n");
+    return parseCodeBlocks(allOutput);
+  }
+
+  async function handleApplyToProject(exec: PipelineExecution) {
+    setApplyingId(exec.id);
+    try {
+      const files = getDetectedFiles(exec);
+      const res = await fetch("/api/orchestration/apply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          files: files.map((f) => ({ filePath: f.filePath, content: f.content, language: f.language })),
+          pipelineId: exec.id,
+        }),
+      });
+      const data = await res.json();
+      setApplyResult((prev) => ({ ...prev, [exec.id]: { success: data.success, summary: data.summary } }));
+    } catch {
+      setApplyResult((prev) => ({ ...prev, [exec.id]: { success: false, summary: null } }));
+    } finally {
+      setApplyingId(null);
+    }
+  }
+
+  function downloadFile(file: ParsedCodeBlock) {
+    const blob = new Blob([file.content], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = file.filePath.split("/").pop() || "file.txt";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function toggleFileView(execId: string, idx: number) {
+    setExpandedFileIdx((prev) => ({
+      ...prev,
+      [execId]: prev[execId] === idx ? null : idx,
+    }));
   }
 
   const selectedStep = selectedWorkflow?.steps.find((s) => s.id === selectedStageId);
@@ -384,69 +434,169 @@ export default function OrchestrationPage() {
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors font-mono text-[10px] uppercase tracking-wider"
             >
               <Download className="w-3 h-3" />
-              Export JSON
+              Export All
             </button>
           </div>
-          <div className="p-2 space-y-1 max-h-[200px] overflow-y-auto">
-            {executionHistory.map((exec) => (
-              <div key={exec.id} className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-muted transition-colors">
-                <div className="flex items-center gap-3">
-                  {exec.status === "completed" ? (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                  ) : (
-                    <XCircle className="w-4 h-4 text-red-500" />
-                  )}
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium">{exec.workflowName}</p>
-                      {exec.routingDecision && (
-                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase ${
-                          exec.routingDecision.mode === "quick"
-                            ? "bg-emerald-500/10 text-emerald-400"
-                            : exec.routingDecision.mode === "medium"
-                            ? "bg-amber-500/10 text-amber-400"
-                            : "bg-blue-500/10 text-blue-400"
-                        }`}>
-                          {exec.routingDecision.mode}
-                        </span>
+          <div className="p-2 space-y-1 max-h-[500px] overflow-y-auto">
+            {executionHistory.map((exec) => {
+              const isExpanded = expandedExecId === exec.id;
+              const detectedFiles = isExpanded ? getDetectedFiles(exec) : [];
+
+              return (
+                <div key={exec.id} className="rounded-lg overflow-hidden">
+                  <button
+                    onClick={() => setExpandedExecId(isExpanded ? null : exec.id)}
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-muted transition-colors text-left"
+                  >
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      {exec.status === "completed" ? (
+                        <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                      ) : (
+                        <XCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium">{exec.workflowName}</p>
+                          {exec.routingDecision && (
+                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase ${
+                              exec.routingDecision.mode === "quick"
+                                ? "bg-emerald-500/10 text-emerald-400"
+                                : exec.routingDecision.mode === "medium"
+                                ? "bg-amber-500/10 text-amber-400"
+                                : "bg-blue-500/10 text-blue-400"
+                            }`}>
+                              {exec.routingDecision.mode}
+                            </span>
+                          )}
+                          {exec.jiraKey && (
+                            <span className="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 font-mono text-[9px]">
+                              {exec.jiraKey}
+                            </span>
+                          )}
+                        </div>
+                        <p className="font-mono text-[10px] text-muted-foreground whitespace-pre-wrap break-words mt-0.5">
+                          {exec.input}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 flex-shrink-0 ml-3">
+                      <div className="text-right">
+                        <p className={`font-mono text-xs font-semibold ${statusColors[exec.status] || ""}`}>
+                          {exec.status}
+                        </p>
+                        {exec.totalDuration && (
+                          <p className="font-mono text-[10px] text-muted-foreground flex items-center justify-end gap-1">
+                            <Clock className="w-3 h-3" />
+                            {(exec.totalDuration / 1000).toFixed(1)}s
+                          </p>
+                        )}
+                      </div>
+                      {isExpanded
+                        ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+                        : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
+                      }
+                    </div>
+                  </button>
+
+                  {isExpanded && (
+                    <div className="px-3 pb-3 pt-2 space-y-3 border-t border-border/30 ml-7">
+                      {exec.status === "completed" && (
+                        <div className="space-y-1.5">
+                          <p className="font-mono text-[9px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                            <FileCode2 className="w-3 h-3" />
+                            Detected Files ({detectedFiles.length})
+                          </p>
+                          {detectedFiles.length === 0 ? (
+                            <p className="text-xs text-muted-foreground italic">No code blocks detected in output</p>
+                          ) : (
+                            <div className="space-y-1">
+                              {detectedFiles.map((file, idx) => (
+                                <div key={idx} className="rounded-lg border border-border/50 overflow-hidden">
+                                  <div className="flex items-center justify-between px-2 py-1.5 bg-muted/30">
+                                    <button
+                                      onClick={() => toggleFileView(exec.id, idx)}
+                                      className="flex items-center gap-2 text-left flex-1 min-w-0"
+                                    >
+                                      {expandedFileIdx[exec.id] === idx
+                                        ? <ChevronDown className="w-3 h-3 text-primary flex-shrink-0" />
+                                        : <ChevronRight className="w-3 h-3 text-primary flex-shrink-0" />
+                                      }
+                                      <span className="font-mono text-[11px] text-foreground truncate">{file.filePath}</span>
+                                      <span className="font-mono text-[9px] text-muted-foreground flex-shrink-0">{file.language} · {file.content.split("\n").length} lines</span>
+                                    </button>
+                                    <button
+                                      onClick={() => downloadFile(file)}
+                                      className="p-1 hover:bg-muted rounded transition-colors flex-shrink-0"
+                                      title={`Download ${file.filePath}`}
+                                    >
+                                      <Download className="w-3 h-3 text-muted-foreground" />
+                                    </button>
+                                  </div>
+                                  {expandedFileIdx[exec.id] === idx && (
+                                    <pre className="p-3 text-[10px] font-mono text-foreground/80 bg-background overflow-x-auto max-h-[250px] overflow-y-auto border-t border-border/30">
+                                      <code>{file.content}</code>
+                                    </pre>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="flex items-center gap-2 pt-1">
+                        {exec.status === "completed" && detectedFiles.length > 0 && (
+                          <button
+                            onClick={() => handleApplyToProject(exec)}
+                            disabled={applyingId === exec.id || applyResult[exec.id]?.success === true}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-mono text-[10px] uppercase tracking-wider transition-all ${
+                              applyResult[exec.id]?.success
+                                ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
+                                : "bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20"
+                            } disabled:opacity-50`}
+                          >
+                            {applyingId === exec.id ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : applyResult[exec.id]?.success ? (
+                              <CheckCircle2 className="w-3 h-3" />
+                            ) : (
+                              <Rocket className="w-3 h-3" />
+                            )}
+                            {applyResult[exec.id]?.success
+                              ? `Applied (${applyResult[exec.id]!.summary?.created ?? 0} created, ${applyResult[exec.id]!.summary?.updated ?? 0} updated)`
+                              : applyResult[exec.id]?.success === false
+                              ? "Retry Apply"
+                              : "Apply to Project"
+                            }
+                          </button>
+                        )}
+                        <button
+                          onClick={() => {
+                            const blob = new Blob([JSON.stringify(exec, null, 2)], { type: "application/json" });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement("a");
+                            a.href = url;
+                            a.download = `pipeline-${exec.routingDecision?.mode || "run"}-${exec.id.slice(0, 8)}.json`;
+                            a.click();
+                            URL.revokeObjectURL(url);
+                          }}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors font-mono text-[10px] uppercase tracking-wider"
+                        >
+                          <Download className="w-3 h-3" />
+                          Export JSON
+                        </button>
+                      </div>
+
+                      {applyResult[exec.id]?.success === false && (
+                        <div className="font-mono text-[10px] px-2 py-1.5 rounded bg-red-500/10 text-red-400 border border-red-500/20">
+                          Apply failed{applyResult[exec.id]!.summary?.errors ? ` — ${applyResult[exec.id]!.summary!.errors} errors` : ""}. Check file paths.
+                        </div>
                       )}
                     </div>
-                    <p className="font-mono text-[10px] text-muted-foreground truncate max-w-[300px]">
-                      {exec.input}
-                    </p>
-                  </div>
+                  )}
                 </div>
-                <div className="flex items-center gap-3 text-right">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const blob = new Blob([JSON.stringify(exec, null, 2)], { type: "application/json" });
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement("a");
-                      a.href = url;
-                      a.download = `pipeline-${exec.routingDecision?.mode || "run"}-${exec.id.slice(0, 8)}.json`;
-                      a.click();
-                      URL.revokeObjectURL(url);
-                    }}
-                    className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors"
-                    title="Export this execution"
-                  >
-                    <Download className="w-3 h-3" />
-                  </button>
-                  <div>
-                    <p className={`font-mono text-xs font-semibold ${statusColors[exec.status] || ""}`}>
-                      {exec.status}
-                    </p>
-                    {exec.totalDuration && (
-                      <p className="font-mono text-[10px] text-muted-foreground flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        {(exec.totalDuration / 1000).toFixed(1)}s
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

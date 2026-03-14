@@ -13,8 +13,10 @@ export const PIPELINE = {
   QUALITY_PASS_THRESHOLD: 8,
   /** Default quality threshold if not specified per-step */
   DEFAULT_QUALITY_THRESHOLD: 8,
-  /** Timeout per agent execution step (ms) — 0 = no timeout */
-  STEP_TIMEOUT_MS: 120_000,
+  /** Timeout per agent execution step (ms) — 0 = no timeout.
+   *  Currently disabled: collecting analytics first.
+   *  Plan: auto-calibrate per-step after every 50 executions (median + 30% buffer). */
+  STEP_TIMEOUT_MS: 0,
 } as const;
 
 /** Per-mode pipeline configuration */
