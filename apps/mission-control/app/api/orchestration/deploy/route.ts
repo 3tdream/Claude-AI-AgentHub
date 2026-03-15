@@ -14,9 +14,10 @@ const STAGING_DIR = path.join(PROJECT_ROOT, "data", "applied");
  */
 export async function POST(request: NextRequest) {
   try {
-    const { pipelineId, files: selectedFiles } = (await request.json()) as {
+    const { pipelineId, files: selectedFiles, allowOverwrite } = (await request.json()) as {
       pipelineId: string;
       files?: string[];
+      allowOverwrite?: string[];
     };
 
     if (!pipelineId) {
@@ -83,6 +84,13 @@ export async function POST(request: NextRequest) {
           // new file
         }
 
+        // SAFETY: block overwriting existing files unless explicitly allowed
+        // This prevents agents from destroying working code (stores, pages, types)
+        if (existed && (!allowOverwrite || !allowOverwrite.includes(filePath))) {
+          results.push({ filePath, status: "skipped" as any, error: "File exists — overwrite not allowed (select explicitly to overwrite)" });
+          continue;
+        }
+
         // Ensure target directory exists
         await fs.mkdir(path.dirname(destPath), { recursive: true });
 
@@ -102,6 +110,7 @@ export async function POST(request: NextRequest) {
 
     const created = results.filter((r) => r.status === "created").length;
     const updated = results.filter((r) => r.status === "updated").length;
+    const skipped = results.filter((r) => (r.status as string) === "skipped").length;
     const errors = results.filter((r) => r.status === "error").length;
 
     await addLog({
@@ -112,7 +121,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: errors === 0,
       results,
-      summary: { created, updated, errors, total: filesToDeploy.length },
+      summary: { created, updated, skipped, errors, total: filesToDeploy.length },
     });
   } catch (err) {
     return NextResponse.json(
