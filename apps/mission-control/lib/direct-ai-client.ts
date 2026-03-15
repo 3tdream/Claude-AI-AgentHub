@@ -137,6 +137,90 @@ async function callAnthropic(
   };
 }
 
+// --- Tool-use execution (multi-turn) ---
+
+export interface ToolCallAIRequest extends DirectAIRequest {
+  tools: any[];
+  onToolCall?: (name: string, input: Record<string, string>) => Promise<{ success: boolean; output: string; error?: string }>;
+  maxToolSteps?: number;
+}
+
+export async function callAIWithTools(req: ToolCallAIRequest): Promise<DirectAIResponse> {
+  const client = getAnthropic();
+  const modelId = resolveModelId(req.model);
+  const start = Date.now();
+  const maxSteps = req.maxToolSteps || 15;
+
+  const messages: Anthropic.Messages.MessageParam[] = [
+    { role: "user", content: req.userPrompt },
+  ];
+
+  let totalInput = 0;
+  let totalOutput = 0;
+  let finalContent = "";
+
+  for (let step = 0; step < maxSteps; step++) {
+    const response = await client.messages.create({
+      model: modelId,
+      max_tokens: req.maxTokens || 16384,
+      temperature: req.temperature ?? 0.3,
+      system: req.systemPrompt,
+      messages,
+      tools: req.tools as Anthropic.Messages.Tool[],
+    });
+
+    totalInput += response.usage.input_tokens;
+    totalOutput += response.usage.output_tokens;
+
+    // Extract text content
+    const textBlocks = response.content.filter((b): b is Anthropic.Messages.TextBlock => b.type === "text");
+    if (textBlocks.length > 0) {
+      finalContent = textBlocks.map((b) => b.text).join("\n");
+    }
+
+    // Check for tool use
+    const toolUseBlocks = response.content.filter((b): b is Anthropic.Messages.ToolUseBlock => b.type === "tool_use");
+
+    if (toolUseBlocks.length === 0 || response.stop_reason === "end_turn") {
+      break;
+    }
+
+    // Execute tools and build response
+    messages.push({ role: "assistant", content: response.content });
+
+    const toolResults: Anthropic.Messages.ToolResultBlockParam[] = [];
+    for (const toolUse of toolUseBlocks) {
+      if (req.onToolCall) {
+        const result = await req.onToolCall(toolUse.name, toolUse.input as Record<string, string>);
+        toolResults.push({
+          type: "tool_result",
+          tool_use_id: toolUse.id,
+          content: result.success ? result.output : `ERROR: ${result.error}\n${result.output}`,
+          is_error: !result.success,
+        });
+      } else {
+        toolResults.push({
+          type: "tool_result",
+          tool_use_id: toolUse.id,
+          content: "Tool execution not available",
+          is_error: true,
+        });
+      }
+    }
+
+    messages.push({ role: "user", content: toolResults });
+  }
+
+  return {
+    success: true,
+    content: finalContent,
+    provider: "anthropic",
+    model: modelId,
+    tokensUsed: { input: totalInput, output: totalOutput },
+    durationMs: Date.now() - start,
+  };
+}
+
 async function callOpenAI(
   modelId: string,
   req: DirectAIRequest,

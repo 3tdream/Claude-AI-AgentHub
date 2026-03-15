@@ -198,6 +198,12 @@ export async function executePipeline(
         const controller = STEP_TIMEOUT_MS > 0 ? new AbortController() : undefined;
         const timer = controller ? setTimeout(() => controller.abort(), STEP_TIMEOUT_MS) : undefined;
 
+        // Determine tool access level
+        const implementationAgents = ["backend-agent", "frontend-agent"];
+        const readOnlyAgents = ["architect-agent", "qa-agent", "cyber-agent", "devops-agent"];
+        const useTools = implementationAgents.includes(step.agentId) || readOnlyAgents.includes(step.agentId);
+        const toolMode = implementationAgents.includes(step.agentId) ? "readwrite" : "readonly";
+
         const res = await fetch("/api/ai/execute", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -205,6 +211,8 @@ export async function executePipeline(
             agentId: step.agentId,
             model: step.metadata?.model || "sonnet-4-6",
             userInput: currentPrompt,
+            useTools,
+            toolMode,
           }),
           signal: controller?.signal,
         });
@@ -554,17 +562,18 @@ function buildPrompt(
     prompt = contextBlock + "\n---\n\n" + prompt;
   }
 
-  // --- Auto-approve for implementation agents in quick/medium mode ---
-  // In quick/medium mode there is no Human Checkpoint (Stage 4.5),
-  // so the Architect's plan is the final authority. Implementation agents
-  // must produce code immediately without waiting for user confirmation.
-  const implementationAgents = ["backend-agent", "frontend-agent", "designer-agent"];
+  // --- Tool-use instructions for agents with file access ---
+  const implementationAgents = ["backend-agent", "frontend-agent"];
+  const readOnlyAgents = ["architect-agent", "qa-agent", "cyber-agent", "devops-agent"];
+
   if (implementationAgents.includes(step.agentId)) {
     const autoApprove = routingMode && routingMode !== "full"
-      ? `\n### AUTO-APPROVED ARCHITECTURAL PLAN\nThe architectural plan provided by the Architect-Agent is fully validated, correct, and approved. You DO NOT need to wait for user confirmation or ask clarifying questions. Proceed with FULL IMPLEMENTATION immediately.`
+      ? `\n### AUTO-APPROVED ARCHITECTURAL PLAN\nThe architectural plan is approved. Proceed with implementation immediately.\n`
       : "";
 
-    prompt += `\n\n---${autoApprove}\n### OUTPUT FORMAT (MANDATORY)\nYou MUST output your implementation as a single JSON object. No markdown, no explanations before or after — ONLY the JSON.\n\`\`\`json\n{"files":[{"path":"relative/path/to/file.ts","action":"create","content":"full file content here"},{"path":"existing/file.ts","action":"modify","content":"full modified file content here"}]}\n\`\`\`\nRules:\n- "path" must be relative to project root (e.g. "app/(shell)/orchestration/page.tsx", "lib/stores/orchestration-store.ts")\n- "action" is "create" for new files, "modify" for changes to existing files\n- "content" is the COMPLETE file content (not a diff)\n- Use the exact file paths from PROJECT CONTEXT. Do NOT invent paths.\n- Output ONLY the JSON object wrapped in a single json code fence. No other text.`;
+    prompt += `\n\n---${autoApprove}\n### TOOL ACCESS\nYou have access to the project file system via tools:\n- **list_files**: Browse directories to find the right files\n- **read_file**: Read existing code to understand context, imports, and style\n- **edit_file**: Make surgical edits to existing files (old_string → new_string). ALWAYS read the file first.\n- **create_file**: Create new files only when needed\n- **run_command**: Run \`npx tsc --noEmit\` to verify your changes compile\n\n**WORKFLOW**: list_files → read_file → understand → edit_file (minimal changes) → run_command to verify.\nDo NOT rewrite entire files. Make the MINIMUM change needed. After all edits, provide a brief summary of what you changed.`;
+  } else if (readOnlyAgents.includes(step.agentId)) {
+    prompt += `\n\n---\n### TOOL ACCESS (READ-ONLY)\nYou have read-only access to the project file system:\n- **list_files**: Browse directories\n- **read_file**: Read file contents\n\nUse these tools to verify your analysis against the actual codebase. Do NOT guess file structures — read them.`;
   }
 
   return prompt;

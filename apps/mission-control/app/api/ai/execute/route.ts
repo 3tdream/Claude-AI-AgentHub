@@ -1,15 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { callAI } from "@/lib/direct-ai-client";
+import { callAI, callAIWithTools } from "@/lib/direct-ai-client";
 import { loadAgentPrompt } from "@/lib/agent-prompt-loader";
+import { AGENT_TOOLS, READ_ONLY_TOOLS, executeTool } from "@/lib/agent-tools";
+import { addLog } from "@/lib/logs-storage";
 
 /**
  * POST /api/ai/execute — Direct AI execution
- * Replaces /api/agent-hub/execute for pipeline steps.
- * Calls Claude/OpenAI directly using local agent prompts.
+ * Supports two modes:
+ *   1. Standard: single prompt → single response
+ *   2. Tool-use: multi-turn with file system access (useTools: true)
  */
 export async function POST(request: NextRequest) {
   try {
-    const { agentId, model, userInput, systemPromptOverride } =
+    const { agentId, model, userInput, systemPromptOverride, useTools, toolMode } =
       await request.json();
 
     if (!agentId || !userInput) {
@@ -19,10 +22,44 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Load system prompt from local .md file (or use override)
     const systemPrompt =
       systemPromptOverride || (await loadAgentPrompt(agentId));
 
+    // --- Tool-use mode ---
+    if (useTools) {
+      const tools = toolMode === "readonly" ? READ_ONLY_TOOLS : AGENT_TOOLS;
+      let toolCallCount = 0;
+
+      const result = await callAIWithTools({
+        model: model || "sonnet-4-6",
+        systemPrompt,
+        userPrompt: userInput,
+        tools,
+        maxToolSteps: 15,
+        onToolCall: async (name, input) => {
+          toolCallCount++;
+          addLog({
+            type: "decision",
+            agentId,
+            agentName: agentId,
+            content: `Tool call: ${name}(${JSON.stringify(input).substring(0, 200)})`,
+          }).catch(() => {});
+          return executeTool(name, input);
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        content: result.content,
+        provider: result.provider,
+        model: result.model,
+        tokensUsed: result.tokensUsed,
+        durationMs: result.durationMs,
+        toolCalls: toolCallCount,
+      });
+    }
+
+    // --- Standard mode ---
     const result = await callAI({
       model: model || "sonnet-4-6",
       systemPrompt,
