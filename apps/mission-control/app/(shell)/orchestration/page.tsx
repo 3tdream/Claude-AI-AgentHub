@@ -37,6 +37,9 @@ export default function OrchestrationPage() {
   const [deployingId, setDeployingId] = useState<string | null>(null);
   const [editingWfId, setEditingWfId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
+  const [discardTarget, setDiscardTarget] = useState<string | null>(null);
+  const [discardReason, setDiscardReason] = useState("");
+  const [discardCategory, setDiscardCategory] = useState<string>("other");
 
   // Available projects for context injection
   const [availableProjects, setAvailableProjects] = useState<string[]>([]);
@@ -231,14 +234,36 @@ export default function OrchestrationPage() {
     }
   }
 
-  // Discard staged files
-  async function handleDiscardStaged(execId: string) {
-    await fetch(`/api/orchestration/deploy?pipelineId=${execId}`, { method: "DELETE" });
+  // Discard staged files — opens feedback dialog
+  function handleDiscardStaged(execId: string) {
+    setDiscardTarget(execId);
+    setDiscardReason("");
+    setDiscardCategory("other");
+  }
+
+  // Confirm discard with feedback
+  async function handleConfirmDiscard() {
+    if (!discardTarget) return;
+    // Save feedback to knowledge base
+    if (discardReason.trim()) {
+      fetch("/api/knowledge/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pipelineId: discardTarget,
+          reason: discardReason.trim(),
+          category: discardCategory,
+        }),
+      }).catch(() => {});
+    }
+    // Delete staged files
+    await fetch(`/api/orchestration/deploy?pipelineId=${discardTarget}`, { method: "DELETE" });
     setApplyResult((prev) => {
       const next = { ...prev };
-      delete next[execId];
+      delete next[discardTarget!];
       return next;
     });
+    setDiscardTarget(null);
   }
 
   function downloadFile(file: ParsedCodeBlock) {
@@ -718,6 +743,48 @@ export default function OrchestrationPage() {
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Discard Feedback Dialog */}
+      {discardTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setDiscardTarget(null)}>
+          <div className="bg-card border border-border rounded-xl p-6 w-[420px] space-y-4" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-bold text-sm">Why are you discarding?</h3>
+            <p className="text-xs text-muted-foreground">This feedback helps agents learn from mistakes and avoid repeating them.</p>
+            <select
+              value={discardCategory}
+              onChange={(e) => setDiscardCategory(e.target.value)}
+              className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:border-primary focus:outline-none"
+            >
+              <option value="wrong-files">Wrong files or paths</option>
+              <option value="bad-code">Code doesn&apos;t compile or has bugs</option>
+              <option value="wrong-approach">Wrong architectural approach</option>
+              <option value="broke-something">Broke existing functionality</option>
+              <option value="other">Other</option>
+            </select>
+            <textarea
+              value={discardReason}
+              onChange={(e) => setDiscardReason(e.target.value)}
+              placeholder="Describe what went wrong (optional but helps future runs)..."
+              rows={3}
+              className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none resize-none"
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setDiscardTarget(null)}
+                className="px-3 py-1.5 rounded-lg border border-border text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDiscard}
+                className="px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 text-sm font-medium transition-colors"
+              >
+                Discard & Save Feedback
+              </button>
+            </div>
           </div>
         </div>
       )}
