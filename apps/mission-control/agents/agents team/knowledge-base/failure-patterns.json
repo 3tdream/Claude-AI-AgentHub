@@ -1,0 +1,244 @@
+{
+  "_description": "Known issues, root causes, and solutions — maintained by QA-Agent and all agents",
+  "_updated": "2026-03-14",
+  "patterns": [
+    {
+      "id": "FAIL-001",
+      "category": "build",
+      "title": "Next.js version mismatch in monorepo",
+      "symptoms": "Build fails with 'Jest worker encountered child process exceptions' or Turbopack internal error",
+      "root_cause": "Root monorepo has next@16.1.1, mission-control needs 15.5.4. npx resolves to root version.",
+      "solution": "Use node_modules/.bin/next build instead of npx next build",
+      "date_discovered": "2026-03-10",
+      "recurrence": "Every time someone runs npx next"
+    },
+    {
+      "id": "FAIL-002",
+      "category": "hydration",
+      "title": "SSR hydration mismatch with dynamic values",
+      "symptoms": "React hydration error: server rendered text didn't match client",
+      "root_cause": "Using Date.now(), Math.random(), or locale-dependent formatting in SSR components",
+      "solution": "Move dynamic values to useEffect or pass stable values from server",
+      "date_discovered": "2026-03",
+      "recurrence": "When adding date displays or random IDs in page components"
+    },
+    {
+      "id": "FAIL-003",
+      "category": "api",
+      "title": "Agent Hub connection timeout",
+      "symptoms": "Chat returns OpenAI fallback, API routes return cached: true",
+      "root_cause": "Agent Hub server on localhost:3000 not running or network timeout (3s limit)",
+      "solution": "Start Agent Hub server. Check AGENT_HUB_LIVE env var. Cached data serves as fallback.",
+      "date_discovered": "2026-02",
+      "recurrence": "After system restart or when Agent Hub is updating"
+    },
+    {
+      "id": "FAIL-004",
+      "category": "api",
+      "title": "Agent Hub execute returns empty on long analytical prompts",
+      "symptoms": "MCP execute call returns empty content for prompts requesting structured analysis (8+ lesson extraction)",
+      "root_cause": "Likely token limit or timeout on stateless /execute endpoint. Agent starts tool calls but response exceeds output token limit (4000-6000 tokens).",
+      "solution": "Break large prompts into smaller focused queries. Or use session-based chat for long interactions. Orchestrator hello works (short response), analysis fails (long response).",
+      "date_discovered": "2026-03-12",
+      "recurrence": "When using MCP execute for complex analytical tasks",
+      "source_project": "mission-control"
+    },
+    {
+      "id": "FAIL-005",
+      "category": "devops",
+      "title": "pnpm hard-link corruption on Windows 11",
+      "symptoms": "node_modules files show as directories with year 1601 timestamps. npm install fails.",
+      "root_cause": "pnpm uses hard-links from global store. Windows NTFS sometimes corrupts these links during forced shutdown or antivirus scan.",
+      "solution": "PowerShell Remove-Item -Recurse -Force on node_modules, then npm install --no-workspaces instead of pnpm.",
+      "date_discovered": "2026-03-12",
+      "recurrence": "On Windows systems using pnpm with hard-links"
+    },
+    {
+      "id": "FAIL-006",
+      "category": "build",
+      "title": "Шаблонные плейсхолдеры не резолвятся до запуска агента",
+      "symptoms": "Шаг s4-frontend получил на вход неразрезолвленные плейсхолдеры (`{{step_s3-architect_output}}`), что привело к тому, что агент не смог выполнить реализацию и запросил недостающие данные — несмотря на итоговую оценку 10/10.",
+      "root_cause": "Пайплайн не проверил, что все зависимые шаги (s3-architect) завершились и их output был подставлен в контекст перед запуском s4-frontend. Либо шаг s3-architect был пропущен/не включён в этот прогон, либо механизм передачи контекста между шагами не сработал.",
+      "solution": "Добавить pre-flight валидацию перед каждым шагом: проверять, что все плейсхолдеры вида `{{step_*_output}}` заменены реальными данными. Если хотя бы один плейсхолдер не резолвится — блокировать запуск шага и эскалировать к оркестратору с указанием конкретного незавершённого зависимого шага.",
+      "date_discovered": "2026-03-13",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "c023cb6d-511f-4074-ae4e-8f56b607e726"
+    },
+    {
+      "id": "FAIL-007",
+      "category": "build",
+      "title": "Оценка 10/10 при фактически неуспешном выходе агента",
+      "symptoms": "Шаг s4-frontend получил оценку качества 10/10, однако его фактический output — запрос недостающих данных, а не реализованная кнопка выхода. Скоринг не отразил реальный результат.",
+      "root_cause": "Система оценки качества анализировала структуру и полноту ответа агента (агент корректно описал проблему, указал конкретный плейсхолдер), но не проверяла, выполнена ли целевая задача шага. Completeness/Specificity/Actionability оценивались по качеству текста, а не по факту поставки артефакта.",
+      "solution": "В quality gate добавить обязательный критерий **task-completion check**: для шагов с ожидаемым артефактом (код, файл, компонент) оценка не может быть выше 5, если артефакт не поставлен. Разделить метрику \"качество коммуникации агента\" и \"выполнение задачи шага\".",
+      "date_discovered": "2026-03-13",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "c023cb6d-511f-4074-ae4e-8f56b607e726"
+    },
+    {
+      "id": "FAIL-008",
+      "category": "build",
+      "title": "Frontend Agent падает без диагностической информации при простых UI-задачах",
+      "symptoms": "Шаг s4-frontend завершился с ошибкой \"Execution failed\" при выполнении тривиальной задачи — добавление кнопки выхода в header. Никакого стек-трейса, кода ошибки или контекста не предоставлено. Quality scores отсутствуют, что означает агент не дошёл до стадии генерации output.",
+      "root_cause": "Вероятные причины (в порядке убывания вероятности): 1) Отсутствует контекст — агент не получил путь к файлу header-компонента, текущую структуру проекта или design tokens для кнопки; 2) Timeout на модели без retry-логики; 3) Агент запущен без активной фазы — ACTIVE_PHASE.md не был прочитан перед делегированием, и агент не знал, какой стек используется (Next.js App Router vs Pages Router).",
+      "solution": "1) При делегировании frontend-agent ВСЕГДА указывать: точный путь к файлу (`src/components/layout/Header.tsx`), текущий код компонента как INPUT, design tokens для кнопки (цвет, размер, иконка). 2) Добавить в Task Brief явный CONSTRAINTS блок с указанием роутера и версии Next.js. 3) Настроить pipeline так, чтобы при \"Execution failed\" без score логировался последний prompt, отправленный агенту. 4) Для UI-задач такого уровня (< 20 строк кода) — использовать модель с меньшим timeout, не GPT-4 уровня.",
+      "date_discovered": "2026-03-13",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "11e62f7d-cba8-4c50-8a5d-3ef11c0efb3f"
+    },
+    {
+      "id": "FAIL-009",
+      "category": "architecture",
+      "title": "Одношаговый pipeline для UI-задачи без QA и Cyber проверки",
+      "symptoms": "Pipeline для задачи \"добавить кнопку выхода\" содержал только один шаг (s4-frontend). Отсутствовали: qa-agent для проверки что logout корректно очищает сессию/токены, cyber-agent для проверки что client-side logout не оставляет чувствительные данные в localStorage/cookies. Кнопка выхода — это auth-related функциональность, которая по правилам Orchestrator требует обязательного участия cyber-agent.",
+      "root_cause": "Задача была классифицирована как \"UI task\" (добавить кнопку), а не как \"auth task\" (реализовать logout flow). Это привело к неполному pipeline без обязательных security и quality gates.",
+      "solution": "Любая задача содержащая слова \"выход\", \"logout\", \"signout\", \"сессия\", \"токен\" — автоматически триггерит расширенный pipeline: frontend-agent → cyber-agent (проверка: токены очищены, redirect корректен, нет утечки state) → qa-agent (edge cases: двойной клик, logout во время pending request, logout на мобильном). Добавить это правило в routing table knowledge-base.",
+      "date_discovered": "2026-03-13",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "11e62f7d-cba8-4c50-8a5d-3ef11c0efb3f"
+    },
+    {
+      "id": "FAIL-010",
+      "category": "build",
+      "title": "Нулевые Quality Scores как индикатор pre-execution failure",
+      "symptoms": "Все quality scores отсутствуют (пустые). Это означает агент упал до того, как сгенерировал какой-либо output — то есть проблема на уровне инициализации агента или парсинга Task Brief, а не на уровне качества генерации.",
+      "root_cause": "Когда score = null/empty, стандартная retry-логика (score < 8 → retry with feedback) не срабатывает, потому что нечего оценивать. Pipeline завершается как \"failed\" без попытки retry и без эскалации к пользователю — нарушение правила \"Max 2 retries per agent\".",
+      "solution": "В pipeline-движке добавить отдельную ветку: если execution_status = \"failed\" AND scores = empty → это не quality failure, это execution failure → немедленная эскалация к пользователю с диагностическим отчётом (последний prompt, модель, timeout, environment). Не считать как retry попытку.",
+      "date_discovered": "2026-03-13",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "11e62f7d-cba8-4c50-8a5d-3ef11c0efb3f"
+    },
+    {
+      "id": "FAIL-011",
+      "category": "architecture",
+      "title": "Пропуск архитектурного шага ведёт к неполному контексту у Frontend-агента",
+      "symptoms": "Шаг архитектуры был пропущен в пайплайне, из-за чего Frontend-агент (s4-frontend) получил неполный контекст. Агент вынужден был описывать, что он может сделать, вместо того чтобы реализовать задачу — фактически заблокировался на запросе недостающей информации.",
+      "root_cause": "Пайплайн был запущен без обязательного шага Architect-Agent, который должен предоставлять структуру компонентов, точки монтирования и контракты API. Frontend-агент не может принимать архитектурные решения самостоятельно согласно правилам ролей.",
+      "solution": "Для задач типа \"добавить UI-элемент в существующий компонент\" (header, nav, layout) — добавить в пайплайн минимальный шаг architect-agent с единственной целью: указать файл компонента, props и место вставки. Альтернатива — передавать эти данные напрямую в INPUT секции Task Brief, если архитектура уже известна.",
+      "date_discovered": "2026-03-13",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "db825bc4-17c1-4c87-8565-a0243c4ca3cb"
+    },
+    {
+      "id": "FAIL-012",
+      "category": "build",
+      "title": "Задача с неполным контекстом завершается как \"completed\" вместо \"blocked\"",
+      "symptoms": "Пайплайн имеет статус `completed`, хотя реальный результат — агент запросил недостающие данные и ничего не реализовал. Кнопка выхода в header не добавлена. Статус вводит в заблуждение.",
+      "root_cause": "Система статусов пайплайна отслеживает завершение шага (агент ответил), а не достижение цели шага (задача реализована). Нет разницы между \"агент выполнил задачу\" и \"агент объяснил, почему не может выполнить задачу\".",
+      "solution": "Ввести статус `blocked` для шагов, где агент явно указывает на недостаток входных данных. Триггер: если вывод агента содержит паттерны \"нужно от вас\", \"недоступна\", \"пропущен\" — автоматически помечать шаг как `blocked`, не `completed`, и останавливать пайплайн с запросом к пользователю.",
+      "date_discovered": "2026-03-13",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "db825bc4-17c1-4c87-8565-a0243c4ca3cb"
+    },
+    {
+      "id": "FAIL-013",
+      "category": "build",
+      "title": "Frontend-агент падает без диагностируемой ошибки при простых UI-задачах",
+      "symptoms": "Шаг s4-frontend завершился с ошибкой \"Execution failed\" при попытке добавить кнопку выхода в header. Задача тривиальная (UI-компонент, ~10-20 строк кода), однако пайплайн упал полностью за 42.5 секунды без retry и без содержательного error message.",
+      "root_cause": "Ошибка \"Execution failed\" без stack trace указывает на одну из трёх причин: (1) отсутствие контекста — агент не получил путь к файлу header-компонента и не смог его найти; (2) отсутствие auth-контекста — кнопка logout требует знания о механизме аутентификации (session/JWT/cookie), которое не было передано в task brief; (3) инфраструктурный сбой самого агента (timeout, OOM, недоступность модели).",
+      "solution": "1. При делегировании logout-кнопки frontend-агенту обязательно передавать: точный путь к header-компоненту, используемый auth-механизм (signOut из next-auth / clear cookie / etc.), импорты которые нужны. 2. Добавить в task brief секцию CONTEXT с результатом `find . -name \"*header*\" -o -name \"*Header*\"`. 3. Если причина инфраструктурная — добавить retry: 1 для s4-frontend в конфиге пайплайна, т.к. простые UI-задачи не должны падать без retry.",
+      "date_discovered": "2026-03-13",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "28c69700-bd93-451c-8535-88f39677a788"
+    },
+    {
+      "id": "FAIL-014",
+      "category": "architecture",
+      "title": "Задача logout делегирована без передачи auth-контекста",
+      "symptoms": "Кнопка выхода — это не чистый UI-компонент: она вызывает функцию завершения сессии, которая зависит от конкретной auth-реализации проекта. Пайплайн направил задачу напрямую в s4-frontend, пропустив проверку knowledge-base и не передав информацию о том, как устроена аутентификация в Beauty CRM.",
+      "root_cause": "Отсутствует обязательная проверка `knowledge-base/tech-decisions.json` перед роутингом задач, затрагивающих auth. Это нарушает правило Orchestrator: \"перед роутингом проверить knowledge-base на past decisions\".",
+      "solution": "Для любой задачи со словами \"выход\", \"logout\", \"signOut\", \"сессия\" — обязательно: (1) прочитать knowledge-base/tech-decisions.json на предмет записи об auth-провайдере; (2) включить найденное решение в секцию INPUT task brief для frontend-агента; (3) если запись отсутствует — сначала запросить у architect-agent, затем делегировать frontend.",
+      "date_discovered": "2026-03-13",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "28c69700-bd93-451c-8535-88f39677a788"
+    },
+    {
+      "id": "FAIL-015",
+      "category": "devops",
+      "title": "Нулевые quality scores при failed-статусе скрывают реальную причину сбоя",
+      "symptoms": "В результатах выполнения поле QUALITY SCORES пустое. При падении агента оценки не выставляются, что делает post-mortem анализ неполным — невозможно определить, упал ли агент до генерации вывода или вывод был сгенерирован, но не прошёл валидацию.",
+      "root_cause": "Система quality scoring срабатывает только на успешный вывод агента. Если агент не вернул output (execution error), scoring pipeline не запускается и не логирует даже частичный результат.",
+      "solution": "Добавить в pipeline логику: при failed-статусе агента сохранять последний partial output (если есть) и выставлять score 0 с явной причиной \"execution_failed_before_output\". Это позволит отличать \"агент упал при старте\" от \"агент сгенерировал невалидный результат\".",
+      "date_discovered": "2026-03-13",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "28c69700-bd93-451c-8535-88f39677a788"
+    },
+    {
+      "id": "FAIL-016",
+      "category": "build",
+      "title": "PM-агент генерирует PRD без ответов на уточняющие вопросы оркестратора",
+      "symptoms": "Оркестратор (s1) сформировал детальный список уточняющих вопросов к команде/заказчику. PM-агент (s2) зафиксировал в своём выводе, что \"ответы от команды не получены\", но всё равно создал полноценный PRD с предположениями. Пайплайн продолжился без подтверждения требований.",
+      "root_cause": "Отсутствует обязательный Checkpoint между s1 и s2 для сбора ответов на уточняющие вопросы. PM-агент заполнил пробелы допущениями, что является нормальным поведением при async-работе, но создаёт риск расхождения с реальными требованиями.",
+      "solution": "Для задач, где оркестратор генерирует уточняющие вопросы, добавить явный Checkpoint 1.5 (после s1, до s2) с ожиданием подтверждения пользователя. Альтернатива: PM-агент должен явно маркировать каждое допущение тегом `[ASSUMED — требует подтверждения]` и выносить их в отдельный раздел PRD.",
+      "date_discovered": "2026-03-13",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "9ea3ecdf-b534-454c-82d7-2ddbd1b4f75d"
+    },
+    {
+      "id": "FAIL-017",
+      "category": "build",
+      "title": "QA Agent Output Truncation on Multi-Finding Reports",
+      "symptoms": "Step s5-qa scored 7/10 (C:5.5) because the output was truncated mid-way through the third finding block (QA-1-003 and beyond were missing). The QA report covered only 2 of N expected findings, making the output incomplete despite high specificity (8.5) and reasonable actionability (7).",
+      "root_cause": "QA Agent attempted to enumerate all findings in a single response without chunking. When the report grew beyond the model's effective output window, the response was cut off mid-sentence, silently dropping the remaining findings rather than signaling incompleteness.",
+      "solution": "QA Agent should structure output as: (1) findings summary table first with total count declared upfront, (2) then detailed blocks. If count > 5, split into batches with explicit \"Part 1 of N\" headers. Orchestrator should validate: declared finding count matches actual finding blocks before scoring completeness above 7.",
+      "date_discovered": "2026-03-14",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "f8650362-296e-490c-863b-a011570e589c"
+    },
+    {
+      "id": "FAIL-018",
+      "category": "architecture",
+      "title": "Backend and Frontend Agents Proceeding Without Architect Output",
+      "symptoms": "Steps s4-backend and s4-frontend both flagged their own architecture assumptions with `[ASSUMED]` markers, indicating they executed without receiving the architect-agent's design. Both agents scored 10/10 despite this gap, meaning quality scoring did not penalize assumption-based work.",
+      "root_cause": "The pipeline ran s3-architect and s4-backend/s4-frontend in a configuration where the architect output was either not passed as input context or the parallel track started before architect completion. Agents compensated professionally by marking assumptions, but the dependency chain was not enforced.",
+      "solution": "Enforce hard dependency gate: s4-backend and s4-frontend must receive s3-architect output as explicit INPUT field in their Task Brief. Orchestrator should block routing to implementation agents if architect output is absent or scored below 8. Add to routing rules: \"DEPENDS ON: s3-architect PASS\" for all implementation steps.",
+      "date_discovered": "2026-03-14",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "f8650362-296e-490c-863b-a011570e589c"
+    },
+    {
+      "id": "FAIL-019",
+      "category": "build",
+      "title": "Quality Score Inflation When Assumptions Mask Missing Dependencies",
+      "symptoms": "s4-backend and s4-frontend both received 10/10 scores despite operating on assumed architecture rather than validated design. The scoring rubric (completeness, specificity, actionability) does not account for dependency fulfillment — an agent can score perfectly while building on unvalidated foundations.",
+      "root_cause": "The quality gate scoring criteria evaluate the output in isolation, not relative to whether required inputs were actually provided. A well-written assumption is indistinguishable from a well-written fact under the current rubric.",
+      "solution": "Add a fourth scoring dimension: **Dependency Integrity** — were all declared DEPENDS ON inputs actually received and used? If any `[ASSUMED]` markers are present in output, cap Dependency Integrity at 5, which should reduce overall score below 8 and trigger a review flag. This prevents assumption-based work from silently passing quality gates.",
+      "date_discovered": "2026-03-14",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "f8650362-296e-490c-863b-a011570e589c"
+    },
+    {
+      "id": "FAIL-020",
+      "category": "build",
+      "title": "PM-Agent abort без причины при генерации user stories для сложного security-контекста",
+      "symptoms": "Шаг s2-pm завершился с ошибкой \"signal is aborted without reason\" после 1 retry, набрав 4.3/10 (C:4.5 S:5 A:3.5). Pipeline остановился полностью — все downstream шаги (architect, cyber, backend, frontend, qa, devops) остались в pending. Задача PM-Agent включала создание user stories для системы с security-требованиями (шифрование ключей, audit log, валидация через внешние API).",
+      "root_cause": "Вероятно, PM-Agent получил слишком объёмный контекст из s1-orchestrator (10/10, детальный brief) плюс неполный research из s0 (обрезан на полуслове). Комбинация большого входного контекста + необходимость генерировать acceptance criteria для security-специфичных stories (шифрование, audit log, валидация ключей у трёх провайдеров) могла вызвать timeout или context overflow, приведший к abort сигналу. Низкий actionability score (3.5) указывает, что даже частичный output был непригоден для передачи architect-agent.",
+      "solution": "(1) Разбить PM-задачу на два под-шага: сначала базовые CRUD stories (без security), затем отдельный шаг для security/audit stories. (2) Передавать PM-Agent только резюме research (не полный документ), если research > 2000 токенов. (3) Добавить fallback: если PM abort после 1 retry — Orchestrator генерирует минимальный story skeleton самостоятельно и передаёт architect с пометкой \"needs PM refinement post-pipeline\". (4) Установить явный timeout guard на PM-шаге с graceful partial output.",
+      "date_discovered": "2026-03-14",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "6bd3e517-9162-4258-a467-d0a687a3e550"
+    },
+    {
+      "id": "FAIL-021",
+      "category": "build",
+      "title": "Research output обрезан на полуслове — downstream агенты получают неполный контекст",
+      "symptoms": "s0-research завершился с 5.5/10 после 3 попыток (2 retries). Документ обрезан на слове \"— оп\", отсутствуют разделы competitive analysis провайдеров и, вероятно, compliance/security секции. Несмотря на это, output был принят с предупреждением и передан дальше. Это значит все последующие агенты (PM, Architect, Cyber) работали бы с заведомо неполной базой знаний.",
+      "root_cause": "Research-Agent превысил output limit модели при попытке сгенерировать полный документ за один вызов. Три попытки дали одинаковый результат — системная проблема с размером output, а не случайный сбой. Порог приёмки был снижен до 5.5 вместо требуемых 8+, что создало \"тихое\" распространение некачественных данных по всему pipeline.",
+      "solution": "(1) Research-Agent должен генерировать output по секциям (max 3 секции за вызов), затем Orchestrator конкатенирует. (2) Ввести правило: если research score < 7 — pipeline НЕ стартует, возвращается к пользователю с запросом упростить scope или разбить задачу. (3) Детектировать обрыв на полуслове программно (проверка: последний символ не является завершающим знаком препинания или markdown-блоком) и автоматически запрашивать продолжение с \"continue from: [last complete sentence]\".",
+      "date_discovered": "2026-03-14",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "6bd3e517-9162-4258-a467-d0a687a3e550"
+    },
+    {
+      "id": "FAIL-022",
+      "category": "build",
+      "title": "Принятие sub-threshold output с \"warning\" вместо hard stop создаёт downstream cascade",
+      "symptoms": "Orchestrator принял s0-research с оценкой 5.5/10 (ниже установленного порога 8+) с формулировкой \"Accepted with warning\". Это решение было принято осознанно, однако привело к тому, что PM-Agent в s2 получил неполный контекст и, возможно, это стало contributing factor к его abort. Паттерн \"принять с предупреждением\" создаёт иллюзию прогресса при реальной деградации качества.",
+      "root_cause": "Отсутствие чёткого правила: при каком минимальном score допустим \"accept with warning\" vs hard stop. Orchestrator имеет дискрецию, но без guardrails эта дискреция используется в сторону \"продолжить\" вместо \"остановить\".",
+      "solution": "Ввести явную политику: score 6-7 → \"accept with warning\" допустимо только если недостающие секции не являются входными данными для следующего агента. Score < 6 → hard stop всегда, без исключений. Для данного случая: research с отсутствующим competitive analysis и security секциями напрямую влияет на PM (acceptance criteria) и Cyber (threat model) — должен быть hard stop.",
+      "date_discovered": "2026-03-14",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "6bd3e517-9162-4258-a467-d0a687a3e550"
+    }
+  ]
+}

@@ -1,0 +1,169 @@
+{
+  "_description": "Reusable patterns and anti-patterns — maintained by Architect-Agent and Backend-Agent",
+  "_updated": "2026-03-14",
+  "patterns": [
+    {
+      "id": "PAT-001",
+      "name": "API proxy with cached fallback",
+      "context": "All Agent Hub API calls from Mission Control frontend",
+      "pattern": "Try agentHubFetch() → on failure, return cached data from lib/agent-hub-cache.ts",
+      "code_reference": "lib/agent-hub-client.ts, app/api/agent-hub/*/route.ts",
+      "when_to_use": "Any new API route that proxies to Agent Hub"
+    },
+    {
+      "id": "PAT-002",
+      "name": "File-based storage with ensureDataDir",
+      "context": "Local persistence for logs, config, prompt overrides",
+      "pattern": "ensureDataDir() → fs.readFile/writeFile in data/ directory",
+      "code_reference": "lib/logs-storage.ts, lib/jira/config.ts",
+      "when_to_use": "Any new local data that needs to persist across restarts"
+    },
+    {
+      "id": "PAT-003",
+      "name": "Dual-source streaming (Agent Hub + OpenAI)",
+      "context": "Chat needs resilience when Agent Hub is down",
+      "pattern": "Try Agent Hub executeAgent() → on failure, fall back to OpenAI with cached system prompt",
+      "code_reference": "app/api/chat/route.ts",
+      "when_to_use": "Only for chat endpoint. Do not duplicate this pattern elsewhere."
+    },
+    {
+      "id": "PAT-004",
+      "name": "SWR hooks with revalidateOnFocus: false",
+      "context": "All client-side data fetching",
+      "pattern": "useSWR(url, fetcher, { revalidateOnFocus: false })",
+      "code_reference": "lib/hooks/use-agents.ts",
+      "when_to_use": "Any new client-side data fetching hook"
+    },
+    {
+      "id": "PAT-005",
+      "name": "singleFlight request deduplication",
+      "context": "SB frontend makes duplicate API calls from multiple components rendering simultaneously",
+      "pattern": "Wrap fetch in singleFlight(key, fetchFn) — if same key is in-flight, return existing promise instead of new request",
+      "code_reference": "sb/sb-chat-ui/src/utils/singleFlight.ts",
+      "when_to_use": "Any data fetching that multiple components trigger simultaneously",
+      "source_project": "sb"
+    },
+    {
+      "id": "PAT-006",
+      "name": "Metadata-driven integration framework",
+      "context": "SB supports 27 integrations (JIRA, Linear, SendGrid, ElevenLabs, etc.) that need discoverable actions",
+      "pattern": "Each integration exports action metadata (id, name, description, parameters schema). /integrations/discover returns all. AI assistants use as function calling tools.",
+      "code_reference": "sb/sb-api-services-v2/src/integrations/",
+      "when_to_use": "When adding new external service integrations to agent capabilities",
+      "source_project": "sb"
+    },
+    {
+      "id": "PAT-007",
+      "name": "Prompt versioning with AI-generated change descriptions",
+      "context": "SB tracks every system prompt change for auditability",
+      "pattern": "On assistant update, save new PromptHistory record with version++. Use GPT-4o-mini to generate human-readable change description comparing old vs new prompt.",
+      "code_reference": "sb/sb-api-services-v2/src/services/prompt-history.service.ts",
+      "when_to_use": "Any system that manages agent prompts and needs audit trail",
+      "source_project": "sb"
+    },
+    {
+      "id": "PAT-008",
+      "name": "Scope-based file management with TTL",
+      "context": "SB handles file uploads across different lifecycle scopes",
+      "pattern": "Files tagged with scope (temporary/session/agent/team/company). Temporary files auto-deleted after TTL. Multi-backend: memory, disk, GCP, S3.",
+      "code_reference": "sb/sb-api-services-v2/src/services/unified-workspace.service.ts",
+      "when_to_use": "Any file upload system that needs lifecycle management",
+      "source_project": "sb"
+    },
+    {
+      "id": "PAT-009",
+      "name": "Research-Agent как первый фильтр: корректный отказ от нерелевантной задачи",
+      "context": "В шаге s0-research агент получил техническое задание на разработку UI (\"Добавить кнопку выхода в header\"), корректно идентифицировал несоответствие своему профилю и отказался выполнять задачу, вернув структурированный ответ с объяснением. Оркестратор (s1) подхватил управление и перенаправил задачу по правильному маршруту.",
+      "pattern": "Паттерн работает: агент-фильтр на входе пайплайна повышает надёжность маршрутизации. Стоит закрепить в конфигурации пайплайна явный шаг \"pre-routing check\" с возможностью skip для технических задач, чтобы не тратить 15.5s на очевидный bypass.",
+      "code_reference": "",
+      "when_to_use": "Пайплайн имеет фиксированный первый шаг (research), который не всегда релевантен для задач типа \"добавить UI-элемент\". Агент не был заблокирован — он отработал роль \"умного фильтра\".",
+      "source_pipeline": "9ea3ecdf-b534-454c-82d7-2ddbd1b4f75d"
+    },
+    {
+      "id": "PAT-010",
+      "name": "Параллельный запуск Architect + Cyber на одном шаге (s3/s3.5)",
+      "context": "Архитектурное решение (s3-architect, 73.8s) и threat model (s3.5-cyber, 66.2s) выполнялись как параллельные шаги одного уровня. Cyber-agent получил на вход архитектуру и выдал threat model до того, как frontend начал реализацию. Это обеспечило security-by-design: фронтенд (s4) получил оба артефакта одновременно.",
+      "pattern": "Паттерн \"Architect ∥ Cyber → Frontend\" следует зафиксировать как обязательный для всех фич, затрагивающих auth, сессии, платежи или персональные данные. Экономия времени по сравнению с последовательным запуском: ~66s.",
+      "code_reference": "",
+      "when_to_use": "Сознательное архитектурное решение: безопасность не добавляется постфактум, а встраивается в процесс параллельно с проектированием.",
+      "source_pipeline": "9ea3ecdf-b534-454c-82d7-2ddbd1b4f75d"
+    },
+    {
+      "id": "PAT-011",
+      "name": "Single-agent UI pipeline достаточен для изолированных React-компонентов",
+      "context": "Задача на создание PipelineStatusBadge (TypeScript + Tailwind + Lucide) была выполнена одним агентом (s4-frontend) за 17.5s с оценкой 10/10 без ретраев и эскалаций. Архитектура pipeline не требовала подключения architect-agent, qa-agent или cyber-agent.",
+      "pattern": "Для чисто фронтендовых компонентов без API-интеграции, state management или security-поверхности — маршрутизация только через frontend-agent является оптимальной стратегией. Не добавляй агентов ради полноты pipeline, если домен задачи однозначен.",
+      "code_reference": "",
+      "when_to_use": "N/A — успешный паттерн",
+      "source_pipeline": "611a82c1-ebf4-4da7-af53-f1dff59b6e48"
+    },
+    {
+      "id": "PAT-012",
+      "name": "Single-step frontend pipeline sufficient for self-contained UI components",
+      "context": "The full pipeline for PipelineStatusBadge was completed by a single agent (s4-frontend) in 30.4s with a perfect score of 10/10 (C:10, S:10, A:10), with no retries, no escalations, and no handoffs to other agents (architect, qa, cyber, devops).",
+      "pattern": "For purely presentational, self-contained React components with explicit tech constraints given in the prompt, route directly to frontend-agent only. Skip architect-agent (no structural decisions), qa-agent (no logic branches or edge-case-heavy state), and cyber-agent (no public surface, no sensitive data). This reduces pipeline overhead by ~70% and total duration from estimated 90–120s to under 35s.",
+      "code_reference": "",
+      "when_to_use": "N/A — success pattern. The task was narrowly scoped: a stateless presentational component with no API calls, no auth, no DB interaction, and no cross-cutting concerns. All required context (Tailwind, Lucide, status enum, animation requirement) was provided upfront in the task brief.",
+      "source_pipeline": "6bf5f54f-7ea2-4548-83b0-e1f884690dcb"
+    },
+    {
+      "id": "PAT-013",
+      "name": "Client-Side Store Snapshot as API Data Source Requires Architectural Guardrails",
+      "context": "The core design — GET /api/orchestration/export reading execution history from a Zustand store snapshot — was flagged by the PM (s2-pm) as architecturally questionable. Zustand is a client-side state manager; a server-side API endpoint cannot natively read it. The architect (s3-architect) correctly identified this as the key decision point requiring resolution before implementation.",
+      "pattern": "Establish canonical pattern for this codebase: Zustand store is ephemeral client state only. For any data that must be served via API, it must first be persisted to a server-side store (DB or file). Export endpoint should read from server-side persistence layer, not attempt to access client store. Document this in `knowledge-base/tech-decisions.json` as a standing architectural constraint.",
+      "code_reference": "",
+      "when_to_use": "The original task brief conflated client-side state (Zustand) with server-side persistence. The API endpoint would need either: (a) the client to POST the snapshot to the server first, or (b) the history to be persisted server-side independently of Zustand.",
+      "source_pipeline": "f8650362-296e-490c-863b-a011570e589c"
+    },
+    {
+      "id": "PAT-014",
+      "name": "Orchestrator как единственный quality gate создаёт single point of failure для pipeline",
+      "context": "s1-orchestrator получил 10/10 и сгенерировал детальный уточняющий brief. Однако весь pipeline завис после s2-pm abort — нет механизма partial recovery или checkpoint restart. Все 9 downstream шагов остались в pending без возможности возобновить с точки отказа.",
+      "pattern": "Реализовать checkpoint-based restart: сохранять output каждого completed шага в `pipeline-state/{run-id}/{step-id}.json`. При retry запускать pipeline с последнего успешного checkpoint, не с начала. Для данного pipeline: s0 и s1 уже completed — повторный запуск должен стартовать с s2-pm, передавая сохранённые outputs.",
+      "code_reference": "",
+      "when_to_use": "Pipeline реализован как линейная цепочка без checkpoint persistence. При abort любого шага весь прогресс теряется. Нет разделения между \"блокирующими\" и \"не блокирующими\" шагами.",
+      "source_pipeline": "6bd3e517-9162-4258-a467-d0a687a3e550"
+    }
+  ],
+  "anti_patterns": [
+    {
+      "id": "ANTI-001",
+      "name": "Using npx next instead of local binary",
+      "problem": "Root monorepo has next@16.1.1, mission-control needs 15.5.4",
+      "solution": "Always use node_modules/.bin/next for build/dev commands"
+    },
+    {
+      "id": "ANTI-002",
+      "name": "Hardcoding Jira project key",
+      "problem": "Project key may change, breaks automation",
+      "solution": "Always use listProjects API or read from jira-config.json defaultProjectKey"
+    },
+    {
+      "id": "ANTI-003",
+      "name": "Date.now() or Math.random() in SSR components",
+      "problem": "Causes hydration mismatch between server and client",
+      "solution": "Use useEffect for dynamic values, or pass as props from server"
+    },
+    {
+      "id": "ANTI-004",
+      "name": "Hybrid state management without migration plan",
+      "problem": "SB uses both Zustand (12 stores) and MobX State Tree (4 entity stores). Two paradigms increase onboarding time and bug surface.",
+      "solution": "Freeze MobX stores — no new features. Migrate entity CRUD to Zustand one model at a time. Start with Team (simplest).",
+      "source_project": "sb"
+    },
+    {
+      "id": "ANTI-005",
+      "name": "Company isolation via application-layer filter only",
+      "problem": "Every MongoDB query must include companyId filter. One missed filter = cross-tenant data leak.",
+      "solution": "Add Mongoose middleware (pre-find, pre-findOne) that auto-injects companyId from request context. Defense in depth.",
+      "source_project": "sb"
+    },
+    {
+      "id": "ANTI-006",
+      "name": "27 integrations without circuit breaker",
+      "problem": "One slow/failing integration (e.g., JIRA timeout) blocks the entire request chain.",
+      "solution": "Add circuit breaker pattern per integration: after 3 failures in 60s, stop calling for 30s. Return cached/fallback response.",
+      "source_project": "sb"
+    }
+  ]
+}

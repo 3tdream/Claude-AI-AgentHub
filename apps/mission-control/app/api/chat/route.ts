@@ -47,10 +47,8 @@ async function loadPrompt(agentId: string): Promise<string> {
 }
 
 export async function POST(request: NextRequest) {
-  console.log("[Chat API] POST received");
   try {
     const { agentId, messages } = await request.json();
-    console.log("[Chat API] agentId:", agentId, "messages:", messages.length);
 
     if (!agentId || !messages?.length) {
       return Response.json(
@@ -64,7 +62,6 @@ export async function POST(request: NextRequest) {
 
     // ── Primary path: Agent Hub executeAgent() ──
     try {
-      console.log("[Chat API] Trying Agent Hub for agent:", agentId);
       const userInput = buildContextInput(messages);
 
       const result = await executeAgent({
@@ -73,7 +70,6 @@ export async function POST(request: NextRequest) {
       });
 
       const responseText = result.content || "No response from agent.";
-      console.log("[Chat API] Agent Hub success, response length:", responseText.length);
 
       // Wrap as SSE: single chunk + DONE
       const encoder = new TextEncoder();
@@ -81,13 +77,15 @@ export async function POST(request: NextRequest) {
         `data: ${JSON.stringify({ text: responseText })}\n\ndata: [DONE]\n\n`
       );
 
-      // Fire-and-forget log
+      // Fire-and-forget log (retry once on failure)
       addLog({
         type: "chat",
         agentId,
         agentName: agent?.name,
         content: `User: ${userMsg.slice(0, 200)}${userMsg.length > 200 ? "..." : ""}\nAgent: ${responseText.slice(0, 300)}${responseText.length > 300 ? "..." : ""}`,
-      }).catch(() => {});
+      }).catch(() =>
+        addLog({ type: "chat", agentId, agentName: agent?.name, content: `[log retry] Chat with ${agent?.name || agentId}` }).catch(() => {})
+      );
 
       return new Response(body, {
         headers: {
@@ -97,12 +95,11 @@ export async function POST(request: NextRequest) {
           "X-Chat-Source": "agent-hub",
         },
       });
-    } catch (hubError) {
-      console.warn("[Chat API] Agent Hub failed, falling back to OpenAI:", hubError instanceof Error ? hubError.message : hubError);
+    } catch {
+      // Agent Hub unavailable — fall through to OpenAI fallback
     }
 
     // ── Fallback path: Direct OpenAI streaming ──
-    console.log("[Chat API] Using OpenAI fallback");
     const systemPrompt = await loadPrompt(agentId);
     const model = mapModel(agent?.llmModel || "gpt-4.1-mini");
 
@@ -141,11 +138,12 @@ export async function POST(request: NextRequest) {
               agentId,
               agentName: agent?.name,
               content: `User: ${userMsg.slice(0, 200)}${userMsg.length > 200 ? "..." : ""}\nAgent: ${fullResponse.slice(0, 300)}${fullResponse.length > 300 ? "..." : ""}`,
-            }).catch(() => {});
+            }).catch(() =>
+              addLog({ type: "chat", agentId, agentName: agent?.name, content: `[log retry] Chat with ${agent?.name || agentId}` }).catch(() => {})
+            );
           }
-        } catch (err) {
+        } catch {
           if (!aborted) {
-            console.error("[Chat API] Stream error:", err);
             controller.close();
           }
         }
@@ -156,7 +154,6 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    console.log("[Chat API] Starting OpenAI SSE stream");
     return new Response(readable, {
       headers: {
         "Content-Type": "text/event-stream",
@@ -168,7 +165,6 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("[Chat API] Error:", error);
     return Response.json(
       { error: error instanceof Error ? error.message : "Chat failed" },
       { status: 500 },

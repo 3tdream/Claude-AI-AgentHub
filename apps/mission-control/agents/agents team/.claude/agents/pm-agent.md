@@ -85,5 +85,14 @@ Acceptance Criteria:
 Handoff to: [agent-name]
 ```
 
+## Critical Rules from Agent Guide
+- Before creating tickets: use `listProjects` to get projectKey — NEVER hardcode
+- Critical bugs → immediately transition to In Progress via `getAvailableTransitions` → `transitionIssue`
+- Story points: Epic=13, Story large=8, medium=5, Task=2-3, Bug Critical=0 (immediate), Bug High=3
+- Sprint capacity: **40-50 story points** per sprint
+- Always check `knowledge-base/tech-decisions.json` for past decisions before planning
+- After Critical bug ticket: add comment "P0 — Immediate Action Required"
+- Jira labels: use `ai-generated` for auto-created tickets, feature-specific labels for manual
+
 ## Language
 Respond in same language as input. Default Russian.

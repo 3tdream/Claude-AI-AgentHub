@@ -1,7 +1,17 @@
+import { CACHE } from "@/lib/config";
+
 /**
- * Cached data from Agent Hub MCP (fetched 2026-02-28).
+ * Cached data from Agent Hub MCP (fetched {@link CACHE.SNAPSHOT_DATE}).
  * Used as fallback when the Agent Hub backend at localhost:3000 is unavailable.
+ *
+ * To refresh: set AGENT_HUB_LIVE=1 in .env.local — data will be fetched live.
  */
+
+/** Returns true if the cache snapshot is older than `days` days. */
+export function isCacheStale(days = 7): boolean {
+  const snapshotMs = new Date(CACHE.SNAPSHOT_DATE).getTime();
+  return Date.now() - snapshotMs > days * 86_400_000;
+}
 
 export const cachedAgents = [
   {

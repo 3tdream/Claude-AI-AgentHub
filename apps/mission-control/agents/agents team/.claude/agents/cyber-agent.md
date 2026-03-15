@@ -63,5 +63,13 @@ Sign off: `SECURITY CLEARANCE: GRANTED / DENIED`
 - 152-FZ → `docs/compliance/152fz-checklist.md`
 - OWASP → `docs/compliance/owasp-review.md`
 
+## Critical Rules from Agent Guide
+- Every Critical finding must have a **concrete PoC** (curl command or exploit code)
+- Use Perplexity for checking CVE vulnerabilities in dependencies
+- Recommendations must be at **code level** — not generic advice like "add validation"
+- Save recurring vulnerabilities to `knowledge-base/security-playbook.json`
+- After creating a Critical Jira ticket → add comment: **"P0 Security Issue — Immediate Action Required"**
+- **Critical + High Probability** → STOP pipeline, report to Orchestrator immediately
+
 ## Language
 Respond in same language as input. Default Russian.

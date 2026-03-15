@@ -1,4 +1,5 @@
 import type { QualityScore } from "@/types";
+import { AGENT_IDS, PIPELINE } from "@/lib/config";
 
 export interface EvaluationResult {
   score: QualityScore;
@@ -53,6 +54,7 @@ export async function evaluateStepOutput(
   stageNumber: string,
   taskInput: string,
   agentOutput: string,
+  passThreshold?: number,
 ): Promise<EvaluationResult> {
   const prompt = EVALUATION_PROMPT
     .replace("{{agentName}}", agentName)
@@ -61,24 +63,25 @@ export async function evaluateStepOutput(
     .replace("{{agentOutput}}", agentOutput.slice(0, 2000));
 
   try {
-    const res = await fetch("/api/agent-hub/execute", {
+    const res = await fetch("/api/ai/execute", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        assistantId: "orchestrator",
+        agentId: AGENT_IDS.ORCHESTRATOR,
+        model: "sonnet-4-6",
         userInput: prompt,
       }),
     });
     const data = await res.json();
 
     if (data.success && data.content) {
-      return parseEvaluationResponse(data.content);
+      return parseEvaluationResponse(data.content, passThreshold);
     }
   } catch {
     // If evaluation fails, default to pass with placeholder
   }
 
-  // Fallback: generate a conservative pass
+  // Fallback: conservative fail — will trigger retry
   return {
     score: { completeness: 7.5, specificity: 7.5, actionability: 7.5, overall: 7.5 },
     passed: false,
@@ -92,7 +95,7 @@ export async function evaluateStepOutput(
  * [SCORE] completeness: 8.5, specificity: 7.0, actionability: 9.0 → PASS
  * [FEEDBACK] The architecture section lacks database schema details.
  */
-function parseEvaluationResponse(response: string): EvaluationResult {
+function parseEvaluationResponse(response: string, passThreshold: number = PIPELINE.QUALITY_PASS_THRESHOLD): EvaluationResult {
   const lines = response.split("\n").map((l) => l.trim()).filter(Boolean);
 
   let completeness = 7;
@@ -140,7 +143,7 @@ function parseEvaluationResponse(response: string): EvaluationResult {
   const overall = round((completeness + specificity + actionability) / 3);
 
   // Override pass/fail based on actual score (trust the math over LLM text)
-  passed = overall >= 8;
+  passed = overall >= passThreshold;
 
   return {
     score: { completeness, specificity, actionability, overall },

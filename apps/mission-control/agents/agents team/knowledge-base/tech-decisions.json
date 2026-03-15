@@ -1,0 +1,158 @@
+{
+  "_description": "Architecture Decision Records — maintained by Architect-Agent and DevOps-Agent",
+  "_updated": "2026-03-14",
+  "decisions": [
+    {
+      "id": "ADR-001",
+      "title": "Dual database for 152-FZ compliance",
+      "date": "2026-02",
+      "status": "accepted",
+      "context": "Beauty CRM handles PII (client names, phones, medical data for Scenario B). Russian 152-FZ requires PII stored on Russian servers.",
+      "decision": "Supabase PostgreSQL for non-PII (bookings, schedules, services). Timeweb Cloud PostgreSQL for PII (client profiles, medical records).",
+      "tradeoffs": "Increased complexity in joins across DBs, need sync layer. But ensures legal compliance and Supabase performance for high-traffic reads.",
+      "alternatives_rejected": [
+        "Single Supabase (152-FZ violation)",
+        "Single Timeweb (poor DX, no realtime)"
+      ]
+    },
+    {
+      "id": "ADR-002",
+      "title": "Web pages as primary booking channel",
+      "date": "2026-02",
+      "status": "accepted",
+      "context": "Need to decide between Telegram bot or web for primary booking flow.",
+      "decision": "Web pages (Next.js) as primary. Telegram as secondary for notifications only.",
+      "tradeoffs": "Web has wider reach and better SEO. Telegram limited to existing users. Web requires more frontend work.",
+      "alternatives_rejected": [
+        "Telegram-first (limited audience)",
+        "Both equally (doubles dev effort)"
+      ]
+    },
+    {
+      "id": "ADR-003",
+      "title": "Agent Hub as orchestration backend",
+      "date": "2026-02",
+      "status": "accepted",
+      "context": "Need centralized management for 16 AI agents with different LLM providers.",
+      "decision": "Custom Agent Hub REST API on localhost:3000 with Mission Control as management UI.",
+      "tradeoffs": "Self-hosted complexity, but full control over agent routing, cost tracking, and prompt management.",
+      "alternatives_rejected": [
+        "LangChain (too opinionated)",
+        "Direct API calls (no centralized management)"
+      ]
+    },
+    {
+      "id": "ADR-004",
+      "title": "Vercel AI SDK v5 for multi-provider abstraction",
+      "date": "2026-03",
+      "status": "accepted",
+      "context": "SingularityBridge needs to support OpenAI, Anthropic, and Google LLMs with unified interface.",
+      "decision": "Use Vercel AI SDK v5 as abstraction layer. Supports streaming, function calling, and token tracking across all providers.",
+      "tradeoffs": "SDK dependency, but eliminates 3 separate client implementations. Unified streaming/SSE pattern.",
+      "alternatives_rejected": [
+        "Direct provider SDKs (3x code duplication)",
+        "LiteLLM (Python, not Node)"
+      ],
+      "source_project": "sb"
+    },
+    {
+      "id": "ADR-005",
+      "title": "Hybrid state management Zustand + MobX State Tree",
+      "date": "2026-03",
+      "status": "deprecated",
+      "context": "SB frontend started with MobX State Tree for entity management. New features (chat, audio, screen share) use Zustand.",
+      "decision": "Zustand for all new stores (12 stores). MobX retained for legacy entity CRUD (assistant, company, user, team). Plan: migrate MobX to Zustand.",
+      "tradeoffs": "Two state paradigms increase cognitive load. But avoids risky full rewrite during active development.",
+      "alternatives_rejected": [
+        "Full MobX rewrite (too risky)",
+        "Redux Toolkit (too verbose)"
+      ],
+      "source_project": "sb"
+    },
+    {
+      "id": "ADR-006",
+      "title": "Stateless execution endpoint separate from session chat",
+      "date": "2026-03",
+      "status": "accepted",
+      "context": "External API consumers need one-shot agent execution without session overhead. Internal chat needs context history.",
+      "decision": "POST /assistant/:id/execute for stateless. POST /assistant/user-input for session-based with SSE streaming.",
+      "tradeoffs": "Two code paths to maintain, but clear separation of concerns. API keys only on stateless path.",
+      "alternatives_rejected": [
+        "Single endpoint with optional session (confusing API)"
+      ],
+      "source_project": "sb"
+    },
+    {
+      "id": "ADR-007",
+      "title": "Company-based multi-tenancy via query filter",
+      "date": "2026-03",
+      "status": "accepted",
+      "context": "SB serves multiple companies. Need data isolation.",
+      "decision": "All MongoDB queries filtered by companyId extracted from JWT/API key. No row-level security in DB.",
+      "tradeoffs": "Simpler implementation but relies on application layer for isolation. A missed filter = data leak. Consider Mongoose middleware for enforcement.",
+      "alternatives_rejected": [
+        "Separate databases per company (operational overhead)",
+        "MongoDB row-level security (limited support)"
+      ],
+      "source_project": "sb"
+    },
+    {
+      "id": "ADR-008",
+      "title": "Socket.io + Pusher dual real-time strategy",
+      "date": "2026-03",
+      "status": "accepted",
+      "context": "Need real-time updates for chat streaming and workspace sync. Direct WebSocket unreliable behind some proxies.",
+      "decision": "Socket.io for direct server-client. Pusher as cloud fallback for reliability. Events mirrored to both channels.",
+      "tradeoffs": "Double infrastructure cost, but ensures delivery. Pusher handles reconnection and presence tracking.",
+      "alternatives_rejected": [
+        "Socket.io only (unreliable behind corporate firewalls)",
+        "Pusher only (latency, cost at scale)"
+      ],
+      "source_project": "sb"
+    },
+    {
+      "id": "ADR-009",
+      "title": "JWT dual-token схема (15min access + 7d refresh) зафиксирована для Beauty CRM",
+      "date": "2026-03",
+      "status": "accepted",
+      "context": "В s3-architect и s3.5-cyber зафиксирована конкретная конфигурация токенов: access token TTL 15 минут, refresh token TTL 7 дней, multi-tenant контекст. Это решение стало входным контекстом для всех последующих агентов и определило реализацию logout на фронтенде.",
+      "decision": "Записать в `knowledge-base/tech-decisions.json`: ключ `auth.jwt.accessTTL: 900`, `auth.jwt.refreshTTL: 604800`, `auth.multiTenant: true`. Это предотвратит переопределение параметров в будущих задачах и конфликты при ревью.",
+      "tradeoffs": "Архитектурное решение принято на уровне Phase 2, зафиксировано в threat model документе `docs/compliance/threat-model-auth-phase2.md`.",
+      "alternatives_rejected": [],
+      "source_pipeline": "9ea3ecdf-b534-454c-82d7-2ddbd1b4f75d"
+    },
+    {
+      "id": "ADR-010",
+      "title": "Явная пометка [ASSUMED] в выводе агента как сигнал неполного брифа",
+      "date": "2026-03",
+      "status": "accepted",
+      "context": "s4-frontend добавил секцию `[ASSUMED]` в свой вывод, указав что компонент чисто фронтендовый. Это означает, что входной бриф не содержал явного утверждения об отсутствии серверной логики, и агент был вынужден делать предположения самостоятельно.",
+      "decision": "В Task Brief для frontend-agent добавлять явный раздел: `COMPONENT TYPE: pure-ui | connected | hybrid`. Это устраняет необходимость в предположениях и снижает риск того, что агент случайно добавит серверную логику или пропустит необходимую интеграцию. Шаблон брифа обновить в `knowledge-base/tech-decisions.json`.",
+      "tradeoffs": "Task Brief не содержал явного поля CONSTRAINTS с указанием \"no API calls, no server state, pure UI component\". Агент компенсировал это через assumption-маркировку.",
+      "alternatives_rejected": [],
+      "source_pipeline": "611a82c1-ebf4-4da7-af53-f1dff59b6e48"
+    },
+    {
+      "id": "ADR-011",
+      "title": "Upfront constraint specification (Tailwind + Lucide + animation type) eliminates ambiguity and drives perfect scores",
+      "date": "2026-03",
+      "status": "accepted",
+      "context": "The task brief explicitly named the UI library (Tailwind), icon library (Lucide), the exact status enum values (pending/running/completed/failed/paused), and the specific animation behavior (pulse for running). The frontend-agent produced a 10/10 output on the first attempt with zero clarification requests.",
+      "decision": "For all future UI component tasks, the task brief MUST include: (1) exact status/state enum values, (2) named animation type per state, (3) color semantic intent (e.g., \"red = failed, not orange\"), (4) icon library name. Encode this as a required checklist in the frontend-agent task brief template to prevent specificity score drops.",
+      "tradeoffs": "N/A — success pattern. Contrast with typical frontend tasks that score 6–7 on specificity because the agent must assume color semantics, icon choices, and animation style.",
+      "alternatives_rejected": [],
+      "source_pipeline": "6bf5f54f-7ea2-4548-83b0-e1f884690dcb"
+    },
+    {
+      "id": "ADR-012",
+      "title": "Assumption Marking Convention (`[ASSUMED]`) as Graceful Degradation Signal",
+      "date": "2026-03",
+      "status": "accepted",
+      "context": "Both s4-backend and s4-frontend independently adopted an `[ASSUMED]` annotation convention when operating without upstream architectural input. This allowed them to produce complete, high-quality outputs (both 10/10) while transparently communicating their dependency gaps to downstream agents and the Orchestrator.",
+      "decision": "Formalize `[ASSUMED]` as an official agent protocol. Any agent that proceeds without a required upstream input must: (1) prefix affected decisions with `[ASSUMED]`, (2) list all assumptions in a dedicated \"Assumptions\" section at the top of output, (3) flag to Orchestrator that a reconciliation pass is needed once the missing input arrives. Add this to agent prompt Layer 1 guidelines.",
+      "tradeoffs": "N/A — this is a positive emergent behavior.",
+      "alternatives_rejected": [],
+      "source_pipeline": "f8650362-296e-490c-863b-a011570e589c"
+    }
+  ]
+}
