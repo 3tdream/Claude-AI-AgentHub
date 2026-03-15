@@ -543,7 +543,12 @@ function buildPrompt(
   }
 
   // --- Inject project context ---
-  if (projectCtx && (projectCtx.architecture || projectCtx.rules)) {
+  // Skip full context injection for tool-enabled agents — they can read_file themselves.
+  // This saves ~12K tokens per turn in multi-turn tool loops.
+  const toolEnabledAgents = ["backend-agent", "frontend-agent", "architect-agent", "qa-agent", "cyber-agent", "devops-agent"];
+  const agentHasTools = toolEnabledAgents.includes(step.agentId);
+
+  if (projectCtx && (projectCtx.architecture || projectCtx.rules) && !agentHasTools) {
     let contextBlock = "\n\n---\n## PROJECT CONTEXT (AUTHORITATIVE — overrides all assumptions)\nThe following is the real project architecture and rules. You MUST use these exact file paths, type definitions, store names, and conventions. Do NOT write [ASSUMED] sections. Do NOT invent your own paths or stack.\n";
 
     if (projectCtx.architecture) {
@@ -560,6 +565,9 @@ function buildPrompt(
     }
 
     prompt = contextBlock + "\n---\n\n" + prompt;
+  } else if (agentHasTools && projectCtx) {
+    // Minimal hint — agent will use read_file for details
+    prompt += `\n\n---\nProject: ${projectCtx.architecture ? "ARCHITECTURE.md and CLAUDE.md are available — use read_file to access them." : "No architecture docs found."} Key files: app/(shell)/, lib/stores/, components/, types/. Use list_files and read_file to explore.`;
   }
 
   // --- Tool-use instructions for agents with file access ---
