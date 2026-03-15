@@ -1,0 +1,53 @@
+endpoint: GET /api/system/health
+auth: public (no auth required)
+rate_limit: 60 req/min per IP (nginx level — no application-level limiter needed for stateless endpoint)
+description: >
+  Lightweight liveness probe. Returns server status and process uptime.
+  No DB calls, no external calls. Response time target < 50ms.
+  Used by: Topbar polling (30s interval), external monitoring tools.
+
+input:
+  params: {}
+  query: {}
+  body: {}
+  headers: {}  # no auth headers required
+
+output:
+  200:
+    description: Server is running and healthy
+    schema:
+      type: object
+      required: [status, uptime]
+      properties:
+        status:
+          type: string
+          enum: ["ok"]
+          example: "ok"
+        uptime:
+          type: number
+          format: float
+          description: >
+            Process uptime in seconds via process.uptime().
+            Float precision (e.g., 3742.847).
+            NOT computed from Date.now() — avoids cold-start drift.
+          example: 3742.847
+    typescript_type: "{ status: 'ok'; uptime: number }"
+
+  # Note: No 4xx/5xx defined — if server is down, TCP connection fails.
+  # Client treats any non-200 or network error as "system unreachable".
+
+errors:
+  - condition: Server process not running
+    result: TCP connection refused — client catches as fetch() rejection
+  - condition: Server overloaded
+    result: 503 (handled by upstream proxy/load balancer, not this route)
+
+n1_risk: NONE — stateless, no DB, no external calls
+capacity_estimate: >
+  30s polling × N concurrent users.
+  At 100 users: ~3.3 req/s. At 1000 users: ~33 req/s.
+  Well within Node.js single-thread capacity (>10k req/s for this payload).
+  No caching needed at application level.
+
+implementation_file: app/api/system/health/route.ts
+runtime: Node.js (Next.js App Router — NOT Edge Runtime, process.uptime() unavailable in Edge)
