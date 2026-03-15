@@ -18,6 +18,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Zap,
+  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/lib/stores/app-store";
@@ -35,6 +36,7 @@ const navItems = [
   { href: "/projects", label: "Projects", icon: FolderOpen },
   { href: "/integrations", label: "Integrations", icon: Plug },
   { href: "/guide", label: "Guide", icon: BookOpen },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 export function Sidebar() {
