@@ -33,7 +33,8 @@ export default function OrchestrationPage() {
   const [expandedExecId, setExpandedExecId] = useState<string | null>(null);
   const [expandedFileIdx, setExpandedFileIdx] = useState<Record<string, number | null>>({});
   const [applyingId, setApplyingId] = useState<string | null>(null);
-  const [applyResult, setApplyResult] = useState<Record<string, { success: boolean; summary: { created: number; updated: number; errors: number } | null } | null>>({});
+  const [applyResult, setApplyResult] = useState<Record<string, { success: boolean; staged: boolean; summary: { staged?: number; created?: number; updated?: number; errors: number } | null } | null>>({});
+  const [deployingId, setDeployingId] = useState<string | null>(null);
 
   // Available projects for context injection
   const [availableProjects, setAvailableProjects] = useState<string[]>([]);
@@ -175,7 +176,8 @@ export default function OrchestrationPage() {
     return parseCodeBlocks(allOutput);
   }
 
-  async function handleApplyToProject(exec: PipelineExecution) {
+  // Step 1: Stage files into data/applied/{pipelineId}/
+  async function handleStageFiles(exec: PipelineExecution) {
     setApplyingId(exec.id);
     try {
       const files = getDetectedFiles(exec);
@@ -188,12 +190,53 @@ export default function OrchestrationPage() {
         }),
       });
       const data = await res.json();
-      setApplyResult((prev) => ({ ...prev, [exec.id]: { success: data.success, summary: data.summary } }));
+      setApplyResult((prev) => ({
+        ...prev,
+        // staged=true, success=false: files are staged but NOT yet deployed
+        [exec.id]: { success: false, staged: data.success, summary: data.summary },
+      }));
     } catch {
-      setApplyResult((prev) => ({ ...prev, [exec.id]: { success: false, summary: null } }));
+      setApplyResult((prev) => ({
+        ...prev,
+        [exec.id]: { success: false, staged: false, summary: null },
+      }));
     } finally {
       setApplyingId(null);
     }
+  }
+
+  // Step 2: Deploy staged files to real project
+  async function handleDeployToSource(execId: string) {
+    setDeployingId(execId);
+    try {
+      const res = await fetch("/api/orchestration/deploy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pipelineId: execId }),
+      });
+      const data = await res.json();
+      setApplyResult((prev) => ({
+        ...prev,
+        [execId]: { success: data.success, staged: false, summary: data.summary },
+      }));
+    } catch {
+      setApplyResult((prev) => ({
+        ...prev,
+        [execId]: { success: false, staged: false, summary: null },
+      }));
+    } finally {
+      setDeployingId(null);
+    }
+  }
+
+  // Discard staged files
+  async function handleDiscardStaged(execId: string) {
+    await fetch(`/api/orchestration/deploy?pipelineId=${execId}`, { method: "DELETE" });
+    setApplyResult((prev) => {
+      const next = { ...prev };
+      delete next[execId];
+      return next;
+    });
   }
 
   function downloadFile(file: ParsedCodeBlock) {
@@ -544,32 +587,59 @@ export default function OrchestrationPage() {
                         </div>
                       )}
 
-                      <div className="flex items-center gap-2 pt-1">
-                        {exec.status === "completed" && detectedFiles.length > 0 && (
+                      {/* Action buttons — two-step: Stage → Deploy */}
+                      <div className="flex items-center gap-2 pt-1 flex-wrap">
+                        {exec.status === "completed" && detectedFiles.length > 0 && !applyResult[exec.id]?.staged && !applyResult[exec.id]?.success && (
                           <button
-                            onClick={() => handleApplyToProject(exec)}
-                            disabled={applyingId === exec.id || applyResult[exec.id]?.success === true}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-mono text-[10px] uppercase tracking-wider transition-all ${
-                              applyResult[exec.id]?.success
-                                ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
-                                : "bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20"
-                            } disabled:opacity-50`}
+                            onClick={() => handleStageFiles(exec)}
+                            disabled={applyingId === exec.id}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 font-mono text-[10px] uppercase tracking-wider transition-all disabled:opacity-50"
                           >
                             {applyingId === exec.id ? (
                               <Loader2 className="w-3 h-3 animate-spin" />
-                            ) : applyResult[exec.id]?.success ? (
-                              <CheckCircle2 className="w-3 h-3" />
                             ) : (
                               <Rocket className="w-3 h-3" />
                             )}
-                            {applyResult[exec.id]?.success
-                              ? `Applied (${applyResult[exec.id]!.summary?.created ?? 0} created, ${applyResult[exec.id]!.summary?.updated ?? 0} updated)`
-                              : applyResult[exec.id]?.success === false
-                              ? "Retry Apply"
-                              : "Apply to Project"
-                            }
+                            Stage Files
                           </button>
                         )}
+
+                        {/* Staged — show Deploy + Discard */}
+                        {applyResult[exec.id]?.staged && (
+                          <>
+                            <span className="font-mono text-[10px] px-2 py-1 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                              {applyResult[exec.id]!.summary?.staged ?? 0} files staged
+                            </span>
+                            <button
+                              onClick={() => handleDeployToSource(exec.id)}
+                              disabled={deployingId === exec.id}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 hover:bg-emerald-500/20 font-mono text-[10px] uppercase tracking-wider transition-all disabled:opacity-50"
+                            >
+                              {deployingId === exec.id ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <CheckCircle2 className="w-3 h-3" />
+                              )}
+                              Deploy to Source
+                            </button>
+                            <button
+                              onClick={() => handleDiscardStaged(exec.id)}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-muted-foreground hover:text-red-400 hover:border-red-500/50 font-mono text-[10px] uppercase tracking-wider transition-all"
+                            >
+                              <XCircle className="w-3 h-3" />
+                              Discard
+                            </button>
+                          </>
+                        )}
+
+                        {/* Deployed successfully */}
+                        {applyResult[exec.id]?.success && !applyResult[exec.id]?.staged && (
+                          <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-mono text-[10px] uppercase tracking-wider">
+                            <CheckCircle2 className="w-3 h-3" />
+                            Deployed ({applyResult[exec.id]!.summary?.created ?? 0} created, {applyResult[exec.id]!.summary?.updated ?? 0} updated)
+                          </span>
+                        )}
+
                         <button
                           onClick={() => {
                             const blob = new Blob([JSON.stringify(exec, null, 2)], { type: "application/json" });
@@ -587,9 +657,10 @@ export default function OrchestrationPage() {
                         </button>
                       </div>
 
-                      {applyResult[exec.id]?.success === false && (
+                      {/* Error feedback */}
+                      {applyResult[exec.id]?.success === false && !applyResult[exec.id]?.staged && (
                         <div className="font-mono text-[10px] px-2 py-1.5 rounded bg-red-500/10 text-red-400 border border-red-500/20">
-                          Apply failed{applyResult[exec.id]!.summary?.errors ? ` — ${applyResult[exec.id]!.summary!.errors} errors` : ""}. Check file paths.
+                          {deployingId ? "Deploy" : "Stage"} failed{applyResult[exec.id]!.summary?.errors ? ` — ${applyResult[exec.id]!.summary!.errors} errors` : ""}. Check file paths.
                         </div>
                       )}
                     </div>

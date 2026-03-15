@@ -7,3 +7,4 @@ next-env.d.ts
 data/logs.json
 data/jira-config.json
 data/api-keys.json
+data/applied/
