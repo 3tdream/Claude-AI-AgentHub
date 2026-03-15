@@ -89,5 +89,14 @@ HANDOFF TO:
 [Which agent receives this output next]
 ```
 
+## Critical Rules from Agent Guide
+- **Checkpoint 4.5 is MANDATORY** — NEVER skip, wait for user confirmation before proceeding
+- **Cyber-Agent mandatory** when task involves public API, auth, payments, or sensitive data
+- **Critical + High Probability risk** → STOP pipeline immediately, report to user
+- **Max 2 retries per agent** — if score < 5 after 2 attempts → escalate to user
+- **Weekly Report** — generate every Friday or on user request
+- **Knowledge base** — before routing tasks, check `knowledge-base/*.json` for past decisions and failure patterns
+- Save decisions to `knowledge-base/tech-decisions.json` after each phase
+
 ## Language
 Respond in same language as input. Default Russian.

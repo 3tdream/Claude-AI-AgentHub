@@ -1,12 +1,28 @@
-import type { WorkflowStep, PipelineExecution } from "@/types";
+import type { WorkflowStep, PipelineExecution, QualityScore } from "@/types";
 import { postLog } from "@/lib/hooks/use-logs";
 import { evaluateStepOutput, buildRetryPrompt } from "@/lib/quality-evaluator";
+import { PIPELINE } from "@/lib/config";
+import type { RoutingDecisionData } from "@/types";
 
-const MAX_RETRIES = 2;
-const ESCALATION_THRESHOLD = 5;
+const { MAX_RETRIES, ESCALATION_THRESHOLD, STEP_TIMEOUT_MS } = PIPELINE;
 
 function generateId() {
-  return Math.random().toString(36).substring(2, 10);
+  return crypto.randomUUID();
+}
+
+// --- Jira sync helper (calls server-side API route, never imports fs) ---
+
+async function jiraSyncAction(action: string, payload: Record<string, unknown>): Promise<unknown> {
+  try {
+    const res = await fetch("/api/jira/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, ...payload }),
+    });
+    return await res.json();
+  } catch {
+    return null; // Non-blocking — Jira failures never stop the pipeline
+  }
 }
 
 interface ExecutorCallbacks {
@@ -22,7 +38,37 @@ export async function executePipeline(
   workflowId: string,
   workflowName: string,
   callbacks: ExecutorCallbacks,
+  routingDecision?: RoutingDecisionData,
+  selectedProject?: string | null,
 ): Promise<PipelineExecution> {
+  if (!steps.length) throw new Error("Pipeline must have at least one step");
+  if (!input.trim()) throw new Error("Pipeline input cannot be empty");
+
+  for (const step of steps) {
+    if (!step.agentId) throw new Error(`Step "${step.id}" is missing agentId`);
+    if (!step.promptTemplate) throw new Error(`Step "${step.id}" is missing promptTemplate`);
+  }
+
+  // --- Smart Context Loader: fetch project-specific context ---
+  let projectContext: { architecture: string; rules: string; knowledgeBase: Array<{ name: string; content: string }>; fallbackUsed: boolean } | null = null;
+  if (selectedProject) {
+    try {
+      const ctxRes = await fetch(`/api/projects/context?projectId=${encodeURIComponent(selectedProject)}`);
+      if (ctxRes.ok) {
+        projectContext = await ctxRes.json();
+        postLog({
+          type: "system",
+          content: `Project context loaded: "${selectedProject}"${projectContext?.fallbackUsed ? " (fallback)" : ""} — arch: ${(projectContext?.architecture?.length || 0)} chars, rules: ${(projectContext?.rules?.length || 0)} chars, KB: ${projectContext?.knowledgeBase?.length || 0} files`,
+        }).catch(() => {});
+      }
+    } catch {
+      postLog({
+        type: "system",
+        content: `Warning: Failed to load project context for "${selectedProject}" — agents will run without project context`,
+      }).catch(() => {});
+    }
+  }
+
   const execution: PipelineExecution = {
     id: generateId(),
     workflowId,
@@ -33,6 +79,7 @@ export async function executePipeline(
     startedAt: new Date().toISOString(),
     qualityScores: {},
     escalatedSteps: [],
+    routingDecision: routingDecision || undefined,
   };
 
   steps.forEach((s) => {
@@ -42,19 +89,32 @@ export async function executePipeline(
 
   postLog({
     type: "system",
-    content: `Pipeline "${workflowName}" started with input: ${input.slice(0, 200)}`,
+    content: `Pipeline "${workflowName}" started [mode: ${routingDecision?.mode ?? "full"}] with ${steps.length} steps. Input: ${input.slice(0, 200)}`,
   }).catch(() => {});
+
+  // --- Jira: Check if enabled + create Epic ---
+  let jiraKey: string | null = null;
+
+  const jiraCheck = await jiraSyncAction("check-enabled", {}) as { enabled?: boolean } | null;
+  const jiraEnabled = jiraCheck?.enabled === true;
+
+  if (jiraEnabled) {
+    const epicResult = await jiraSyncAction("create-epic", { execution }) as {
+      result?: { jiraKey: string; jiraUrl: string } | null;
+    } | null;
+    if (epicResult?.result) {
+      jiraKey = epicResult.result.jiraKey;
+      execution.jiraKey = epicResult.result.jiraKey;
+      execution.jiraUrl = epicResult.result.jiraUrl;
+      callbacks.onUpdate({ ...execution });
+    }
+  }
 
   const completed = new Set<string>();
   const context: Record<string, string> = {};
 
-  /**
-   * Execute a single agent step, then evaluate via Orchestrator.
-   * Retries up to MAX_RETRIES times if quality < threshold.
-   * Escalates to user if score < ESCALATION_THRESHOLD after all retries.
-   */
   async function executeStep(step: WorkflowStep): Promise<boolean> {
-    // --- Checkpoint handling (unchanged) ---
+    // --- Checkpoint handling ---
     if (step.metadata?.isCheckpoint) {
       execution.stepResults[step.id] = {
         stepId: step.id,
@@ -70,7 +130,16 @@ export async function executePipeline(
         content: `Pipeline "${workflowName}" paused at Human Checkpoint — awaiting approval`,
       }).catch(() => {});
 
+      if (jiraKey) jiraSyncAction("checkpoint-reached", { jiraKey });
+
       const approved = await callbacks.onCheckpointReached();
+
+      if (jiraKey) {
+        const checkStatus = callbacks.getCheckpointStatus();
+        jiraSyncAction("checkpoint-decision", {
+          jiraKey, approved, reason: checkStatus.reason,
+        });
+      }
 
       if (approved) {
         execution.stepResults[step.id] = {
@@ -105,10 +174,17 @@ export async function executePipeline(
     const threshold = step.metadata?.qualityThreshold ?? 8;
     let retryCount = 0;
     let lastFeedback = "";
-    let currentPrompt = buildPrompt(step, input, context);
+    let currentPrompt = buildPrompt(step, input, context, projectContext, routingDecision?.mode);
+    const model = step.metadata?.model || "unknown";
+
+    // Jira: stage start
+    if (jiraKey) {
+      jiraSyncAction("stage-start", {
+        jiraKey, stageId: step.id, agentName: step.agentName, model,
+      });
+    }
 
     while (retryCount <= MAX_RETRIES) {
-      // Update status
       execution.stepResults[step.id] = {
         stepId: step.id,
         status: retryCount === 0 ? "running" : "retrying",
@@ -119,12 +195,29 @@ export async function executePipeline(
       callbacks.onUpdate({ ...execution });
 
       try {
-        // 1. Execute agent
-        const res = await fetch("/api/agent-hub/execute", {
+        const controller = STEP_TIMEOUT_MS > 0 ? new AbortController() : undefined;
+        const timer = controller ? setTimeout(() => controller.abort(), STEP_TIMEOUT_MS) : undefined;
+
+        // Determine tool access level
+        const implementationAgents = ["backend-agent", "frontend-agent"];
+        const readOnlyAgents = ["architect-agent", "qa-agent", "cyber-agent", "devops-agent"];
+        const useTools = implementationAgents.includes(step.agentId) || readOnlyAgents.includes(step.agentId);
+        const toolMode = implementationAgents.includes(step.agentId) ? "readwrite" : "readonly";
+
+        const res = await fetch("/api/ai/execute", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ assistantId: step.agentId, userInput: currentPrompt }),
+          body: JSON.stringify({
+            agentId: step.agentId,
+            model: step.metadata?.model || "sonnet-4-6",
+            userInput: currentPrompt,
+            useTools,
+            toolMode,
+          }),
+          signal: controller?.signal,
         });
+
+        if (timer) clearTimeout(timer);
         const data = await res.json();
 
         if (!data.success || !data.content) {
@@ -134,18 +227,26 @@ export async function executePipeline(
         const agentOutput = data.content;
         context[`step_${step.id}_output`] = agentOutput;
 
-        // 2. Evaluate via Orchestrator (skip for Orchestrator's own steps to avoid self-evaluation)
+        // Analytics: capture token usage per step
+        const stepAnalytics = {
+          inputTokens: data.tokensUsed?.input || 0,
+          outputTokens: data.tokensUsed?.output || 0,
+          outputChars: agentOutput.length,
+          provider: data.provider || "unknown",
+          model: data.model || model,
+        };
+
         const skipEvaluation = step.agentId === "orchestrator" || threshold === 0;
 
         if (skipEvaluation) {
-          // Auto-pass for orchestrator steps and checkpoint steps
           execution.stepResults[step.id] = {
             stepId: step.id,
             status: "completed",
-            output: agentOutput.substring(0, 500),
+            output: agentOutput.substring(0, 20000),
             duration: Date.now() - new Date(execution.stepResults[step.id].startedAt!).getTime(),
             completedAt: new Date().toISOString(),
             retryCount,
+            ...stepAnalytics,
           };
           if (execution.qualityScores) {
             execution.qualityScores[step.id] = {
@@ -161,16 +262,26 @@ export async function executePipeline(
             content: `Step completed (auto-pass) in pipeline "${workflowName}": ${agentOutput.slice(0, 200)}`,
           }).catch(() => {});
 
+          // Jira: stage pass
+          if (jiraKey) {
+            jiraSyncAction("stage-pass", {
+              jiraKey, stageId: step.id, agentName: step.agentName, model,
+              duration: execution.stepResults[step.id].duration,
+              qualityScore: execution.qualityScores?.[step.id],
+              retryCount,
+            });
+          }
+
           completed.add(step.id);
           return true;
         }
 
-        // 3. Call Orchestrator for quality evaluation
         const evaluation = await evaluateStepOutput(
           step.agentName,
           step.metadata?.stageNumber || "?",
           input,
           agentOutput,
+          threshold,
         );
 
         if (execution.qualityScores) {
@@ -185,15 +296,15 @@ export async function executePipeline(
         }).catch(() => {});
 
         if (evaluation.passed) {
-          // Quality passed — mark completed
           execution.stepResults[step.id] = {
             stepId: step.id,
             status: "completed",
-            output: agentOutput.substring(0, 500),
+            output: agentOutput.substring(0, 20000),
             duration: Date.now() - new Date(execution.stepResults[step.id].startedAt!).getTime(),
             completedAt: new Date().toISOString(),
             retryCount,
             evaluationFeedback: evaluation.feedback,
+            ...stepAnalytics,
           };
           callbacks.onUpdate({ ...execution });
 
@@ -204,15 +315,22 @@ export async function executePipeline(
             content: `Step PASSED (${evaluation.score.overall}/10, attempt ${retryCount + 1}) in pipeline "${workflowName}"`,
           }).catch(() => {});
 
+          if (jiraKey) {
+            jiraSyncAction("stage-pass", {
+              jiraKey, stageId: step.id, agentName: step.agentName, model,
+              duration: execution.stepResults[step.id].duration,
+              qualityScore: evaluation.score,
+              retryCount,
+            });
+          }
+
           completed.add(step.id);
           return true;
         }
 
-        // Quality failed
         lastFeedback = evaluation.feedback;
 
         if (retryCount < MAX_RETRIES) {
-          // Will retry — build retry prompt with feedback
           postLog({
             type: "system",
             agentId: step.agentId,
@@ -222,7 +340,7 @@ export async function executePipeline(
 
           currentPrompt = buildRetryPrompt(
             step.agentName,
-            buildPrompt(step, input, context),
+            buildPrompt(step, input, context, projectContext, routingDecision?.mode),
             agentOutput,
             evaluation.feedback,
           );
@@ -233,16 +351,16 @@ export async function executePipeline(
 
         // Max retries exhausted
         if (evaluation.score.overall < ESCALATION_THRESHOLD) {
-          // Escalate to user — score critically low
           execution.stepResults[step.id] = {
             stepId: step.id,
             status: "failed",
-            output: agentOutput.substring(0, 500),
+            output: agentOutput.substring(0, 20000),
             error: `Escalated: score ${evaluation.score.overall}/10 after ${MAX_RETRIES + 1} attempts. ${evaluation.feedback}`,
             completedAt: new Date().toISOString(),
             retryCount,
             evaluationFeedback: evaluation.feedback,
             escalated: true,
+            ...stepAnalytics,
           };
           execution.escalatedSteps = [...(execution.escalatedSteps || []), step.id];
           callbacks.onUpdate({ ...execution });
@@ -254,6 +372,13 @@ export async function executePipeline(
             content: `ESCALATION: ${step.agentName} scored ${evaluation.score.overall}/10 after ${MAX_RETRIES + 1} attempts — pipeline halted, user intervention required`,
           }).catch(() => {});
 
+          if (jiraKey) {
+            jiraSyncAction("stage-escalation", {
+              jiraKey, stageId: step.id, agentName: step.agentName,
+              score: evaluation.score.overall, feedback: evaluation.feedback,
+            });
+          }
+
           callbacks.onEscalation?.(step.id, step.agentName, evaluation.score.overall, evaluation.feedback);
 
           completed.add(step.id);
@@ -264,11 +389,12 @@ export async function executePipeline(
         execution.stepResults[step.id] = {
           stepId: step.id,
           status: "completed",
-          output: agentOutput.substring(0, 500),
+          output: agentOutput.substring(0, 20000),
           duration: Date.now() - new Date(execution.stepResults[step.id].startedAt!).getTime(),
           completedAt: new Date().toISOString(),
           retryCount,
           evaluationFeedback: `Accepted with warning (${evaluation.score.overall}/10 after ${MAX_RETRIES + 1} attempts): ${evaluation.feedback}`,
+          ...stepAnalytics,
         };
         callbacks.onUpdate({ ...execution });
 
@@ -278,6 +404,15 @@ export async function executePipeline(
           agentName: step.agentName,
           content: `Step accepted with warning (${evaluation.score.overall}/10) after ${MAX_RETRIES + 1} attempts in pipeline "${workflowName}"`,
         }).catch(() => {});
+
+        if (jiraKey) {
+          jiraSyncAction("stage-pass", {
+            jiraKey, stageId: step.id, agentName: step.agentName, model,
+            duration: execution.stepResults[step.id].duration,
+            qualityScore: evaluation.score,
+            retryCount,
+          });
+        }
 
         completed.add(step.id);
         return true;
@@ -304,7 +439,6 @@ export async function executePipeline(
       }
     }
 
-    // Should not reach here, but safety net
     completed.add(step.id);
     return false;
   }
@@ -316,7 +450,6 @@ export async function executePipeline(
     const ready = remaining.filter((s) => s.dependsOn.every((d) => completed.has(d)));
     if (ready.length === 0) break;
 
-    // Check if ready steps form a parallel group
     const parallelGroup = ready.filter((s) => s.metadata?.isParallel && s.metadata?.group);
     const groupName = parallelGroup[0]?.metadata?.group;
 
@@ -339,10 +472,7 @@ export async function executePipeline(
       const idx = remaining.findIndex((s) => s.id === step.id);
       if (idx >= 0) remaining.splice(idx, 1);
 
-      if (!success && step.metadata?.isCheckpoint) {
-        break;
-      }
-      // If non-checkpoint step failed with escalation, pause pipeline
+      if (!success && step.metadata?.isCheckpoint) break;
       if (!success && execution.stepResults[step.id]?.escalated) {
         execution.status = "paused";
         break;
@@ -363,14 +493,96 @@ export async function executePipeline(
   execution.totalDuration = Date.now() - new Date(execution.startedAt).getTime();
   callbacks.onUpdate({ ...execution });
 
+  // Jira: Finalize pipeline
+  if (jiraKey) {
+    jiraSyncAction("finalize", { jiraKey, execution });
+  }
+
+  // Auto-enrich knowledge base (fire-and-forget)
+  if (execution.status === "completed" || execution.status === "failed") {
+    fetch("/api/knowledge/enrich", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(execution),
+    }).catch(() => {});
+  }
+
   return execution;
 }
 
-/** Build prompt with template variable substitution */
-function buildPrompt(step: WorkflowStep, input: string, context: Record<string, string>): string {
+interface ProjectContext {
+  architecture: string;
+  rules: string;
+  knowledgeBase: Array<{ name: string; content: string }>;
+  fallbackUsed: boolean;
+}
+
+function buildPrompt(
+  step: WorkflowStep,
+  input: string,
+  context: Record<string, string>,
+  projectCtx?: ProjectContext | null,
+  routingMode?: string,
+): string {
   let prompt = step.promptTemplate.replace(/\{\{input\}\}/g, input);
   for (const [key, val] of Object.entries(context)) {
     prompt = prompt.replace(new RegExp(`\\{\\{${key}\\}\\}`, "g"), val);
   }
+  // Replace unresolved placeholders (from skipped steps in quick/medium mode)
+  const hasUnresolved = /\{\{step_[^}]+\}\}/.test(prompt);
+  if (hasUnresolved) {
+    prompt = prompt.replace(/\{\{step_[^}]+\}\}/g, "(this step was skipped by the router)");
+
+    if (projectCtx && (projectCtx.architecture || projectCtx.rules)) {
+      // Project context available — agent must use it, not guess
+      prompt += `\n\n---\nIMPORTANT: Some upstream pipeline steps were skipped (quick/medium routing mode). Do NOT refuse to work or ask for missing data. The PROJECT CONTEXT section below contains the real architecture, file paths, types, stores, and conventions — use it as your single source of truth. Do NOT write [ASSUMED] blocks or invent paths/types. If something is not covered by the project context, derive it from the original task description.\n\nOriginal task: ${input}`;
+    } else {
+      // No project context — agent must self-derive
+      prompt += `\n\n---\nIMPORTANT: Some upstream pipeline steps were skipped (quick/medium routing mode). Do NOT refuse to work or ask for missing data. Instead, derive what you need directly from the original task description below and use your professional judgment to fill in architecture, security, and design decisions yourself.\n\nOriginal task: ${input}`;
+    }
+  }
+
+  // --- Inject project context ---
+  // Skip full context injection for tool-enabled agents — they can read_file themselves.
+  // This saves ~12K tokens per turn in multi-turn tool loops.
+  const toolEnabledAgents = ["backend-agent", "frontend-agent", "architect-agent", "qa-agent", "cyber-agent", "devops-agent"];
+  const agentHasTools = toolEnabledAgents.includes(step.agentId);
+
+  if (projectCtx && (projectCtx.architecture || projectCtx.rules) && !agentHasTools) {
+    let contextBlock = "\n\n---\n## PROJECT CONTEXT (AUTHORITATIVE — overrides all assumptions)\nThe following is the real project architecture and rules. You MUST use these exact file paths, type definitions, store names, and conventions. Do NOT write [ASSUMED] sections. Do NOT invent your own paths or stack.\n";
+
+    if (projectCtx.architecture) {
+      contextBlock += `\n### Architecture\n${projectCtx.architecture}\n`;
+    }
+    if (projectCtx.rules) {
+      contextBlock += `\n### Project Rules\n${projectCtx.rules}\n`;
+    }
+    if (projectCtx.knowledgeBase.length > 0) {
+      contextBlock += `\n### Knowledge Base\n`;
+      for (const kb of projectCtx.knowledgeBase) {
+        contextBlock += `\n#### ${kb.name}\n\`\`\`json\n${kb.content.slice(0, 5000)}\n\`\`\`\n`;
+      }
+    }
+
+    prompt = contextBlock + "\n---\n\n" + prompt;
+  } else if (agentHasTools && projectCtx) {
+    // Minimal hint — agent will use read_file for details
+    prompt += `\n\n---\nProject: ${projectCtx.architecture ? "ARCHITECTURE.md and CLAUDE.md are available — use read_file to access them." : "No architecture docs found."} Key files: app/(shell)/, lib/stores/, components/, types/. Use list_files and read_file to explore.`;
+  }
+
+  // --- Tool-use instructions for agents with file access ---
+  const implementationAgents = ["backend-agent", "frontend-agent"];
+  const readOnlyAgents = ["architect-agent", "qa-agent", "cyber-agent", "devops-agent"];
+
+  if (implementationAgents.includes(step.agentId)) {
+    const autoApprove = routingMode && routingMode !== "full"
+      ? `\n### AUTO-APPROVED ARCHITECTURAL PLAN\nThe architectural plan is approved. Proceed with implementation immediately.\n`
+      : "";
+
+    prompt += `\n\n---${autoApprove}\n### TOOL ACCESS\nYou have access to the project file system via tools:\n- **list_files**: Browse directories to find the right files\n- **read_file**: Read file content. For files >100 lines, first call returns lines 1-100 + total count. Use line_start/line_end to read specific sections (max 200 lines per call).\n- **edit_file**: Make surgical edits (old_string → new_string). ALWAYS read the target section first.\n- **create_file**: Create new files only when needed\n- **run_command**: Run \`npx tsc --noEmit\` to verify changes compile\n\n### TOKEN BUDGET RULES (CRITICAL)\n- Do NOT read entire large files. Read imports (lines 1-30), then only the function/section you need to change.\n- Aim for ≤5 tool calls total. Ideal: list_files → read_file (target section) → edit_file → run_command.\n- Do NOT re-read files you already read.\n\n### DEFINITION OF DONE\nYour work is NOT complete until:\n1. All edit_file calls succeeded\n2. You ran \`run_command: npx tsc --noEmit\` and got exit code 0\n3. If tsc fails — fix errors via edit_file, then re-run tsc\n\nAfter all edits, provide a 2-3 line summary of what you changed and which files.`;
+  } else if (readOnlyAgents.includes(step.agentId)) {
+    prompt += `\n\n---\n### TOOL ACCESS (READ-ONLY)\nYou have read-only access to the project file system:\n- **list_files**: Browse directories\n- **read_file**: Read file contents\n\nUse these tools to verify your analysis against the actual codebase. Do NOT guess file structures — read them.`;
+  }
+
   return prompt;
 }

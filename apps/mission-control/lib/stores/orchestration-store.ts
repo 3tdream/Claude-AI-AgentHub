@@ -9,12 +9,14 @@ interface OrchestrationState {
   activeExecution: PipelineExecution | null;
   executionHistory: PipelineExecution[];
   selectedStageId: string | null;
+  selectedProject: string | null;
   addWorkflow: (workflow: Workflow) => void;
   updateWorkflow: (id: string, workflow: Partial<Workflow>) => void;
   deleteWorkflow: (id: string) => void;
   setActiveExecution: (execution: PipelineExecution | null) => void;
   addToHistory: (execution: PipelineExecution) => void;
   selectStage: (id: string | null) => void;
+  setSelectedProject: (projectId: string | null) => void;
   approveCheckpoint: (executionId: string) => void;
   rejectCheckpoint: (executionId: string, reason: string) => void;
 }
@@ -26,6 +28,7 @@ export const useOrchestrationStore = create<OrchestrationState>()(
       activeExecution: null,
       executionHistory: [],
       selectedStageId: null,
+      selectedProject: null,
       addWorkflow: (workflow) =>
         set((s) => ({ workflows: [...s.workflows, workflow] })),
       updateWorkflow: (id, updates) =>
@@ -46,6 +49,8 @@ export const useOrchestrationStore = create<OrchestrationState>()(
         })),
       selectStage: (id) =>
         set({ selectedStageId: id }),
+      setSelectedProject: (projectId) =>
+        set({ selectedProject: projectId }),
       approveCheckpoint: (executionId) => {
         const { activeExecution } = get();
         if (!activeExecution || activeExecution.id !== executionId) return;
@@ -84,7 +89,11 @@ export const useOrchestrationStore = create<OrchestrationState>()(
     }),
     {
       name: "mission-control-orchestration",
-      partialize: (state) => ({ workflows: state.workflows }),
+      partialize: (state) => ({
+        workflows: state.workflows,
+        executionHistory: state.executionHistory,
+        selectedProject: state.selectedProject,
+      }),
     },
   ),
 );

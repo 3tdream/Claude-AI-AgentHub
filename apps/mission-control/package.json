@@ -6,9 +6,13 @@
     "dev": "next dev -p 3077",
     "build": "next build",
     "start": "next start -p 3077",
-    "lint": "eslint"
+    "lint": "eslint",
+    "pm2:dev": "pm2 start ecosystem.config.js --env development",
+    "pm2:stop": "pm2 stop mission-control",
+    "pm2:logs": "pm2 logs mission-control"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.78.0",
     "@radix-ui/react-dialog": "^1.1.4",
     "@radix-ui/react-dropdown-menu": "^2.1.4",
     "@radix-ui/react-scroll-area": "^1.2.10",
