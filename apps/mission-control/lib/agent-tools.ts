@@ -30,13 +30,21 @@ export const AGENT_TOOLS = [
   },
   {
     name: "read_file",
-    description: "Read the full content of a file. Use this to understand existing code before making changes.",
+    description: "Read a file's content. For large files (>100 lines), use line_start/line_end to read only the section you need. First call without line params to see total line count, then read specific sections.",
     input_schema: {
       type: "object" as const,
       properties: {
         path: {
           type: "string",
           description: "Relative path to file. Example: 'lib/stores/orchestration-store.ts'",
+        },
+        line_start: {
+          type: "number",
+          description: "Start line (1-based). Omit to read from beginning.",
+        },
+        line_end: {
+          type: "number",
+          description: "End line (inclusive). Omit to read to end. Max 200 lines per call.",
         },
       },
       required: ["path"],
@@ -154,13 +162,33 @@ export async function executeTool(
         const relPath = validatePath(input.path);
         const fullPath = path.join(PROJECT_ROOT, relPath);
         const content = await fs.readFile(fullPath, "utf-8");
-        if (content.length > 50000) {
+        const lines = content.split("\n");
+        const totalLines = lines.length;
+
+        const lineStart = Math.max(1, parseInt(input.line_start as any) || 1);
+        const lineEnd = Math.min(totalLines, parseInt(input.line_end as any) || totalLines);
+        const maxLines = 200;
+
+        // If file is large and no line range specified, return summary + first 100 lines
+        if (totalLines > 100 && !input.line_start && !input.line_end) {
+          const preview = lines.slice(0, 100).map((l, i) => `${i + 1}\t${l}`).join("\n");
           return {
             success: true,
-            output: content.substring(0, 50000) + "\n\n... (truncated at 50K chars)",
+            output: `File: ${relPath} (${totalLines} lines)\n--- Lines 1-100 of ${totalLines} ---\n${preview}\n\n... (${totalLines - 100} more lines. Use line_start/line_end to read specific sections)`,
           };
         }
-        return { success: true, output: content };
+
+        // Clamp range to maxLines
+        const effectiveEnd = Math.min(lineEnd, lineStart + maxLines - 1);
+        const slice = lines.slice(lineStart - 1, effectiveEnd).map((l, i) => `${lineStart + i}\t${l}`).join("\n");
+
+        let header = `File: ${relPath} (${totalLines} lines)`;
+        if (lineStart > 1 || effectiveEnd < totalLines) {
+          header += ` — showing lines ${lineStart}-${effectiveEnd}`;
+        }
+        const truncNote = effectiveEnd < lineEnd ? `\n\n... (truncated at ${maxLines} lines per call)` : "";
+
+        return { success: true, output: `${header}\n${slice}${truncNote}` };
       }
 
       case "edit_file": {

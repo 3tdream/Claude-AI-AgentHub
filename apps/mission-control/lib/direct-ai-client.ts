@@ -159,12 +159,21 @@ export async function callAIWithTools(req: ToolCallAIRequest): Promise<DirectAIR
   let totalOutput = 0;
   let finalContent = "";
 
+  // System prompt with cache_control for multi-turn efficiency
+  const systemWithCache = [
+    {
+      type: "text" as const,
+      text: req.systemPrompt,
+      cache_control: { type: "ephemeral" as const },
+    },
+  ];
+
   for (let step = 0; step < maxSteps; step++) {
     const response = await client.messages.create({
       model: modelId,
       max_tokens: req.maxTokens || 16384,
       temperature: req.temperature ?? 0.3,
-      system: req.systemPrompt,
+      system: systemWithCache,
       messages,
       tools: req.tools as Anthropic.Messages.Tool[],
     });
