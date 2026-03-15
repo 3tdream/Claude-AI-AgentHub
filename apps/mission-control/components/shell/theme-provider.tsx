@@ -15,25 +15,18 @@ export function ThemeProvider({ children }: { children?: React.ReactNode }) {
     const root = document.documentElement;
 
     function applyTheme(t: "light" | "dark" | "system") {
-      if (t === "system") {
-        const prefersDark = window.matchMedia(
-          "(prefers-color-scheme: dark)",
-        ).matches;
-        root.classList.toggle("dark", prefersDark);
-        root.classList.toggle("light", !prefersDark);
-      } else {
-        root.classList.toggle("dark", t === "dark");
-        root.classList.toggle("light", t === "light");
-      }
+      const isDark =
+        t === "dark" ||
+        (t === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+      // Remove both first to prevent double class
+      root.classList.remove("dark", "light");
+      root.classList.add(isDark ? "dark" : "light");
     }
 
     applyTheme(theme);
 
-    // Re-apply when system preference changes (only relevant in "system" mode)
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    const handler = () => {
-      if (theme === "system") applyTheme("system");
-    };
+    const handler = () => applyTheme(theme);
     mq.addEventListener("change", handler);
     return () => mq.removeEventListener("change", handler);
   }, [theme]);
