@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Space_Mono, Syne } from "next/font/google";
-import { Toaster } from "sonner";
 import "./globals.css";
 
 const syne = Syne({
@@ -26,20 +25,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body suppressHydrationWarning className={`${syne.variable} ${spaceMono.variable} font-sans antialiased`}>
+    <html lang="en" className="dark" suppressHydrationWarning>
+      <body className={`${syne.variable} ${spaceMono.variable} font-sans antialiased`}>
         {children}
-        <Toaster
-          theme="dark"
-          position="bottom-right"
-          toastOptions={{
-            style: {
-              background: "#11111a",
-              border: "1px solid #1e1e2e",
-              color: "#e2e8f0",
-            },
-          }}
-        />
       </body>
     </html>
   );

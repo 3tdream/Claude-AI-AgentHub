@@ -46,10 +46,13 @@
   --radius-4xl: calc(var(--radius) + 16px);
 }
 
-/* Mission Control dark theme — derived from agent-kpi-dashboard.html mockup */
+/* Mission Control theme tokens */
 :root {
   --radius: 0.75rem;
-  /* Dark-only app */
+}
+
+/* Dark theme (default) */
+.dark, :root {
   --background: #0a0a0f;
   --foreground: #e2e8f0;
   --card: #11111a;
@@ -80,6 +83,41 @@
   --sidebar-accent: #1e1e2e;
   --sidebar-accent-foreground: #e2e8f0;
   --sidebar-border: #1e1e2e;
+  --sidebar-ring: #7c3aed;
+}
+
+/* Light theme */
+.light {
+  --background: #fafafa;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+  --primary: #7c3aed;
+  --primary-foreground: #ffffff;
+  --secondary: #06b6d4;
+  --secondary-foreground: #ffffff;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --accent: #7c3aed;
+  --accent-foreground: #ffffff;
+  --destructive: #ef4444;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #7c3aed;
+  --chart-1: #7c3aed;
+  --chart-2: #06b6d4;
+  --chart-3: #10b981;
+  --chart-4: #f59e0b;
+  --chart-5: #ef4444;
+  --sidebar: #f8fafc;
+  --sidebar-foreground: #0f172a;
+  --sidebar-primary: #7c3aed;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f1f5f9;
+  --sidebar-accent-foreground: #0f172a;
+  --sidebar-border: #e2e8f0;
   --sidebar-ring: #7c3aed;
 }
 
