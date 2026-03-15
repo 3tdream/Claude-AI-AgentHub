@@ -84,8 +84,7 @@ export const CRM_PIPELINE_STAGES: WorkflowStep[] = [
       qualityThreshold: 8,
       leadAgent: "backend-agent",
       model: "sonnet-4-6",
-      isParallel: true,
-      group: "implementation",
+      // Sequential execution to avoid rate limits (30K tokens/min)
     },
   },
   {
@@ -93,15 +92,13 @@ export const CRM_PIPELINE_STAGES: WorkflowStep[] = [
     agentId: "frontend-agent",
     agentName: "Frontend-Agent",
     promptTemplate: "Create frontend implementation based on:\nArchitecture: {{step_s3-architect_output}}\nThreat model: {{step_s3.5-cyber_output}}",
-    dependsOn: ["s3.5-cyber"],
+    dependsOn: ["s4-backend"],
     outputKey: "frontend_plan",
     metadata: {
       stageNumber: "4",
       qualityThreshold: 8,
       leadAgent: "frontend-agent",
       model: "sonnet-4-6",
-      isParallel: true,
-      group: "implementation",
     },
   },
   {
@@ -109,15 +106,13 @@ export const CRM_PIPELINE_STAGES: WorkflowStep[] = [
     agentId: "designer-agent",
     agentName: "Designer-Agent",
     promptTemplate: "Create UI/UX design based on:\nArchitecture: {{step_s3-architect_output}}\nPRD: {{step_s2-pm_output}}",
-    dependsOn: ["s3.5-cyber"],
+    dependsOn: ["s4-frontend"],
     outputKey: "design",
     metadata: {
       stageNumber: "4",
       qualityThreshold: 8,
       leadAgent: "designer-agent",
       model: "sonnet-4-6",
-      isParallel: true,
-      group: "implementation",
     },
   },
   {
