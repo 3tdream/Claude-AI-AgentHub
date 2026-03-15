@@ -19,7 +19,7 @@ function generateId() {
 
 export default function OrchestrationPage() {
   const {
-    workflows, addWorkflow, deleteWorkflow,
+    workflows, addWorkflow, deleteWorkflow, updateWorkflow,
     activeExecution, setActiveExecution, addToHistory,
     executionHistory,
     selectedStageId, selectStage,
@@ -35,6 +35,8 @@ export default function OrchestrationPage() {
   const [applyingId, setApplyingId] = useState<string | null>(null);
   const [applyResult, setApplyResult] = useState<Record<string, { success: boolean; staged: boolean; summary: { staged?: number; created?: number; updated?: number; errors: number } | null } | null>>({});
   const [deployingId, setDeployingId] = useState<string | null>(null);
+  const [editingWfId, setEditingWfId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState("");
 
   // Available projects for context injection
   const [availableProjects, setAvailableProjects] = useState<string[]>([]);
@@ -296,13 +298,46 @@ export default function OrchestrationPage() {
               <div key={wf.id} className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-all ${
                 selectedWorkflow?.id === wf.id ? "bg-primary/10 border border-primary/20" : "hover:bg-muted"
               }`}>
-                <button onClick={() => setSelectedWorkflow(wf)} className="text-left flex-1">
-                  <div className="text-sm font-medium">{wf.name}</div>
+                <button onClick={() => setSelectedWorkflow(wf)} className="text-left flex-1 min-w-0">
+                  {editingWfId === wf.id ? (
+                    <input
+                      autoFocus
+                      value={editingName}
+                      onChange={(e) => setEditingName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          const trimmed = editingName.trim();
+                          if (trimmed) updateWorkflow(wf.id, { name: trimmed });
+                          setEditingWfId(null);
+                        }
+                        if (e.key === "Escape") setEditingWfId(null);
+                      }}
+                      onBlur={() => {
+                        const trimmed = editingName.trim();
+                        if (trimmed) updateWorkflow(wf.id, { name: trimmed });
+                        setEditingWfId(null);
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      maxLength={100}
+                      className="w-full bg-background border border-primary/30 rounded px-1.5 py-0.5 text-sm font-medium focus:outline-none focus:border-primary"
+                    />
+                  ) : (
+                    <div className="text-sm font-medium truncate">{wf.name}</div>
+                  )}
                   <div className="font-mono text-[10px] text-muted-foreground">{wf.steps.length} steps</div>
                 </button>
-                <button onClick={() => deleteWorkflow(wf.id)} className="p-1 hover:text-destructive transition-colors">
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
+                <div className="flex items-center gap-0.5 flex-shrink-0">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setEditingWfId(wf.id); setEditingName(wf.name); }}
+                    className="p-1 hover:text-primary transition-colors"
+                    title="Rename"
+                  >
+                    <Pencil className="w-3 h-3" />
+                  </button>
+                  <button onClick={() => deleteWorkflow(wf.id)} className="p-1 hover:text-destructive transition-colors">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
             ))}
             {workflows.length === 0 && (
@@ -320,7 +355,16 @@ export default function OrchestrationPage() {
               <div className="px-6 py-4 border-b border-border">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="font-bold text-lg">{selectedWorkflow.name}</h2>
+                    <div className="flex items-center gap-2">
+                      <h2 className="font-bold text-lg">{selectedWorkflow.name}</h2>
+                      <button
+                        onClick={() => { setEditingWfId(selectedWorkflow.id); setEditingName(selectedWorkflow.name); }}
+                        className="p-1 hover:text-primary transition-colors opacity-50 hover:opacity-100"
+                        title="Rename pipeline"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                     <p className="text-xs text-muted-foreground mt-1">{selectedWorkflow.description}</p>
                   </div>
                   {activeExecution && (
