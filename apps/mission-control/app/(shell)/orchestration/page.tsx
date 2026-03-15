@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
-import { GitBranch, Plus, Play, Trash2, History, Clock, CheckCircle2, XCircle, ExternalLink, Brain, Loader2, Download, FolderOpen, ChevronDown, ChevronRight, FileCode2, Rocket, Pencil } from "lucide-react";
+import { GitBranch, Plus, Play, Trash2, History, Clock, CheckCircle2, XCircle, ExternalLink, Brain, Loader2, Download, FolderOpen, ChevronDown, ChevronRight, FileCode2, Rocket, Pencil, Check } from "lucide-react";
 import { useOrchestrationStore } from "@/lib/stores/orchestration-store";
 import { CRM_PIPELINE_TEMPLATE } from "@/lib/pipeline-templates";
 import { executePipeline } from "@/lib/pipeline-executor";
@@ -258,7 +258,12 @@ export default function OrchestrationPage() {
     }));
   }
 
-  const selectedStep = selectedWorkflow?.steps.find((s) => s.id === selectedStageId);
+  // Keep selectedWorkflow in sync with store (so rename reflects immediately in header)
+  const syncedSelectedWorkflow = selectedWorkflow
+    ? (workflows.find((w) => w.id === selectedWorkflow.id) ?? selectedWorkflow)
+    : null;
+
+  const selectedStep = syncedSelectedWorkflow?.steps.find((s) => s.id === selectedStageId);
 
   const statusColors: Record<string, string> = {
     pending: "text-muted-foreground",

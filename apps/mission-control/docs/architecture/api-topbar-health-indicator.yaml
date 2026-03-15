@@ -1,0 +1,68 @@
+component: HealthIndicator (embedded in Topbar)
+file: components/shell/topbar.tsx
+type: "use client" — polling requires browser APIs
+
+state_management:
+  store: local useState (NOT Zustand)
+  rationale: >
+    No persistence needed across navigations.
+    Health status is ephemeral UI state.
+    Zustand rule: only when cross-navigation persistence required (CLAUDE.md).
+
+polling_mechanism:
+  type: setInterval + fetch (NOT SWR hook)
+  interval_ms: 30000
+  rationale: >
+    SWR hooks reserved for Agent Hub proxy routes (PAT-004).
+    setInterval + fetch is simpler and sufficient for single-endpoint polling.
+    Alternative: useSWR with refreshInterval: 30000 acceptable if simpler.
+  cleanup: clearInterval on component unmount (useEffect return)
+  cancelled_flag: true — prevents setState after unmount
+
+ssr_safety:
+  rule: NO dynamic values in SSR render
+  uptime_display: computed only after fetch response (client-side only)
+  initial_state: "loading" — renders grey dot, no uptime value
+  hydration_risk: NONE — component is "use client", no SSR render of dynamic values
+
+states:
+  loading:
+    dot_color: bg-zinc-400  # PRD spec (NOT bg-yellow-500 — see deviation note)
+    label: "Checking…"
+    animate: false
+  ok:
+    dot_color: bg-green-500
+    label: "Online · {uptime formatted}"
+    animate: animate-pulse
+  error:
+    dot_color: bg-red-500
+    label: "Offline"
+    animate: false
+
+uptime_formatting:
+  input: seconds (float from API)
+  output: "Xh Xm" for >= 60min, "Xs" for < 60s
+  computed: client-side only (useEffect scope)
+
+tooltip:
+  library: Radix UI (already in stack)
+  ok_text: "System healthy · uptime {Xh Xm}"
+  error_text: "System unreachable"
+  loading_text: "Checking system status…"
+
+dot_dimensions: w-2 h-2 rounded-full  # 8px × 8px
+
+tab_visibility:
+  behavior: polling continues when tab inactive (no visibilitychange handler)
+  rationale: Keep simple per PRD scope. visibilitychange optimization is out of scope.
+
+fetch_options:
+  cache: "no-store"  # bypass Next.js fetch cache
+  timeout: implicit (browser default ~30s — acceptable for health check)
+
+deviation_from_prd:
+  issue: >
+    Existing topbar.tsx uses bg-yellow-500 for loading state.
+    PRD specifies bg-zinc-400.
+  severity: Low — cosmetic only
+  action: Backend-Agent should update to bg-zinc-400 per spec
