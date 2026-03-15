@@ -115,7 +115,7 @@ export const CRM_PIPELINE_STAGES: WorkflowStep[] = [
       stageNumber: "4",
       qualityThreshold: 8,
       leadAgent: "designer-agent",
-      model: "gemini-2.5-pro",
+      model: "sonnet-4-6",
       isParallel: true,
       group: "implementation",
     },
