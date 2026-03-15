@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { callAI, callAIWithTools } from "@/lib/direct-ai-client";
 import { loadAgentPrompt } from "@/lib/agent-prompt-loader";
-import { AGENT_TOOLS, READ_ONLY_TOOLS, executeTool } from "@/lib/agent-tools";
+import { AGENT_TOOLS, READ_ONLY_TOOLS, QA_TOOLS, executeTool } from "@/lib/agent-tools";
 import { addLog } from "@/lib/logs-storage";
 
 /**
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
 
     // --- Tool-use mode ---
     if (useTools) {
-      const tools = toolMode === "readonly" ? READ_ONLY_TOOLS : AGENT_TOOLS;
+      const tools = toolMode === "qa" ? QA_TOOLS : toolMode === "readonly" ? READ_ONLY_TOOLS : AGENT_TOOLS;
       let toolCallCount = 0;
 
       const result = await callAIWithTools({

@@ -104,11 +104,51 @@ export const AGENT_TOOLS = [
       required: ["command"],
     },
   },
+  {
+    name: "save_failure_pattern",
+    description: "Record a failure pattern in the knowledge base. Use this when you find a critical bug, architectural violation, or code that breaks existing functionality. This helps future pipeline runs avoid the same mistake.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        category: {
+          type: "string",
+          enum: ["bad-code", "wrong-approach", "broke-something", "security", "performance"],
+          description: "Category of the failure",
+        },
+        title: {
+          type: "string",
+          description: "Short title of the failure pattern (1 line)",
+        },
+        symptoms: {
+          type: "string",
+          description: "What went wrong — observable symptoms",
+        },
+        root_cause: {
+          type: "string",
+          description: "Why it happened — technical root cause",
+        },
+        solution: {
+          type: "string",
+          description: "How to fix it and prevent recurrence",
+        },
+        affected_files: {
+          type: "string",
+          description: "Comma-separated list of affected file paths",
+        },
+      },
+      required: ["category", "title", "symptoms", "root_cause", "solution"],
+    },
+  },
 ] as const;
 
 // Read-only subset for agents that shouldn't write
 export const READ_ONLY_TOOLS = AGENT_TOOLS.filter(
   (t) => t.name === "list_files" || t.name === "read_file",
+);
+
+// QA tools: read-only + save_failure_pattern + run_command
+export const QA_TOOLS = AGENT_TOOLS.filter(
+  (t) => t.name === "list_files" || t.name === "read_file" || t.name === "run_command" || t.name === "save_failure_pattern",
 );
 
 // --- Security ---
@@ -248,6 +288,39 @@ export async function executeTool(
           const output = ((err.stdout || "") + "\n" + (err.stderr || "")).substring(0, 10000);
           return { success: false, output, error: `Exit code ${err.code}` };
         }
+      }
+
+      case "save_failure_pattern": {
+        const patternsPath = path.join(PROJECT_ROOT, "projects", "mission-control", "knowledge-base", "failure-patterns.json");
+        let data: { patterns: any[]; [key: string]: any };
+        try {
+          const raw = await fs.readFile(patternsPath, "utf-8");
+          data = JSON.parse(raw);
+        } catch {
+          data = { _description: "Known issues", _updated: "", patterns: [] };
+        }
+
+        const maxId = data.patterns
+          .map((p: any) => parseInt(p.id?.replace("FAIL-", "") || "0"))
+          .reduce((a: number, b: number) => Math.max(a, b), 0);
+        const newId = `FAIL-${String(maxId + 1).padStart(3, "0")}`;
+
+        data.patterns.push({
+          id: newId,
+          category: input.category,
+          title: input.title,
+          symptoms: input.symptoms,
+          root_cause: input.root_cause,
+          solution: input.solution,
+          date_discovered: new Date().toISOString().slice(0, 10),
+          recurrence: "Discovered by QA-Agent",
+          source: "qa-agent",
+          affected_files: input.affected_files?.split(",").map((f: string) => f.trim()) || [],
+        });
+        data._updated = new Date().toISOString().slice(0, 10);
+
+        await fs.writeFile(patternsPath, JSON.stringify(data, null, 2), "utf-8");
+        return { success: true, output: `Saved failure pattern ${newId}: ${input.title}` };
       }
 
       default:
