@@ -200,11 +200,12 @@ export async function executePipeline(
 
         // Determine tool access level
         const implementationAgents = ["backend-agent", "frontend-agent"];
-        const readOnlyAgents = ["architect-agent", "qa-agent", "cyber-agent", "devops-agent"];
-        const useTools = implementationAgents.includes(step.agentId) || readOnlyAgents.includes(step.agentId);
-        const toolMode = implementationAgents.includes(step.agentId) ? "readwrite" : "readonly";
-        // Implementation agents get 15 steps, read-only agents get 10
-        const maxToolSteps = implementationAgents.includes(step.agentId) ? 15 : 10;
+        const readOnlyAgents = ["architect-agent", "cyber-agent", "devops-agent"];
+        const qaAgent = step.agentId === "qa-agent";
+        const useTools = implementationAgents.includes(step.agentId) || readOnlyAgents.includes(step.agentId) || qaAgent;
+        const toolMode = qaAgent ? "qa" : implementationAgents.includes(step.agentId) ? "readwrite" : "readonly";
+        // Implementation: 15 steps, QA: 12 (needs run_command + save_failure_pattern), others: 10
+        const maxToolSteps = implementationAgents.includes(step.agentId) ? 15 : qaAgent ? 12 : 10;
 
         const res = await fetch("/api/ai/execute", {
           method: "POST",
@@ -599,7 +600,7 @@ function buildPrompt(
       ? `\n\n### CHANGED FILES (focus your review here)\n${changedFiles.map((f) => `- ${f}`).join("\n")}`
       : "";
 
-    prompt += `\n\n---\n### TOOL ACCESS (READ-ONLY)${fileList}\n\n### QA TOKEN BUDGET (CRITICAL)\n- You have read-only tools: list_files, read_file\n- **MAX 8 tool calls total**. Do NOT browse the entire project.\n- Read ONLY the files listed above (changed files). If no list, read only files mentioned in the upstream agent outputs.\n- For large files: read imports (lines 1-30) + the changed function only.\n- Do NOT re-read files. Read once, analyze, write findings.\n- Output your findings directly. Do NOT read files just to "explore".`;
+    prompt += `\n\n---\n### TOOL ACCESS${fileList}\n\nYou have these tools:\n- **list_files**, **read_file** — read project code\n- **run_command** — run \`npx tsc --noEmit\` or \`grep\` to verify\n- **save_failure_pattern** — record critical bugs in knowledge base\n\n### QA WORKFLOW\n1. Read changed files (max 8 read calls)\n2. Run \`npx tsc --noEmit\` to check compilation\n3. Analyze for bugs, security issues, architectural violations\n4. For each CRITICAL finding: call **save_failure_pattern** with category, title, symptoms, root_cause, solution\n5. Output your QA report with all findings\n\n### VERDICT\nEnd your report with one of:\n- **VERDICT: PASS** — no critical issues, safe to deploy\n- **VERDICT: FAIL** — critical issues found, saved to failure patterns\n\n### TOKEN BUDGET (CRITICAL)\n- **MAX 10 tool calls total**. Read only changed files, not the entire project.\n- Do NOT re-read files. Read once, analyze, write.`;
   } else if (readOnlyAgents.includes(step.agentId)) {
     prompt += `\n\n---\n### TOOL ACCESS (READ-ONLY)\nYou have read-only access to the project file system:\n- **list_files**: Browse directories\n- **read_file**: Read file contents\n\nUse these tools to verify your analysis against the actual codebase. Do NOT guess file structures — read them.\n\n### TOKEN BUDGET\n- Max 8 tool calls. Read only relevant files, not the entire project.`;
   }
