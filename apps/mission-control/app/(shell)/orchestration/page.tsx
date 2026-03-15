@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
-import { GitBranch, Plus, Play, Trash2, History, Clock, CheckCircle2, XCircle, ExternalLink, Brain, Loader2, Download, FolderOpen, ChevronDown, ChevronRight, FileCode2, Rocket } from "lucide-react";
+import { GitBranch, Plus, Play, Trash2, History, Clock, CheckCircle2, XCircle, ExternalLink, Brain, Loader2, Download, FolderOpen, ChevronDown, ChevronRight, FileCode2, Rocket, Pencil } from "lucide-react";
 import { useOrchestrationStore } from "@/lib/stores/orchestration-store";
 import { CRM_PIPELINE_TEMPLATE } from "@/lib/pipeline-templates";
 import { executePipeline } from "@/lib/pipeline-executor";
@@ -565,6 +565,7 @@ export default function OrchestrationPage() {
                                         : <ChevronRight className="w-3 h-3 text-primary flex-shrink-0" />
                                       }
                                       <span className="font-mono text-[11px] text-foreground truncate">{file.filePath}</span>
+                                      <span className={`font-mono text-[9px] flex-shrink-0 ${file.action === "modify" ? "text-amber-400" : "text-emerald-400"}`}>{file.action}</span>
                                       <span className="font-mono text-[9px] text-muted-foreground flex-shrink-0">{file.language} · {file.content.split("\n").length} lines</span>
                                     </button>
                                     <button

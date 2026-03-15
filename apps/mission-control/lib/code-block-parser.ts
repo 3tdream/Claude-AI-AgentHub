@@ -1,30 +1,81 @@
 /**
- * Parses code blocks from pipeline agent output.
- * Extracts file path, language, and content from markdown fenced code blocks.
+ * Parses pipeline agent output for file definitions.
  *
- * Supported formats:
- *   ```tsx title="components/Foo.tsx"
- *   ```typescript // components/Foo.tsx
- *   ```tsx
- *   // file: components/Foo.tsx
- *   ...code...
- *   ```
+ * Primary: JSON format {"files": [{"path", "action", "content"}]}
+ * Fallback: markdown fenced code blocks with file path comments
  */
 
 export interface ParsedCodeBlock {
   filePath: string;
+  action: "create" | "modify";
   language: string;
   content: string;
-  startLine: number;
 }
 
-const FENCE_REGEX = /^```(\w+)?(?:\s+(?:title=["']([^"']+)["']|\/\/\s*(.+)))?\s*$/;
-const FILE_COMMENT_REGEX =
-  /^(?:\/\/|#|\/\*\*?|\{\/\*)\s*(?:file:|filepath:|path:)?\s*(\S+\.\w+)/i;
-
+/**
+ * Try to parse structured JSON output first.
+ * Looks for ```json ... ``` containing {"files": [...]}
+ * Falls back to legacy markdown code block parsing.
+ */
 export function parseCodeBlocks(output: string): ParsedCodeBlock[] {
+  // --- Try JSON format first ---
+  const jsonResult = parseJsonOutput(output);
+  if (jsonResult.length > 0) return jsonResult;
+
+  // --- Fallback: legacy markdown code blocks ---
+  return parseLegacyCodeBlocks(output);
+}
+
+function parseJsonOutput(output: string): ParsedCodeBlock[] {
+  // Extract JSON from ```json ... ``` fence
+  const jsonFenceMatch = output.match(/```json\s*\n([\s\S]*?)\n```/);
+  if (jsonFenceMatch) {
+    try {
+      const parsed = JSON.parse(jsonFenceMatch[1]);
+      if (parsed?.files && Array.isArray(parsed.files)) {
+        return parsed.files
+          .filter((f: any) => f.path && f.content)
+          .map((f: any) => ({
+            filePath: cleanPath(f.path),
+            action: f.action === "modify" ? "modify" : "create",
+            language: guessLanguage(f.path),
+            content: f.content,
+          }));
+      }
+    } catch {
+      // JSON parse failed — fall through to legacy
+    }
+  }
+
+  // Try bare JSON (no fence)
+  const bareJsonMatch = output.match(/\{"files"\s*:\s*\[[\s\S]*?\]\s*\}/);
+  if (bareJsonMatch) {
+    try {
+      const parsed = JSON.parse(bareJsonMatch[0]);
+      if (parsed?.files && Array.isArray(parsed.files)) {
+        return parsed.files
+          .filter((f: any) => f.path && f.content)
+          .map((f: any) => ({
+            filePath: cleanPath(f.path),
+            action: f.action === "modify" ? "modify" : "create",
+            language: guessLanguage(f.path),
+            content: f.content,
+          }));
+      }
+    } catch {
+      // fall through
+    }
+  }
+
+  return [];
+}
+
+function parseLegacyCodeBlocks(output: string): ParsedCodeBlock[] {
   const lines = output.split("\n");
   const blocks: ParsedCodeBlock[] = [];
+  const FENCE_REGEX = /^```(\w+)?(?:\s+(?:title=["']([^"']+)["']|\/\/\s*(.+)))?\s*$/;
+  const FILE_COMMENT_REGEX =
+    /^(?:\/\/|#|\/\*\*?|\{\/\*)\s*(?:file:|filepath:|path:)?\s*(\S+\.\w+)/i;
 
   let i = 0;
   while (i < lines.length) {
@@ -36,7 +87,6 @@ export function parseCodeBlocks(output: string): ParsedCodeBlock[] {
 
     const language = fenceMatch[1] || "text";
     let filePath = fenceMatch[2] || fenceMatch[3] || "";
-    const startLine = i + 1;
     const contentLines: string[] = [];
 
     i++;
@@ -44,47 +94,51 @@ export function parseCodeBlocks(output: string): ParsedCodeBlock[] {
       contentLines.push(lines[i]);
       i++;
     }
-    i++; // skip closing ```
+    i++;
 
-    // Try to extract file path from first content line if not in fence
     if (!filePath && contentLines.length > 0) {
       const commentMatch = contentLines[0].match(FILE_COMMENT_REGEX);
       if (commentMatch) {
         filePath = commentMatch[1].trim();
-        contentLines.shift(); // remove the path comment from content
+        contentLines.shift();
       }
     }
 
-    if (!filePath) continue; // skip blocks without identifiable file path
-
-    // Clean up file path
-    filePath = filePath.replace(/^['"]+|['"]+$/g, "").trim();
+    if (!filePath) continue;
+    filePath = cleanPath(filePath);
 
     blocks.push({
       filePath,
+      action: "create",
       language,
       content: contentLines.join("\n").trim(),
-      startLine,
     });
   }
 
   return blocks;
 }
 
-/**
- * Guess file path from language + agent context if not explicitly provided.
- */
-export function inferProjectPath(
-  filePath: string,
-  projectRoot: string,
-): string {
-  // If already absolute or starts with project structure hints, normalize
-  const cleaned = filePath
+function cleanPath(p: string): string {
+  return p
+    .replace(/^['"]+|['"]+$/g, "")
+    .replace(/\\/g, "/")
     .replace(/^\/+/, "")
-    .replace(/^src\//, "src/")
-    .replace(/^app\//, "app/")
-    .replace(/^components\//, "components/")
-    .replace(/^lib\//, "lib/");
+    .trim();
+}
 
-  return `${projectRoot}/${cleaned}`;
+function guessLanguage(filePath: string): string {
+  const ext = filePath.split(".").pop()?.toLowerCase() || "";
+  const map: Record<string, string> = {
+    ts: "typescript",
+    tsx: "tsx",
+    js: "javascript",
+    jsx: "jsx",
+    json: "json",
+    css: "css",
+    md: "markdown",
+    sql: "sql",
+    yaml: "yaml",
+    yml: "yaml",
+  };
+  return map[ext] || ext || "text";
 }
