@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, Clock, Cpu, Layers, RefreshCw, AlertTriangle, FileCode2, Check, XCircle, Loader2, BarChart3 } from "lucide-react";
+import { X, Clock, Cpu, Layers, RefreshCw, AlertTriangle, FileCode2, Check, XCircle, Loader2, BarChart3, Search, BookOpen, Pencil, FilePlus, Terminal } from "lucide-react";
 import type { WorkflowStep, StepResult, QualityScore } from "@/types";
 import { QualityScoreBadge } from "./quality-score-badge";
 import { parseCodeBlocks, type ParsedCodeBlock } from "@/lib/code-block-parser";
@@ -198,6 +198,54 @@ export function StageDetailPanel({ step, result, qualityScore, onClose }: StageD
             <p className="font-mono text-[11px] text-foreground/80 whitespace-pre-wrap">
               {result.evaluationFeedback}
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* Agent Activity Log (Tool Calls) */}
+      {result?.toolCalls && result.toolCalls.length > 0 && (
+        <div>
+          <p className="font-mono text-[9px] text-muted-foreground uppercase mb-1 flex items-center gap-1.5">
+            <Terminal className="w-3 h-3" />
+            Agent Activity ({result.toolCalls.length} tool calls)
+          </p>
+          <div className="space-y-1 max-h-[250px] overflow-y-auto">
+            {result.toolCalls.map((tc, idx) => {
+              const iconMap: Record<string, typeof Search> = {
+                list_files: Search,
+                read_file: BookOpen,
+                edit_file: Pencil,
+                create_file: FilePlus,
+                run_command: Terminal,
+              };
+              const Icon = iconMap[tc.name] || Terminal;
+              const colorMap: Record<string, string> = {
+                list_files: "text-blue-400",
+                read_file: "text-cyan-400",
+                edit_file: "text-amber-400",
+                create_file: "text-emerald-400",
+                run_command: "text-purple-400",
+              };
+              const color = colorMap[tc.name] || "text-muted-foreground";
+              const inputSummary = tc.input.path || tc.input.command || JSON.stringify(tc.input).substring(0, 60);
+
+              return (
+                <div key={idx} className={`flex items-start gap-2 px-2 py-1.5 rounded-lg ${tc.success ? "bg-muted/30" : "bg-red-500/5 border border-red-500/20"}`}>
+                  <Icon className={`w-3.5 h-3.5 mt-0.5 flex-shrink-0 ${color}`} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className={`font-mono text-[10px] font-semibold ${color}`}>{tc.name}</span>
+                      <span className="font-mono text-[9px] text-muted-foreground">{tc.durationMs}ms</span>
+                      {!tc.success && <XCircle className="w-3 h-3 text-red-400" />}
+                    </div>
+                    <p className="font-mono text-[10px] text-foreground/60 truncate">{inputSummary}</p>
+                    {!tc.success && tc.output && (
+                      <p className="font-mono text-[9px] text-red-400 mt-0.5 truncate">{tc.output}</p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

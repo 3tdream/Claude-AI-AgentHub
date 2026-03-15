@@ -53,6 +53,15 @@ export interface StepResult {
   outputChars?: number;
   provider?: string;
   model?: string;
+  // Tool-Belt logs
+  toolCalls?: Array<{
+    name: string;
+    input: Record<string, string>;
+    output: string;
+    success: boolean;
+    durationMs: number;
+  }>;
+  toolCallCount?: number;
 }
 
 export type PipelineStatus = "pending" | "running" | "completed" | "failed" | "paused";
