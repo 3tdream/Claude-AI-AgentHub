@@ -559,8 +559,12 @@ function buildPrompt(
   // so the Architect's plan is the final authority. Implementation agents
   // must produce code immediately without waiting for user confirmation.
   const implementationAgents = ["backend-agent", "frontend-agent", "designer-agent"];
-  if (routingMode && routingMode !== "full" && implementationAgents.includes(step.agentId)) {
-    prompt += `\n\n---\n### AUTO-APPROVED ARCHITECTURAL PLAN\nThe architectural plan provided by the Architect-Agent is fully validated, correct, and approved. You DO NOT need to wait for user confirmation or ask clarifying questions. Proceed with FULL IMPLEMENTATION immediately — write complete, production-ready code. Do NOT output a "plan" or "pre-flight check" — output the actual code files with proper file paths.`;
+  if (implementationAgents.includes(step.agentId)) {
+    const autoApprove = routingMode && routingMode !== "full"
+      ? `\n### AUTO-APPROVED ARCHITECTURAL PLAN\nThe architectural plan provided by the Architect-Agent is fully validated, correct, and approved. You DO NOT need to wait for user confirmation or ask clarifying questions. Proceed with FULL IMPLEMENTATION immediately.`
+      : "";
+
+    prompt += `\n\n---${autoApprove}\n### OUTPUT FORMAT (MANDATORY)\nYou MUST output your implementation as a single JSON object. No markdown, no explanations before or after — ONLY the JSON.\n\`\`\`json\n{"files":[{"path":"relative/path/to/file.ts","action":"create","content":"full file content here"},{"path":"existing/file.ts","action":"modify","content":"full modified file content here"}]}\n\`\`\`\nRules:\n- "path" must be relative to project root (e.g. "app/(shell)/orchestration/page.tsx", "lib/stores/orchestration-store.ts")\n- "action" is "create" for new files, "modify" for changes to existing files\n- "content" is the COMPLETE file content (not a diff)\n- Use the exact file paths from PROJECT CONTEXT. Do NOT invent paths.\n- Output ONLY the JSON object wrapped in a single json code fence. No other text.`;
   }
 
   return prompt;
