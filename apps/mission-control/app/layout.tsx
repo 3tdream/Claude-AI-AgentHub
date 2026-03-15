@@ -26,6 +26,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var s=JSON.parse(localStorage.getItem('mission-control-app')||'{}');var t=(s.state&&s.state.settings&&s.state.settings.theme)||'dark';var d=t==='dark'||(t==='system'&&matchMedia('(prefers-color-scheme:dark)').matches);document.documentElement.classList.remove('dark','light');document.documentElement.classList.add(d?'dark':'light')}catch(e){}})()`,
+          }}
+        />
+      </head>
       <body className={`${syne.variable} ${spaceMono.variable} font-sans antialiased`}>
         {children}
       </body>

@@ -15,18 +15,12 @@ export function DynamicToaster() {
   const toastPosition = useAppStore(
     (s) => s.settings.toastPosition,
   ) as SonnerPosition;
+  const theme = useAppStore((s) => s.settings.theme);
 
   return (
     <Toaster
-      theme="dark"
+      theme={theme === "system" ? undefined : theme}
       position={toastPosition}
-      toastOptions={{
-        style: {
-          background: "#11111a",
-          border: "1px solid #1e1e2e",
-          color: "#e2e8f0",
-        },
-      }}
     />
   );
 }
