@@ -203,6 +203,8 @@ export async function executePipeline(
         const readOnlyAgents = ["architect-agent", "qa-agent", "cyber-agent", "devops-agent"];
         const useTools = implementationAgents.includes(step.agentId) || readOnlyAgents.includes(step.agentId);
         const toolMode = implementationAgents.includes(step.agentId) ? "readwrite" : "readonly";
+        // Implementation agents get 15 steps, read-only agents get 10
+        const maxToolSteps = implementationAgents.includes(step.agentId) ? 15 : 10;
 
         const res = await fetch("/api/ai/execute", {
           method: "POST",
@@ -213,6 +215,7 @@ export async function executePipeline(
             userInput: currentPrompt,
             useTools,
             toolMode,
+            maxToolSteps,
           }),
           signal: controller?.signal,
         });
@@ -582,8 +585,23 @@ function buildPrompt(
       : "";
 
     prompt += `\n\n---${autoApprove}\n### TOOL ACCESS\nYou have access to the project file system via tools:\n- **list_files**: Browse directories to find the right files\n- **read_file**: Read file content. For files >100 lines, first call returns lines 1-100 + total count. Use line_start/line_end to read specific sections (max 200 lines per call).\n- **edit_file**: Make surgical edits (old_string → new_string). ALWAYS read the target section first.\n- **create_file**: Create new files only when needed\n- **run_command**: Run \`npx tsc --noEmit\` to verify changes compile\n\n### TOKEN BUDGET RULES (CRITICAL)\n- Do NOT read entire large files. Read imports (lines 1-30), then only the function/section you need to change.\n- Aim for ≤5 tool calls total. Ideal: list_files → read_file (target section) → edit_file → run_command.\n- Do NOT re-read files you already read.\n\n### DEFINITION OF DONE\nYour work is NOT complete until:\n1. All edit_file calls succeeded\n2. You ran \`run_command: npx tsc --noEmit\` and got exit code 0\n3. If tsc fails — fix errors via edit_file, then re-run tsc\n\nAfter all edits, provide a 2-3 line summary of what you changed and which files.`;
+  } else if (step.agentId === "qa-agent") {
+    // QA gets targeted instructions — focus only on changed files
+    const changedFiles = Object.entries(context)
+      .filter(([k]) => k.startsWith("step_") && k.endsWith("_output"))
+      .map(([, v]) => v)
+      .join("\n")
+      .match(/(?:edit_file|create_file|Edited|Created)\s+(\S+)/g)
+      ?.map((m) => m.replace(/^(?:edit_file|create_file|Edited|Created)\s+/, ""))
+      || [];
+
+    const fileList = changedFiles.length > 0
+      ? `\n\n### CHANGED FILES (focus your review here)\n${changedFiles.map((f) => `- ${f}`).join("\n")}`
+      : "";
+
+    prompt += `\n\n---\n### TOOL ACCESS (READ-ONLY)${fileList}\n\n### QA TOKEN BUDGET (CRITICAL)\n- You have read-only tools: list_files, read_file\n- **MAX 8 tool calls total**. Do NOT browse the entire project.\n- Read ONLY the files listed above (changed files). If no list, read only files mentioned in the upstream agent outputs.\n- For large files: read imports (lines 1-30) + the changed function only.\n- Do NOT re-read files. Read once, analyze, write findings.\n- Output your findings directly. Do NOT read files just to "explore".`;
   } else if (readOnlyAgents.includes(step.agentId)) {
-    prompt += `\n\n---\n### TOOL ACCESS (READ-ONLY)\nYou have read-only access to the project file system:\n- **list_files**: Browse directories\n- **read_file**: Read file contents\n\nUse these tools to verify your analysis against the actual codebase. Do NOT guess file structures — read them.`;
+    prompt += `\n\n---\n### TOOL ACCESS (READ-ONLY)\nYou have read-only access to the project file system:\n- **list_files**: Browse directories\n- **read_file**: Read file contents\n\nUse these tools to verify your analysis against the actual codebase. Do NOT guess file structures — read them.\n\n### TOKEN BUDGET\n- Max 8 tool calls. Read only relevant files, not the entire project.`;
   }
 
   return prompt;
