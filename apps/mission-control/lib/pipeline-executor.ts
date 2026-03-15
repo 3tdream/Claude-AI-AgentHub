@@ -234,6 +234,8 @@ export async function executePipeline(
           outputChars: agentOutput.length,
           provider: data.provider || "unknown",
           model: data.model || model,
+          toolCalls: data.toolCalls || undefined,
+          toolCallCount: data.toolCallCount || 0,
         };
 
         const skipEvaluation = step.agentId === "orchestrator" || threshold === 0;

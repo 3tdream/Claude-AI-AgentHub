@@ -83,6 +83,14 @@ export interface DirectAIRequest {
   responseFormat?: "json" | "text";
 }
 
+export interface ToolCallLog {
+  name: string;
+  input: Record<string, string>;
+  output: string;
+  success: boolean;
+  durationMs: number;
+}
+
 export interface DirectAIResponse {
   success: boolean;
   content: string;
@@ -90,6 +98,7 @@ export interface DirectAIResponse {
   model: string;
   tokensUsed: { input: number; output: number };
   durationMs: number;
+  toolCalls?: ToolCallLog[];
 }
 
 export async function callAI(req: DirectAIRequest): Promise<DirectAIResponse> {
@@ -158,6 +167,7 @@ export async function callAIWithTools(req: ToolCallAIRequest): Promise<DirectAIR
   let totalInput = 0;
   let totalOutput = 0;
   let finalContent = "";
+  const toolCallLogs: ToolCallLog[] = [];
 
   // System prompt with cache_control for multi-turn efficiency
   const systemWithCache = [
@@ -200,7 +210,15 @@ export async function callAIWithTools(req: ToolCallAIRequest): Promise<DirectAIR
     const toolResults: Anthropic.Messages.ToolResultBlockParam[] = [];
     for (const toolUse of toolUseBlocks) {
       if (req.onToolCall) {
+        const toolStart = Date.now();
         const result = await req.onToolCall(toolUse.name, toolUse.input as Record<string, string>);
+        toolCallLogs.push({
+          name: toolUse.name,
+          input: toolUse.input as Record<string, string>,
+          output: result.output.substring(0, 500),
+          success: result.success,
+          durationMs: Date.now() - toolStart,
+        });
         toolResults.push({
           type: "tool_result",
           tool_use_id: toolUse.id,
@@ -227,6 +245,7 @@ export async function callAIWithTools(req: ToolCallAIRequest): Promise<DirectAIR
     model: modelId,
     tokensUsed: { input: totalInput, output: totalOutput },
     durationMs: Date.now() - start,
+    toolCalls: toolCallLogs,
   };
 }
 

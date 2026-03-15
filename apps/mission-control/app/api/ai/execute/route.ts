@@ -55,7 +55,8 @@ export async function POST(request: NextRequest) {
         model: result.model,
         tokensUsed: result.tokensUsed,
         durationMs: result.durationMs,
-        toolCalls: toolCallCount,
+        toolCalls: result.toolCalls || [],
+        toolCallCount: toolCallCount,
       });
     }
 
