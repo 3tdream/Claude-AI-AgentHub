@@ -33,7 +33,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={`${syne.variable} ${spaceMono.variable} font-sans antialiased`}>
+      <body suppressHydrationWarning className={`${syne.variable} ${spaceMono.variable} font-sans antialiased`}>
         {children}
       </body>
     </html>
