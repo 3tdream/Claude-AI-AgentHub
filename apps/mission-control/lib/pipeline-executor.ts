@@ -204,8 +204,8 @@ export async function executePipeline(
         const qaAgent = step.agentId === "qa-agent";
         const useTools = implementationAgents.includes(step.agentId) || readOnlyAgents.includes(step.agentId) || qaAgent;
         const toolMode = qaAgent ? "qa" : implementationAgents.includes(step.agentId) ? "readwrite" : "readonly";
-        // Implementation: 10 turns, QA: 8 turns, Architect/others: 5 turns
-        const maxToolSteps = implementationAgents.includes(step.agentId) ? 10 : qaAgent ? 8 : 5;
+        // Implementation: 6 turns (2 read + edit + verify), QA: 8, Architect/others: 5
+        const maxToolSteps = implementationAgents.includes(step.agentId) ? 6 : qaAgent ? 8 : 5;
 
         const res = await fetch("/api/ai/execute", {
           method: "POST",
@@ -585,7 +585,7 @@ function buildPrompt(
       ? `\n### AUTO-APPROVED ARCHITECTURAL PLAN\nThe architectural plan is approved. Proceed with implementation immediately.\n`
       : "";
 
-    prompt += `\n\n---${autoApprove}\n### TOOL ACCESS\n- **read_file**: Read file (use line_start/line_end for large files)\n- **edit_file**: Surgical edit (old_string → new_string)\n- **create_file**: New files only\n- **run_command**: \`npx tsc --noEmit\` to verify\n\n### STRATEGY (CRITICAL — follow this exactly)\n1. Look for the Architect's FILES_TO_READ and FILES_TO_EDIT block in the architecture output above\n2. Read ONLY the files and line ranges specified by Architect (max 2 files)\n3. Make edit_file with minimal change\n4. If task requires changes in >2 files: do the MOST IMPORTANT one, describe rest in summary\n5. Run tsc to verify\n\n### BUDGET: Max 4 read calls, then MUST edit or finish.\n\n### DEFINITION OF DONE\n1. At least one edit_file or create_file succeeded\n2. Summary: what changed, what remains`;
+    prompt += `\n\n---${autoApprove}\n### TOOL ACCESS\n- **read_file**: Read specific lines of a file (use line_start/line_end)\n- **edit_file**: Surgical edit (old_string → new_string)\n- **create_file**: New files only\n- **run_command**: Verify with tsc\n\n### STRATEGY (CRITICAL — FOLLOW EXACTLY, NO DEVIATIONS)\nYou are an IMPLEMENTER, not a researcher. The Architect already analyzed the codebase.\n\n**Step 1**: Find the Architect's FILES_TO_EDIT block above. It tells you EXACTLY which file and lines to change.\n**Step 2**: Read ONLY the specific lines Architect told you (ONE read_file call with line_start/line_end).\n**Step 3**: IMMEDIATELY call edit_file. Do NOT read more files.\n**Step 4**: If creating a new file, call create_file with complete content.\n\nIf Architect's plan has >2 files: implement ONLY THE FIRST FILE. List the rest in your summary.\n\n### HARD LIMITS\n- **MAX 2 read_file calls**. Then you MUST edit or create.\n- **MAX 1 file changed per agent run**. Quality over quantity.\n- If you catch yourself about to make a 3rd read call → STOP and write your edit immediately.\n\n### DEFINITION OF DONE\n1. At least one edit_file or create_file call succeeded\n2. 2-line summary: what you changed, what remains for next agent`;
 
   } else if (step.agentId === "qa-agent") {
     // QA gets targeted instructions — focus only on changed files

@@ -278,9 +278,15 @@ export async function executeTool(
       case "run_command": {
         validateCommand(input.command);
         try {
-          const { stdout, stderr } = await execAsync(input.command, {
+          // Fix Windows: replace npx tsc with direct path to avoid shell crashes
+          let cmd = input.command;
+          if (cmd.includes("npx tsc")) {
+            cmd = cmd.replace("npx tsc", "node node_modules/typescript/bin/tsc");
+          }
+          const { stdout, stderr } = await execAsync(cmd, {
             cwd: PROJECT_ROOT,
             timeout: 30000,
+            shell: process.platform === "win32" ? "cmd.exe" : "/bin/sh",
           });
           const output = (stdout + (stderr ? `\nSTDERR:\n${stderr}` : "")).substring(0, 10000);
           return { success: true, output: output || "(no output)" };
