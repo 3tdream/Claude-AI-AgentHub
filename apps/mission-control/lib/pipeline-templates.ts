@@ -47,7 +47,7 @@ export const CRM_PIPELINE_STAGES: WorkflowStep[] = [
     id: "s3-architect",
     agentId: "architect-agent",
     agentName: "Architect-Agent",
-    promptTemplate: "Design system architecture and ADRs based on PRD:\n{{step_s2-pm_output}}",
+    promptTemplate: "Design system architecture based on PRD:\n{{step_s2-pm_output}}\n\nOUTPUT FORMAT (strict):\n1. ONE ADR (max 300 words): Decision, Context, Chosen option, Rationale\n2. FILES_TO_READ block: exact paths + line ranges for Backend/Frontend\n3. FILES_TO_EDIT block: exact paths + what to change\n4. CHANGE SUMMARY: numbered list of changes\n\nTotal output: MAX 1500 words. No Knowledge Base JSON. No risk matrices. No alternatives analysis beyond the ADR.",
     dependsOn: ["s2-pm"],
     outputKey: "architecture",
     metadata: {
@@ -61,7 +61,7 @@ export const CRM_PIPELINE_STAGES: WorkflowStep[] = [
     id: "s3.5-cyber",
     agentId: "cyber-agent",
     agentName: "Cyber-Agent",
-    promptTemplate: "Create threat model based on architecture:\n{{step_s3-architect_output}}\n\nMandatory if public API, auth, or payments involved.",
+    promptTemplate: "Security review based on architecture:\n{{step_s3-architect_output}}\n\nOUTPUT FORMAT (strict):\n1. RISK LEVEL: Low / Medium / High / Critical (one word)\n2. MAX 3 findings. Each finding: Title (1 line), Risk (1 line), Fix (1 line)\n3. If no security concerns: output 'RISK LEVEL: Low — No security concerns for this task' (1 line)\n\nTotal output: MAX 800 words. No full threat models. No STRIDE/DREAD matrices. Concise findings only.",
     dependsOn: ["s3-architect"],
     outputKey: "threat_model",
     metadata: {
