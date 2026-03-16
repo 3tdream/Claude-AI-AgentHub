@@ -179,7 +179,8 @@ export async function callAIWithTools(req: ToolCallAIRequest): Promise<DirectAIR
   ];
 
   for (let step = 0; step < maxSteps; step++) {
-    const response = await client.messages.create({
+    // Use streaming to avoid 10-minute timeout on long requests
+    const stream = client.messages.stream({
       model: modelId,
       max_tokens: req.maxTokens || 32768,
       temperature: req.temperature ?? 0.3,
@@ -187,6 +188,8 @@ export async function callAIWithTools(req: ToolCallAIRequest): Promise<DirectAIR
       messages,
       tools: req.tools as Anthropic.Messages.Tool[],
     });
+
+    const response = await stream.finalMessage();
 
     totalInput += response.usage.input_tokens;
     totalOutput += response.usage.output_tokens;
