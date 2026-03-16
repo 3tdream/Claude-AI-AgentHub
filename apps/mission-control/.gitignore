@@ -8,3 +8,5 @@ data/logs.json
 data/jira-config.json
 data/api-keys.json
 data/applied/
+data/pipeline-runs/
+data/pipeline-analytics.json

@@ -3,6 +3,7 @@ import { postLog } from "@/lib/hooks/use-logs";
 import { evaluateStepOutput, buildRetryPrompt } from "@/lib/quality-evaluator";
 import { PIPELINE } from "@/lib/config";
 import type { RoutingDecisionData } from "@/types";
+// Analytics storage accessed via API (can't import fs in client-side code)
 
 const { MAX_RETRIES, ESCALATION_THRESHOLD, STEP_TIMEOUT_MS } = PIPELINE;
 
@@ -176,6 +177,15 @@ export async function executePipeline(
     let lastFeedback = "";
     let currentPrompt = buildPrompt(step, input, context, projectContext, routingDecision?.mode);
     const model = step.metadata?.model || "unknown";
+
+    // Inject agent learning context (past performance stats + recent runs)
+    try {
+      const analyticsRes = await fetch(`/api/pipeline/analytics?agentId=${step.agentId}`);
+      if (analyticsRes.ok) {
+        const { context: learningCtx } = await analyticsRes.json();
+        if (learningCtx) currentPrompt += learningCtx;
+      }
+    } catch { /* non-blocking */ }
 
     // Jira: stage start
     if (jiraKey) {
@@ -512,6 +522,13 @@ export async function executePipeline(
       body: JSON.stringify(execution),
     }).catch(() => {});
   }
+
+  // Save to pipeline analytics (learning database) — via API
+  fetch("/api/pipeline/analytics", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(execution),
+  }).catch(() => {});
 
   return execution;
 }
