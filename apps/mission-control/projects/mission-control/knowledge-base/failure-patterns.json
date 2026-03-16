@@ -1,6 +1,6 @@
 {
   "_description": "Known issues, root causes, and solutions — maintained by QA-Agent and all agents",
-  "_updated": "2026-03-14",
+  "_updated": "2026-03-16",
   "patterns": [
     {
       "id": "FAIL-001",
@@ -261,6 +261,205 @@
       "date_discovered": "2026-03-14",
       "recurrence": "Discovered during pipeline execution",
       "source_pipeline": "214b5c5a-1ecc-4b87-951d-969086675e6b"
+    },
+    {
+      "id": "FAIL-025",
+      "category": "security",
+      "title": "GET /api/system/config has no authentication — publicly accessible endpoint",
+      "symptoms": "Any unauthenticated HTTP client can call GET /api/system/config and receive system metadata. The route.ts has zero auth checks, no session validation, no middleware guard.",
+      "root_cause": "The route handler calls readUIConfig() directly without verifying the caller's session. The comment in the file claims rate limiting is enforced via Next.js middleware, but no middleware file was found protecting /api/system/* routes.",
+      "solution": "Add session check at the top of the GET handler: `const session = await getServerSession(); if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });`. Alternatively, add /api/system/* to the auth middleware matcher. Verify middleware.ts actually covers this path.",
+      "date_discovered": "2026-03-16",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/api/system/config/route.ts"
+      ]
+    },
+    {
+      "id": "FAIL-026",
+      "category": "bad-code",
+      "title": "TimestampFooter fetch has no timeout — hangs indefinitely on slow network",
+      "symptoms": "The useEffect fetch to /api/system/config has no AbortController / timeout. On a slow or stalled connection the footer never renders (isLoaded stays false), and the request is never cancelled when the component unmounts, causing a state-update-on-unmounted-component warning.",
+      "root_cause": "fetch() is called without an AbortSignal. No cleanup function is returned from useEffect, so the promise resolves after unmount and calls setLastUpdated / setIsLoaded on a dead component.",
+      "solution": "Add `const controller = new AbortController(); const timeoutId = setTimeout(() => controller.abort(), 5000);` and pass `{ signal: controller.signal }` to fetch. Return `() => { clearTimeout(timeoutId); controller.abort(); }` from useEffect.",
+      "date_discovered": "2026-03-16",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "components/shell/timestamp-footer.tsx"
+      ]
+    },
+    {
+      "id": "FAIL-027",
+      "category": "bad-code",
+      "title": "cached:true flag semantics are inverted and misleading — causes silent data staleness",
+      "symptoms": "The API response field `cached: false` means \"fresh data\" and `cached: true` means \"error fallback / stale\". This is the opposite of every HTTP caching convention. Consumers (current or future) will misread the flag and treat error-fallback data as authoritative cached data.",
+      "root_cause": "The field was named `cached` but its value encodes an error state, not a cache hit. The JSDoc comment even admits this: \"cached: true → FS read error or JSON parse error (fallback)\".",
+      "solution": "Rename the field to `error: boolean` or `fallback: boolean`, or add a separate `error` field. Update the interface, the JSDoc, and any consumers. The TimestampFooter currently ignores this field entirely, so it cannot distinguish stale-fallback from fresh data.",
+      "date_discovered": "2026-03-16",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/api/system/config/route.ts",
+        "components/shell/timestamp-footer.tsx"
+      ]
+    },
+    {
+      "id": "FAIL-028",
+      "category": "bad-code",
+      "title": "ADR-002 violation: getUiConfig() silently swallows ENOENT instead of returning null cleanly",
+      "symptoms": "getUiConfig() calls ensureDataDir() before every read, creating the directory on every GET request even when the file doesn't exist. The catch block returns null correctly, but the directory-creation side-effect on every read is unexpected and masks the ENOENT condition instead of propagating it as a clean null per ADR-002.",
+      "root_cause": "ensureDataDir() is called inside getUiConfig() unconditionally. ADR-002 says ENOENT should return null, not trigger auto-creation. The directory mkdir is a write side-effect inside a read function, violating command-query separation.",
+      "solution": "Remove ensureDataDir() call from getUiConfig(). Only call it inside setUiConfig(). In getUiConfig(), catch ENOENT specifically (err.code === 'ENOENT') and return {lastUpdated: null}; re-throw other errors so the route's catch block can log them properly.",
+      "date_discovered": "2026-03-16",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "lib/ui-config-storage.ts",
+        "app/api/system/config/route.ts"
+      ]
+    },
+    {
+      "id": "FAIL-029",
+      "category": "security",
+      "title": "POST /api/system/config has no authentication — any unauthenticated caller can overwrite lastUpdated",
+      "symptoms": "POST /api/system/config accepts any body with a valid ISO string and writes it to disk. No session check, no API key, no internal-only guard. Any external actor can set lastUpdated to an arbitrary date (e.g. year 9999) causing misleading UI across all shell pages.",
+      "root_cause": "Route handler has no auth middleware or token verification. The comment says \"fire-and-forget from pipeline-executor\" but the route is publicly reachable.",
+      "solution": "Add an internal secret check: compare Authorization header against process.env.INTERNAL_API_SECRET. Return 401 if missing/wrong. Alternatively, move the write to a server-action callable only from pipeline-executor server-side code, removing the HTTP surface entirely.",
+      "date_discovered": "2026-03-16",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/api/system/config/route.ts"
+      ]
+    },
+    {
+      "id": "FAIL-030",
+      "category": "bad-code",
+      "title": "setUiConfig atomic write leaves orphaned .tmp file on rename failure",
+      "symptoms": "If fs.rename() throws (e.g. cross-device link, permissions), the .tmp file is left on disk permanently. Subsequent calls to setUiConfig will overwrite it, but a crash between writeFile and rename leaves DATA_CONFIG_PATH.tmp polluting the data/config/ directory indefinitely.",
+      "root_cause": "No finally block cleans up the tmp file on rename failure. The error propagates to the caller but the orphaned file remains.",
+      "solution": "Wrap the rename in try/catch; in the catch, attempt fs.unlink(tmpPath) before re-throwing. Use a unique tmp name (e.g. append process.pid + Date.now()) to avoid collisions under concurrent writes.",
+      "date_discovered": "2026-03-16",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "lib/ui-config-storage.ts"
+      ]
+    },
+    {
+      "id": "FAIL-031",
+      "category": "security",
+      "title": "POST /api/system/config has no authentication — unauthenticated write to filesystem",
+      "symptoms": "Any anonymous HTTP client can POST { lastUpdated: \"2099-01-01T00:00:00Z\" } and overwrite data/config/ui.json, poisoning the timestamp shown to all users in the shell footer",
+      "root_cause": "route.ts exports POST handler with no auth guard, no middleware check, no API key validation. Next.js App Router does not apply auth middleware automatically to /api routes unless explicitly configured in middleware.ts matcher.",
+      "solution": "Add server-side auth check at top of POST handler: verify session via getServerSession() or validate an internal CRON_SECRET header. Add /api/system/config to middleware.ts protected routes matcher. Rate-limit POST to 10 req/min per IP as documented but not implemented.",
+      "date_discovered": "2026-03-16",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/api/system/config/route.ts"
+      ]
+    },
+    {
+      "id": "FAIL-032",
+      "category": "security",
+      "title": "Missing rate limiting implementation — documented but not enforced on /api/system/config",
+      "symptoms": "Route comments claim \"Rate limit: 60 req/min per IP\" (GET) and \"Rate limit: 10 req/min per IP\" (POST) but no rate-limiting middleware, header checks, or Upstash/Redis integration exists in the handler code",
+      "root_cause": "Rate limit is documented as a comment only. No actual implementation (e.g., upstash/ratelimit, next-rate-limit, or custom Redis counter) is present in the route file or called from a middleware wrapper.",
+      "solution": "Implement rate limiting using @upstash/ratelimit or a sliding-window Redis counter. Apply as a wrapper or in middleware.ts. Enforce 429 response with Retry-After header when limit exceeded.",
+      "date_discovered": "2026-03-16",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/api/system/config/route.ts"
+      ]
+    },
+    {
+      "id": "FAIL-033",
+      "category": "security",
+      "title": "POST /api/system/config — нет аутентификации, любой может перезаписать timestamp",
+      "symptoms": "Эндпоинт POST /api/system/config принимает тело без проверки токена/сессии. Любой внешний клиент может отправить произвольный ISO-timestamp и перезаписать данные конфигурации.",
+      "root_cause": "В route.ts отсутствует middleware аутентификации или проверка заголовка Authorization/API-key перед обработкой POST-запроса.",
+      "solution": "Добавить проверку внутреннего секрета (INTERNAL_API_SECRET из env) в заголовке Authorization: Bearer <secret> перед обработкой тела. Вернуть 401 при несовпадении. Альтернатива — ограничить маршрут только серверным вызовом через server action.",
+      "date_discovered": "2026-03-16",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/api/system/config/route.ts"
+      ]
+    },
+    {
+      "id": "FAIL-034",
+      "category": "security",
+      "title": "GET /api/system/config — нет rate limiting, возможен DoS через FS-чтение",
+      "symptoms": "Комментарий в коде обещает «Rate limit: 60 req/min per IP», но реальной реализации rate limiting в route.ts нет — ни middleware, ни заголовков, ни счётчика. Эндпоинт читает файл с диска на каждый запрос.",
+      "root_cause": "Rate limit задокументирован в JSDoc-комментарии, но не реализован в коде. Нет ни next-rate-limit, ни edge middleware, ни Redis-счётчика.",
+      "solution": "Реализовать rate limiting через Next.js middleware (middleware.ts) с использованием @upstash/ratelimit или аналога. Добавить заголовки Retry-After и X-RateLimit-Remaining в ответ.",
+      "date_discovered": "2026-03-16",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/api/system/config/route.ts"
+      ]
+    },
+    {
+      "id": "FAIL-035",
+      "category": "bad-code",
+      "title": "data/config/ui.json отсутствует в репозитории — первый запуск вернёт null без инициализации",
+      "symptoms": "Директория data/config не существует (ENOENT при list_files). При первом запуске getUiConfig() выбросит ошибку чтения файла, GET вернёт { lastUpdated: null, error: \"config_unavailable\" }, футер не отобразится никогда до первого pipeline-запуска.",
+      "root_cause": "Файл data/config/ui.json не создан как часть задачи (задача требовала его создать). Нет seed-скрипта или инициализации при старте приложения.",
+      "solution": "1) Создать data/config/ui.json с начальным значением { \"lastUpdated\": \"&lt;build-time ISO&gt;\" }. 2) Добавить файл в .gitignore исключения (не игнорировать). 3) В getUiConfig() добавить fallback: если файл не существует — вернуть { lastUpdated: null } без throw.",
+      "date_discovered": "2026-03-16",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "data/config/ui.json",
+        "lib/ui-config-storage.ts"
+      ]
+    },
+    {
+      "id": "FAIL-036",
+      "category": "bad-code",
+      "title": "TimestampFooter returns null during loading — permanent blank state if API never resolves",
+      "symptoms": "Footer never renders if SWR fetch hangs or API returns { lastUpdated: null }. Component returns null for both isLoading AND formattedDate === null, so a successful API response with null lastUpdated also produces no footer — silently swallowing the \"no data\" state with no user feedback.",
+      "root_cause": "Line 45 of timestamp-footer.tsx: `if (isLoading || formattedDate === null) return null` — the null guard conflates \"still loading\" with \"loaded but no timestamp\". When config file is missing and API returns { lastUpdated: null }, formattedDate stays null and the footer is permanently invisible.",
+      "solution": "Separate loading and empty states. When !isLoading and data is received but lastUpdated is null, render a fallback string (e.g. \"Дата обновления недоступна\") or at minimum a non-null placeholder. Only suppress render during isLoading.",
+      "date_discovered": "2026-03-16",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "components/shell/timestamp-footer.tsx"
+      ]
+    },
+    {
+      "id": "FAIL-037",
+      "category": "bad-code",
+      "title": "GET /api/system/config accesses config.lastUpdated without null-guard when getUiConfig returns null per ADR-002",
+      "symptoms": "Route.ts line 33: `{ lastUpdated: config.lastUpdated }` — if getUiConfig() returns null (per ADR-002 ENOENT behavior), this throws a TypeError: Cannot read properties of null, which is caught by the outer catch and returns config_unavailable — masking the expected null response as an error.",
+      "root_cause": "ADR-002 specifies getUiConfig() should return null on ENOENT, but the GET handler treats the return value as always being an object with a lastUpdated property. No null-check before property access on line 33.",
+      "solution": "Add null guard: `const lastUpdated = config ? config.lastUpdated : null; return NextResponse.json({ lastUpdated })`. This correctly returns { lastUpdated: null } (200 OK) when file is missing, matching ADR-002 contract.",
+      "date_discovered": "2026-03-16",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/api/system/config/route.ts"
+      ]
+    },
+    {
+      "id": "FAIL-038",
+      "category": "security",
+      "title": "POST /api/system/config — нет аутентификации, любой может перезаписать lastUpdated",
+      "symptoms": "Эндпоинт POST /api/system/config принимает запросы без проверки токена/сессии. Любой анонимный пользователь может отправить произвольную дату и изменить отображаемый timestamp во всём shell-layout.",
+      "root_cause": "В route.ts отсутствует middleware-проверка авторизации (getServerSession / verifyToken). Нет проверки роли — достаточно знать URL.",
+      "solution": "Добавить проверку сессии в начало POST-обработчика: const session = await getServerSession(); if (!session) return NextResponse.json({ok:false,error:'unauthorized'},{status:401}). Ограничить доступ ролью ADMIN или SYSTEM.",
+      "date_discovered": "2026-03-16",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/api/system/config/route.ts"
+      ]
     }
   ]
 }

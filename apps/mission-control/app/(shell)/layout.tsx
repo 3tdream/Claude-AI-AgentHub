@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/shell/theme-provider";
 import { DynamicToaster } from "@/components/shell/dynamic-toaster";
 import { useAppStore } from "@/lib/stores/app-store";
 import { cn } from "@/lib/utils";
+import { TimestampFooter } from "@/components/shell/timestamp-footer";
 
 export default function ShellLayout({
   children,
@@ -28,6 +29,7 @@ export default function ShellLayout({
         >
           <Topbar />
           <main className="p-6">{children}</main>
+          <TimestampFooter />
         </div>
       </div>
       <DynamicToaster />

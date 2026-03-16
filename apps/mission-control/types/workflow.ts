@@ -68,6 +68,31 @@ export type PipelineStatus = "pending" | "running" | "completed" | "failed" | "p
 
 export type ExecutionMode = "quick" | "medium" | "full";
 
+export enum EscalationTrigger {
+  CROSS_CUTTING = "cross_cutting",
+  SECURITY      = "security",
+  QA_FAIL       = "qa_fail",
+}
+
+export interface EscalationSignal {
+  escalate: boolean;
+  reason: string;
+  core_files_touched: string[];
+  trigger_type: EscalationTrigger;
+  severity?: "critical" | "high"; // only for trigger_type === "security"
+}
+
+export interface EscalationEvent {
+  triggeredAt: string;           // ISO timestamp
+  trigger: EscalationTrigger;
+  reason: string;
+  agentId: string;
+  stepId: string;
+  severity?: "critical" | "high";
+  stepsInserted: string[];       // agentId[] of inserted agents
+  userConfirmed?: boolean;       // undefined = auto, true/false = user was asked
+}
+
 export interface RoutingDecisionData {
   mode: ExecutionMode;
   selectedAgents: string[];

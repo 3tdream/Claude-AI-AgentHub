@@ -1,6 +1,6 @@
 {
   "_description": "Known issues, root causes, and solutions — maintained by QA-Agent and all agents",
-  "_updated": "2026-03-14",
+  "_updated": "2026-03-16",
   "patterns": [
     {
       "id": "FAIL-001",
@@ -239,6 +239,18 @@
       "date_discovered": "2026-03-14",
       "recurrence": "Discovered during pipeline execution",
       "source_pipeline": "6bd3e517-9162-4258-a467-d0a687a3e550"
+    },
+    {
+      "id": "FAIL-023",
+      "category": "build",
+      "title": "Quality issue in s2-pm",
+      "symptoms": "Step s2-pm required 2 retries to pass quality evaluation",
+      "root_cause": "Accepted with warning (5.7/10 after 3 attempts): Документ **обрезан на полуслове** — секция 2 \"Problem Statement\" начата но не завершена, что делает весь PRD неполным и неработоспособным. Критически о",
+      "solution": "Improve prompt specificity for this agent",
+      "date_discovered": "2026-03-16",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "9bb9cfc9-4ab5-489b-bcd0-3d2898fdbdf0",
+      "source_step": "s2-pm"
     }
   ]
 }
