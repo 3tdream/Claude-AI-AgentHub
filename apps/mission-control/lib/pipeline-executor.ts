@@ -204,8 +204,8 @@ export async function executePipeline(
         const qaAgent = step.agentId === "qa-agent";
         const useTools = implementationAgents.includes(step.agentId) || readOnlyAgents.includes(step.agentId) || qaAgent;
         const toolMode = qaAgent ? "qa" : implementationAgents.includes(step.agentId) ? "readwrite" : "readonly";
-        // Implementation: 15 steps, QA: 12 (needs run_command + save_failure_pattern), others: 10
-        const maxToolSteps = implementationAgents.includes(step.agentId) ? 15 : qaAgent ? 12 : 10;
+        // Implementation: 10 turns, QA: 8 turns, Architect/others: 5 turns
+        const maxToolSteps = implementationAgents.includes(step.agentId) ? 10 : qaAgent ? 8 : 5;
 
         const res = await fetch("/api/ai/execute", {
           method: "POST",
@@ -602,7 +602,7 @@ function buildPrompt(
 
     prompt += `\n\n---\n### TOOL ACCESS${fileList}\n\nYou have these tools:\n- **list_files**, **read_file** — read project code\n- **run_command** — run \`npx tsc --noEmit\` or \`grep\` to verify\n- **save_failure_pattern** — record critical bugs in knowledge base\n\n### QA WORKFLOW\n1. Read changed files (max 8 read calls)\n2. Run \`npx tsc --noEmit\` to check compilation\n3. Analyze for bugs, security issues, architectural violations\n4. For each CRITICAL finding: call **save_failure_pattern** with category, title, symptoms, root_cause, solution\n5. Output your QA report with all findings\n\n### VERDICT\nEnd your report with one of:\n- **VERDICT: PASS** — no critical issues, safe to deploy\n- **VERDICT: FAIL** — critical issues found, saved to failure patterns\n\n### TOKEN BUDGET (CRITICAL)\n- **MAX 10 tool calls total**. Read only changed files, not the entire project.\n- Do NOT re-read files. Read once, analyze, write.`;
   } else if (readOnlyAgents.includes(step.agentId)) {
-    prompt += `\n\n---\n### TOOL ACCESS (READ-ONLY)\nYou have read-only access to the project file system:\n- **list_files**: Browse directories\n- **read_file**: Read file contents\n\nUse these tools to verify your analysis against the actual codebase. Do NOT guess file structures — read them.\n\n### TOKEN BUDGET\n- Max 8 tool calls. Read only relevant files, not the entire project.`;
+    prompt += `\n\n---\n### TOOL ACCESS (READ-ONLY)\nYou have read-only access: list_files, read_file.\n\n### TOKEN BUDGET (CRITICAL — you WILL be cut off if you exceed)\n- **MAX 4 tool calls**. Read ONLY the 2-3 files directly relevant to the task.\n- Do NOT read ARCHITECTURE.md, CLAUDE.md, or knowledge-base files — their content is already in your context.\n- Do NOT explore directories. You already know the project structure.\n- Read a file ONLY if you need to see its exact current code for your architecture decision.\n- Spend your token budget on OUTPUT (ADRs, specs, contracts), not on INPUT (reading files).\n- Keep your output under 3000 words. Be concise.`;
   }
 
   return prompt;
