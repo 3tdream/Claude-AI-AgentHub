@@ -247,18 +247,17 @@ export async function callAIWithTools(req: ToolCallAIRequest): Promise<DirectAIR
       }
     }
 
-    // Track read-only calls and inject nudge when limit reached
+    // Track read-only calls
     for (const tc of toolCallLogs.slice(-toolUseBlocks.length)) {
       if (tc.name === "list_files" || tc.name === "read_file") readOnlyCallCount++;
     }
 
+    // Inject budget warning into the last tool_result content
     if (readOnlyCallCount >= READ_LIMIT && !toolCallLogs.some((tc) => tc.name === "edit_file" || tc.name === "create_file")) {
-      toolResults.push({
-        type: "tool_result" as const,
-        tool_use_id: toolUseBlocks[toolUseBlocks.length - 1].id,
-        content: `⚠️ BUDGET WARNING: You have used ${readOnlyCallCount} read calls without making any edits. You MUST now either: (1) call edit_file/create_file to implement changes, or (2) output your final analysis. Do NOT read more files. Summarize what you know and ACT.`,
-        is_error: false,
-      } as any);
+      const last = toolResults[toolResults.length - 1];
+      if (last && typeof last.content === "string") {
+        last.content += `\n\n⚠️ BUDGET WARNING: You have used ${readOnlyCallCount} read calls without making any edits. You MUST now either: (1) call edit_file/create_file to implement changes, or (2) output your final analysis. Do NOT read more files.`;
+      }
     }
 
     messages.push({ role: "user", content: toolResults });
