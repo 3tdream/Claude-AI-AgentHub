@@ -178,6 +178,9 @@ export async function callAIWithTools(req: ToolCallAIRequest): Promise<DirectAIR
     },
   ];
 
+  let readOnlyCallCount = 0;
+  const READ_LIMIT = 5; // After 5 read-only calls, inject "stop reading" nudge
+
   for (let step = 0; step < maxSteps; step++) {
     // Use streaming to avoid 10-minute timeout on long requests
     const stream = client.messages.stream({
@@ -222,10 +225,16 @@ export async function callAIWithTools(req: ToolCallAIRequest): Promise<DirectAIR
           success: result.success,
           durationMs: Date.now() - toolStart,
         });
+        // Truncate tool output to prevent context explosion
+        const maxOutputLen = (toolUse.name === "read_file" || toolUse.name === "list_files") ? 3000 : 5000;
+        const truncatedOutput = result.output.length > maxOutputLen
+          ? result.output.substring(0, maxOutputLen) + `\n\n... (truncated at ${maxOutputLen} chars. Use line_start/line_end for specific sections)`
+          : result.output;
+
         toolResults.push({
           type: "tool_result",
           tool_use_id: toolUse.id,
-          content: result.success ? result.output : `ERROR: ${result.error}\n${result.output}`,
+          content: result.success ? truncatedOutput : `ERROR: ${result.error}\n${truncatedOutput}`,
           is_error: !result.success,
         });
       } else {
@@ -236,6 +245,20 @@ export async function callAIWithTools(req: ToolCallAIRequest): Promise<DirectAIR
           is_error: true,
         });
       }
+    }
+
+    // Track read-only calls and inject nudge when limit reached
+    for (const tc of toolCallLogs.slice(-toolUseBlocks.length)) {
+      if (tc.name === "list_files" || tc.name === "read_file") readOnlyCallCount++;
+    }
+
+    if (readOnlyCallCount >= READ_LIMIT && !toolCallLogs.some((tc) => tc.name === "edit_file" || tc.name === "create_file")) {
+      toolResults.push({
+        type: "tool_result" as const,
+        tool_use_id: toolUseBlocks[toolUseBlocks.length - 1].id,
+        content: `⚠️ BUDGET WARNING: You have used ${readOnlyCallCount} read calls without making any edits. You MUST now either: (1) call edit_file/create_file to implement changes, or (2) output your final analysis. Do NOT read more files. Summarize what you know and ACT.`,
+        is_error: false,
+      } as any);
     }
 
     messages.push({ role: "user", content: toolResults });

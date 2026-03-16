@@ -56,6 +56,15 @@ export async function evaluateStepOutput(
   agentOutput: string,
   passThreshold?: number,
 ): Promise<EvaluationResult> {
+  // Auto-fail if output is too short — agent didn't produce real work
+  if (!agentOutput || agentOutput.trim().length < 100) {
+    return {
+      score: { completeness: 0, specificity: 0, actionability: 0, overall: 0 },
+      passed: false,
+      feedback: `Output too short (${agentOutput?.trim().length || 0} chars). Agent did not produce meaningful output — likely stuck in tool loop or timed out.`,
+    };
+  }
+
   const prompt = EVALUATION_PROMPT
     .replace("{{agentName}}", agentName)
     .replace("{{stageNumber}}", stageNumber)
