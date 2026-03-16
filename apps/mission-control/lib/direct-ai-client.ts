@@ -181,7 +181,7 @@ export async function callAIWithTools(req: ToolCallAIRequest): Promise<DirectAIR
   for (let step = 0; step < maxSteps; step++) {
     const response = await client.messages.create({
       model: modelId,
-      max_tokens: req.maxTokens || 16384,
+      max_tokens: req.maxTokens || 32768,
       temperature: req.temperature ?? 0.3,
       system: systemWithCache,
       messages,
