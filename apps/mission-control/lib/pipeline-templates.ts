@@ -68,7 +68,7 @@ export const CRM_PIPELINE_STAGES: WorkflowStep[] = [
       stageNumber: "3.5",
       qualityThreshold: 8,
       leadAgent: "cyber-agent",
-      model: "sonnet-4-6",
+      model: "opus-4-6",
       conditional: "public API / auth / payments",
     },
   },
