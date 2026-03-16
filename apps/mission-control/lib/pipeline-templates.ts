@@ -38,7 +38,7 @@ export const CRM_PIPELINE_STAGES: WorkflowStep[] = [
     outputKey: "prd",
     metadata: {
       stageNumber: "2",
-      qualityThreshold: 8,
+      qualityThreshold: 6,
       leadAgent: "pm-agent",
       model: "sonnet-4-6",
     },

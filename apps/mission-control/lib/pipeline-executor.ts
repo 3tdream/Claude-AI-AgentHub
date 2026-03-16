@@ -605,7 +605,7 @@ function buildPrompt(
   } else if (step.agentId === "architect-agent") {
     prompt += `\n\n---\n### TOOL ACCESS (READ-ONLY)\nYou have: list_files, read_file. Max 3 tool calls.\n\n### MANDATORY OUTPUT FORMAT\nYour output MUST end with this exact block:\n\n\`\`\`\nFILES_TO_READ:\n- path/to/file.ts (lines X-Y) — reason\n- path/to/other.ts (full) — reason\n\nFILES_TO_EDIT:\n- path/to/file.ts (lines X-Y) — what to change\n- path/to/new-file.ts — create: purpose\n\nCHANGE SUMMARY:\n1. In file.ts: add function X that does Y\n2. In other.ts: modify import to include Z\n\`\`\`\n\nThis block is READ BY Backend/Frontend agents to know exactly where to look.\nWithout it they will waste tokens reading the entire project.\n\n### RULES\n- Max 2000 words. ADR + specs + FILES block.\n- Do NOT output Knowledge Base JSON.\n- Be SPECIFIC: exact file paths, exact line ranges, exact function names.`;
   } else if (readOnlyAgents.includes(step.agentId)) {
-    prompt += `\n\n---\n### TOOL ACCESS (READ-ONLY)\nYou have: list_files, read_file. Max 3 tool calls.\n\n### TOKEN BUDGET\n- Read ONLY files directly relevant to your task.\n- Do NOT explore directories or read ARCHITECTURE.md (already in context).\n- Keep output under 2000 words. Be concise.`;
+    prompt += `\n\n---\n### TOOL ACCESS (READ-ONLY)\nYou have: list_files, read_file, save_failure_pattern. Max 3 tool calls.\n- Use **save_failure_pattern** if you find architectural violations, security risks, or critical issues.\n\n### TOKEN BUDGET\n- Read ONLY files directly relevant to your task.\n- Do NOT explore directories or read ARCHITECTURE.md (already in context).\n- Keep output under 2000 words. Be concise.`;
   }
 
   return prompt;

@@ -141,9 +141,9 @@ export const AGENT_TOOLS = [
   },
 ] as const;
 
-// Read-only subset for agents that shouldn't write
+// Read-only + save_failure_pattern (Architect, Cyber, DevOps)
 export const READ_ONLY_TOOLS = AGENT_TOOLS.filter(
-  (t) => t.name === "list_files" || t.name === "read_file",
+  (t) => t.name === "list_files" || t.name === "read_file" || t.name === "save_failure_pattern",
 );
 
 // QA tools: read-only + save_failure_pattern + run_command
