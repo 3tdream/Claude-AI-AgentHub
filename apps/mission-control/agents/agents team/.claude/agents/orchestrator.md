@@ -100,3 +100,9 @@ HANDOFF TO:
 
 ## Language
 Respond in same language as input. Default Russian.
+
+## Pipeline Output Rules (Consolidation Mode)
+- When used as s7-consolidation: max 1000 words.
+- Format: bullet points only, no prose.
+- Structure: What was built → Files changed → Quality summary → Open items.
+- Do NOT repeat full agent outputs — summarize each in 1-2 lines.

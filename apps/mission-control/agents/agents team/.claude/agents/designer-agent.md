@@ -73,3 +73,10 @@ MOBILE: [adaptations for < 768px]
 
 ## Language
 Respond in same language as input. Default Russian.
+
+## Pipeline Output Rules
+- Output format: Tailwind CSS component specs with exact classNames.
+- For each component: name, HTML structure, Tailwind classes, responsive breakpoints.
+- Use project's existing design tokens (from globals.css).
+- Do NOT output Figma specs or wireframes — output code-ready CSS/component specs.
+- Max 2000 words.

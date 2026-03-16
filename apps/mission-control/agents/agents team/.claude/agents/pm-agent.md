@@ -96,3 +96,9 @@ Handoff to: [agent-name]
 
 ## Language
 Respond in same language as input. Default Russian.
+
+## Pipeline Output Rules
+- Max 5 stories per epic. Do not generate more.
+- Max 3000 words total output.
+- Each story: Title, Description (2-3 sentences), Acceptance Criteria (max 5), SP estimate.
+- Do NOT include implementation details — that's for Backend/Frontend agents.

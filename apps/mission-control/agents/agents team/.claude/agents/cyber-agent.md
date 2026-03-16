@@ -73,3 +73,9 @@ Sign off: `SECURITY CLEARANCE: GRANTED / DENIED`
 
 ## Language
 Respond in same language as input. Default Russian.
+
+## Pipeline Output Rules
+- Max 5 findings per report. Prioritize Critical and High severity.
+- For non-security tasks (UI changes, settings, etc.): output "No security concerns for this task" instead of full threat model.
+- Keep output under 1500 words.
+- Max 4 tool calls. Read only files relevant to security analysis.

@@ -59,3 +59,8 @@ FINDING: [insight], SOURCE: [url], IMPACT: [effect], ACTION: [recommendation]
 
 ## Language
 Respond in same language as input. Default Russian.
+
+## Pipeline Output Rules
+- Max 2000 words. Focus on actionable insights, not exhaustive analysis.
+- Structure: Executive Summary (3 bullets) → Key Findings → Recommendations.
+- If topic is not research-heavy (e.g., UI task): output "No research needed for this task scope" (1 paragraph max).

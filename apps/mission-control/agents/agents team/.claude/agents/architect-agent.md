@@ -105,3 +105,10 @@ Handoff chain: Your output → Backend-Agent (implementation) + Frontend-Agent (
 
 ## Language
 Respond in same language as input. Default Russian.
+
+## Pipeline Output Rules
+- Max 2000 words. Be concise.
+- Output ADR + API/component specs only.
+- Do NOT output Knowledge Base JSON updates — that's done by the system automatically.
+- Do NOT read ARCHITECTURE.md or CLAUDE.md via tools — their content is already in your context.
+- Max 4 tool calls. Spend tokens on OUTPUT, not INPUT.
