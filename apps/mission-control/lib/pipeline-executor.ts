@@ -180,7 +180,9 @@ export async function executePipeline(
 
     // Inject agent learning context (past performance stats + recent runs)
     try {
-      const analyticsRes = await fetch(`/api/pipeline/analytics?agentId=${step.agentId}`);
+      // Analytics stores short IDs (architect, backend) not full (architect-agent)
+      const shortAgentId = step.agentId.replace(/-agent$/, "");
+      const analyticsRes = await fetch(`/api/pipeline/analytics?agentId=${shortAgentId}`);
       if (analyticsRes.ok) {
         const { context: learningCtx } = await analyticsRes.json();
         if (learningCtx) currentPrompt += learningCtx;

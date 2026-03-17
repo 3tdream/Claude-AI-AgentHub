@@ -460,6 +460,105 @@
       "affected_files": [
         "app/api/system/config/route.ts"
       ]
+    },
+    {
+      "id": "FAIL-039",
+      "category": "security",
+      "title": "Escalation trigger bypass via metadata injection in stepResult",
+      "symptoms": "Malicious or malformed agent output can inject arbitrary metadata fields (severity, hasCriticalBug, qualityScore) into stepResult.metadata, triggering or suppressing escalation triggers T1-T5 without legitimate security/QA findings.",
+      "root_cause": "checkEscalationTriggers() trusts stepResult.metadata values without validation or schema enforcement. Any agent response that populates metadata fields can control escalation flow. The parseEscalateTag regex is also injectable via crafted agent output.",
+      "solution": "1) Validate stepResult.metadata against a strict schema (zod) before trigger evaluation. 2) Only allow specific agentIds to set specific metadata fields (cyber-agent → severity/probability, qa-agent → hasCriticalBug/qualityScore). 3) Add HMAC or signing to agent outputs to prevent tampering between step execution and trigger check. 4) Sanitize parseEscalateTag input — limit output length before regex parsing.",
+      "date_discovered": "2026-03-16",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "lib/pipeline-executor.ts",
+        "types/workflow.ts"
+      ]
+    },
+    {
+      "id": "FAIL-040",
+      "category": "security",
+      "title": "Untyped agent metadata enables escalation trigger manipulation",
+      "symptoms": "Any agent can inject arbitrary metadata fields (severity, hasCriticalBug, qualityScore) into stepResult, causing false escalation triggers or suppressing real security findings. No schema validation on metadata per agent role.",
+      "root_cause": "checkEscalationTriggers() reads stepResult.metadata fields without validating that the claimed agentId actually has permission to set those fields. Metadata is Record<string, unknown> with no Zod schema enforcement. Agent identity (agentId parameter) is passed by caller without cryptographic verification.",
+      "solution": "1. Define Zod discriminated union schemas per agentId (CyberMetadata, QaMetadata, ArchitectMetadata). 2. Validate metadata BEFORE checkEscalationTriggers(). 3. Strip unknown keys and log validation failures. 4. Sanitize EscalationTrigger.reason with allowlist regex ^[a-zA-Z0-9 .\\-]{1,100}$ to prevent XSS/Jira injection. 5. Add server-side auth + idempotency on escalation confirm/reject endpoints.",
+      "date_discovered": "2026-03-16",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "lib/pipeline-executor.ts",
+        "types/workflow.ts",
+        "components/orchestration/escalation-badge.tsx",
+        "components/orchestration/escalation-banner.tsx",
+        "lib/jira-sync-service.ts"
+      ]
+    },
+    {
+      "id": "FAIL-041",
+      "category": "security",
+      "title": "Escalation trigger bypass via metadata injection in stepResult",
+      "symptoms": "checkEscalationTriggers() reads stepResult.metadata fields (severity, probability, hasCriticalBug, qualityScore) without validation. A malicious or malformed agent output could inject metadata that either falsely triggers escalation (DoS via forced Full mode = token burn) or suppresses real triggers (severity downgrade).",
+      "root_cause": "No schema validation on stepResult.metadata before escalation trigger evaluation. The metadata object is typed as 'any' and populated directly from agent output parsing. T1/T2 triggers check metadata.severity === \"critical\" but never validate the value came from actual cyber-agent analysis vs. injected content.",
+      "solution": "1. Add Zod schema validation for StepResult.metadata with discriminated union per agentId. 2. Validate that metadata.severity only comes from cyber-agent steps (not arbitrary agents). 3. Add HMAC or internal signing to step results so escalation logic can verify origin. 4. Add rate limiting: max 1 escalation per execution to prevent repeated token-burn attacks.",
+      "date_discovered": "2026-03-16",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "lib/pipeline-executor.ts",
+        "types/workflow.ts"
+      ]
+    },
+    {
+      "id": "FAIL-042",
+      "category": "security",
+      "title": "Zustand persist stores PII (escalation data) unencrypted in localStorage",
+      "symptoms": "EscalationReason[], confirmedBy (MEDIUM PII), security finding severities stored in plaintext localStorage via Zustand persist middleware. Accessible via browser DevTools.",
+      "root_cause": "orchestration-store.ts uses Zustand persist without partialize filter or encrypted storage adapter. New ADR-012 fields (escalationReasons, escalatedFrom) automatically persisted with full detail strings.",
+      "solution": "1) Use partialize in persist config to exclude escalationReasons.detail and confirmedBy from localStorage. 2) Or implement encrypted storage adapter (AES-256 with session-derived key). 3) Strip sensitive fields in addToHistory before persisting to executionHistory array. This is a 152-FZ Art.19 requirement.",
+      "date_discovered": "2026-03-16",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "lib/stores/orchestration-store.ts",
+        "types/workflow.ts"
+      ]
+    },
+    {
+      "id": "FAIL-043",
+      "category": "security",
+      "title": "ADR-012: PII + security findings в localStorage без шифрования через zustand/persist",
+      "symptoms": "orchestration-store.ts использует zustand persist middleware (строка 25), сохраняя executionHistory в localStorage. ADR-012 добавляет EscalationReason[] с полями detail (содержит имена файлов, store-имена, security severity) и confirmedBy (user identifier — MEDIUM PII). Данные доступны через DevTools → Application → Local Storage.",
+      "root_cause": "zustand persist по умолчанию сериализует в JSON без шифрования. ADR-007 уже пометил confirmedBy как \"MEDIUM PII — encrypt at rest\" (строка 104 workflow.ts), но шифрование не реализовано. ADR-012 усугубляет: escalationReasons[].detail содержит security findings severity, что раскрывает архитектуру безопасности.",
+      "solution": "1) Реализовать custom storage adapter для zustand persist с AES-256-GCM через Web Crypto API (window.crypto.subtle). 2) Ключ шифрования — derivation от session token через PBKDF2. 3) Sanitize escalationReasons[].detail перед persist: заменить severity на generic \"security review required\". 4) Добавить TTL: executionHistory записи старше 7 дней — автоудаление. Файлы: lib/stores/orchestration-store.ts, lib/stores/encrypted-storage.ts (создать).",
+      "date_discovered": "2026-03-16",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "lib/stores/orchestration-store.ts",
+        "types/workflow.ts",
+        "lib/pipeline/escalation-triggers.ts",
+        "components/pipeline/escalation-badge.tsx"
+      ]
+    },
+    {
+      "id": "FAIL-044",
+      "category": "security",
+      "title": "ADR-012 Escalation: No authorization on Jira endpoint + XSS in escalation detail rendering + spoofable trigger signals",
+      "symptoms": "1) Jira escalation endpoint has no ownership check — any authenticated user can create subtasks/comments in arbitrary epics. 2) EscalationReason.detail is free-text rendered in UI Badge/Tooltip without sanitization — XSS vector. 3) Escalation triggers are pure functions called client-side with no server validation — any agent can spoof cyber-critical to force Full mode. 4) EscalationRecord.confirmedBy (line 104) is marked MEDIUM PII but no encryption mechanism exists in the store.",
+      "root_cause": "ADR-012 spec lacks: authorization middleware on Jira endpoint, input sanitization on detail field, server-side trigger validation, and PII encryption for confirmedBy field persisted via zustand/persist to localStorage.",
+      "solution": "1) Add ownership check: verify pipelineId belongs to JWT user before Jira ops. 2) Sanitize EscalationReason.detail with DOMPurify or escape in React (already default for JSX text, but dangerouslySetInnerHTML must be avoided). 3) Add server-side trigger validation endpoint that re-checks thresholds before accepting escalation. 4) Encrypt confirmedBy before localStorage persistence or exclude from persist whitelist. 5) Validate epicKey format server-side with regex.",
+      "date_discovered": "2026-03-16",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/api/v1/jira/escalation/route.ts",
+        "lib/pipeline/escalation-triggers.ts",
+        "lib/stores/orchestration-store.ts",
+        "components/pipeline/escalation-badge.tsx",
+        "components/pipeline/escalation-confirm-dialog.tsx",
+        "types/workflow.ts"
+      ]
     }
   ]
 }

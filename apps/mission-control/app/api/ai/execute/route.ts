@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
 
     // --- Tool-use mode ---
     if (useTools) {
-      const tools = toolMode === "qa" ? QA_TOOLS : toolMode === "readonly" ? READ_ONLY_TOOLS : AGENT_TOOLS;
+      const tools = (toolMode === "qa" ? QA_TOOLS : toolMode === "readonly" ? READ_ONLY_TOOLS : AGENT_TOOLS) as any[];
       let toolCallCount = 0;
 
       const result = await callAIWithTools({
