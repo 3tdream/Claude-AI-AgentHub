@@ -13,6 +13,7 @@ export interface QualityScore {
   completeness: number;
   specificity: number;
   actionability: number;
+  taskCompletion?: number;
   overall: number;
 }
 

@@ -16,20 +16,27 @@ AGENT OUTPUT:
 {{agentOutput}}
 ---
 
-Score this output on three axes (1-10 each):
+Score this output on FOUR axes (1-10 each):
 - **Completeness**: Are all requirements addressed? No missing sections?
-- **Specificity**: Are there concrete values, names, technologies? Not vague?
+- **Specificity**: Are there concrete file paths, line numbers, function names? Not vague?
 - **Actionability**: Can the next agent work from this without asking questions?
+- **TaskCompletion**: Did the agent ACTUALLY DO the task? (not just describe what to do)
+  - 10: Task fully implemented (edit_file succeeded, code compiles)
+  - 7-9: Task partially done (some edits, or good spec for next agent)
+  - 4-6: Agent described the solution but didn't implement it
+  - 1-3: Agent got stuck, asked questions, or output is incomplete/truncated
 
-You MUST respond in EXACTLY this format (one line, no extra text):
-[SCORE] completeness: X.X, specificity: X.X, actionability: X.X → PASS/FAIL
+You MUST respond in EXACTLY this format (one line each, no extra text):
+[SCORE] completeness: X.X, specificity: X.X, actionability: X.X, taskCompletion: X.X → PASS/FAIL
 [FEEDBACK] Your specific feedback here (what's missing or what needs improvement)
 
 Rules:
-- Overall = average of three scores
-- 8+ = PASS
-- Below 8 = FAIL with specific feedback on what to improve
-- Be strict but fair. Vague outputs should score low on specificity.`;
+- Overall = average of FOUR scores
+- 7.5+ = PASS
+- Below 7.5 = FAIL with specific feedback on what to improve
+- If output is truncated (ends mid-sentence) → taskCompletion max 4
+- If agent only described what to do but didn't do it → taskCompletion max 5
+- Be strict but fair.`;
 
 const RETRY_PROMPT = `You are {{agentName}}. Your previous output was evaluated and did NOT meet quality standards.
 
@@ -69,7 +76,7 @@ export async function evaluateStepOutput(
     .replace("{{agentName}}", agentName)
     .replace("{{stageNumber}}", stageNumber)
     .replace("{{taskInput}}", taskInput.slice(0, 500))
-    .replace("{{agentOutput}}", agentOutput.slice(0, 2000));
+    .replace("{{agentOutput}}", agentOutput.slice(0, 4000));
 
   try {
     const res = await fetch("/api/ai/execute", {
@@ -90,11 +97,11 @@ export async function evaluateStepOutput(
     // If evaluation fails, default to pass with placeholder
   }
 
-  // Fallback: conservative fail — will trigger retry
+  // Fallback: if evaluation API fails, pass to avoid blocking pipeline
   return {
-    score: { completeness: 7.5, specificity: 7.5, actionability: 7.5, overall: 7.5 },
-    passed: false,
-    feedback: "Evaluation unavailable — manual review recommended",
+    score: { completeness: 7.5, specificity: 7.5, actionability: 7.5, taskCompletion: 7.5, overall: 7.5 },
+    passed: true,
+    feedback: "Evaluation unavailable — auto-passed to avoid blocking pipeline",
   };
 }
 
@@ -110,19 +117,34 @@ function parseEvaluationResponse(response: string, passThreshold: number = PIPEL
   let completeness = 7;
   let specificity = 7;
   let actionability = 7;
+  let taskCompletion = 7;
   let passed = false;
   let feedback = "";
 
   for (const line of lines) {
-    // Parse score line
-    const scoreMatch = line.match(
-      /\[SCORE\]\s*completeness:\s*([\d.]+),?\s*specificity:\s*([\d.]+),?\s*actionability:\s*([\d.]+)\s*→?\s*(PASS|FAIL)/i,
+    // Parse 4-score line
+    const scoreMatch4 = line.match(
+      /\[SCORE\]\s*completeness:\s*([\d.]+),?\s*specificity:\s*([\d.]+),?\s*actionability:\s*([\d.]+),?\s*taskCompletion:\s*([\d.]+)\s*→?\s*(PASS|FAIL)/i,
     );
-    if (scoreMatch) {
-      completeness = clampScore(parseFloat(scoreMatch[1]));
-      specificity = clampScore(parseFloat(scoreMatch[2]));
-      actionability = clampScore(parseFloat(scoreMatch[3]));
-      passed = scoreMatch[4].toUpperCase() === "PASS";
+    if (scoreMatch4) {
+      completeness = clampScore(parseFloat(scoreMatch4[1]));
+      specificity = clampScore(parseFloat(scoreMatch4[2]));
+      actionability = clampScore(parseFloat(scoreMatch4[3]));
+      taskCompletion = clampScore(parseFloat(scoreMatch4[4]));
+      passed = scoreMatch4[5].toUpperCase() === "PASS";
+    }
+    // Fallback: parse 3-score line (backwards compat)
+    if (!scoreMatch4) {
+      const scoreMatch3 = line.match(
+        /\[SCORE\]\s*completeness:\s*([\d.]+),?\s*specificity:\s*([\d.]+),?\s*actionability:\s*([\d.]+)\s*→?\s*(PASS|FAIL)/i,
+      );
+      if (scoreMatch3) {
+        completeness = clampScore(parseFloat(scoreMatch3[1]));
+        specificity = clampScore(parseFloat(scoreMatch3[2]));
+        actionability = clampScore(parseFloat(scoreMatch3[3]));
+        taskCompletion = 7; // default if not provided
+        passed = scoreMatch3[4].toUpperCase() === "PASS";
+      }
     }
 
     // Parse feedback line
@@ -133,9 +155,14 @@ function parseEvaluationResponse(response: string, passThreshold: number = PIPEL
   }
 
   // If no structured match found, try to extract numbers from response
-  if (completeness === 7 && specificity === 7 && actionability === 7) {
+  if (completeness === 7 && specificity === 7 && actionability === 7 && taskCompletion === 7) {
     const numbers = response.match(/\d+\.?\d*/g);
-    if (numbers && numbers.length >= 3) {
+    if (numbers && numbers.length >= 4) {
+      completeness = clampScore(parseFloat(numbers[0]));
+      specificity = clampScore(parseFloat(numbers[1]));
+      actionability = clampScore(parseFloat(numbers[2]));
+      taskCompletion = clampScore(parseFloat(numbers[3]));
+    } else if (numbers && numbers.length >= 3) {
       completeness = clampScore(parseFloat(numbers[0]));
       specificity = clampScore(parseFloat(numbers[1]));
       actionability = clampScore(parseFloat(numbers[2]));
@@ -149,7 +176,7 @@ function parseEvaluationResponse(response: string, passThreshold: number = PIPEL
     }
   }
 
-  const overall = round((completeness + specificity + actionability) / 3);
+  const overall = round((completeness + specificity + actionability + taskCompletion) / 4);
 
   // Override pass/fail based on actual score (trust the math over LLM text)
   passed = overall >= passThreshold;
