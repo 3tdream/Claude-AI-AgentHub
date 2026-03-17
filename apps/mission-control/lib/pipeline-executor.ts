@@ -349,7 +349,12 @@ export async function executePipeline(
 
         lastFeedback = evaluation.feedback;
 
-        if (retryCount < MAX_RETRIES) {
+        // Smart retry: stop early if score isn't improving
+        const prevScore = execution.qualityScores?.[step.id]?.overall || 0;
+        const scoreImproved = evaluation.score.overall > prevScore + 0.5;
+        const worthRetrying = retryCount < 2 || scoreImproved; // Always try twice, then only if improving
+
+        if (retryCount < MAX_RETRIES && worthRetrying) {
           postLog({
             type: "system",
             agentId: step.agentId,

@@ -6,7 +6,7 @@
 /** Pipeline executor config */
 export const PIPELINE = {
   /** Max retry attempts per step before accepting with warning or escalating */
-  MAX_RETRIES: 5,
+  MAX_RETRIES: 3,
   /** Score below this after max retries → escalation (halt pipeline) */
   ESCALATION_THRESHOLD: 5,
   /** Score at or above this → PASS */
