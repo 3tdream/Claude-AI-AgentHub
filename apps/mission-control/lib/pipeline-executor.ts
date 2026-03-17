@@ -212,12 +212,13 @@ export async function executePipeline(
 
         // Determine tool access level
         const implementationAgents = ["backend-agent", "frontend-agent"];
-        const readOnlyAgents = ["architect-agent", "cyber-agent", "devops-agent"];
+        const readOnlyAgents = ["architect-agent", "cyber-agent", "devops-agent", "pm-agent"];
         const qaAgent = step.agentId === "qa-agent";
         const useTools = implementationAgents.includes(step.agentId) || readOnlyAgents.includes(step.agentId) || qaAgent;
         const toolMode = qaAgent ? "qa" : implementationAgents.includes(step.agentId) ? "readwrite" : "readonly";
-        // Implementation: 6 turns (2 read + edit + verify), QA: 8, Architect/others: 5
-        const maxToolSteps = implementationAgents.includes(step.agentId) ? 6 : qaAgent ? 8 : 5;
+        // Implementation: 6, QA: 8, PM: 3 (just explore), Architect/others: 5
+        const pmAgent = step.agentId === "pm-agent";
+        const maxToolSteps = implementationAgents.includes(step.agentId) ? 6 : qaAgent ? 8 : pmAgent ? 3 : 5;
 
         const res = await fetch("/api/ai/execute", {
           method: "POST",
@@ -623,6 +624,8 @@ function buildPrompt(
     prompt += `\n\n---\n### TOOL ACCESS${fileList}\n\nYou have these tools:\n- **list_files**, **read_file** — read project code\n- **run_command** — run \`npx tsc --noEmit\` or \`grep\` to verify\n- **save_failure_pattern** — record critical bugs in knowledge base\n\n### QA WORKFLOW\n1. Read changed files (max 8 read calls)\n2. Run \`npx tsc --noEmit\` to check compilation\n3. Analyze for bugs, security issues, architectural violations\n4. For each CRITICAL finding: call **save_failure_pattern** with category, title, symptoms, root_cause, solution\n5. Output your QA report with all findings\n\n### VERDICT\nEnd your report with one of:\n- **VERDICT: PASS** — no critical issues, safe to deploy\n- **VERDICT: FAIL** — critical issues found, saved to failure patterns\n\n### TOKEN BUDGET (CRITICAL)\n- **MAX 10 tool calls total**. Read only changed files, not the entire project.\n- Do NOT re-read files. Read once, analyze, write.`;
   } else if (step.agentId === "architect-agent") {
     prompt += `\n\n---\n### TOOL ACCESS (READ-ONLY)\nYou have: list_files, read_file. Max 3 tool calls.\n\n### MANDATORY OUTPUT FORMAT\nYour output MUST end with this exact block:\n\n\`\`\`\nFILES_TO_READ:\n- path/to/file.ts (lines X-Y) — reason\n- path/to/other.ts (full) — reason\n\nFILES_TO_EDIT:\n- path/to/file.ts (lines X-Y) — what to change\n- path/to/new-file.ts — create: purpose\n\nCHANGE SUMMARY:\n1. In file.ts: add function X that does Y\n2. In other.ts: modify import to include Z\n\`\`\`\n\nThis block is READ BY Backend/Frontend agents to know exactly where to look.\nWithout it they will waste tokens reading the entire project.\n\n### RULES\n- Max 2000 words. ADR + specs + FILES block.\n- Do NOT output Knowledge Base JSON.\n- Be SPECIFIC: exact file paths, exact line ranges, exact function names.`;
+  } else if (step.agentId === "pm-agent") {
+    prompt += `\n\n---\n### TOOL ACCESS (READ-ONLY)\nYou have: list_files, read_file. Max 2 tool calls.\n\nBefore writing stories, check the REAL project structure:\n1. list_files on the relevant directory (app/(shell)/, app/api/, lib/stores/, types/)\n2. read_file on types or store if you need exact field names\n\nThis prevents writing stories about files/APIs that don't exist.\nDo NOT guess paths — verify them.\n\n### TOKEN BUDGET\n- Max 2 tool calls. Quick look, then write.\n- Keep output under 3000 words.`;
   } else if (readOnlyAgents.includes(step.agentId)) {
     prompt += `\n\n---\n### TOOL ACCESS (READ-ONLY)\nYou have: list_files, read_file, save_failure_pattern. Max 3 tool calls.\n- Use **save_failure_pattern** if you find architectural violations, security risks, or critical issues.\n\n### TOKEN BUDGET\n- Read ONLY files directly relevant to your task.\n- Do NOT explore directories or read ARCHITECTURE.md (already in context).\n- Keep output under 2000 words. Be concise.`;
   }
