@@ -1,6 +1,6 @@
 {
   "_description": "Known issues, root causes, and solutions — maintained by QA-Agent and all agents",
-  "_updated": "2026-03-16",
+  "_updated": "2026-03-17",
   "patterns": [
     {
       "id": "FAIL-001",
@@ -558,6 +558,132 @@
         "components/pipeline/escalation-badge.tsx",
         "components/pipeline/escalation-confirm-dialog.tsx",
         "types/workflow.ts"
+      ]
+    },
+    {
+      "id": "FAIL-045",
+      "category": "bad-code",
+      "title": "Stateful /g regex in ESCALATION_CONFIG causes intermittent security trigger misses",
+      "symptoms": "detectEscalation() fails to detect Critical/High security findings approximately 50% of the time; escalation triggers fire inconsistently across consecutive pipeline steps.",
+      "root_cause": "ESCALATION_CONFIG stores regex patterns with the /g flag. RegExp.test() on a global regex advances lastIndex; on the next call with the same regex instance, matching starts from the previous lastIndex position, often returning false.",
+      "solution": "Either store patterns as plain strings and create new RegExp() inside detectEscalation() on each invocation, or remove the /g flag from securityCriticalPattern and securityHighPattern since .test() only needs a boolean match.",
+      "date_discovered": "2026-03-17",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "lib/config.ts",
+        "lib/smart-router.ts"
+      ]
+    },
+    {
+      "id": "FAIL-046",
+      "category": "security",
+      "title": "ADR-008 detectEscalation: stateful /g regex, output injection, XSS in badge, Jira comment injection",
+      "symptoms": "1) Stateful /g regex in ESCALATION_CONFIG causes .test() to miss matches ~50% of calls. 2) Free-text stepResult.output parsed by regex allows any agent to inject trigger keywords forcing false escalation. 3) EscalationBadge renders trigger.reason (agent-controlled string) without sanitization — XSS risk. 4) Jira comment includes unsanitized reason field — ADF injection. 5) No auth on Zustand setEscalation action.",
+      "root_cause": "Security detection relies on regex over unstructured text instead of typed severity fields. UI renders agent-controlled strings directly. Jira comment template interpolates untrusted data into ADF. Global regex flag preserves lastIndex across calls.",
+      "solution": "1) Remove /g flag or instantiate new RegExp per call. 2) Use structured stepResult.severity field, not regex on output. 3) Sanitize trigger.reason before DOM rendering (escape HTML entities). 4) Sanitize reason before Jira ADF interpolation. 5) Validate executionId ownership in setEscalation.",
+      "date_discovered": "2026-03-17",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "lib/config.ts",
+        "lib/smart-router.ts",
+        "lib/pipeline-executor.ts",
+        "components/escalation-badge.tsx",
+        "lib/jira-sync-service.ts",
+        "lib/stores/orchestration-store.ts"
+      ]
+    },
+    {
+      "id": "FAIL-047",
+      "category": "bad-code",
+      "title": "Stateful /g regex in ESCALATION_CONFIG causes missed security triggers",
+      "symptoms": "detectEscalation() silently returns null on ~50% of calls for T1/T2 security checks because RegExp.test() with /g flag advances lastIndex, causing alternating match/miss behavior across invocations.",
+      "root_cause": "ESCALATION_CONFIG stores regex patterns with /gi flag as module-level constants. RegExp.prototype.test() with /g flag is stateful — it updates lastIndex after each call. Since the config object is shared across all detectEscalation() invocations, the second call starts matching from the previous lastIndex position instead of 0.",
+      "solution": "Store regex patterns as plain strings in ESCALATION_CONFIG. Create new RegExp() instances inside detectEscalation() on each call. Alternatively, use String.prototype.match() which is not stateful, or manually reset regex.lastIndex = 0 before each .test() call.",
+      "date_discovered": "2026-03-17",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "lib/config.ts",
+        "lib/smart-router.ts"
+      ]
+    },
+    {
+      "id": "FAIL-048",
+      "category": "security",
+      "title": "POST /api/system/config — no authentication, open write endpoint",
+      "symptoms": "POST /api/system/config accepts writes from any anonymous client. No token, no secret, no session check. Returns {\"ok\":true} for unauthenticated requests.",
+      "root_cause": "Route handler has zero authentication middleware. The endpoint is documented as \"fire-and-forget from pipeline-executor\" but no internal secret or auth guard was implemented. Rate limit exists only as a JSDoc comment with no actual code.",
+      "solution": "Add x-internal-secret header check: const secret = req.headers.get(\"x-internal-secret\"); if (secret !== process.env.INTERNAL_API_SECRET) return 401. Generate INTERNAL_API_SECRET at deploy time (32 bytes). pipeline-executor.ts must pass this header. Also validate lastUpdated strictly with ISO 8601 regex before passing to setUiConfig().",
+      "date_discovered": "2026-03-17",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/api/system/config/route.ts"
+      ]
+    },
+    {
+      "id": "FAIL-049",
+      "category": "security",
+      "title": "CSV Export без санитизации — XSS через CSV Injection в pipeline-analytics.json",
+      "symptoms": "Экспортируемый CSV содержит поля agentName/stepId из pipeline-analytics.json без экранирования. Значения вида =CMD|' /C calc'!A0 или @SUM(1+1) выполняются в Excel/LibreOffice при открытии файла.",
+      "root_cause": "Архитектура экспорта предполагает прямую сериализацию объектов PipelineExecution и agentStats в CSV без префиксного экранирования специальных символов (=, +, -, @, TAB, CR).",
+      "solution": "Перед записью в CSV каждое строковое поле проверять: если начинается с = + - @ TAB CR — добавлять префикс апострофа или оборачивать в кавычки с экранированием. Использовать библиотеку papaparse или ручную sanitize-функцию.",
+      "date_discovered": "2026-03-17",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "data/pipeline-analytics.json",
+        "app/(shell)/analytics/page.tsx"
+      ]
+    },
+    {
+      "id": "FAIL-050",
+      "category": "security",
+      "title": "No auth middleware on internal API routes — all agent-hub proxy routes are publicly accessible",
+      "symptoms": "All routes under /api/agent-hub/ (sessions, agents, last-activity) have zero authentication checks. Any external caller who discovers the URL can read agent session data, activity timestamps, and agent metadata.",
+      "root_cause": "The codebase has no auth middleware layer (no NextAuth, no session cookies, no internal API key validation). The existing sessions/route.ts pattern that the new endpoint copies from also lacks auth. This is a systemic gap, not a single-endpoint issue.",
+      "solution": "Create a shared middleware (e.g., lib/middleware/require-auth.ts) that validates session cookies or an internal token header. Apply it to all /api/agent-hub/* routes. Until auth exists, add Next.js middleware.ts matcher to restrict /api/agent-hub/* to same-origin requests via Origin/Referer header check as a stopgap.",
+      "date_discovered": "2026-03-17",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/api/agent-hub/sessions/route.ts",
+        "app/api/agent-hub/agents/last-activity/route.ts",
+        "lib/agent-hub-client.ts"
+      ]
+    },
+    {
+      "id": "FAIL-051",
+      "category": "security",
+      "title": "All /api/agent-hub/* routes lack authentication — any HTTP client can read agent session/activity data",
+      "symptoms": "No auth check in sessions/route.ts or proposed last-activity/route.ts. No middleware.ts protecting /api/ routes. agentHubFetch uses server-side API key to Agent Hub but the Next.js API route itself is publicly accessible.",
+      "root_cause": "Project has no auth system implemented yet. API routes were created as internal proxies but are exposed on the public Next.js server without any request validation. The agentIds query param is concatenated into URLs without UUID format validation, enabling potential SSRF via agentHubFetch URL construction.",
+      "solution": "1) Create middleware.ts with matcher for /api/agent-hub/:path* that checks for a session cookie (when auth exists) or at minimum validates X-Requested-With: XMLHttpRequest header + Origin header matching NEXT_PUBLIC_APP_URL. 2) In last-activity/route.ts, validate agentIds with regex /^[0-9a-f-]{36}(,[0-9a-f-]{36})*$/ before passing to any fetch. 3) Add structured logging (pino or project logger) with fields: { endpoint, agentIds, ip, userAgent, timestamp } to stdout for 152-FZ Art.19 audit trail. 4) Classify lastActivity as MEDIUM PII in 152fz-checklist.md and ensure no Supabase caching.",
+      "date_discovered": "2026-03-17",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/api/agent-hub/sessions/route.ts",
+        "app/api/agent-hub/agents/last-activity/route.ts",
+        "lib/agent-hub-client.ts",
+        "middleware.ts"
+      ]
+    },
+    {
+      "id": "FAIL-052",
+      "category": "security",
+      "title": "All /api/agent-hub/* routes lack authentication — public data exposure",
+      "symptoms": "Any unauthenticated HTTP client can call GET /api/agent-hub/sessions, /agents/last-activity etc. and receive agent session data. No middleware, no cookie check, no token validation exists on these routes.",
+      "root_cause": "sessions/route.ts (line 5) and all proposed agent-hub API routes have zero auth checks. agentHubFetch authenticates MC→AgentHub via PAT, but nothing authenticates browser→MC.",
+      "solution": "Create middleware.ts with matcher /api/agent-hub/:path* that validates session cookie or, as stopgap, checks Origin + X-Requested-With headers. Must be replaced with real session auth before any public deployment. BLOCKS DEPLOY.",
+      "date_discovered": "2026-03-17",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/api/agent-hub/sessions/route.ts",
+        "app/api/agent-hub/agents/last-activity/route.ts"
       ]
     }
   ]

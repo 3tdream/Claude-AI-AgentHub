@@ -185,7 +185,7 @@ export async function callAIWithTools(req: ToolCallAIRequest): Promise<DirectAIR
     // Use streaming to avoid 10-minute timeout on long requests
     const stream = client.messages.stream({
       model: modelId,
-      max_tokens: req.maxTokens || 32768,
+      max_tokens: req.maxTokens || 65536,
       temperature: req.temperature ?? 0.3,
       system: systemWithCache,
       messages,

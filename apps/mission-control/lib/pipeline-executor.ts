@@ -218,7 +218,7 @@ export async function executePipeline(
         const toolMode = qaAgent ? "qa" : implementationAgents.includes(step.agentId) ? "readwrite" : "readonly";
         // Implementation: 6, QA: 8, PM: 3 (just explore), Architect/others: 5
         const pmAgent = step.agentId === "pm-agent";
-        const maxToolSteps = implementationAgents.includes(step.agentId) ? 6 : qaAgent ? 8 : pmAgent ? 3 : 5;
+        const maxToolSteps = implementationAgents.includes(step.agentId) ? 8 : qaAgent ? 8 : pmAgent ? 3 : 5;
 
         const res = await fetch("/api/ai/execute", {
           method: "POST",
@@ -551,8 +551,14 @@ function buildPrompt(
   routingMode?: string,
 ): string {
   let prompt = step.promptTemplate.replace(/\{\{input\}\}/g, input);
+  // Inject upstream outputs — truncate to 4K chars each for implementation agents
+  const implementationAgentIds = ["backend-agent", "frontend-agent"];
+  const maxContextLen = implementationAgentIds.includes(step.agentId) ? 4000 : 10000;
   for (const [key, val] of Object.entries(context)) {
-    prompt = prompt.replace(new RegExp(`\\{\\{${key}\\}\\}`, "g"), val);
+    const truncated = val.length > maxContextLen
+      ? val.substring(0, maxContextLen) + "\n\n... (truncated — use read_file if you need more details)"
+      : val;
+    prompt = prompt.replace(new RegExp(`\\{\\{${key}\\}\\}`, "g"), truncated);
   }
   // Replace unresolved placeholders (from skipped steps in quick/medium mode)
   const hasUnresolved = /\{\{step_[^}]+\}\}/.test(prompt);
