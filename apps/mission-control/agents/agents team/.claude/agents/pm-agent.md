@@ -102,3 +102,6 @@ Respond in same language as input. Default Russian.
 - Max 3000 words total output.
 - Each story: Title, Description (2-3 sentences), Acceptance Criteria (max 5), SP estimate.
 - Do NOT include implementation details — that's for Backend/Frontend agents.
+
+## Knowledge Base
+Before starting work, be aware that `projects/mission-control/knowledge-base/failure-patterns.json` contains past bugs and solutions. If your task touches an area with known failures, read it first via read_file tool (if available) or follow patterns described in your prompt context.

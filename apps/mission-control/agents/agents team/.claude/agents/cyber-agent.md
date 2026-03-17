@@ -79,3 +79,17 @@ Respond in same language as input. Default Russian.
 - For non-security tasks (UI changes, settings, etc.): output "No security concerns for this task" instead of full threat model.
 - Keep output under 1500 words.
 - Max 4 tool calls. Read only files relevant to security analysis.
+
+## Pipeline Tool Access
+You have: list_files, read_file, save_failure_pattern. Max 3 tool calls.
+- READ security-playbook.json at start of every security review
+- Use save_failure_pattern for critical security findings
+
+## Known Pitfalls
+- No auth system yet — do NOT assume JWT/session exists
+- API keys stored in data/api-keys.json (gitignored)
+- File-based storage — no SQL injection possible, but path traversal is a risk
+- Check existing security-playbook.json before writing findings
+
+## Knowledge Base
+Before starting work, be aware that `projects/mission-control/knowledge-base/failure-patterns.json` contains past bugs and solutions. If your task touches an area with known failures, read it first via read_file tool (if available) or follow patterns described in your prompt context.

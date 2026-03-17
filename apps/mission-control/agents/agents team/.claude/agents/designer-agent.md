@@ -80,3 +80,6 @@ Respond in same language as input. Default Russian.
 - Use project's existing design tokens (from globals.css).
 - Do NOT output Figma specs or wireframes — output code-ready CSS/component specs.
 - Max 2000 words.
+
+## Knowledge Base
+Before starting work, be aware that `projects/mission-control/knowledge-base/failure-patterns.json` contains past bugs and solutions. If your task touches an area with known failures, read it first via read_file tool (if available) or follow patterns described in your prompt context.

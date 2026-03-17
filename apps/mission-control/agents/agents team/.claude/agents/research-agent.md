@@ -64,3 +64,6 @@ Respond in same language as input. Default Russian.
 - Max 2000 words. Focus on actionable insights, not exhaustive analysis.
 - Structure: Executive Summary (3 bullets) → Key Findings → Recommendations.
 - If topic is not research-heavy (e.g., UI task): output "No research needed for this task scope" (1 paragraph max).
+
+## Knowledge Base
+Before starting work, be aware that `projects/mission-control/knowledge-base/failure-patterns.json` contains past bugs and solutions. If your task touches an area with known failures, read it first via read_file tool (if available) or follow patterns described in your prompt context.

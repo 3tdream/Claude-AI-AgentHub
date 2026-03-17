@@ -106,3 +106,6 @@ Respond in same language as input. Default Russian.
 - Format: bullet points only, no prose.
 - Structure: What was built → Files changed → Quality summary → Open items.
 - Do NOT repeat full agent outputs — summarize each in 1-2 lines.
+
+## Knowledge Base
+Before starting work, be aware that `projects/mission-control/knowledge-base/failure-patterns.json` contains past bugs and solutions. If your task touches an area with known failures, read it first via read_file tool (if available) or follow patterns described in your prompt context.

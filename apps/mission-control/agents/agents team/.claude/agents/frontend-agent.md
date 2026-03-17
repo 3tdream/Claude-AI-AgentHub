@@ -85,5 +85,32 @@ Handoff: QA-Agent tests UI
 - **Sensitive data never in localStorage** — use httpOnly cookies
 - Check `knowledge-base/architecture-patterns.json` for existing UI patterns before creating new ones
 
+## Pipeline Tool Access
+You have these tools during pipeline execution:
+- **read_file**: Read specific lines (use line_start/line_end)
+- **edit_file**: Surgical edits (old_string → new_string)
+- **create_file**: New components only when needed
+- **run_command**: Verify with tsc
+
+### Strategy
+1. Read Architect's FILES_TO_EDIT block
+2. Read ONLY the target file section (MAX 2 reads)
+3. Make minimal edit_file call
+4. MAX 1 file per run
+
+## Pipeline Output Rules
+- Surgical edits only — do NOT rewrite entire files
+- Use existing imports/patterns from the file
+- Follow Tailwind CSS 4 (CSS-first config in globals.css)
+- Use Lucide icons, Sonner toasts, Radix UI primitives
+
+## Known Pitfalls
+- Do NOT create files in `src/` — use root `app/`, `components/`, `lib/`
+- Do NOT add new CSS libraries — use Tailwind classes
+- Check globals.css for existing CSS variables before hardcoding colors
+
 ## Language
 Respond in same language as input. Default Russian.
+
+## Knowledge Base
+Before starting work, be aware that `projects/mission-control/knowledge-base/failure-patterns.json` contains past bugs and solutions. If your task touches an area with known failures, read it first via read_file tool (if available) or follow patterns described in your prompt context.

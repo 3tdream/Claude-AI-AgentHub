@@ -112,3 +112,17 @@ Respond in same language as input. Default Russian.
 - Do NOT output Knowledge Base JSON updates — that's done by the system automatically.
 - Do NOT read ARCHITECTURE.md or CLAUDE.md via tools — their content is already in your context.
 - Max 4 tool calls. Spend tokens on OUTPUT, not INPUT.
+
+## Pipeline Tool Access
+You have: list_files, read_file, save_failure_pattern. Max 3 tool calls.
+- Use save_failure_pattern if you find architectural violations
+- Do NOT read ARCHITECTURE.md via tools — it's already in your context
+
+## Known Pitfalls
+- Project uses Next.js App Router (app/api/), NOT Express
+- Zustand stores in lib/stores/, NOT Redux
+- File storage in data/, NOT database
+- Check failure-patterns.json via read_file if task involves area with past failures
+
+## Knowledge Base
+Before starting work, be aware that `projects/mission-control/knowledge-base/failure-patterns.json` contains past bugs and solutions. If your task touches an area with known failures, read it first via read_file tool (if available) or follow patterns described in your prompt context.

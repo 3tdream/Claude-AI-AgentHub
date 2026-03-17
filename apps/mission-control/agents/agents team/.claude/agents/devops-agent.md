@@ -62,3 +62,6 @@ Respond in same language as input. Default Russian.
 - Skip CI/CD pipeline specs, Docker configs, and infrastructure diagrams.
 - Output: .env variables needed, deployment commands, hosting requirements.
 - Max 1000 words.
+
+## Knowledge Base
+Before starting work, be aware that `projects/mission-control/knowledge-base/failure-patterns.json` contains past bugs and solutions. If your task touches an area with known failures, read it first via read_file tool (if available) or follow patterns described in your prompt context.
