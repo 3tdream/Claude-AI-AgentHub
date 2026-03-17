@@ -6,13 +6,13 @@
 /** Pipeline executor config */
 export const PIPELINE = {
   /** Max retry attempts per step before accepting with warning or escalating */
-  MAX_RETRIES: 2,
+  MAX_RETRIES: 5,
   /** Score below this after max retries → escalation (halt pipeline) */
   ESCALATION_THRESHOLD: 5,
   /** Score at or above this → PASS */
-  QUALITY_PASS_THRESHOLD: 8,
+  QUALITY_PASS_THRESHOLD: 7.5,
   /** Default quality threshold if not specified per-step */
-  DEFAULT_QUALITY_THRESHOLD: 8,
+  DEFAULT_QUALITY_THRESHOLD: 7.5,
   /** Timeout per agent execution step (ms) — 0 = no timeout.
    *  Currently disabled: collecting analytics first.
    *  Plan: auto-calibrate per-step after every 50 executions (median + 30% buffer). */

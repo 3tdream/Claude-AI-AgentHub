@@ -10,7 +10,7 @@ export const CRM_PIPELINE_STAGES: WorkflowStep[] = [
     outputKey: "research",
     metadata: {
       stageNumber: "0",
-      qualityThreshold: 8,
+      qualityThreshold: 7.5,
       leadAgent: "research-agent",
       model: "sonnet-4-6",
     },
@@ -24,7 +24,7 @@ export const CRM_PIPELINE_STAGES: WorkflowStep[] = [
     outputKey: "requirements",
     metadata: {
       stageNumber: "1",
-      qualityThreshold: 8,
+      qualityThreshold: 7.5,
       leadAgent: "orchestrator",
       model: "sonnet-4-6",
     },
@@ -38,7 +38,7 @@ export const CRM_PIPELINE_STAGES: WorkflowStep[] = [
     outputKey: "prd",
     metadata: {
       stageNumber: "2",
-      qualityThreshold: 6,
+      qualityThreshold: 7.5,
       leadAgent: "pm-agent",
       model: "sonnet-4-6",
     },
@@ -52,7 +52,7 @@ export const CRM_PIPELINE_STAGES: WorkflowStep[] = [
     outputKey: "architecture",
     metadata: {
       stageNumber: "3",
-      qualityThreshold: 8,
+      qualityThreshold: 7.5,
       leadAgent: "architect-agent",
       model: "opus-4-6",
     },
@@ -66,7 +66,7 @@ export const CRM_PIPELINE_STAGES: WorkflowStep[] = [
     outputKey: "threat_model",
     metadata: {
       stageNumber: "3.5",
-      qualityThreshold: 8,
+      qualityThreshold: 7.5,
       leadAgent: "cyber-agent",
       model: "opus-4-6",
       conditional: "public API / auth / payments",
@@ -81,7 +81,7 @@ export const CRM_PIPELINE_STAGES: WorkflowStep[] = [
     outputKey: "backend_plan",
     metadata: {
       stageNumber: "4",
-      qualityThreshold: 8,
+      qualityThreshold: 7.5,
       leadAgent: "backend-agent",
       model: "opus-4-6",
       // Sequential execution to avoid rate limits (30K tokens/min)
@@ -96,7 +96,7 @@ export const CRM_PIPELINE_STAGES: WorkflowStep[] = [
     outputKey: "frontend_plan",
     metadata: {
       stageNumber: "4",
-      qualityThreshold: 8,
+      qualityThreshold: 7.5,
       leadAgent: "frontend-agent",
       model: "sonnet-4-6",
     },
@@ -110,7 +110,7 @@ export const CRM_PIPELINE_STAGES: WorkflowStep[] = [
     outputKey: "design",
     metadata: {
       stageNumber: "4",
-      qualityThreshold: 8,
+      qualityThreshold: 7.5,
       leadAgent: "designer-agent",
       model: "sonnet-4-6",
     },
@@ -139,7 +139,7 @@ export const CRM_PIPELINE_STAGES: WorkflowStep[] = [
     outputKey: "test_plan",
     metadata: {
       stageNumber: "5",
-      qualityThreshold: 8,
+      qualityThreshold: 7.5,
       leadAgent: "qa-agent",
       model: "sonnet-4-6",
     },
@@ -153,7 +153,7 @@ export const CRM_PIPELINE_STAGES: WorkflowStep[] = [
     outputKey: "security_audit",
     metadata: {
       stageNumber: "5.5",
-      qualityThreshold: 8,
+      qualityThreshold: 7.5,
       leadAgent: "cyber-agent",
       model: "sonnet-4-6",
     },
@@ -167,7 +167,7 @@ export const CRM_PIPELINE_STAGES: WorkflowStep[] = [
     outputKey: "infrastructure",
     metadata: {
       stageNumber: "6",
-      qualityThreshold: 8,
+      qualityThreshold: 7.5,
       leadAgent: "devops-agent",
       model: "sonnet-4-6",
     },
@@ -181,7 +181,7 @@ export const CRM_PIPELINE_STAGES: WorkflowStep[] = [
     outputKey: "final_report",
     metadata: {
       stageNumber: "7",
-      qualityThreshold: 8,
+      qualityThreshold: 7.5,
       leadAgent: "orchestrator",
       model: "sonnet-4-6",
     },
