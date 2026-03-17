@@ -38,6 +38,9 @@ export function QualityScoreBadge({ score }: QualityScoreBadgeProps) {
             <ScoreRow label="Completeness" value={score.completeness} />
             <ScoreRow label="Specificity" value={score.specificity} />
             <ScoreRow label="Actionability" value={score.actionability} />
+            {score.taskCompletion !== undefined && (
+              <ScoreRow label="Task Done" value={score.taskCompletion} />
+            )}
             <div className="border-t border-border pt-1.5 mt-1.5">
               <ScoreRow label="Overall" value={score.overall} bold />
             </div>
