@@ -38,19 +38,22 @@ Rules:
 - If agent only described what to do but didn't do it → taskCompletion max 5
 - Be strict but fair.`;
 
-const RETRY_PROMPT = `You are {{agentName}}. Your previous output was evaluated and did NOT meet quality standards.
+const RETRY_PROMPT = `You are {{agentName}}. RETRY ATTEMPT — your previous output scored {{prevScore}}/10.
 
-ORIGINAL TASK: {{originalPrompt}}
+## YOUR TASK (start fresh — ignore your previous attempt)
+{{originalPrompt}}
 
-YOUR PREVIOUS OUTPUT:
----
-{{previousOutput}}
----
-
-EVALUATOR FEEDBACK:
+## WHY YOU FAILED (fix ONLY these issues)
 {{feedback}}
 
-Please redo your work addressing the specific feedback above. Be more thorough, specific, and actionable.`;
+## RETRY RULES
+- Do NOT apologize or reference your previous attempt
+- Do NOT copy-paste from your failed output
+- Fix ONLY the specific issues listed above
+- If the feedback says "didn't use tools" → USE TOOLS this time
+- If the feedback says "output truncated" → write SHORTER and more focused
+- If the feedback says "described but didn't implement" → call edit_file/create_file NOW
+- Start fresh with the task. Clean slate.`;
 
 /**
  * Calls the Orchestrator agent to evaluate another agent's output.
@@ -182,7 +185,7 @@ function parseEvaluationResponse(response: string, passThreshold: number = PIPEL
   passed = overall >= passThreshold;
 
   return {
-    score: { completeness, specificity, actionability, overall },
+    score: { completeness, specificity, actionability, taskCompletion, overall },
     passed,
     feedback: feedback || (passed ? "Quality threshold met." : "Quality below threshold."),
   };
@@ -205,10 +208,12 @@ export function buildRetryPrompt(
   originalPrompt: string,
   previousOutput: string,
   feedback: string,
+  prevScore?: number,
 ): string {
   return RETRY_PROMPT
     .replace("{{agentName}}", agentName)
     .replace("{{originalPrompt}}", originalPrompt)
-    .replace("{{previousOutput}}", previousOutput.slice(0, 1500))
+    .replace("{{prevScore}}", (prevScore ?? 0).toFixed(1))
     .replace("{{feedback}}", feedback);
+  // NOTE: previousOutput intentionally NOT included — clean context prevents copying mistakes
 }

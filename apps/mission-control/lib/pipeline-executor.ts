@@ -367,6 +367,7 @@ export async function executePipeline(
             buildPrompt(step, input, context, projectContext, routingDecision?.mode),
             agentOutput,
             evaluation.feedback,
+            evaluation.score.overall,
           );
 
           retryCount++;
