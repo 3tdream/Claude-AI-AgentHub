@@ -20,11 +20,22 @@ Score this output on FOUR axes (1-10 each):
 - **Completeness**: Are all requirements addressed? No missing sections?
 - **Specificity**: Are there concrete file paths, line numbers, function names? Not vague?
 - **Actionability**: Can the next agent work from this without asking questions?
-- **TaskCompletion**: Did the agent ACTUALLY DO the task? (not just describe what to do)
-  - 10: Task fully implemented (edit_file succeeded, code compiles)
-  - 7-9: Task partially done (some edits, or good spec for next agent)
-  - 4-6: Agent described the solution but didn't implement it
-  - 1-3: Agent got stuck, asked questions, or output is incomplete/truncated
+- **TaskCompletion**: Did the agent deliver what their ROLE requires?
+  For PLANNING agents (Research, PM, Architect, Cyber, DevOps, Consolidation):
+  - 10: Complete document delivered (PRD, ADR, threat model, etc.)
+  - 7-9: Document delivered but missing some sections
+  - 4-6: Partial or truncated document
+  - 1-3: Agent got stuck or output is empty/truncated mid-sentence
+  For IMPLEMENTATION agents (Backend, Frontend, Designer):
+  - 10: Code changes made via edit_file/create_file successfully
+  - 7-9: Some edits made, remaining described in summary
+  - 4-6: Described solution but didn't use tools to implement
+  - 1-3: Agent got stuck reading files, no edits made
+  For QA:
+  - 10: Full report with findings + VERDICT
+  - 7-9: Report with findings but missing VERDICT or incomplete
+  - 4-6: Partial findings, no actionable fix suggestions
+  - 1-3: Agent stuck or output truncated
 
 You MUST respond in EXACTLY this format (one line each, no extra text):
 [SCORE] completeness: X.X, specificity: X.X, actionability: X.X, taskCompletion: X.X → PASS/FAIL
