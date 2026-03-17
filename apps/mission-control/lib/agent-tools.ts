@@ -233,7 +233,6 @@ export async function executeTool(
 
       case "edit_file": {
         const relPath = validatePath(input.path);
-        // If staging dir provided, write to staging. Otherwise edit in-place.
         const readPath = path.join(PROJECT_ROOT, relPath);
         const content = await fs.readFile(readPath, "utf-8");
 
@@ -246,6 +245,15 @@ export async function executeTool(
           return { success: false, output: "", error: `old_string found ${occurrences} times — must be unique. Provide more context.` };
         }
 
+        // Speed Governor: limit diff size
+        const oldLines = input.old_string.split("\n").length;
+        const newLines = input.new_string.split("\n").length;
+        const diffLines = Math.abs(newLines - oldLines) + Math.min(oldLines, newLines);
+        const MAX_DIFF_LINES = 30;
+        if (diffLines > MAX_DIFF_LINES) {
+          return { success: false, output: "", error: `Edit too large: ${diffLines} lines changed (max ${MAX_DIFF_LINES}). Make smaller, surgical edits. Split into multiple edit_file calls if needed.` };
+        }
+
         const newContent = content.replace(input.old_string, input.new_string);
         const writePath = stagingDir
           ? path.join(stagingDir, relPath)
@@ -253,7 +261,7 @@ export async function executeTool(
         await fs.mkdir(path.dirname(writePath), { recursive: true });
         await fs.writeFile(writePath, newContent, "utf-8");
 
-        return { success: true, output: `Edited ${relPath} (${input.old_string.length} chars → ${input.new_string.length} chars)` };
+        return { success: true, output: `Edited ${relPath} (+${newLines - oldLines} lines, ${diffLines} lines touched)` };
       }
 
       case "create_file": {
@@ -270,9 +278,16 @@ export async function executeTool(
           // Good — file doesn't exist
         }
 
+        // Speed Governor: limit new file size
+        const fileLines = input.content.split("\n").length;
+        const MAX_NEW_FILE_LINES = 80;
+        if (fileLines > MAX_NEW_FILE_LINES) {
+          return { success: false, output: "", error: `New file too large: ${fileLines} lines (max ${MAX_NEW_FILE_LINES}). Create a minimal working version first. Add complexity in follow-up edits.` };
+        }
+
         await fs.mkdir(path.dirname(writePath), { recursive: true });
         await fs.writeFile(writePath, input.content, "utf-8");
-        return { success: true, output: `Created ${relPath} (${input.content.length} chars)` };
+        return { success: true, output: `Created ${relPath} (${fileLines} lines)` };
       }
 
       case "run_command": {
