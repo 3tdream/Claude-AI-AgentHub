@@ -61,7 +61,7 @@ export const CRM_PIPELINE_STAGES: WorkflowStep[] = [
     id: "s3.5-cyber",
     agentId: "cyber-agent",
     agentName: "Cyber-Agent",
-    promptTemplate: "Security review based on architecture:\n{{step_s3-architect_output}}\n\nOUTPUT FORMAT (strict):\n1. RISK LEVEL: Low / Medium / High / Critical (one word)\n2. MAX 3 findings. Each finding: Title (1 line), Risk (1 line), Fix (1 line)\n3. If no security concerns: output 'RISK LEVEL: Low — No security concerns for this task' (1 line)\n\nTotal output: MAX 800 words. No full threat models. No STRIDE/DREAD matrices. Concise findings only.",
+    promptTemplate: "Security review based on architecture:\n{{step_s3-architect_output}}\n\nYour output MUST follow this EXACT format (no deviations):\n\nRISK LEVEL: [Low/Medium/High/Critical]\n\nFinding 1: [Title]\nRisk: [One sentence]\nFix: [One sentence]\n\nFinding 2: [Title]\nRisk: [One sentence]\nFix: [One sentence]\n\nThat's it. MAX 2-3 findings. MAX 400 words total. If no security concerns: just write 'RISK LEVEL: Low' and stop. Do NOT write threat models, matrices, or long analysis.",
     dependsOn: ["s3-architect"],
     outputKey: "threat_model",
     metadata: {
