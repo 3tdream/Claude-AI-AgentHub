@@ -218,7 +218,7 @@ export async function executePipeline(
         const toolMode = qaAgent ? "qa" : implementationAgents.includes(step.agentId) ? "readwrite" : "readonly";
         // Implementation: 6, QA: 8, PM: 3 (just explore), Architect/others: 5
         const pmAgent = step.agentId === "pm-agent";
-        const maxToolSteps = implementationAgents.includes(step.agentId) ? 8 : qaAgent ? 8 : pmAgent ? 3 : 5;
+        const maxToolSteps = implementationAgents.includes(step.agentId) ? 5 : qaAgent ? 8 : pmAgent ? 3 : 5;
 
         const res = await fetch("/api/ai/execute", {
           method: "POST",

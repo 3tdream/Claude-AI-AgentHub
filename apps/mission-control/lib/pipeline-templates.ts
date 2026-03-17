@@ -83,7 +83,7 @@ export const CRM_PIPELINE_STAGES: WorkflowStep[] = [
       stageNumber: "4",
       qualityThreshold: 7.5,
       leadAgent: "backend-agent",
-      model: "opus-4-6",
+      model: "sonnet-4-6",
       // Sequential execution to avoid rate limits (30K tokens/min)
     },
   },
