@@ -14,11 +14,33 @@
 
 | # | Task | Status | Criteria |
 |---|------|--------|----------|
-| 2.1 | Full mode end-to-end | NOT DONE | 13/13 stages completed, all ≥7.5 |
+| 2.1 | Full mode end-to-end | NOT DONE | 13/13 stages completed, all ≥ threshold |
 | 2.2 | Backend stable in full mode | NOT DONE | Score ≥7.5 on 3 consecutive runs |
-| 2.3 | All agents ≥70% success rate | NOT DONE | pipeline-analytics.json |
-| 2.4 | Pipeline ≤15 min for full mode | NOT DONE | Total duration |
-| 2.5 | Speed Governor tested | NOT DONE | edit_file/create_file limits verified |
+| 2.3 | All agents ≥70% success rate | PARTIAL | Architect ✓, Cyber ✓, Backend ✗ |
+| 2.4 | Pipeline ≤15 min for full mode | NOT DONE | With cache: expected ~5 min |
+| 2.5 | Speed Governor tested | DONE | edit 250 hard / create 120 hard |
+
+### What's Built (Level 2 infrastructure)
+
+| Feature | Status | Details |
+|---------|--------|---------|
+| 4-axis scoring (role-aware) | DONE | taskCompletion + completeness + specificity + actionability |
+| Per-agent scoring weights | DONE | Backend 70% task, PM 50% task, Research 40% task |
+| Per-agent config (AGENT_CONFIG) | DONE | thresholds, turns, context, read budget, diff limits |
+| Smart retry (stop on degradation) | DONE | lastScore tracker, stop if score drops |
+| Surgical retry (clean context) | DONE | No previous output, exact feedback, score shown |
+| Agent Tool-Belt | DONE | read/edit/create/run/save_failure_pattern |
+| Task Cache | DONE | Reuse past outputs for same task |
+| Resume pipeline | DONE | Continue from failed stage |
+| Pause / Stop | DONE | Buttons during execution |
+| Learning database | DONE | 44 runs, per-agent stats, recent runs in prompt |
+| Failure patterns (auto) | DONE | QA/Architect/Cyber save_failure_pattern |
+| Failure patterns (user) | DONE | Discard feedback dialog |
+| Tool calls UI | DONE | Agent Activity timeline in Stage Detail |
+| Agent prompts synced | DONE | All 10 agents know Next.js, tools, known pitfalls |
+| Backend "edit first" | DONE | First call must be edit/create, not read |
+| Streaming | DONE | No 10-min timeout |
+| Staging Area | DONE | Stage → Deploy with overwrite protection |
 
 ## Level 3: Self-Directed Engineering
 
@@ -36,10 +58,10 @@
 
 | # | Task | Status | Criteria |
 |---|------|--------|----------|
-| 3.6 | edit_file max 30 lines diff | DONE | commit 002bc1e |
-| 3.7 | create_file max 80 lines | DONE | commit 002bc1e |
-| 3.8 | Max 1 file per agent run | DONE | in prompt |
-| 3.9 | Change budget per feature | NOT DONE | Max 100 lines total |
+| 3.6 | edit_file hard limit | DONE | 250 lines max |
+| 3.7 | create_file hard limit | DONE | 120 lines max |
+| 3.8 | Max 1 file per agent run | DONE | In prompt |
+| 3.9 | Change budget per feature | NOT DONE | Max 100 lines total across all agents |
 | 3.10 | Core files protection list | NOT DONE | Critical files need human approve |
 
 ### Brick 3: Auto Follow-ups
@@ -63,14 +85,23 @@
 ## Scoreboard
 
 ```
-Level 2: 0/5 complete
-Level 3: 3/18 complete (3.6, 3.7, 3.8, 3.14)
+Level 2: 2/5 complete (2.5 done, 2.3 partial)
+Level 3: 4/18 complete (3.6, 3.7, 3.8, 3.14)
 ```
+
+## Blocking Issue
+
+**Backend agent** is the only blocker for Level 2 completion:
+- 4/4 last full mode runs: Backend failed (score 0-2.1)
+- Root cause: agent reads files instead of editing
+- Latest fix: "edit first, never read" prompt + 3 max turns + readBudget 1
+- Status: **untested** — next full mode run will validate
 
 ## Execution Order
 
-1. **NOW**: 2.1-2.5 (full mode stability)
-2. **NEXT**: 3.9-3.10 (Speed Governor extended)
-3. **THEN**: 3.1-3.5 (Auto Task Generation)
-4. **THEN**: 3.11-3.14 (Auto Follow-ups)
-5. **LAST**: 3.15-3.18 (Reduced Checkpoints)
+1. **NOW**: Full mode test (validate Backend "edit first" fix)
+2. **THEN**: 2.1-2.4 (full mode stability, 3 consecutive passes)
+3. **NEXT**: 3.9-3.10 (Speed Governor extended)
+4. **THEN**: 3.1-3.5 (Auto Task Generation)
+5. **THEN**: 3.11-3.14 (Auto Follow-ups)
+6. **LAST**: 3.15-3.18 (Reduced Checkpoints)
