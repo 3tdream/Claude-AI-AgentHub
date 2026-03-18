@@ -685,6 +685,132 @@
         "app/api/agent-hub/sessions/route.ts",
         "app/api/agent-hub/agents/last-activity/route.ts"
       ]
+    },
+    {
+      "id": "FAIL-053",
+      "category": "security",
+      "title": "Unsanitized JSON key from user input in file-based storage (agent-last-login)",
+      "symptoms": "POST /api/agent-last-login accepts arbitrary agentId string and uses it as a key in a JSON file without validation, enabling prototype pollution (__proto__) or storage abuse.",
+      "root_cause": "No input validation or allowlist check on agentId before merging into JSON object and writing to disk.",
+      "solution": "Validate agentId with strict regex /^[a-z0-9-]{1,64}$/ and reject requests that don't match. Also use Object.create(null) when parsing JSON to prevent prototype pollution.",
+      "date_discovered": "2026-03-17",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/api/agent-last-login/route.ts",
+        "app/api/chat/route.ts"
+      ]
+    },
+    {
+      "id": "FAIL-054",
+      "category": "security",
+      "title": "Path traversal and race condition in agent-last-login file-based storage",
+      "symptoms": "POST /api/agent-last-login accepts arbitrary agentId string used as JSON key with no validation. Concurrent fire-and-forget writes from chat route cause read-modify-write race condition losing timestamps. Self-fetch to localhost:3000 creates SSRF vector.",
+      "root_cause": "1) No agentId validation — attacker can inject __proto__, constructor, or oversized keys into JSON via crafted agentId, causing prototype pollution or DoS. 2) Concurrent fs read-modify-write without file locking loses data. 3) Fire-and-forget uses HTTP self-fetch instead of direct function call, exposing internal endpoint.",
+      "solution": "1) In POST handler of app/api/agent-last-login/route.ts: validate agentId with regex /^[a-z0-9-]{1,64}$/ AND whitelist against cachedAgents.map(a=>a.id). 2) Use proper-lockfile or a mutex around read-modify-write cycle. 3) In app/api/chat/route.ts: replace self-fetch with direct function import (e.g., import {updateLastLogin} from '@/lib/agent-last-login' and call updateLastLogin(agentId).catch(...)). Reject __proto__ and constructor keys explicitly.",
+      "date_discovered": "2026-03-17",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/api/agent-last-login/route.ts",
+        "app/api/chat/route.ts"
+      ]
+    },
+    {
+      "id": "FAIL-055",
+      "category": "security",
+      "title": "File-based storage TOCTOU + input validation gaps in agent-last-login",
+      "symptoms": "Concurrent POST /api/agent-last-login requests lose timestamps; unsanitized agentId allows prototype pollution via __proto__ key; self-fetch to localhost:3000 breaks in production and exposes internal endpoints.",
+      "root_cause": "PAT-002 file-based storage pattern lacks concurrency control. No input validation on agentId before writing to JSON. Fire-and-forget uses HTTP self-fetch instead of direct module import.",
+      "solution": "1) Add mutex/lock around read-modify-write in POST handler. 2) Validate agentId with /^[a-z0-9-]{1,64}$/ regex. 3) Extract file I/O into lib/agent-last-login.ts shared module, import directly in chat/route.ts instead of self-fetch.",
+      "date_discovered": "2026-03-17",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/api/agent-last-login/route.ts",
+        "app/api/chat/route.ts",
+        "lib/agent-last-login.ts"
+      ]
+    },
+    {
+      "id": "FAIL-056",
+      "category": "security",
+      "title": "Regex-based escalation detection on LLM output is bypassable and injectable",
+      "symptoms": "EscalationDetector T1-T5 triggers use regex on raw LLM agent output strings. Malicious or malformed agent output can either suppress escalation (bypass) or force false escalation (injection).",
+      "root_cause": "T1/T2 use regex like /\\\"severity\\\"\\s*:\\s*\\\"critical\\\"/i on unstructured StepResult.output. LLM output is not validated against a schema before regex matching. An adversarial prompt or hallucinated output could embed \"severity\":\"low\" while containing critical findings, or inject [ESCALATE] tags (T5) to force unnecessary escalation and waste tokens.",
+      "solution": "Parse agent output into a typed object via zod schema validation BEFORE running trigger detection. Never regex raw LLM strings for security-critical decisions. Add output schema enforcement in StepResult so triggers operate on structured, validated data.",
+      "date_discovered": "2026-03-17",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "lib/escalation-detector.ts",
+        "types/workflow.ts"
+      ]
+    },
+    {
+      "id": "FAIL-057",
+      "category": "security",
+      "title": "Escalation detector uses regex on untrusted agent output — injection + XSS + privilege escalation risks",
+      "symptoms": "ADR-008 escalation-detector.ts parses raw agent output with regex to detect triggers (T1-T5). Agent output is untrusted LLM text rendered in UI badges and Jira comments. No sanitization, no auth on escalation confirmation, confirmedBy field is MEDIUM PII stored in localStorage via zustand persist.",
+      "root_cause": "1) Regex-based detection on LLM output is trivially spoofable — any agent can emit \"severity\":\"critical\" to force T1 escalation. 2) EscalationRecord.triggeredBy.reason is rendered in UI badge and Jira comment without sanitization — XSS vector. 3) No authorization check on who confirms/rejects escalation — any browser session can call approveCheckpoint. 4) confirmedBy (MEDIUM PII per 152-FZ) persisted in localStorage via zustand persist — unencrypted. 5) buildEscalationComment uses string comparison triggerId <= \"T2\" which is lexicographic, not numeric — fragile but not exploitable.",
+      "solution": "1) Validate agent output against structured JSON schema, not regex on raw text. 2) Sanitize reason field with DOMPurify before rendering in React and escape for Jira markdown. 3) Add user identity verification before escalation confirm/reject actions. 4) Encrypt or exclude confirmedBy from localStorage persistence. 5) Use explicit set comparison for trigger priority instead of string comparison.",
+      "date_discovered": "2026-03-17",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "lib/escalation-detector.ts",
+        "components/pipeline/escalation-badge.tsx",
+        "lib/jira-sync-service.ts",
+        "lib/stores/orchestration-store.ts",
+        "types/workflow.ts"
+      ]
+    },
+    {
+      "id": "FAIL-058",
+      "category": "security",
+      "title": "EscalationRecord.confirmedBy PII stored unencrypted in localStorage via zustand persist",
+      "symptoms": "MEDIUM PII field (confirmedBy: user identifier) persisted to browser localStorage in plaintext via zustand persist middleware in orchestration-store.ts. executionHistory[] contains full EscalationRecord including confirmedBy. Any XSS or browser extension can read all user identifiers from localStorage.",
+      "root_cause": "orchestration-store.ts uses zustand persist (line 4, 25) which serializes entire state including executionHistory[] to localStorage. EscalationRecord.confirmedBy (workflow.ts:105) is classified MEDIUM PII per 152-FZ but no encryption or redaction is applied before persistence.",
+      "solution": "1. Add a custom serialize function to zustand persist config that redacts or encrypts confirmedBy before writing to localStorage. 2. Alternatively, store confirmedBy only server-side (Timeweb VPS) and keep only a non-PII reference in client state. 3. For 152-FZ Art.19 compliance, MEDIUM PII must be AES-256 encrypted at rest — localStorage is not encrypted at rest.",
+      "date_discovered": "2026-03-17",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "lib/stores/orchestration-store.ts",
+        "types/workflow.ts"
+      ]
+    },
+    {
+      "id": "FAIL-059",
+      "category": "security",
+      "title": "Escalation detector parses unstructured LLM output — prompt injection can force mode escalation",
+      "symptoms": "detectEscalation() uses string matching on agent output to detect severity=critical, qualityScore, filesAffected. Crafted task input containing these keywords triggers false escalation to Full mode.",
+      "root_cause": "Trigger detection relies on parsing free-text output strings instead of structured, typed metadata fields from stepResults. No validation that the output actually comes from the expected agent.",
+      "solution": "1. Use only structured stepResults metadata (typed severity enum, numeric qualityScore) for trigger detection — never parse raw output strings. 2. Validate that trigger source agent matches expected agent ID (T1/T2→cyber-agent, T3/T4→qa-agent, T5→architect-agent). 3. Sanitize reason field before Jira sync to prevent PII leakage to external SaaS.",
+      "date_discovered": "2026-03-17",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "lib/escalation-detector.ts",
+        "lib/pipeline-executor.ts",
+        "lib/jira-sync-service.ts"
+      ]
+    },
+    {
+      "id": "FAIL-060",
+      "category": "security",
+      "title": "ADR-008 Jira sync route missing auth + action whitelist allows SSRF to Jira API",
+      "symptoms": "POST /api/jira/sync has no authentication check. Any client can call it with arbitrary action/body, including the new \"mode-escalation\" action. The route also casts body.execution directly to PipelineExecution without validation.",
+      "root_cause": "app/api/jira/sync/route.ts has no auth middleware, no origin check, no CSRF token. The new \"mode-escalation\" action will inherit this gap, allowing unauthenticated comment injection into Jira Epics.",
+      "solution": "Add same-origin validation (check Origin/Referer header or use internal API token from env). Validate action against explicit whitelist. Validate body schema with zod before passing to jiraSync functions. For \"mode-escalation\": validate triggerId is T1-T5 enum, fromMode/toMode are valid ExecutionMode values.",
+      "date_discovered": "2026-03-17",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/api/jira/sync/route.ts",
+        "lib/jira-sync-service.ts",
+        "lib/pipeline-executor.ts"
+      ]
     }
   ]
 }

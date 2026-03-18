@@ -12,7 +12,7 @@ import { addLog } from "@/lib/logs-storage";
  */
 export async function POST(request: NextRequest) {
   try {
-    const { agentId, model, userInput, systemPromptOverride, useTools, toolMode, maxToolSteps } =
+    const { agentId, model, userInput, systemPromptOverride, useTools, toolMode, maxToolSteps, readBudget } =
       await request.json();
 
     if (!agentId || !userInput) {
@@ -36,6 +36,7 @@ export async function POST(request: NextRequest) {
         userPrompt: userInput,
         tools,
         maxToolSteps: maxToolSteps || 15,
+        readBudget: readBudget || 10,
         onToolCall: async (name, input) => {
           toolCallCount++;
           addLog({
