@@ -197,7 +197,7 @@ export default function OrchestrationPage() {
         isPauseRequested: () => useOrchestrationStore.getState().pauseRequested,
         isStopRequested: () => useOrchestrationStore.getState().stopRequested,
       },
-      exec.routingDecision || routingDecision,
+      exec.routingDecision || routingDecision || undefined,
       selectedProject,
       exec, // previousExecution — resume from here
     );
