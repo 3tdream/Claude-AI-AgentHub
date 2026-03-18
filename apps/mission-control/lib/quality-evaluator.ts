@@ -1,5 +1,5 @@
 import type { QualityScore } from "@/types";
-import { AGENT_IDS, PIPELINE } from "@/lib/config";
+import { AGENT_IDS, PIPELINE, AGENT_SCORING_WEIGHTS } from "@/lib/config";
 
 export interface EvaluationResult {
   score: QualityScore;
@@ -52,8 +52,10 @@ You MUST respond in EXACTLY this format (one line each, no extra text):
 [FEEDBACK] Your specific feedback here (what's missing or what needs improvement)
 
 Rules:
-- Overall = average of FOUR scores
+- Overall is WEIGHTED per agent role (taskCompletion has highest weight 40-70%)
 - 7.5+ = PASS
+- TaskCompletion is the MOST IMPORTANT axis — did the agent actually deliver?
+- For implementation agents (Backend/Frontend): taskCompletion = 70% of overall
 - Below 7.5 = FAIL with specific feedback on what to improve
 - If output is truncated (ends mid-sentence) → taskCompletion max 4
 - If agent only described what to do but didn't do it → taskCompletion max 5
@@ -86,6 +88,7 @@ export async function evaluateStepOutput(
   taskInput: string,
   agentOutput: string,
   passThreshold?: number,
+  agentId?: string,
 ): Promise<EvaluationResult> {
   // Auto-fail if output is too short — agent didn't produce real work
   if (!agentOutput || agentOutput.trim().length < 100) {
@@ -115,7 +118,7 @@ export async function evaluateStepOutput(
     const data = await res.json();
 
     if (data.success && data.content) {
-      return parseEvaluationResponse(data.content, passThreshold);
+      return parseEvaluationResponse(data.content, passThreshold, agentId);
     }
   } catch {
     // If evaluation fails, default to pass with placeholder
@@ -135,7 +138,7 @@ export async function evaluateStepOutput(
  * [SCORE] completeness: 8.5, specificity: 7.0, actionability: 9.0 → PASS
  * [FEEDBACK] The architecture section lacks database schema details.
  */
-function parseEvaluationResponse(response: string, passThreshold: number = PIPELINE.QUALITY_PASS_THRESHOLD): EvaluationResult {
+function parseEvaluationResponse(response: string, passThreshold: number = PIPELINE.QUALITY_PASS_THRESHOLD, agentId?: string): EvaluationResult {
   const lines = response.split("\n").map((l) => l.trim()).filter(Boolean);
 
   let completeness = 7;
@@ -200,7 +203,14 @@ function parseEvaluationResponse(response: string, passThreshold: number = PIPEL
     }
   }
 
-  const overall = round((completeness + specificity + actionability + taskCompletion) / 4);
+  // Per-agent weighted scoring
+  const w = AGENT_SCORING_WEIGHTS[agentId || ""] || AGENT_SCORING_WEIGHTS["_default"];
+  const overall = round(
+    taskCompletion * w.task +
+    completeness * w.comp +
+    specificity * w.spec +
+    actionability * w.act
+  );
 
   // Override pass/fail based on actual score (trust the math over LLM text)
   passed = overall >= passThreshold;

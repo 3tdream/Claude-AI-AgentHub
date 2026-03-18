@@ -353,6 +353,7 @@ export async function executePipeline(
           input,
           agentOutput,
           threshold,
+          step.agentId,
         );
 
         if (execution.qualityScores) {

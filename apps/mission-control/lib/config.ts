@@ -50,6 +50,21 @@ export const AGENT_CONFIG: Record<string, {
   "devops-agent":     { qualityThreshold: 7.5, escalationThreshold: 5, maxTurns: 7,  maxContextChars: 4000,  readBudget: 10, wordLimit: 2000 },
 };
 
+/** Per-agent scoring weights: task(completion), comp(leteness), spec(ificity), act(ionability) */
+export const AGENT_SCORING_WEIGHTS: Record<string, { task: number; comp: number; spec: number; act: number }> = {
+  "research-agent":   { task: 0.4, comp: 0.3, spec: 0.2, act: 0.1 },
+  "orchestrator":     { task: 0.4, comp: 0.2, spec: 0.1, act: 0.3 },
+  "pm-agent":         { task: 0.5, comp: 0.3, spec: 0.1, act: 0.1 },
+  "architect-agent":  { task: 0.5, comp: 0.1, spec: 0.15, act: 0.25 },
+  "cyber-agent":      { task: 0.6, comp: 0.2, spec: 0.1, act: 0.1 },
+  "backend-agent":    { task: 0.7, comp: 0.1, spec: 0.1, act: 0.1 },
+  "frontend-agent":   { task: 0.7, comp: 0.1, spec: 0.1, act: 0.1 },
+  "designer-agent":   { task: 0.5, comp: 0.2, spec: 0.2, act: 0.1 },
+  "qa-agent":         { task: 0.6, comp: 0.1, spec: 0.1, act: 0.2 },
+  "devops-agent":     { task: 0.7, comp: 0.1, spec: 0.1, act: 0.1 },
+  "_default":         { task: 0.4, comp: 0.4, spec: 0.1, act: 0.1 }, // consolidation + unknown
+};
+
 /** Tool output limits (chars) */
 export const TOOL_OUTPUT_LIMITS = {
   read_file: 12_000,
