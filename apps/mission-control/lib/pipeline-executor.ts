@@ -137,6 +137,35 @@ export async function executePipeline(
   }
 
   async function executeStep(step: WorkflowStep): Promise<boolean> {
+    // --- Task cache check: reuse output from past successful runs ---
+    if (!step.metadata?.isCheckpoint) {
+      try {
+        const cacheRes = await fetch(`/api/pipeline/cache?input=${encodeURIComponent(input)}&stepId=${step.id}&minScore=${step.metadata?.qualityThreshold || 7.5}`);
+        const cacheData = await cacheRes.json();
+        if (cacheData.cached && cacheData.output) {
+          context[`step_${step.id}_output`] = cacheData.output;
+          execution.stepResults[step.id] = {
+            stepId: step.id,
+            status: "completed",
+            output: cacheData.output,
+            completedAt: new Date().toISOString(),
+            source: "cached" as any,
+            cachedFromRun: cacheData.runId,
+          };
+          if (execution.qualityScores) {
+            execution.qualityScores[step.id] = {
+              completeness: cacheData.score, specificity: cacheData.score,
+              actionability: cacheData.score, overall: cacheData.score,
+            };
+          }
+          callbacks.onUpdate({ ...execution });
+          postLog({ type: "system", content: `Stage ${step.id} CACHED from run ${cacheData.runId} (score: ${cacheData.score})` }).catch(() => {});
+          completed.add(step.id);
+          return true;
+        }
+      } catch { /* cache miss — run normally */ }
+    }
+
     // --- Checkpoint handling ---
     if (step.metadata?.isCheckpoint) {
       execution.stepResults[step.id] = {

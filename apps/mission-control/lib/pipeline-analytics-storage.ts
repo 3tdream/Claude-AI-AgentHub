@@ -48,6 +48,7 @@ export interface PipelineRunRecord {
   totalTokens: { input: number; output: number };
   jiraKey?: string;
   agents: AgentRunRecord[];
+  stepOutputs?: Record<string, string>;
 }
 
 export interface AnalyticsSummary {
@@ -108,6 +109,15 @@ export async function savePipelineRun(execution: any): Promise<PipelineRunRecord
     totalOutput += outputTokens;
   }
 
+  // Save step outputs for task cache (truncated to 5K per step)
+  const stepOutputs: Record<string, string> = {};
+  for (const [stepId, result] of Object.entries(execution.stepResults || {})) {
+    const r = result as any;
+    if (r.status === "completed" && r.output) {
+      stepOutputs[stepId] = r.output.substring(0, 5000);
+    }
+  }
+
   const record: PipelineRunRecord = {
     id: execution.id,
     workflowName: execution.workflowName,
@@ -120,6 +130,7 @@ export async function savePipelineRun(execution: any): Promise<PipelineRunRecord
     totalTokens: { input: totalInput, output: totalOutput },
     jiraKey: execution.jiraKey,
     agents,
+    stepOutputs,
   };
 
   // Save individual run
