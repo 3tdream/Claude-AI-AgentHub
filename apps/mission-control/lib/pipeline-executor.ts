@@ -307,6 +307,28 @@ export async function executePipeline(
           toolCallCount: data.toolCallCount || 0,
         };
 
+        // Hard enforcement: implementation agents MUST have called edit_file or create_file
+        const implAgents = ["backend-agent", "frontend-agent", "devops-agent"];
+        if (implAgents.includes(step.agentId)) {
+          const madeEdit = data.toolCalls?.some((tc: any) => tc.name === "edit_file" || tc.name === "create_file");
+          if (!madeEdit) {
+            execution.stepResults[step.id] = {
+              stepId: step.id, status: "failed",
+              output: agentOutput.substring(0, 20000),
+              error: `Implementation agent did not call edit_file or create_file. TaskCompletion = 0. Escalated.`,
+              completedAt: new Date().toISOString(),
+              retryCount, escalated: true, ...stepAnalytics,
+            };
+            execution.escalatedSteps = [...(execution.escalatedSteps || []), step.id];
+            callbacks.onUpdate({ ...execution });
+            postLog({ type: "system", agentId: step.agentId, agentName: step.agentName,
+              content: `ESCALATION: ${step.agentName} did not make any edits after ${data.toolCallCount || 0} tool calls — stuck in read loop`,
+            }).catch(() => {});
+            completed.add(step.id);
+            return false;
+          }
+        }
+
         const skipEvaluation = step.agentId === "orchestrator" || threshold === 0;
 
         if (skipEvaluation) {
@@ -404,7 +426,7 @@ export async function executePipeline(
 
         // Smart retry: stop early if score isn't improving
         const scoreImproved = evaluation.score.overall > lastScore + 0.5;
-        const scoreDegraded = evaluation.score.overall < lastScore - 0.1;
+        const scoreDegraded = evaluation.score.overall < lastScore - 0.3;
         const worthRetrying = (retryCount < 1) || (scoreImproved && !scoreDegraded); // First retry always, then only if improving
         lastScore = evaluation.score.overall;
 
@@ -686,7 +708,7 @@ function buildPrompt(
       ? `\n### AUTO-APPROVED ARCHITECTURAL PLAN\nThe architectural plan is approved. Proceed with implementation immediately.\n`
       : "";
 
-    prompt += `\n\n---${autoApprove}\n### TOOLS: edit_file, create_file, read_file (last resort), run_command\n\n### CRITICAL RULE: YOUR FIRST TOOL CALL MUST BE edit_file OR create_file.\nDo NOT start with read_file. The Architect's output above contains everything you need.\n\n### STRATEGY\n1. Read Architect's FILES_TO_EDIT block above — it has the exact file path and what to change.\n2. Call **create_file** if it says "create: ..." OR call **edit_file** if it says "modify: ...".\n3. For edit_file: use old_string from Architect's description. If you're unsure of exact content, THEN read_file ONE time to get the exact string.\n4. After edit/create: provide 2-line summary.\n\n### FORBIDDEN\n- Do NOT call read_file first "to understand the codebase" — Architect already did that.\n- Do NOT make more than 1 read_file call.\n- Do NOT read ARCHITECTURE.md, CLAUDE.md, or any config file.\n- Do NOT read a file "just to be safe".\n\n### IF CREATING A NEW FILE\nCall create_file with the complete file content. Keep it under 80 lines. Include all imports.\n\n### IF EDITING AN EXISTING FILE\nCall edit_file with old_string (exact match) and new_string. Keep diff under 30 lines.\n\n### DEFINITION OF DONE\n1. At least one edit_file or create_file succeeded\n2. 2-line summary: what changed, what remains`;
+    prompt += `\n\n---${autoApprove}\n### TOOLS: edit_file, create_file, read_file (last resort), run_command\n\n### SCORING PENALTY\nYou lose 70% of your score if you do not call edit_file or create_file.\nReading without editing is penalized. Every read_file call without a subsequent edit reduces your score.\n\n### CRITICAL RULE: YOUR FIRST TOOL CALL MUST BE edit_file OR create_file.\nDo NOT start with read_file. The Architect's output above contains everything you need.\n\n### STRATEGY\n1. Read Architect's FILES_TO_EDIT block above — it has the exact file path and what to change.\n2. Call **create_file** if it says "create: ..." OR call **edit_file** if it says "modify: ...".\n3. For edit_file: use old_string from Architect's description. If you're unsure of exact content, THEN read_file ONE time to get the exact string.\n4. After edit/create: provide 2-line summary.\n\n### FORBIDDEN\n- Do NOT call read_file first "to understand the codebase" — Architect already did that.\n- Do NOT make more than 1 read_file call.\n- Do NOT read ARCHITECTURE.md, CLAUDE.md, or any config file.\n- Do NOT read a file "just to be safe".\n\n### IF CREATING A NEW FILE\nCall create_file with the complete file content. Keep it under 80 lines. Include all imports.\n\n### IF EDITING AN EXISTING FILE\nCall edit_file with old_string (exact match) and new_string. Keep diff under 30 lines.\n\n### DEFINITION OF DONE\n1. At least one edit_file or create_file succeeded\n2. 2-line summary: what changed, what remains`;
 
   } else if (step.agentId === "qa-agent") {
     // QA gets targeted instructions — focus only on changed files
