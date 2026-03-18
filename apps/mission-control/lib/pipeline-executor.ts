@@ -120,6 +120,12 @@ export async function executePipeline(
   const completed = new Set<string>();
   const context: Record<string, string> = {};
 
+  // QA-gated success capture: implementation agent wins are held until QA confirms
+  const pendingSuccessCaptures: Array<{
+    agent: string; score: number; tokens: number;
+    toolCalls: number; duration: number; model: string; task: string;
+  }> = [];
+
   // Resume: populate completed set and context from previous results
   if (previousExecution) {
     for (const [stepId, result] of Object.entries(previousExecution.stepResults)) {
@@ -419,20 +425,45 @@ export async function executePipeline(
           }
 
           // Auto-capture success pattern: first-attempt 9+ scores
+          // Implementation agents (backend/frontend/devops) are deferred until QA confirms VERDICT: PASS
+          // This prevents "hallucinated success" — Orchestrator scoring 9+ on code that doesn't actually work
           if (retryCount === 0 && evaluation.score.overall >= 9) {
-            fetch("/api/knowledge/success", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                agent: step.agentId.replace(/-agent$/, ""),
-                score: evaluation.score.overall,
-                tokens: stepAnalytics.inputTokens + stepAnalytics.outputTokens,
-                toolCalls: stepAnalytics.toolCallCount,
-                duration: execution.stepResults[step.id].duration,
-                model,
-                task: input.slice(0, 150),
-              }),
-            }).catch(() => {}); // fire-and-forget
+            const successEntry = {
+              agent: step.agentId.replace(/-agent$/, ""),
+              score: evaluation.score.overall,
+              tokens: stepAnalytics.inputTokens + stepAnalytics.outputTokens,
+              toolCalls: stepAnalytics.toolCallCount,
+              duration: execution.stepResults[step.id].duration || 0,
+              model,
+              task: input.slice(0, 150),
+            };
+            const implAgentIds = ["backend-agent", "frontend-agent", "devops-agent"];
+            if (implAgentIds.includes(step.agentId)) {
+              // Defer — will flush when QA passes
+              pendingSuccessCaptures.push(successEntry);
+            } else if (step.agentId === "qa-agent" && agentOutput.includes("VERDICT: PASS")) {
+              // QA passed — flush all pending implementation successes + save QA's own
+              for (const entry of pendingSuccessCaptures) {
+                fetch("/api/knowledge/success", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify(entry),
+                }).catch(() => {});
+              }
+              pendingSuccessCaptures.length = 0;
+              fetch("/api/knowledge/success", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(successEntry),
+              }).catch(() => {});
+            } else {
+              // Non-implementation, non-QA agents — save immediately
+              fetch("/api/knowledge/success", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(successEntry),
+              }).catch(() => {});
+            }
           }
 
           completed.add(step.id);
