@@ -152,6 +152,7 @@ export interface ToolCallAIRequest extends DirectAIRequest {
   tools: any[];
   onToolCall?: (name: string, input: Record<string, string>) => Promise<{ success: boolean; output: string; error?: string }>;
   maxToolSteps?: number;
+  readBudget?: number;
 }
 
 export async function callAIWithTools(req: ToolCallAIRequest): Promise<DirectAIResponse> {
@@ -179,7 +180,7 @@ export async function callAIWithTools(req: ToolCallAIRequest): Promise<DirectAIR
   ];
 
   let readOnlyCallCount = 0;
-  const READ_LIMIT = 5; // After 5 read-only calls, inject "stop reading" nudge
+  const READ_LIMIT = req.readBudget || 10;
 
   for (let step = 0; step < maxSteps; step++) {
     // Use streaming to avoid 10-minute timeout on long requests
@@ -226,7 +227,9 @@ export async function callAIWithTools(req: ToolCallAIRequest): Promise<DirectAIR
           durationMs: Date.now() - toolStart,
         });
         // Truncate tool output to prevent context explosion
-        const maxOutputLen = (toolUse.name === "read_file" || toolUse.name === "list_files") ? 3000 : 5000;
+        // Tool output limits from config
+        const TOOL_LIMITS: Record<string, number> = { read_file: 12000, list_files: 12000, run_command: 10000 };
+        const maxOutputLen = TOOL_LIMITS[toolUse.name] || 8000;
         const truncatedOutput = result.output.length > maxOutputLen
           ? result.output.substring(0, maxOutputLen) + `\n\n... (truncated at ${maxOutputLen} chars. Use line_start/line_end for specific sections)`
           : result.output;

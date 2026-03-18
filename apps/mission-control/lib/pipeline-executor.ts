@@ -1,11 +1,11 @@
 import type { WorkflowStep, PipelineExecution, QualityScore } from "@/types";
 import { postLog } from "@/lib/hooks/use-logs";
 import { evaluateStepOutput, buildRetryPrompt } from "@/lib/quality-evaluator";
-import { PIPELINE } from "@/lib/config";
+import { PIPELINE, AGENT_CONFIG, TOOL_OUTPUT_LIMITS } from "@/lib/config";
 import type { RoutingDecisionData } from "@/types";
 // Analytics storage accessed via API (can't import fs in client-side code)
 
-const { MAX_RETRIES, ESCALATION_THRESHOLD, STEP_TIMEOUT_MS } = PIPELINE;
+const { MAX_RETRIES, STEP_TIMEOUT_MS } = PIPELINE;
 
 function generateId() {
   return crypto.randomUUID();
@@ -210,15 +210,14 @@ export async function executePipeline(
         const controller = STEP_TIMEOUT_MS > 0 ? new AbortController() : undefined;
         const timer = controller ? setTimeout(() => controller.abort(), STEP_TIMEOUT_MS) : undefined;
 
-        // Determine tool access level
+        // Determine tool access level from AGENT_CONFIG
+        const agentCfg = AGENT_CONFIG[step.agentId];
         const implementationAgents = ["backend-agent", "frontend-agent"];
-        const readOnlyAgents = ["architect-agent", "cyber-agent", "devops-agent", "pm-agent"];
         const qaAgent = step.agentId === "qa-agent";
-        const useTools = implementationAgents.includes(step.agentId) || readOnlyAgents.includes(step.agentId) || qaAgent;
+        const hasTools = !!agentCfg && step.agentId !== "research-agent" && step.agentId !== "designer-agent";
+        const useTools = hasTools;
         const toolMode = qaAgent ? "qa" : implementationAgents.includes(step.agentId) ? "readwrite" : "readonly";
-        // Implementation: 6, QA: 8, PM: 3 (just explore), Architect/others: 5
-        const pmAgent = step.agentId === "pm-agent";
-        const maxToolSteps = implementationAgents.includes(step.agentId) ? 5 : qaAgent ? 8 : pmAgent ? 3 : 5;
+        const maxToolSteps = agentCfg?.maxTurns || 5;
 
         const res = await fetch("/api/ai/execute", {
           method: "POST",
@@ -230,6 +229,7 @@ export async function executePipeline(
             useTools,
             toolMode,
             maxToolSteps,
+            readBudget: agentCfg?.readBudget || 10,
           }),
           signal: controller?.signal,
         });
@@ -375,7 +375,8 @@ export async function executePipeline(
         }
 
         // Max retries exhausted
-        if (evaluation.score.overall < ESCALATION_THRESHOLD) {
+        const escalationThreshold = agentCfg?.escalationThreshold || PIPELINE.ESCALATION_THRESHOLD;
+        if (evaluation.score.overall < escalationThreshold) {
           execution.stepResults[step.id] = {
             stepId: step.id,
             status: "failed",
@@ -557,9 +558,9 @@ function buildPrompt(
   routingMode?: string,
 ): string {
   let prompt = step.promptTemplate.replace(/\{\{input\}\}/g, input);
-  // Inject upstream outputs — truncate to 4K chars each for implementation agents
-  const implementationAgentIds = ["backend-agent", "frontend-agent"];
-  const maxContextLen = implementationAgentIds.includes(step.agentId) ? 4000 : 10000;
+  // Inject upstream outputs — truncate per agent config
+  const agentCfg = AGENT_CONFIG[step.agentId];
+  const maxContextLen = agentCfg?.maxContextChars || 4000;
   for (const [key, val] of Object.entries(context)) {
     const truncated = val.length > maxContextLen
       ? val.substring(0, maxContextLen) + "\n\n... (truncated — use read_file if you need more details)"

@@ -16,26 +16,36 @@ AGENT OUTPUT:
 {{agentOutput}}
 ---
 
-Score this output on FOUR axes (1-10 each):
-- **Completeness**: Are all requirements addressed? No missing sections?
-- **Specificity**: Are there concrete file paths, line numbers, function names? Not vague?
-- **Actionability**: Can the next agent work from this without asking questions?
-- **TaskCompletion**: Did the agent deliver what their ROLE requires?
-  For PLANNING agents (Research, PM, Architect, Cyber, DevOps, Consolidation):
-  - 10: Complete document delivered (PRD, ADR, threat model, etc.)
-  - 7-9: Document delivered but missing some sections
-  - 4-6: Partial or truncated document
-  - 1-3: Agent got stuck or output is empty/truncated mid-sentence
-  For IMPLEMENTATION agents (Backend, Frontend, Designer):
-  - 10: Code changes made via edit_file/create_file successfully
-  - 7-9: Some edits made, remaining described in summary
-  - 4-6: Described solution but didn't use tools to implement
-  - 1-3: Agent got stuck reading files, no edits made
-  For QA:
-  - 10: Full report with findings + VERDICT
-  - 7-9: Report with findings but missing VERDICT or incomplete
-  - 4-6: Partial findings, no actionable fix suggestions
-  - 1-3: Agent stuck or output truncated
+Score this output on FOUR axes (1-10 each). Use ROLE-AWARE criteria:
+
+**COMPLETENESS** — Covers 100% of requirements?
+  Architect: must reference files, folders, layers
+  PM: must include acceptance criteria + edge cases
+  QA: must include all test classes/levels
+  Cyber: must include risk classification + mitigations
+  Backend/Frontend: must address all specified changes
+
+**SPECIFICITY** — Concrete names, values, paths?
+  Backend: exact endpoint names, schema, inputs/outputs
+  Frontend: component + props structure
+  Designer: exact Tailwind classes / design tokens
+  Architect: exact FILES_TO_EDIT with line ranges
+
+**ACTIONABILITY** — Next agent can work immediately?
+  PM→Architect: all technical decisions included
+  Architect→Backend/Frontend: detailed implementation instructions
+  Backend/Frontend: code runs or is directly usable
+  QA: clear pass/fail with reproduction steps
+
+**TASK COMPLETION** — Did agent deliver what their ROLE requires?
+  Research: insights + sources → 10
+  PM: PRD + Jira stories in format → 10
+  Architect: ADR + FILES_TO_EDIT block → 10
+  Backend/Frontend: edit_file/create_file succeeded → 10
+  QA: VERDICT + findings → 10
+  Cyber: vulnerability summary + severity → 10
+  If output truncated mid-sentence → max 4
+  If described but didn't deliver → max 5
 
 You MUST respond in EXACTLY this format (one line each, no extra text):
 [SCORE] completeness: X.X, specificity: X.X, actionability: X.X, taskCompletion: X.X → PASS/FAIL

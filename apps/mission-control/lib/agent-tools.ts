@@ -245,13 +245,13 @@ export async function executeTool(
           return { success: false, output: "", error: `old_string found ${occurrences} times — must be unique. Provide more context.` };
         }
 
-        // Speed Governor: limit diff size
+        // Speed Governor: hard limit on diff size (soft limits per-agent via prompts)
         const oldLines = input.old_string.split("\n").length;
         const newLines = input.new_string.split("\n").length;
         const diffLines = Math.abs(newLines - oldLines) + Math.min(oldLines, newLines);
-        const MAX_DIFF_LINES = 30;
-        if (diffLines > MAX_DIFF_LINES) {
-          return { success: false, output: "", error: `Edit too large: ${diffLines} lines changed (max ${MAX_DIFF_LINES}). Make smaller, surgical edits. Split into multiple edit_file calls if needed.` };
+        const HARD_DIFF_LIMIT = 250;
+        if (diffLines > HARD_DIFF_LIMIT) {
+          return { success: false, output: "", error: `Edit too large: ${diffLines} lines (hard limit ${HARD_DIFF_LIMIT}). Break into smaller edits.` };
         }
 
         const newContent = content.replace(input.old_string, input.new_string);
@@ -280,7 +280,7 @@ export async function executeTool(
 
         // Speed Governor: limit new file size
         const fileLines = input.content.split("\n").length;
-        const MAX_NEW_FILE_LINES = 80;
+        const MAX_NEW_FILE_LINES = 120;
         if (fileLines > MAX_NEW_FILE_LINES) {
           return { success: false, output: "", error: `New file too large: ${fileLines} lines (max ${MAX_NEW_FILE_LINES}). Create a minimal working version first. Add complexity in follow-up edits.` };
         }
