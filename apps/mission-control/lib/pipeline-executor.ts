@@ -31,6 +31,8 @@ interface ExecutorCallbacks {
   onCheckpointReached: () => Promise<boolean>;
   getCheckpointStatus: () => { approved: boolean; rejected: boolean; reason?: string };
   onEscalation?: (stepId: string, agentName: string, score: number, feedback: string) => void;
+  isPauseRequested?: () => boolean;
+  isStopRequested?: () => boolean;
 }
 
 export async function executePipeline(
@@ -41,6 +43,7 @@ export async function executePipeline(
   callbacks: ExecutorCallbacks,
   routingDecision?: RoutingDecisionData,
   selectedProject?: string | null,
+  previousExecution?: PipelineExecution | null,
 ): Promise<PipelineExecution> {
   if (!steps.length) throw new Error("Pipeline must have at least one step");
   if (!input.trim()) throw new Error("Pipeline input cannot be empty");
@@ -71,20 +74,23 @@ export async function executePipeline(
   }
 
   const execution: PipelineExecution = {
-    id: generateId(),
+    id: previousExecution?.id || generateId(),
     workflowId,
     workflowName,
     status: "running",
     input,
-    stepResults: {},
-    startedAt: new Date().toISOString(),
-    qualityScores: {},
-    escalatedSteps: [],
+    stepResults: previousExecution?.stepResults || {},
+    startedAt: previousExecution?.startedAt || new Date().toISOString(),
+    qualityScores: previousExecution?.qualityScores || {},
+    escalatedSteps: previousExecution?.escalatedSteps || [],
     routingDecision: routingDecision || undefined,
   };
 
+  // Initialize pending steps (skip already completed from resume)
   steps.forEach((s) => {
-    execution.stepResults[s.id] = { stepId: s.id, status: "pending" };
+    if (!execution.stepResults[s.id] || execution.stepResults[s.id].status === "failed" || execution.stepResults[s.id].status === "pending") {
+      execution.stepResults[s.id] = { stepId: s.id, status: "pending" };
+    }
   });
   callbacks.onUpdate({ ...execution });
 
@@ -113,6 +119,22 @@ export async function executePipeline(
 
   const completed = new Set<string>();
   const context: Record<string, string> = {};
+
+  // Resume: populate completed set and context from previous results
+  if (previousExecution) {
+    for (const [stepId, result] of Object.entries(previousExecution.stepResults)) {
+      if (result.status === "completed" && result.output) {
+        completed.add(stepId);
+        context[`step_${stepId}_output`] = result.output;
+        // Mark as resumed
+        execution.stepResults[stepId] = { ...result, source: "resumed" as any };
+      }
+    }
+    postLog({
+      type: "system",
+      content: `Pipeline RESUMED — ${completed.size} stages reused from previous run ${previousExecution.id.slice(0, 8)}`,
+    }).catch(() => {});
+  }
 
   async function executeStep(step: WorkflowStep): Promise<boolean> {
     // --- Checkpoint handling ---
@@ -473,6 +495,20 @@ export async function executePipeline(
   const remaining = [...steps];
 
   while (remaining.length > 0) {
+    // Check pause/stop flags (read from callbacks)
+    if (callbacks.isPauseRequested?.()) {
+      execution.status = "paused";
+      callbacks.onUpdate({ ...execution });
+      postLog({ type: "system", content: `Pipeline PAUSED by user after ${completed.size} stages` }).catch(() => {});
+      break;
+    }
+    if (callbacks.isStopRequested?.()) {
+      execution.status = "stopped";
+      callbacks.onUpdate({ ...execution });
+      postLog({ type: "system", content: `Pipeline STOPPED by user after ${completed.size} stages` }).catch(() => {});
+      break;
+    }
+
     const ready = remaining.filter((s) => s.dependsOn.every((d) => completed.has(d)));
     if (ready.length === 0) break;
 

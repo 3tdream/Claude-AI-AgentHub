@@ -63,9 +63,14 @@ export interface StepResult {
     durationMs: number;
   }>;
   toolCallCount?: number;
+  // Source tracking for resume/cache
+  source?: "live" | "cached" | "resumed";
+  cachedFromRun?: string; // pipeline run ID if cached
 }
 
-export type PipelineStatus = "pending" | "running" | "completed" | "failed" | "paused" | "escalated";
+export type PipelineStatus = "pending" | "running" | "completed" | "failed" | "paused" | "stopped" | "escalated";
+
+export type StepSourceType = "live" | "cached" | "resumed";
 
 export type ExecutionMode = "quick" | "medium" | "full";
 

@@ -159,6 +159,8 @@ export default function OrchestrationPage() {
           });
         },
         getCheckpointStatus: () => checkpointStatusRef.current,
+        isPauseRequested: () => useOrchestrationStore.getState().pauseRequested,
+        isStopRequested: () => useOrchestrationStore.getState().stopRequested,
       },
       routingDecision,
       selectedProject,
@@ -166,6 +168,42 @@ export default function OrchestrationPage() {
 
     addToHistory(result);
     setRoutingDecision(null);
+    useOrchestrationStore.getState().clearControlFlags();
+  }
+
+  // Resume a paused/failed/stopped execution
+  async function resumeExecution(exec: PipelineExecution) {
+    if (!selectedWorkflow) return;
+    const steps = filterStepsForRouting(selectedWorkflow.steps, exec.routingDecision || routingDecision!);
+
+    checkpointStatusRef.current = { approved: false, rejected: false };
+    useOrchestrationStore.getState().clearControlFlags();
+
+    const result = await executePipeline(
+      steps,
+      exec.input,
+      exec.workflowId,
+      exec.workflowName,
+      {
+        onUpdate: (execution: PipelineExecution) => {
+          setActiveExecution({ ...execution });
+        },
+        onCheckpointReached: () => {
+          return new Promise<boolean>((resolve) => {
+            checkpointResolveRef.current = resolve;
+          });
+        },
+        getCheckpointStatus: () => checkpointStatusRef.current,
+        isPauseRequested: () => useOrchestrationStore.getState().pauseRequested,
+        isStopRequested: () => useOrchestrationStore.getState().stopRequested,
+      },
+      exec.routingDecision || routingDecision,
+      selectedProject,
+      exec, // previousExecution — resume from here
+    );
+
+    addToHistory(result);
+    useOrchestrationStore.getState().clearControlFlags();
   }
 
   // Override routing mode — recalculates steps and thresholds for the new mode
@@ -424,6 +462,22 @@ export default function OrchestrationPage() {
                       <span className={`font-mono text-xs font-semibold ${statusColors[activeExecution.status] || ""}`}>
                         {activeExecution.status.toUpperCase()}
                       </span>
+                      {activeExecution.status === "running" && (
+                        <>
+                          <button
+                            onClick={() => useOrchestrationStore.getState().requestPause()}
+                            className="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-colors"
+                          >
+                            Pause
+                          </button>
+                          <button
+                            onClick={() => useOrchestrationStore.getState().requestStop()}
+                            className="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-colors"
+                          >
+                            Stop
+                          </button>
+                        </>
+                      )}
                       {activeExecution.totalDuration && (
                         <span className="font-mono text-[10px] text-muted-foreground">
                           {(activeExecution.totalDuration / 1000).toFixed(1)}s
@@ -662,7 +716,19 @@ export default function OrchestrationPage() {
                         </div>
                       )}
 
-                      {/* Action buttons — two-step: Stage → Deploy */}
+                      {/* Action buttons */}
+                      <div className="flex items-center gap-2 pt-1 flex-wrap">
+                        {/* Resume button for failed/paused/stopped */}
+                        {(exec.status === "failed" || exec.status === "paused" || exec.status === "stopped") && (
+                          <button
+                            onClick={() => resumeExecution(exec)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 font-mono text-[10px] uppercase tracking-wider transition-all"
+                          >
+                            <Play className="w-3 h-3" />
+                            Resume
+                          </button>
+                        )}
+                      </div>
                       <div className="flex items-center gap-2 pt-1 flex-wrap">
                         {exec.status === "completed" && detectedFiles.length > 0 && !applyResult[exec.id]?.staged && !applyResult[exec.id]?.success && (
                           <button

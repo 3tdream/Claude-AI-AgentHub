@@ -10,6 +10,9 @@ interface OrchestrationState {
   executionHistory: PipelineExecution[];
   selectedStageId: string | null;
   selectedProject: string | null;
+  // Pipeline control flags
+  pauseRequested: boolean;
+  stopRequested: boolean;
   addWorkflow: (workflow: Workflow) => void;
   updateWorkflow: (id: string, workflow: Partial<Workflow>) => void;
   deleteWorkflow: (id: string) => void;
@@ -19,6 +22,9 @@ interface OrchestrationState {
   setSelectedProject: (projectId: string | null) => void;
   approveCheckpoint: (executionId: string) => void;
   rejectCheckpoint: (executionId: string, reason: string) => void;
+  requestPause: () => void;
+  requestStop: () => void;
+  clearControlFlags: () => void;
 }
 
 export const useOrchestrationStore = create<OrchestrationState>()(
@@ -28,6 +34,8 @@ export const useOrchestrationStore = create<OrchestrationState>()(
       activeExecution: null,
       executionHistory: [],
       selectedStageId: null,
+      pauseRequested: false,
+      stopRequested: false,
       selectedProject: null,
       addWorkflow: (workflow) =>
         set((s) => ({ workflows: [...s.workflows, workflow] })),
@@ -86,6 +94,9 @@ export const useOrchestrationStore = create<OrchestrationState>()(
         }
         set({ activeExecution: updated });
       },
+      requestPause: () => set({ pauseRequested: true }),
+      requestStop: () => set({ stopRequested: true }),
+      clearControlFlags: () => set({ pauseRequested: false, stopRequested: false }),
     }),
     {
       name: "mission-control-orchestration",
