@@ -1,6 +1,6 @@
 {
   "_description": "Known issues, root causes, and solutions — maintained by QA-Agent and all agents",
-  "_updated": "2026-03-16",
+  "_updated": "2026-03-19",
   "patterns": [
     {
       "id": "FAIL-001",
@@ -54,203 +54,524 @@
       "recurrence": "On Windows systems using pnpm with hard-links"
     },
     {
-      "id": "FAIL-006",
-      "category": "build",
-      "title": "Шаблонные плейсхолдеры не резолвятся до запуска агента",
-      "symptoms": "Шаг s4-frontend получил на вход неразрезолвленные плейсхолдеры (`{{step_s3-architect_output}}`), что привело к тому, что агент не смог выполнить реализацию и запросил недостающие данные — несмотря на итоговую оценку 10/10.",
-      "root_cause": "Пайплайн не проверил, что все зависимые шаги (s3-architect) завершились и их output был подставлен в контекст перед запуском s4-frontend. Либо шаг s3-architect был пропущен/не включён в этот прогон, либо механизм передачи контекста между шагами не сработал.",
-      "solution": "Добавить pre-flight валидацию перед каждым шагом: проверять, что все плейсхолдеры вида `{{step_*_output}}` заменены реальными данными. Если хотя бы один плейсхолдер не резолвится — блокировать запуск шага и эскалировать к оркестратору с указанием конкретного незавершённого зависимого шага.",
-      "date_discovered": "2026-03-13",
-      "recurrence": "Discovered during pipeline execution",
-      "source_pipeline": "c023cb6d-511f-4074-ae4e-8f56b607e726"
-    },
-    {
-      "id": "FAIL-007",
-      "category": "build",
-      "title": "Оценка 10/10 при фактически неуспешном выходе агента",
-      "symptoms": "Шаг s4-frontend получил оценку качества 10/10, однако его фактический output — запрос недостающих данных, а не реализованная кнопка выхода. Скоринг не отразил реальный результат.",
-      "root_cause": "Система оценки качества анализировала структуру и полноту ответа агента (агент корректно описал проблему, указал конкретный плейсхолдер), но не проверяла, выполнена ли целевая задача шага. Completeness/Specificity/Actionability оценивались по качеству текста, а не по факту поставки артефакта.",
-      "solution": "В quality gate добавить обязательный критерий **task-completion check**: для шагов с ожидаемым артефактом (код, файл, компонент) оценка не может быть выше 5, если артефакт не поставлен. Разделить метрику \"качество коммуникации агента\" и \"выполнение задачи шага\".",
-      "date_discovered": "2026-03-13",
-      "recurrence": "Discovered during pipeline execution",
-      "source_pipeline": "c023cb6d-511f-4074-ae4e-8f56b607e726"
-    },
-    {
-      "id": "FAIL-008",
-      "category": "build",
-      "title": "Frontend Agent падает без диагностической информации при простых UI-задачах",
-      "symptoms": "Шаг s4-frontend завершился с ошибкой \"Execution failed\" при выполнении тривиальной задачи — добавление кнопки выхода в header. Никакого стек-трейса, кода ошибки или контекста не предоставлено. Quality scores отсутствуют, что означает агент не дошёл до стадии генерации output.",
-      "root_cause": "Вероятные причины (в порядке убывания вероятности): 1) Отсутствует контекст — агент не получил путь к файлу header-компонента, текущую структуру проекта или design tokens для кнопки; 2) Timeout на модели без retry-логики; 3) Агент запущен без активной фазы — ACTIVE_PHASE.md не был прочитан перед делегированием, и агент не знал, какой стек используется (Next.js App Router vs Pages Router).",
-      "solution": "1) При делегировании frontend-agent ВСЕГДА указывать: точный путь к файлу (`src/components/layout/Header.tsx`), текущий код компонента как INPUT, design tokens для кнопки (цвет, размер, иконка). 2) Добавить в Task Brief явный CONSTRAINTS блок с указанием роутера и версии Next.js. 3) Настроить pipeline так, чтобы при \"Execution failed\" без score логировался последний prompt, отправленный агенту. 4) Для UI-задач такого уровня (< 20 строк кода) — использовать модель с меньшим timeout, не GPT-4 уровня.",
-      "date_discovered": "2026-03-13",
-      "recurrence": "Discovered during pipeline execution",
-      "source_pipeline": "11e62f7d-cba8-4c50-8a5d-3ef11c0efb3f"
-    },
-    {
-      "id": "FAIL-009",
-      "category": "architecture",
-      "title": "Одношаговый pipeline для UI-задачи без QA и Cyber проверки",
-      "symptoms": "Pipeline для задачи \"добавить кнопку выхода\" содержал только один шаг (s4-frontend). Отсутствовали: qa-agent для проверки что logout корректно очищает сессию/токены, cyber-agent для проверки что client-side logout не оставляет чувствительные данные в localStorage/cookies. Кнопка выхода — это auth-related функциональность, которая по правилам Orchestrator требует обязательного участия cyber-agent.",
-      "root_cause": "Задача была классифицирована как \"UI task\" (добавить кнопку), а не как \"auth task\" (реализовать logout flow). Это привело к неполному pipeline без обязательных security и quality gates.",
-      "solution": "Любая задача содержащая слова \"выход\", \"logout\", \"signout\", \"сессия\", \"токен\" — автоматически триггерит расширенный pipeline: frontend-agent → cyber-agent (проверка: токены очищены, redirect корректен, нет утечки state) → qa-agent (edge cases: двойной клик, logout во время pending request, logout на мобильном). Добавить это правило в routing table knowledge-base.",
-      "date_discovered": "2026-03-13",
-      "recurrence": "Discovered during pipeline execution",
-      "source_pipeline": "11e62f7d-cba8-4c50-8a5d-3ef11c0efb3f"
-    },
-    {
-      "id": "FAIL-010",
-      "category": "build",
-      "title": "Нулевые Quality Scores как индикатор pre-execution failure",
-      "symptoms": "Все quality scores отсутствуют (пустые). Это означает агент упал до того, как сгенерировал какой-либо output — то есть проблема на уровне инициализации агента или парсинга Task Brief, а не на уровне качества генерации.",
-      "root_cause": "Когда score = null/empty, стандартная retry-логика (score < 8 → retry with feedback) не срабатывает, потому что нечего оценивать. Pipeline завершается как \"failed\" без попытки retry и без эскалации к пользователю — нарушение правила \"Max 2 retries per agent\".",
-      "solution": "В pipeline-движке добавить отдельную ветку: если execution_status = \"failed\" AND scores = empty → это не quality failure, это execution failure → немедленная эскалация к пользователю с диагностическим отчётом (последний prompt, модель, timeout, environment). Не считать как retry попытку.",
-      "date_discovered": "2026-03-13",
-      "recurrence": "Discovered during pipeline execution",
-      "source_pipeline": "11e62f7d-cba8-4c50-8a5d-3ef11c0efb3f"
-    },
-    {
-      "id": "FAIL-011",
-      "category": "architecture",
-      "title": "Пропуск архитектурного шага ведёт к неполному контексту у Frontend-агента",
-      "symptoms": "Шаг архитектуры был пропущен в пайплайне, из-за чего Frontend-агент (s4-frontend) получил неполный контекст. Агент вынужден был описывать, что он может сделать, вместо того чтобы реализовать задачу — фактически заблокировался на запросе недостающей информации.",
-      "root_cause": "Пайплайн был запущен без обязательного шага Architect-Agent, который должен предоставлять структуру компонентов, точки монтирования и контракты API. Frontend-агент не может принимать архитектурные решения самостоятельно согласно правилам ролей.",
-      "solution": "Для задач типа \"добавить UI-элемент в существующий компонент\" (header, nav, layout) — добавить в пайплайн минимальный шаг architect-agent с единственной целью: указать файл компонента, props и место вставки. Альтернатива — передавать эти данные напрямую в INPUT секции Task Brief, если архитектура уже известна.",
-      "date_discovered": "2026-03-13",
-      "recurrence": "Discovered during pipeline execution",
-      "source_pipeline": "db825bc4-17c1-4c87-8565-a0243c4ca3cb"
-    },
-    {
-      "id": "FAIL-012",
-      "category": "build",
-      "title": "Задача с неполным контекстом завершается как \"completed\" вместо \"blocked\"",
-      "symptoms": "Пайплайн имеет статус `completed`, хотя реальный результат — агент запросил недостающие данные и ничего не реализовал. Кнопка выхода в header не добавлена. Статус вводит в заблуждение.",
-      "root_cause": "Система статусов пайплайна отслеживает завершение шага (агент ответил), а не достижение цели шага (задача реализована). Нет разницы между \"агент выполнил задачу\" и \"агент объяснил, почему не может выполнить задачу\".",
-      "solution": "Ввести статус `blocked` для шагов, где агент явно указывает на недостаток входных данных. Триггер: если вывод агента содержит паттерны \"нужно от вас\", \"недоступна\", \"пропущен\" — автоматически помечать шаг как `blocked`, не `completed`, и останавливать пайплайн с запросом к пользователю.",
-      "date_discovered": "2026-03-13",
-      "recurrence": "Discovered during pipeline execution",
-      "source_pipeline": "db825bc4-17c1-4c87-8565-a0243c4ca3cb"
-    },
-    {
-      "id": "FAIL-013",
-      "category": "build",
-      "title": "Frontend-агент падает без диагностируемой ошибки при простых UI-задачах",
-      "symptoms": "Шаг s4-frontend завершился с ошибкой \"Execution failed\" при попытке добавить кнопку выхода в header. Задача тривиальная (UI-компонент, ~10-20 строк кода), однако пайплайн упал полностью за 42.5 секунды без retry и без содержательного error message.",
-      "root_cause": "Ошибка \"Execution failed\" без stack trace указывает на одну из трёх причин: (1) отсутствие контекста — агент не получил путь к файлу header-компонента и не смог его найти; (2) отсутствие auth-контекста — кнопка logout требует знания о механизме аутентификации (session/JWT/cookie), которое не было передано в task brief; (3) инфраструктурный сбой самого агента (timeout, OOM, недоступность модели).",
-      "solution": "1. При делегировании logout-кнопки frontend-агенту обязательно передавать: точный путь к header-компоненту, используемый auth-механизм (signOut из next-auth / clear cookie / etc.), импорты которые нужны. 2. Добавить в task brief секцию CONTEXT с результатом `find . -name \"*header*\" -o -name \"*Header*\"`. 3. Если причина инфраструктурная — добавить retry: 1 для s4-frontend в конфиге пайплайна, т.к. простые UI-задачи не должны падать без retry.",
-      "date_discovered": "2026-03-13",
-      "recurrence": "Discovered during pipeline execution",
-      "source_pipeline": "28c69700-bd93-451c-8535-88f39677a788"
-    },
-    {
-      "id": "FAIL-014",
-      "category": "architecture",
-      "title": "Задача logout делегирована без передачи auth-контекста",
-      "symptoms": "Кнопка выхода — это не чистый UI-компонент: она вызывает функцию завершения сессии, которая зависит от конкретной auth-реализации проекта. Пайплайн направил задачу напрямую в s4-frontend, пропустив проверку knowledge-base и не передав информацию о том, как устроена аутентификация в Beauty CRM.",
-      "root_cause": "Отсутствует обязательная проверка `knowledge-base/tech-decisions.json` перед роутингом задач, затрагивающих auth. Это нарушает правило Orchestrator: \"перед роутингом проверить knowledge-base на past decisions\".",
-      "solution": "Для любой задачи со словами \"выход\", \"logout\", \"signOut\", \"сессия\" — обязательно: (1) прочитать knowledge-base/tech-decisions.json на предмет записи об auth-провайдере; (2) включить найденное решение в секцию INPUT task brief для frontend-агента; (3) если запись отсутствует — сначала запросить у architect-agent, затем делегировать frontend.",
-      "date_discovered": "2026-03-13",
-      "recurrence": "Discovered during pipeline execution",
-      "source_pipeline": "28c69700-bd93-451c-8535-88f39677a788"
-    },
-    {
-      "id": "FAIL-015",
-      "category": "devops",
-      "title": "Нулевые quality scores при failed-статусе скрывают реальную причину сбоя",
-      "symptoms": "В результатах выполнения поле QUALITY SCORES пустое. При падении агента оценки не выставляются, что делает post-mortem анализ неполным — невозможно определить, упал ли агент до генерации вывода или вывод был сгенерирован, но не прошёл валидацию.",
-      "root_cause": "Система quality scoring срабатывает только на успешный вывод агента. Если агент не вернул output (execution error), scoring pipeline не запускается и не логирует даже частичный результат.",
-      "solution": "Добавить в pipeline логику: при failed-статусе агента сохранять последний partial output (если есть) и выставлять score 0 с явной причиной \"execution_failed_before_output\". Это позволит отличать \"агент упал при старте\" от \"агент сгенерировал невалидный результат\".",
-      "date_discovered": "2026-03-13",
-      "recurrence": "Discovered during pipeline execution",
-      "source_pipeline": "28c69700-bd93-451c-8535-88f39677a788"
-    },
-    {
-      "id": "FAIL-016",
-      "category": "build",
-      "title": "PM-агент генерирует PRD без ответов на уточняющие вопросы оркестратора",
-      "symptoms": "Оркестратор (s1) сформировал детальный список уточняющих вопросов к команде/заказчику. PM-агент (s2) зафиксировал в своём выводе, что \"ответы от команды не получены\", но всё равно создал полноценный PRD с предположениями. Пайплайн продолжился без подтверждения требований.",
-      "root_cause": "Отсутствует обязательный Checkpoint между s1 и s2 для сбора ответов на уточняющие вопросы. PM-агент заполнил пробелы допущениями, что является нормальным поведением при async-работе, но создаёт риск расхождения с реальными требованиями.",
-      "solution": "Для задач, где оркестратор генерирует уточняющие вопросы, добавить явный Checkpoint 1.5 (после s1, до s2) с ожиданием подтверждения пользователя. Альтернатива: PM-агент должен явно маркировать каждое допущение тегом `[ASSUMED — требует подтверждения]` и выносить их в отдельный раздел PRD.",
-      "date_discovered": "2026-03-13",
-      "recurrence": "Discovered during pipeline execution",
-      "source_pipeline": "9ea3ecdf-b534-454c-82d7-2ddbd1b4f75d"
-    },
-    {
-      "id": "FAIL-017",
-      "category": "build",
-      "title": "QA Agent Output Truncation on Multi-Finding Reports",
-      "symptoms": "Step s5-qa scored 7/10 (C:5.5) because the output was truncated mid-way through the third finding block (QA-1-003 and beyond were missing). The QA report covered only 2 of N expected findings, making the output incomplete despite high specificity (8.5) and reasonable actionability (7).",
-      "root_cause": "QA Agent attempted to enumerate all findings in a single response without chunking. When the report grew beyond the model's effective output window, the response was cut off mid-sentence, silently dropping the remaining findings rather than signaling incompleteness.",
-      "solution": "QA Agent should structure output as: (1) findings summary table first with total count declared upfront, (2) then detailed blocks. If count > 5, split into batches with explicit \"Part 1 of N\" headers. Orchestrator should validate: declared finding count matches actual finding blocks before scoring completeness above 7.",
-      "date_discovered": "2026-03-14",
-      "recurrence": "Discovered during pipeline execution",
-      "source_pipeline": "f8650362-296e-490c-863b-a011570e589c"
-    },
-    {
-      "id": "FAIL-018",
-      "category": "architecture",
-      "title": "Backend and Frontend Agents Proceeding Without Architect Output",
-      "symptoms": "Steps s4-backend and s4-frontend both flagged their own architecture assumptions with `[ASSUMED]` markers, indicating they executed without receiving the architect-agent's design. Both agents scored 10/10 despite this gap, meaning quality scoring did not penalize assumption-based work.",
-      "root_cause": "The pipeline ran s3-architect and s4-backend/s4-frontend in a configuration where the architect output was either not passed as input context or the parallel track started before architect completion. Agents compensated professionally by marking assumptions, but the dependency chain was not enforced.",
-      "solution": "Enforce hard dependency gate: s4-backend and s4-frontend must receive s3-architect output as explicit INPUT field in their Task Brief. Orchestrator should block routing to implementation agents if architect output is absent or scored below 8. Add to routing rules: \"DEPENDS ON: s3-architect PASS\" for all implementation steps.",
-      "date_discovered": "2026-03-14",
-      "recurrence": "Discovered during pipeline execution",
-      "source_pipeline": "f8650362-296e-490c-863b-a011570e589c"
-    },
-    {
-      "id": "FAIL-019",
-      "category": "build",
-      "title": "Quality Score Inflation When Assumptions Mask Missing Dependencies",
-      "symptoms": "s4-backend and s4-frontend both received 10/10 scores despite operating on assumed architecture rather than validated design. The scoring rubric (completeness, specificity, actionability) does not account for dependency fulfillment — an agent can score perfectly while building on unvalidated foundations.",
-      "root_cause": "The quality gate scoring criteria evaluate the output in isolation, not relative to whether required inputs were actually provided. A well-written assumption is indistinguishable from a well-written fact under the current rubric.",
-      "solution": "Add a fourth scoring dimension: **Dependency Integrity** — were all declared DEPENDS ON inputs actually received and used? If any `[ASSUMED]` markers are present in output, cap Dependency Integrity at 5, which should reduce overall score below 8 and trigger a review flag. This prevents assumption-based work from silently passing quality gates.",
-      "date_discovered": "2026-03-14",
-      "recurrence": "Discovered during pipeline execution",
-      "source_pipeline": "f8650362-296e-490c-863b-a011570e589c"
-    },
-    {
-      "id": "FAIL-020",
-      "category": "build",
-      "title": "PM-Agent abort без причины при генерации user stories для сложного security-контекста",
-      "symptoms": "Шаг s2-pm завершился с ошибкой \"signal is aborted without reason\" после 1 retry, набрав 4.3/10 (C:4.5 S:5 A:3.5). Pipeline остановился полностью — все downstream шаги (architect, cyber, backend, frontend, qa, devops) остались в pending. Задача PM-Agent включала создание user stories для системы с security-требованиями (шифрование ключей, audit log, валидация через внешние API).",
-      "root_cause": "Вероятно, PM-Agent получил слишком объёмный контекст из s1-orchestrator (10/10, детальный brief) плюс неполный research из s0 (обрезан на полуслове). Комбинация большого входного контекста + необходимость генерировать acceptance criteria для security-специфичных stories (шифрование, audit log, валидация ключей у трёх провайдеров) могла вызвать timeout или context overflow, приведший к abort сигналу. Низкий actionability score (3.5) указывает, что даже частичный output был непригоден для передачи architect-agent.",
-      "solution": "(1) Разбить PM-задачу на два под-шага: сначала базовые CRUD stories (без security), затем отдельный шаг для security/audit stories. (2) Передавать PM-Agent только резюме research (не полный документ), если research > 2000 токенов. (3) Добавить fallback: если PM abort после 1 retry — Orchestrator генерирует минимальный story skeleton самостоятельно и передаёт architect с пометкой \"needs PM refinement post-pipeline\". (4) Установить явный timeout guard на PM-шаге с graceful partial output.",
-      "date_discovered": "2026-03-14",
-      "recurrence": "Discovered during pipeline execution",
-      "source_pipeline": "6bd3e517-9162-4258-a467-d0a687a3e550"
-    },
-    {
-      "id": "FAIL-021",
-      "category": "build",
-      "title": "Research output обрезан на полуслове — downstream агенты получают неполный контекст",
-      "symptoms": "s0-research завершился с 5.5/10 после 3 попыток (2 retries). Документ обрезан на слове \"— оп\", отсутствуют разделы competitive analysis провайдеров и, вероятно, compliance/security секции. Несмотря на это, output был принят с предупреждением и передан дальше. Это значит все последующие агенты (PM, Architect, Cyber) работали бы с заведомо неполной базой знаний.",
-      "root_cause": "Research-Agent превысил output limit модели при попытке сгенерировать полный документ за один вызов. Три попытки дали одинаковый результат — системная проблема с размером output, а не случайный сбой. Порог приёмки был снижен до 5.5 вместо требуемых 8+, что создало \"тихое\" распространение некачественных данных по всему pipeline.",
-      "solution": "(1) Research-Agent должен генерировать output по секциям (max 3 секции за вызов), затем Orchestrator конкатенирует. (2) Ввести правило: если research score < 7 — pipeline НЕ стартует, возвращается к пользователю с запросом упростить scope или разбить задачу. (3) Детектировать обрыв на полуслове программно (проверка: последний символ не является завершающим знаком препинания или markdown-блоком) и автоматически запрашивать продолжение с \"continue from: [last complete sentence]\".",
-      "date_discovered": "2026-03-14",
-      "recurrence": "Discovered during pipeline execution",
-      "source_pipeline": "6bd3e517-9162-4258-a467-d0a687a3e550"
-    },
-    {
-      "id": "FAIL-022",
-      "category": "build",
-      "title": "Принятие sub-threshold output с \"warning\" вместо hard stop создаёт downstream cascade",
-      "symptoms": "Orchestrator принял s0-research с оценкой 5.5/10 (ниже установленного порога 8+) с формулировкой \"Accepted with warning\". Это решение было принято осознанно, однако привело к тому, что PM-Agent в s2 получил неполный контекст и, возможно, это стало contributing factor к его abort. Паттерн \"принять с предупреждением\" создаёт иллюзию прогресса при реальной деградации качества.",
-      "root_cause": "Отсутствие чёткого правила: при каком минимальном score допустим \"accept with warning\" vs hard stop. Orchestrator имеет дискрецию, но без guardrails эта дискреция используется в сторону \"продолжить\" вместо \"остановить\".",
-      "solution": "Ввести явную политику: score 6-7 → \"accept with warning\" допустимо только если недостающие секции не являются входными данными для следующего агента. Score < 6 → hard stop всегда, без исключений. Для данного случая: research с отсутствующим competitive analysis и security секциями напрямую влияет на PM (acceptance criteria) и Cyber (threat model) — должен быть hard stop.",
-      "date_discovered": "2026-03-14",
-      "recurrence": "Discovered during pipeline execution",
-      "source_pipeline": "6bd3e517-9162-4258-a467-d0a687a3e550"
-    },
-    {
-      "id": "FAIL-023",
-      "category": "build",
-      "title": "Quality issue in s2-pm",
-      "symptoms": "Step s2-pm required 2 retries to pass quality evaluation",
-      "root_cause": "Accepted with warning (5.7/10 after 3 attempts): Документ **обрезан на полуслове** — секция 2 \"Problem Statement\" начата но не завершена, что делает весь PRD неполным и неработоспособным. Критически о",
-      "solution": "Improve prompt specificity for this agent",
+      "id": "FAIL-025",
+      "category": "security",
+      "title": "GET /api/system/config has no authentication — publicly accessible endpoint",
+      "symptoms": "Any unauthenticated HTTP client can call GET /api/system/config and receive system metadata. The route.ts has zero auth checks, no session validation, no middleware guard.",
+      "root_cause": "The route handler calls readUIConfig() directly without verifying the caller's session. The comment in the file claims rate limiting is enforced via Next.js middleware, but no middleware file was found protecting /api/system/* routes.",
+      "solution": "Add session check at the top of the GET handler: `const session = await getServerSession(); if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });`. Alternatively, add /api/system/* to the auth middleware matcher. Verify middleware.ts actually covers this path.",
       "date_discovered": "2026-03-16",
-      "recurrence": "Discovered during pipeline execution",
-      "source_pipeline": "9bb9cfc9-4ab5-489b-bcd0-3d2898fdbdf0",
-      "source_step": "s2-pm"
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/api/system/config/route.ts"
+      ]
+    },
+    {
+      "id": "FAIL-026",
+      "category": "bad-code",
+      "title": "TimestampFooter fetch has no timeout — hangs indefinitely on slow network",
+      "symptoms": "The useEffect fetch to /api/system/config has no AbortController / timeout. On a slow or stalled connection the footer never renders (isLoaded stays false), and the request is never cancelled when the component unmounts, causing a state-update-on-unmounted-component warning.",
+      "root_cause": "fetch() is called without an AbortSignal. No cleanup function is returned from useEffect, so the promise resolves after unmount and calls setLastUpdated / setIsLoaded on a dead component.",
+      "solution": "Add `const controller = new AbortController(); const timeoutId = setTimeout(() => controller.abort(), 5000);` and pass `{ signal: controller.signal }` to fetch. Return `() => { clearTimeout(timeoutId); controller.abort(); }` from useEffect.",
+      "date_discovered": "2026-03-16",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "components/shell/timestamp-footer.tsx"
+      ]
+    },
+    {
+      "id": "FAIL-027",
+      "category": "bad-code",
+      "title": "cached:true flag semantics are inverted and misleading — causes silent data staleness",
+      "symptoms": "The API response field `cached: false` means \"fresh data\" and `cached: true` means \"error fallback / stale\". This is the opposite of every HTTP caching convention. Consumers (current or future) will misread the flag and treat error-fallback data as authoritative cached data.",
+      "root_cause": "The field was named `cached` but its value encodes an error state, not a cache hit. The JSDoc comment even admits this: \"cached: true → FS read error or JSON parse error (fallback)\".",
+      "solution": "Rename the field to `error: boolean` or `fallback: boolean`, or add a separate `error` field. Update the interface, the JSDoc, and any consumers. The TimestampFooter currently ignores this field entirely, so it cannot distinguish stale-fallback from fresh data.",
+      "date_discovered": "2026-03-16",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/api/system/config/route.ts",
+        "components/shell/timestamp-footer.tsx"
+      ]
+    },
+    {
+      "id": "FAIL-028",
+      "category": "bad-code",
+      "title": "ADR-002 violation: getUiConfig() silently swallows ENOENT instead of returning null cleanly",
+      "symptoms": "getUiConfig() calls ensureDataDir() before every read, creating the directory on every GET request even when the file doesn't exist. The catch block returns null correctly, but the directory-creation side-effect on every read is unexpected and masks the ENOENT condition instead of propagating it as a clean null per ADR-002.",
+      "root_cause": "ensureDataDir() is called inside getUiConfig() unconditionally. ADR-002 says ENOENT should return null, not trigger auto-creation. The directory mkdir is a write side-effect inside a read function, violating command-query separation.",
+      "solution": "Remove ensureDataDir() call from getUiConfig(). Only call it inside setUiConfig(). In getUiConfig(), catch ENOENT specifically (err.code === 'ENOENT') and return {lastUpdated: null}; re-throw other errors so the route's catch block can log them properly.",
+      "date_discovered": "2026-03-16",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "lib/ui-config-storage.ts",
+        "app/api/system/config/route.ts"
+      ]
+    },
+    {
+      "id": "FAIL-029",
+      "category": "security",
+      "title": "POST /api/system/config has no authentication — any unauthenticated caller can overwrite lastUpdated",
+      "symptoms": "POST /api/system/config accepts any body with a valid ISO string and writes it to disk. No session check, no API key, no internal-only guard. Any external actor can set lastUpdated to an arbitrary date (e.g. year 9999) causing misleading UI across all shell pages.",
+      "root_cause": "Route handler has no auth middleware or token verification. The comment says \"fire-and-forget from pipeline-executor\" but the route is publicly reachable.",
+      "solution": "Add an internal secret check: compare Authorization header against process.env.INTERNAL_API_SECRET. Return 401 if missing/wrong. Alternatively, move the write to a server-action callable only from pipeline-executor server-side code, removing the HTTP surface entirely.",
+      "date_discovered": "2026-03-16",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/api/system/config/route.ts"
+      ]
+    },
+    {
+      "id": "FAIL-030",
+      "category": "bad-code",
+      "title": "setUiConfig atomic write leaves orphaned .tmp file on rename failure",
+      "symptoms": "If fs.rename() throws (e.g. cross-device link, permissions), the .tmp file is left on disk permanently. Subsequent calls to setUiConfig will overwrite it, but a crash between writeFile and rename leaves DATA_CONFIG_PATH.tmp polluting the data/config/ directory indefinitely.",
+      "root_cause": "No finally block cleans up the tmp file on rename failure. The error propagates to the caller but the orphaned file remains.",
+      "solution": "Wrap the rename in try/catch; in the catch, attempt fs.unlink(tmpPath) before re-throwing. Use a unique tmp name (e.g. append process.pid + Date.now()) to avoid collisions under concurrent writes.",
+      "date_discovered": "2026-03-16",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "lib/ui-config-storage.ts"
+      ]
+    },
+    {
+      "id": "FAIL-032",
+      "category": "security",
+      "title": "Missing rate limiting implementation — documented but not enforced on /api/system/config",
+      "symptoms": "Route comments claim \"Rate limit: 60 req/min per IP\" (GET) and \"Rate limit: 10 req/min per IP\" (POST) but no rate-limiting middleware, header checks, or Upstash/Redis integration exists in the handler code",
+      "root_cause": "Rate limit is documented as a comment only. No actual implementation (e.g., upstash/ratelimit, next-rate-limit, or custom Redis counter) is present in the route file or called from a middleware wrapper.",
+      "solution": "Implement rate limiting using @upstash/ratelimit or a sliding-window Redis counter. Apply as a wrapper or in middleware.ts. Enforce 429 response with Retry-After header when limit exceeded.",
+      "date_discovered": "2026-03-16",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/api/system/config/route.ts"
+      ]
+    },
+    {
+      "id": "FAIL-035",
+      "category": "bad-code",
+      "title": "data/config/ui.json отсутствует в репозитории — первый запуск вернёт null без инициализации",
+      "symptoms": "Директория data/config не существует (ENOENT при list_files). При первом запуске getUiConfig() выбросит ошибку чтения файла, GET вернёт { lastUpdated: null, error: \"config_unavailable\" }, футер не отобразится никогда до первого pipeline-запуска.",
+      "root_cause": "Файл data/config/ui.json не создан как часть задачи (задача требовала его создать). Нет seed-скрипта или инициализации при старте приложения.",
+      "solution": "1) Создать data/config/ui.json с начальным значением { \"lastUpdated\": \"&lt;build-time ISO&gt;\" }. 2) Добавить файл в .gitignore исключения (не игнорировать). 3) В getUiConfig() добавить fallback: если файл не существует — вернуть { lastUpdated: null } без throw.",
+      "date_discovered": "2026-03-16",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "data/config/ui.json",
+        "lib/ui-config-storage.ts"
+      ]
+    },
+    {
+      "id": "FAIL-036",
+      "category": "bad-code",
+      "title": "TimestampFooter returns null during loading — permanent blank state if API never resolves",
+      "symptoms": "Footer never renders if SWR fetch hangs or API returns { lastUpdated: null }. Component returns null for both isLoading AND formattedDate === null, so a successful API response with null lastUpdated also produces no footer — silently swallowing the \"no data\" state with no user feedback.",
+      "root_cause": "Line 45 of timestamp-footer.tsx: `if (isLoading || formattedDate === null) return null` — the null guard conflates \"still loading\" with \"loaded but no timestamp\". When config file is missing and API returns { lastUpdated: null }, formattedDate stays null and the footer is permanently invisible.",
+      "solution": "Separate loading and empty states. When !isLoading and data is received but lastUpdated is null, render a fallback string (e.g. \"Дата обновления недоступна\") or at minimum a non-null placeholder. Only suppress render during isLoading.",
+      "date_discovered": "2026-03-16",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "components/shell/timestamp-footer.tsx"
+      ]
+    },
+    {
+      "id": "FAIL-037",
+      "category": "bad-code",
+      "title": "GET /api/system/config accesses config.lastUpdated without null-guard when getUiConfig returns null per ADR-002",
+      "symptoms": "Route.ts line 33: `{ lastUpdated: config.lastUpdated }` — if getUiConfig() returns null (per ADR-002 ENOENT behavior), this throws a TypeError: Cannot read properties of null, which is caught by the outer catch and returns config_unavailable — masking the expected null response as an error.",
+      "root_cause": "ADR-002 specifies getUiConfig() should return null on ENOENT, but the GET handler treats the return value as always being an object with a lastUpdated property. No null-check before property access on line 33.",
+      "solution": "Add null guard: `const lastUpdated = config ? config.lastUpdated : null; return NextResponse.json({ lastUpdated })`. This correctly returns { lastUpdated: null } (200 OK) when file is missing, matching ADR-002 contract.",
+      "date_discovered": "2026-03-16",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/api/system/config/route.ts"
+      ]
+    },
+    {
+      "id": "FAIL-039",
+      "category": "security",
+      "title": "Escalation trigger bypass via metadata injection in stepResult",
+      "symptoms": "Malicious or malformed agent output can inject arbitrary metadata fields (severity, hasCriticalBug, qualityScore) into stepResult.metadata, triggering or suppressing escalation triggers T1-T5 without legitimate security/QA findings.",
+      "root_cause": "checkEscalationTriggers() trusts stepResult.metadata values without validation or schema enforcement. Any agent response that populates metadata fields can control escalation flow. The parseEscalateTag regex is also injectable via crafted agent output.",
+      "solution": "1) Validate stepResult.metadata against a strict schema (zod) before trigger evaluation. 2) Only allow specific agentIds to set specific metadata fields (cyber-agent → severity/probability, qa-agent → hasCriticalBug/qualityScore). 3) Add HMAC or signing to agent outputs to prevent tampering between step execution and trigger check. 4) Sanitize parseEscalateTag input — limit output length before regex parsing.",
+      "date_discovered": "2026-03-16",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "lib/pipeline-executor.ts",
+        "types/workflow.ts"
+      ]
+    },
+    {
+      "id": "FAIL-042",
+      "category": "security",
+      "title": "Zustand persist stores PII (escalation data) unencrypted in localStorage",
+      "symptoms": "EscalationReason[], confirmedBy (MEDIUM PII), security finding severities stored in plaintext localStorage via Zustand persist middleware. Accessible via browser DevTools.",
+      "root_cause": "orchestration-store.ts uses Zustand persist without partialize filter or encrypted storage adapter. New ADR-012 fields (escalationReasons, escalatedFrom) automatically persisted with full detail strings.",
+      "solution": "1) Use partialize in persist config to exclude escalationReasons.detail and confirmedBy from localStorage. 2) Or implement encrypted storage adapter (AES-256 with session-derived key). 3) Strip sensitive fields in addToHistory before persisting to executionHistory array. This is a 152-FZ Art.19 requirement.",
+      "date_discovered": "2026-03-16",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "lib/stores/orchestration-store.ts",
+        "types/workflow.ts"
+      ]
+    },
+    {
+      "id": "FAIL-045",
+      "category": "bad-code",
+      "title": "Stateful /g regex in ESCALATION_CONFIG causes intermittent security trigger misses",
+      "symptoms": "detectEscalation() fails to detect Critical/High security findings approximately 50% of the time; escalation triggers fire inconsistently across consecutive pipeline steps.",
+      "root_cause": "ESCALATION_CONFIG stores regex patterns with the /g flag. RegExp.test() on a global regex advances lastIndex; on the next call with the same regex instance, matching starts from the previous lastIndex position, often returning false.",
+      "solution": "Either store patterns as plain strings and create new RegExp() inside detectEscalation() on each invocation, or remove the /g flag from securityCriticalPattern and securityHighPattern since .test() only needs a boolean match.",
+      "date_discovered": "2026-03-17",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "lib/config.ts",
+        "lib/smart-router.ts"
+      ]
+    },
+    {
+      "id": "FAIL-046",
+      "category": "security",
+      "title": "ADR-008 detectEscalation: stateful /g regex, output injection, XSS in badge, Jira comment injection",
+      "symptoms": "1) Stateful /g regex in ESCALATION_CONFIG causes .test() to miss matches ~50% of calls. 2) Free-text stepResult.output parsed by regex allows any agent to inject trigger keywords forcing false escalation. 3) EscalationBadge renders trigger.reason (agent-controlled string) without sanitization — XSS risk. 4) Jira comment includes unsanitized reason field — ADF injection. 5) No auth on Zustand setEscalation action.",
+      "root_cause": "Security detection relies on regex over unstructured text instead of typed severity fields. UI renders agent-controlled strings directly. Jira comment template interpolates untrusted data into ADF. Global regex flag preserves lastIndex across calls.",
+      "solution": "1) Remove /g flag or instantiate new RegExp per call. 2) Use structured stepResult.severity field, not regex on output. 3) Sanitize trigger.reason before DOM rendering (escape HTML entities). 4) Sanitize reason before Jira ADF interpolation. 5) Validate executionId ownership in setEscalation.",
+      "date_discovered": "2026-03-17",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "lib/config.ts",
+        "lib/smart-router.ts",
+        "lib/pipeline-executor.ts",
+        "components/escalation-badge.tsx",
+        "lib/jira-sync-service.ts",
+        "lib/stores/orchestration-store.ts"
+      ]
+    },
+    {
+      "id": "FAIL-048",
+      "category": "security",
+      "title": "POST /api/system/config — no authentication, open write endpoint",
+      "symptoms": "POST /api/system/config accepts writes from any anonymous client. No token, no secret, no session check. Returns {\"ok\":true} for unauthenticated requests.",
+      "root_cause": "Route handler has zero authentication middleware. The endpoint is documented as \"fire-and-forget from pipeline-executor\" but no internal secret or auth guard was implemented. Rate limit exists only as a JSDoc comment with no actual code.",
+      "solution": "Add x-internal-secret header check: const secret = req.headers.get(\"x-internal-secret\"); if (secret !== process.env.INTERNAL_API_SECRET) return 401. Generate INTERNAL_API_SECRET at deploy time (32 bytes). pipeline-executor.ts must pass this header. Also validate lastUpdated strictly with ISO 8601 regex before passing to setUiConfig().",
+      "date_discovered": "2026-03-17",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/api/system/config/route.ts"
+      ]
+    },
+    {
+      "id": "FAIL-049",
+      "category": "security",
+      "title": "CSV Export без санитизации — XSS через CSV Injection в pipeline-analytics.json",
+      "symptoms": "Экспортируемый CSV содержит поля agentName/stepId из pipeline-analytics.json без экранирования. Значения вида =CMD|' /C calc'!A0 или @SUM(1+1) выполняются в Excel/LibreOffice при открытии файла.",
+      "root_cause": "Архитектура экспорта предполагает прямую сериализацию объектов PipelineExecution и agentStats в CSV без префиксного экранирования специальных символов (=, +, -, @, TAB, CR).",
+      "solution": "Перед записью в CSV каждое строковое поле проверять: если начинается с = + - @ TAB CR — добавлять префикс апострофа или оборачивать в кавычки с экранированием. Использовать библиотеку papaparse или ручную sanitize-функцию.",
+      "date_discovered": "2026-03-17",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "data/pipeline-analytics.json",
+        "app/(shell)/analytics/page.tsx"
+      ]
+    },
+    {
+      "id": "FAIL-050",
+      "category": "security",
+      "title": "No auth middleware on internal API routes — all agent-hub proxy routes are publicly accessible",
+      "symptoms": "All routes under /api/agent-hub/ (sessions, agents, last-activity) have zero authentication checks. Any external caller who discovers the URL can read agent session data, activity timestamps, and agent metadata.",
+      "root_cause": "The codebase has no auth middleware layer (no NextAuth, no session cookies, no internal API key validation). The existing sessions/route.ts pattern that the new endpoint copies from also lacks auth. This is a systemic gap, not a single-endpoint issue.",
+      "solution": "Create a shared middleware (e.g., lib/middleware/require-auth.ts) that validates session cookies or an internal token header. Apply it to all /api/agent-hub/* routes. Until auth exists, add Next.js middleware.ts matcher to restrict /api/agent-hub/* to same-origin requests via Origin/Referer header check as a stopgap.",
+      "date_discovered": "2026-03-17",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/api/agent-hub/sessions/route.ts",
+        "app/api/agent-hub/agents/last-activity/route.ts",
+        "lib/agent-hub-client.ts"
+      ]
+    },
+    {
+      "id": "FAIL-051",
+      "category": "security",
+      "title": "All /api/agent-hub/* routes lack authentication — any HTTP client can read agent session/activity data",
+      "symptoms": "No auth check in sessions/route.ts or proposed last-activity/route.ts. No middleware.ts protecting /api/ routes. agentHubFetch uses server-side API key to Agent Hub but the Next.js API route itself is publicly accessible.",
+      "root_cause": "Project has no auth system implemented yet. API routes were created as internal proxies but are exposed on the public Next.js server without any request validation. The agentIds query param is concatenated into URLs without UUID format validation, enabling potential SSRF via agentHubFetch URL construction.",
+      "solution": "1) Create middleware.ts with matcher for /api/agent-hub/:path* that checks for a session cookie (when auth exists) or at minimum validates X-Requested-With: XMLHttpRequest header + Origin header matching NEXT_PUBLIC_APP_URL. 2) In last-activity/route.ts, validate agentIds with regex /^[0-9a-f-]{36}(,[0-9a-f-]{36})*$/ before passing to any fetch. 3) Add structured logging (pino or project logger) with fields: { endpoint, agentIds, ip, userAgent, timestamp } to stdout for 152-FZ Art.19 audit trail. 4) Classify lastActivity as MEDIUM PII in 152fz-checklist.md and ensure no Supabase caching.",
+      "date_discovered": "2026-03-17",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/api/agent-hub/sessions/route.ts",
+        "app/api/agent-hub/agents/last-activity/route.ts",
+        "lib/agent-hub-client.ts",
+        "middleware.ts"
+      ]
+    },
+    {
+      "id": "FAIL-052",
+      "category": "security",
+      "title": "All /api/agent-hub/* routes lack authentication — public data exposure",
+      "symptoms": "Any unauthenticated HTTP client can call GET /api/agent-hub/sessions, /agents/last-activity etc. and receive agent session data. No middleware, no cookie check, no token validation exists on these routes.",
+      "root_cause": "sessions/route.ts (line 5) and all proposed agent-hub API routes have zero auth checks. agentHubFetch authenticates MC→AgentHub via PAT, but nothing authenticates browser→MC.",
+      "solution": "Create middleware.ts with matcher /api/agent-hub/:path* that validates session cookie or, as stopgap, checks Origin + X-Requested-With headers. Must be replaced with real session auth before any public deployment. BLOCKS DEPLOY.",
+      "date_discovered": "2026-03-17",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/api/agent-hub/sessions/route.ts",
+        "app/api/agent-hub/agents/last-activity/route.ts"
+      ]
+    },
+    {
+      "id": "FAIL-053",
+      "category": "security",
+      "title": "Unsanitized JSON key from user input in file-based storage (agent-last-login)",
+      "symptoms": "POST /api/agent-last-login accepts arbitrary agentId string and uses it as a key in a JSON file without validation, enabling prototype pollution (__proto__) or storage abuse.",
+      "root_cause": "No input validation or allowlist check on agentId before merging into JSON object and writing to disk.",
+      "solution": "Validate agentId with strict regex /^[a-z0-9-]{1,64}$/ and reject requests that don't match. Also use Object.create(null) when parsing JSON to prevent prototype pollution.",
+      "date_discovered": "2026-03-17",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/api/agent-last-login/route.ts",
+        "app/api/chat/route.ts"
+      ]
+    },
+    {
+      "id": "FAIL-054",
+      "category": "security",
+      "title": "Path traversal and race condition in agent-last-login file-based storage",
+      "symptoms": "POST /api/agent-last-login accepts arbitrary agentId string used as JSON key with no validation. Concurrent fire-and-forget writes from chat route cause read-modify-write race condition losing timestamps. Self-fetch to localhost:3000 creates SSRF vector.",
+      "root_cause": "1) No agentId validation — attacker can inject __proto__, constructor, or oversized keys into JSON via crafted agentId, causing prototype pollution or DoS. 2) Concurrent fs read-modify-write without file locking loses data. 3) Fire-and-forget uses HTTP self-fetch instead of direct function call, exposing internal endpoint.",
+      "solution": "1) In POST handler of app/api/agent-last-login/route.ts: validate agentId with regex /^[a-z0-9-]{1,64}$/ AND whitelist against cachedAgents.map(a=>a.id). 2) Use proper-lockfile or a mutex around read-modify-write cycle. 3) In app/api/chat/route.ts: replace self-fetch with direct function import (e.g., import {updateLastLogin} from '@/lib/agent-last-login' and call updateLastLogin(agentId).catch(...)). Reject __proto__ and constructor keys explicitly.",
+      "date_discovered": "2026-03-17",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/api/agent-last-login/route.ts",
+        "app/api/chat/route.ts"
+      ]
+    },
+    {
+      "id": "FAIL-055",
+      "category": "security",
+      "title": "File-based storage TOCTOU + input validation gaps in agent-last-login",
+      "symptoms": "Concurrent POST /api/agent-last-login requests lose timestamps; unsanitized agentId allows prototype pollution via __proto__ key; self-fetch to localhost:3000 breaks in production and exposes internal endpoints.",
+      "root_cause": "PAT-002 file-based storage pattern lacks concurrency control. No input validation on agentId before writing to JSON. Fire-and-forget uses HTTP self-fetch instead of direct module import.",
+      "solution": "1) Add mutex/lock around read-modify-write in POST handler. 2) Validate agentId with /^[a-z0-9-]{1,64}$/ regex. 3) Extract file I/O into lib/agent-last-login.ts shared module, import directly in chat/route.ts instead of self-fetch.",
+      "date_discovered": "2026-03-17",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/api/agent-last-login/route.ts",
+        "app/api/chat/route.ts",
+        "lib/agent-last-login.ts"
+      ]
+    },
+    {
+      "id": "FAIL-056",
+      "category": "security",
+      "title": "Regex-based escalation detection on LLM output is bypassable and injectable",
+      "symptoms": "EscalationDetector T1-T5 triggers use regex on raw LLM agent output strings. Malicious or malformed agent output can either suppress escalation (bypass) or force false escalation (injection).",
+      "root_cause": "T1/T2 use regex like /\\\"severity\\\"\\s*:\\s*\\\"critical\\\"/i on unstructured StepResult.output. LLM output is not validated against a schema before regex matching. An adversarial prompt or hallucinated output could embed \"severity\":\"low\" while containing critical findings, or inject [ESCALATE] tags (T5) to force unnecessary escalation and waste tokens.",
+      "solution": "Parse agent output into a typed object via zod schema validation BEFORE running trigger detection. Never regex raw LLM strings for security-critical decisions. Add output schema enforcement in StepResult so triggers operate on structured, validated data.",
+      "date_discovered": "2026-03-17",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "lib/escalation-detector.ts",
+        "types/workflow.ts"
+      ]
+    },
+    {
+      "id": "FAIL-057",
+      "category": "security",
+      "title": "Escalation detector uses regex on untrusted agent output — injection + XSS + privilege escalation risks",
+      "symptoms": "ADR-008 escalation-detector.ts parses raw agent output with regex to detect triggers (T1-T5). Agent output is untrusted LLM text rendered in UI badges and Jira comments. No sanitization, no auth on escalation confirmation, confirmedBy field is MEDIUM PII stored in localStorage via zustand persist.",
+      "root_cause": "1) Regex-based detection on LLM output is trivially spoofable — any agent can emit \"severity\":\"critical\" to force T1 escalation. 2) EscalationRecord.triggeredBy.reason is rendered in UI badge and Jira comment without sanitization — XSS vector. 3) No authorization check on who confirms/rejects escalation — any browser session can call approveCheckpoint. 4) confirmedBy (MEDIUM PII per 152-FZ) persisted in localStorage via zustand persist — unencrypted. 5) buildEscalationComment uses string comparison triggerId <= \"T2\" which is lexicographic, not numeric — fragile but not exploitable.",
+      "solution": "1) Validate agent output against structured JSON schema, not regex on raw text. 2) Sanitize reason field with DOMPurify before rendering in React and escape for Jira markdown. 3) Add user identity verification before escalation confirm/reject actions. 4) Encrypt or exclude confirmedBy from localStorage persistence. 5) Use explicit set comparison for trigger priority instead of string comparison.",
+      "date_discovered": "2026-03-17",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "lib/escalation-detector.ts",
+        "components/pipeline/escalation-badge.tsx",
+        "lib/jira-sync-service.ts",
+        "lib/stores/orchestration-store.ts",
+        "types/workflow.ts"
+      ]
+    },
+    {
+      "id": "FAIL-058",
+      "category": "security",
+      "title": "EscalationRecord.confirmedBy PII stored unencrypted in localStorage via zustand persist",
+      "symptoms": "MEDIUM PII field (confirmedBy: user identifier) persisted to browser localStorage in plaintext via zustand persist middleware in orchestration-store.ts. executionHistory[] contains full EscalationRecord including confirmedBy. Any XSS or browser extension can read all user identifiers from localStorage.",
+      "root_cause": "orchestration-store.ts uses zustand persist (line 4, 25) which serializes entire state including executionHistory[] to localStorage. EscalationRecord.confirmedBy (workflow.ts:105) is classified MEDIUM PII per 152-FZ but no encryption or redaction is applied before persistence.",
+      "solution": "1. Add a custom serialize function to zustand persist config that redacts or encrypts confirmedBy before writing to localStorage. 2. Alternatively, store confirmedBy only server-side (Timeweb VPS) and keep only a non-PII reference in client state. 3. For 152-FZ Art.19 compliance, MEDIUM PII must be AES-256 encrypted at rest — localStorage is not encrypted at rest.",
+      "date_discovered": "2026-03-17",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "lib/stores/orchestration-store.ts",
+        "types/workflow.ts"
+      ]
+    },
+    {
+      "id": "FAIL-059",
+      "category": "security",
+      "title": "Escalation detector parses unstructured LLM output — prompt injection can force mode escalation",
+      "symptoms": "detectEscalation() uses string matching on agent output to detect severity=critical, qualityScore, filesAffected. Crafted task input containing these keywords triggers false escalation to Full mode.",
+      "root_cause": "Trigger detection relies on parsing free-text output strings instead of structured, typed metadata fields from stepResults. No validation that the output actually comes from the expected agent.",
+      "solution": "1. Use only structured stepResults metadata (typed severity enum, numeric qualityScore) for trigger detection — never parse raw output strings. 2. Validate that trigger source agent matches expected agent ID (T1/T2→cyber-agent, T3/T4→qa-agent, T5→architect-agent). 3. Sanitize reason field before Jira sync to prevent PII leakage to external SaaS.",
+      "date_discovered": "2026-03-17",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "lib/escalation-detector.ts",
+        "lib/pipeline-executor.ts",
+        "lib/jira-sync-service.ts"
+      ]
+    },
+    {
+      "id": "FAIL-060",
+      "category": "security",
+      "title": "ADR-008 Jira sync route missing auth + action whitelist allows SSRF to Jira API",
+      "symptoms": "POST /api/jira/sync has no authentication check. Any client can call it with arbitrary action/body, including the new \"mode-escalation\" action. The route also casts body.execution directly to PipelineExecution without validation.",
+      "root_cause": "app/api/jira/sync/route.ts has no auth middleware, no origin check, no CSRF token. The new \"mode-escalation\" action will inherit this gap, allowing unauthenticated comment injection into Jira Epics.",
+      "solution": "Add same-origin validation (check Origin/Referer header or use internal API token from env). Validate action against explicit whitelist. Validate body schema with zod before passing to jiraSync functions. For \"mode-escalation\": validate triggerId is T1-T5 enum, fromMode/toMode are valid ExecutionMode values.",
+      "date_discovered": "2026-03-17",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/api/jira/sync/route.ts",
+        "lib/jira-sync-service.ts",
+        "lib/pipeline-executor.ts"
+      ]
+    },
+    {
+      "id": "FAIL-061",
+      "category": "security",
+      "title": "Prototype pollution via unsanitized agentId as object key",
+      "symptoms": "Crafted agentId values like __proto__, constructor, or toString used as keys in JSON map can pollute Object prototype when assigned via bracket notation map[agentId] = value",
+      "root_cause": "recordAgentActivity(agentId) accepts arbitrary string from request body and uses it directly as object key without validation",
+      "solution": "Validate agentId with regex /^[a-zA-Z0-9_-]+$/ and check against known agent list before writing. Apply this pattern to all file-based storage modules that use user-supplied keys.",
+      "date_discovered": "2026-03-18",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "lib/agent-activity.ts",
+        "app/api/chat/route.ts",
+        "app/api/agent-hub/sessions/route.ts"
+      ]
+    },
+    {
+      "id": "FAIL-063",
+      "category": "security",
+      "title": "Path traversal via unsanitized agentId in file-based JSON storage",
+      "symptoms": "Attacker sends crafted agentId like \"../../etc/passwd\" or \"__proto__\" as JSON key, potentially causing prototype pollution or writing arbitrary keys into the activity file",
+      "root_cause": "recordAgentActivity(agentId) accepts raw string from request body and uses it directly as a JSON object key without validation. The agentId flows from POST /api/chat body → recordAgentActivity → map[agentId] = timestamp. No allowlist or format check exists.",
+      "solution": "Validate agentId against a strict regex (e.g. /^[a-zA-Z0-9_-]{1,64}$/) or check against known agent list before using as object key. Also reject __proto__, constructor, prototype keys to prevent prototype pollution.",
+      "date_discovered": "2026-03-18",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "lib/agent-activity.ts",
+        "app/api/chat/route.ts"
+      ]
+    },
+    {
+      "id": "FAIL-064",
+      "category": "security",
+      "title": "X-Forwarded-For trusted without validation in audit log IP extraction",
+      "symptoms": "Audit log stores arbitrary attacker-controlled IP addresses; forensic trail is unreliable; 152-FZ compliance audit finds tampered PII (IP is personal data under 152-FZ Art.3)",
+      "root_cause": "extractClientIP() splits X-Forwarded-For and takes leftmost value without validating it is a valid IP or that the proxy chain is trusted. Any client can prepend a fake IP.",
+      "solution": "1) Validate extracted IP with net.isIP() before storing. 2) Configure explicit trusted proxy count (e.g., 1 for Vercel) and read from right side of X-Forwarded-For chain minus trusted hops. 3) Store raw header alongside parsed IP for forensic comparison.",
+      "date_discovered": "2026-03-18",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "lib/middleware/extractClientIP.ts",
+        "docs/architecture/adr-016-audit-log-last-login.md"
+      ]
+    },
+    {
+      "id": "FAIL-065",
+      "category": "security",
+      "title": "audit_log append-only design blocks 152-FZ Art.14 deletion compliance",
+      "symptoms": "User requests data deletion under 152-FZ Art.14. app_user role has REVOKE DELETE. Archival cron sets archived=true but never hard-deletes. PII (ip_address, user_id) persists indefinitely.",
+      "root_cause": "Schema designed for tamper-proof audit trail (append-only) without a separate superuser deletion pipeline for GDPR/152-FZ compliance. No hard-DELETE cron or admin endpoint exists.",
+      "solution": "Add a superuser-owned pg_cron job that hard-DELETEs rows WHERE archived = true AND occurred_at < NOW() - INTERVAL '3 years'. Create a separate superuser-only function for on-demand deletion by user_id to handle Art.14 requests. Document this in the data processing policy.",
+      "date_discovered": "2026-03-18",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "docs/architecture/schema-audit-log.sql",
+        "migrations/20240601_001_create_audit_log.sql"
+      ]
+    },
+    {
+      "id": "FAIL-066",
+      "category": "security",
+      "title": "audit_log lacks 152-FZ deletion pipeline and has IP spoofing + tenant isolation risks",
+      "symptoms": "1) No DELETE path for user PII in append-only audit_log — 152-FZ Art.21 violation. 2) X-Forwarded-For leftmost IP trusted without proxy validation — audit trail poisoning. 3) tenant_id from JWT claim used directly in SET LOCAL without server-side verification — cross-tenant data leak possible.",
+      "root_cause": "ADR-016 focused on performance (BIGSERIAL, lateral JOIN) but omitted: (a) PII deletion mechanism beyond archival, (b) IP validation/sanitization in extractClientIP middleware, (c) server-side tenant_id verification before setting RLS context variable.",
+      "solution": "1) Create SECURITY DEFINER function with dedicated data_deletion_officer role for hard-delete of user PII. 2) Read rightmost X-Forwarded-For hop (proxy-set) instead of leftmost (client-set), validate as IP. 3) Resolve tenant_id from users table via jwt.sub, never trust JWT tenant_id claim directly.",
+      "date_discovered": "2026-03-18",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "docs/architecture/adr-016-audit-log-last-login.md",
+        "docs/architecture/schema-audit-log.sql",
+        "lib/middleware/extractClientIP",
+        "lib/middleware/setTenantContext"
+      ]
+    },
+    {
+      "id": "FAIL-068",
+      "category": "security",
+      "title": "Admin PII endpoint missing rate-limit, cache headers, and log sanitization",
+      "symptoms": "GET /api/v1/admin/users exposes admin emails, names, and activity timestamps without rate limiting — enabling account enumeration and active-admin fingerprinting. Fire-and-forget log writes adminId to file-based data/logs.json which may not reside on Timeweb VPS. No Cache-Control headers prevent browser/CDN caching of PII response.",
+      "root_cause": "No rate-limit middleware exists in app/api/. Log storage (lib/logs-storage.ts) writes to local filesystem data/logs.json — location depends on deployment host, not guaranteed Timeweb. API contract specifies 30 req/min but no enforcement mechanism exists in codebase. No response header policy for admin routes.",
+      "solution": "1) Add rate-limit middleware in app/api/admin/users/route.ts using Map-based sliding window (no new deps) — 30 req/min keyed by JWT sub claim. 2) In same route file, set headers: Cache-Control: no-store, no-cache; Pragma: no-cache; X-Content-Type-Options: nosniff. 3) In fire-and-forget log call, replace raw adminId with HMAC-SHA256(adminId, process.env.LOG_HMAC_SECRET) using Node crypto.createHmac — preserves audit correlation without storing reversible PII. 4) Verify data/logs.json path resolves to Timeweb VPS in deployment config.",
+      "date_discovered": "2026-03-18",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/api/admin/users/route.ts",
+        "lib/logs-storage.ts",
+        "app/api/logs/route.ts"
+      ]
+    },
+    {
+      "id": "FAIL-069",
+      "category": "security",
+      "title": "PII leakage via file-based logs — adminId written to data/logs.json outside Timeweb PG",
+      "symptoms": "Fire-and-forget log spec writes adminId (PII-adjacent UUID linked to a physical person) into local file data/logs.json via addLog(). This file resides on the Next.js deployment host, NOT Timeweb PostgreSQL. If deployed to Vercel/non-Russian hosting, this violates 152-FZ Art.18 data residency.",
+      "root_cause": "addLog() in lib/logs-storage.ts writes to a local JSON file (line 7: data/logs.json). The ADR-011 fire-and-forget log includes metadata.adminId. No check ensures this file is on a Russian-jurisdiction server. No PII scrubbing before write.",
+      "solution": "1) Strip adminId from fire-and-forget log metadata — log only action type and timestamp, no identifiers. OR 2) Confirm deployment target is Timeweb VPS (Russian jurisdiction) and document in ADR. 3) Backend-Agent must ensure metadata field contains NO PII (no adminId, no email, no name). QA-Agent must add assertion: grep data/logs.json for UUID patterns → fail if found.",
+      "date_discovered": "2026-03-18",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "lib/logs-storage.ts",
+        "app/api/logs/route.ts",
+        "app/api/admin/users/route.ts"
+      ]
     }
   ]
 }

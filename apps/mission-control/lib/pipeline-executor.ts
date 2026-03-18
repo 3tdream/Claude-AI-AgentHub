@@ -418,6 +418,23 @@ export async function executePipeline(
             });
           }
 
+          // Auto-capture success pattern: first-attempt 9+ scores
+          if (retryCount === 0 && evaluation.score.overall >= 9) {
+            fetch("/api/knowledge/success", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                agent: step.agentId.replace(/-agent$/, ""),
+                score: evaluation.score.overall,
+                tokens: stepAnalytics.inputTokens + stepAnalytics.outputTokens,
+                toolCalls: stepAnalytics.toolCallCount,
+                duration: execution.stepResults[step.id].duration,
+                model,
+                task: input.slice(0, 150),
+              }),
+            }).catch(() => {}); // fire-and-forget
+          }
+
           completed.add(step.id);
           return true;
         }

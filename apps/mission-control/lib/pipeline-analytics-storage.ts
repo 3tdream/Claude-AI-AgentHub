@@ -207,13 +207,31 @@ export async function getAgentLearningContext(agentId: string): Promise<string> 
 
     if (!stat || stat.runs === 0) return "";
 
-    return `\n### YOUR PERFORMANCE STATS (from ${stat.runs} past runs)\n` +
+    let context = `\n### YOUR PERFORMANCE STATS (from ${stat.runs} past runs)\n` +
       `- Avg score: ${stat.avgScore.toFixed(1)}/10\n` +
       `- Success rate (8+): ${stat.successRate.toFixed(0)}%\n` +
       `- Fail rate (<7): ${stat.failRate.toFixed(0)}%\n` +
       `- Avg tokens: ${Math.round(stat.avgTokens).toLocaleString()}\n` +
       `- Avg duration: ${(stat.avgDuration / 1000).toFixed(0)}s\n` +
       (stat.failRate > 30 ? `⚠️ Your fail rate is high. Focus on concise output and following the exact format.\n` : "");
+
+    // Inject success pattern if available
+    try {
+      const successPath = path.join(process.cwd(), "projects", "mission-control", "knowledge-base", "success-patterns.json");
+      const successRaw = await fs.readFile(successPath, "utf-8");
+      const successData = JSON.parse(successRaw);
+      const pattern = successData.patterns?.find((p: any) => p.agent === agentId);
+      if (pattern && pattern.whatWorks) {
+        context += `\n### WHAT WORKS FOR YOU (from ${pattern.totalWins} successful runs)\n` +
+          `${pattern.whatWorks}\n` +
+          (pattern.toolPattern && typeof pattern.toolPattern === "object"
+            ? `- Optimal tool calls: ${pattern.toolPattern.avgCalls} avg (range ${pattern.toolPattern.range})\n`
+            : "") +
+          `- Best avg tokens: ${pattern.avgTokens?.toLocaleString()}\n`;
+      }
+    } catch { /* no success patterns yet */ }
+
+    return context;
   } catch {
     return "";
   }
