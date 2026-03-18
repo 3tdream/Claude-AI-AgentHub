@@ -226,6 +226,7 @@ export async function executePipeline(
     const threshold = step.metadata?.qualityThreshold ?? 8;
     let retryCount = 0;
     let lastFeedback = "";
+    let lastScore = 0; // Track previous score for smart retry (not from execution which gets overwritten)
     let currentPrompt = buildPrompt(step, input, context, projectContext, routingDecision?.mode);
     const model = step.metadata?.model || "unknown";
 
@@ -401,9 +402,10 @@ export async function executePipeline(
         lastFeedback = evaluation.feedback;
 
         // Smart retry: stop early if score isn't improving
-        const prevScore = execution.qualityScores?.[step.id]?.overall || 0;
-        const scoreImproved = evaluation.score.overall > prevScore + 0.5;
-        const worthRetrying = retryCount < 2 || scoreImproved; // Always try twice, then only if improving
+        const scoreImproved = evaluation.score.overall > lastScore + 0.5;
+        const scoreDegraded = evaluation.score.overall < lastScore - 0.1;
+        const worthRetrying = (retryCount < 1) || (scoreImproved && !scoreDegraded); // First retry always, then only if improving
+        lastScore = evaluation.score.overall;
 
         if (retryCount < MAX_RETRIES && worthRetrying) {
           postLog({
