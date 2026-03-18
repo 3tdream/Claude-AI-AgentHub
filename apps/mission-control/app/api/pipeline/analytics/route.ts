@@ -20,13 +20,14 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   const agentId = request.nextUrl.searchParams.get("agentId");
+  const taskText = request.nextUrl.searchParams.get("task") || undefined;
   if (!agentId) {
     return NextResponse.json({ error: "agentId required" }, { status: 400 });
   }
 
   try {
     const [stats, recent] = await Promise.all([
-      getAgentLearningContext(agentId),
+      getAgentLearningContext(agentId, taskText),
       getRecentAgentRuns(agentId, 3),
     ]);
     return NextResponse.json({ context: stats + recent });

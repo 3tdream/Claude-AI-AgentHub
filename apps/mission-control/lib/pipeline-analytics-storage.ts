@@ -199,7 +199,7 @@ async function updateAnalytics(run: PipelineRunRecord) {
 
 // --- Read analytics for agent context ---
 
-export async function getAgentLearningContext(agentId: string): Promise<string> {
+export async function getAgentLearningContext(agentId: string, taskText?: string): Promise<string> {
   try {
     const raw = await fs.readFile(ANALYTICS_FILE, "utf-8");
     const analytics: AnalyticsSummary = JSON.parse(raw);
@@ -215,7 +215,7 @@ export async function getAgentLearningContext(agentId: string): Promise<string> 
       `- Avg duration: ${(stat.avgDuration / 1000).toFixed(0)}s\n` +
       (stat.failRate > 30 ? `⚠️ Your fail rate is high. Focus on concise output and following the exact format.\n` : "");
 
-    // Inject success pattern if available
+    // Inject context-relevant success pattern
     try {
       const successPath = path.join(process.cwd(), "projects", "mission-control", "knowledge-base", "success-patterns.json");
       const successRaw = await fs.readFile(successPath, "utf-8");
@@ -228,6 +228,18 @@ export async function getAgentLearningContext(agentId: string): Promise<string> 
             ? `- Optimal tool calls: ${pattern.toolPattern.avgCalls} avg (range ${pattern.toolPattern.range})\n`
             : "") +
           `- Best avg tokens: ${pattern.avgTokens?.toLocaleString()}\n`;
+
+        // Show relevant recent wins matching current task context
+        if (taskText && pattern.recentWins?.length > 0) {
+          const currentSnippet = classifyTaskContext(taskText);
+          const relevant = pattern.recentWins.filter((w: any) => w.context_snippet === currentSnippet);
+          if (relevant.length > 0) {
+            context += `\n### SIMILAR PAST WINS (${currentSnippet})\n`;
+            for (const w of relevant.slice(0, 3)) {
+              context += `  ✓ ${w.score}/10 (${w.toolCalls} tools, ${w.tokens?.toLocaleString()} tokens) — "${(w.task || "").slice(0, 80)}"\n`;
+            }
+          }
+        }
       }
     } catch { /* no success patterns yet */ }
 
@@ -235,6 +247,19 @@ export async function getAgentLearningContext(agentId: string): Promise<string> 
   } catch {
     return "";
   }
+}
+
+function classifyTaskContext(task: string): string {
+  const t = task.toLowerCase();
+  if (/api.*(route|endpoint)|create.*get|create.*post|route\.ts/.test(t)) return "api-route";
+  if (/page|dashboard|settings|view/.test(t)) return "new-page";
+  if (/button|component|footer|header|banner|modal|dialog|badge/.test(t)) return "ui-component";
+  if (/edit|rename|inline|update|modify|refactor/.test(t)) return "refactor";
+  if (/security|audit|cyber|auth|login|encrypt/.test(t)) return "security";
+  if (/test|qa|lint|check/.test(t)) return "testing";
+  if (/deploy|ci|devops|build|docker/.test(t)) return "devops";
+  if (/router|logic|escalation|pipeline|config/.test(t)) return "pipeline-logic";
+  return "general";
 }
 
 // --- Get recent runs for an agent (for learning) ---

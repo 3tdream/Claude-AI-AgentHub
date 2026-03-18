@@ -1,17 +1,14 @@
 {
-  "_description": "Successful agent patterns — what works, extracted from pipeline runs",
+  "_description": "Successful agent patterns — what works, with context_snippet for relevance matching",
   "_updated": "2026-03-19",
   "_totalWins": 101,
-  "_source": "Auto-extracted from 45 pipeline runs",
   "patterns": [
     {
       "id": "SUCCESS-001",
       "agent": "orchestrator",
       "totalWins": 21,
       "avgScore": 10,
-      "score9PlusRate": "100%",
       "avgTokens": 18916,
-      "avgDurationSec": 34,
       "bestModel": "claude-sonnet-4-6",
       "models": [
         "claude-sonnet-4-6"
@@ -21,12 +18,56 @@
         "range": "4-5"
       },
       "whatWorks": "Always scores 10/10. Lightweight prompt, no heavy tools needed. Works perfectly with sonnet.",
-      "taskExamples": [
-        "Improve Smart Router escalation logic: - Analyze task complexity during Medium mode - If Architect-Agent detects cross-cutting concerns    (touches >3",
-        "\"Admin Dashboard: Last Login Timestamp\" feature end-to-end.",
-        "\"Improve Smart Router escalation logic: - Analyze task complexity during Medium mode - If Architect-Agent detects cross-cutting concerns    (touches >",
-        "Implement \"Admin Dashboard: Last Login Timestamp\" feature end-to-end.",
-        "Improve Smart Router escalation logic: Medium to Full escalation on complexity/security/QA-fail signals."
+      "bestContexts": [
+        {
+          "type": "ui-component",
+          "wins": 10
+        },
+        {
+          "type": "new-page",
+          "wins": 9
+        },
+        {
+          "type": "security",
+          "wins": 2
+        }
+      ],
+      "recentWins": [
+        {
+          "score": 10,
+          "tokens": 62865,
+          "toolCalls": 5,
+          "context_snippet": "new-page",
+          "task": "\"Admin Dashboard: Last Login Timestamp\" feature end-to-end."
+        },
+        {
+          "score": 10,
+          "tokens": 13931,
+          "toolCalls": 0,
+          "context_snippet": "new-page",
+          "task": "Implement \"Admin Dashboard: Last Login Timestamp\" feature end-to-end."
+        },
+        {
+          "score": 10,
+          "tokens": 0,
+          "toolCalls": 0,
+          "context_snippet": "new-page",
+          "task": "\"Admin Dashboard: Last Login Timestamp\" feature end-to-end."
+        },
+        {
+          "score": 10,
+          "tokens": 0,
+          "toolCalls": 0,
+          "context_snippet": "new-page",
+          "task": "\"Admin Dashboard: Last Login Timestamp\" feature end-to-end."
+        },
+        {
+          "score": 10,
+          "tokens": 14826,
+          "toolCalls": 0,
+          "context_snippet": "ui-component",
+          "task": "Improve Smart Router escalation logic: - Analyze task complexity during Medium mode - If Architect-A"
+        }
       ],
       "date_extracted": "2026-03-19",
       "source": "auto-extracted from 21 successful runs"
@@ -36,21 +77,59 @@
       "agent": "research",
       "totalWins": 16,
       "avgScore": 8.6,
-      "score9PlusRate": "0%",
       "avgTokens": 8832,
-      "avgDurationSec": 20,
       "bestModel": "claude-sonnet-4-6",
       "models": [
         "claude-sonnet-4-6"
       ],
       "toolPattern": "no tools",
       "whatWorks": "Consistent 8.5 avg without tools. Works best on scoped tasks. Fails when output is too long (truncation).",
-      "taskExamples": [
-        "Improve Smart Router escalation logic: - Analyze task complexity during Medium mode - If Architect-Agent detects cross-cutting concerns    (touches >3",
-        "\"Admin Dashboard: Last Login Timestamp\" feature end-to-end.",
-        "\"Improve Smart Router escalation logic: - Analyze task complexity during Medium mode - If Architect-Agent detects cross-cutting concerns    (touches >",
-        "Admin Dashboard: Last Login Timestamp\" feature end-to-end.",
-        "Implement \"Admin Dashboard: Last Login Timestamp\" feature end-to-end."
+      "bestContexts": [
+        {
+          "type": "ui-component",
+          "wins": 8
+        },
+        {
+          "type": "new-page",
+          "wins": 8
+        }
+      ],
+      "recentWins": [
+        {
+          "score": 8.5,
+          "tokens": 12244,
+          "toolCalls": 0,
+          "context_snippet": "new-page",
+          "task": "Implement \"Admin Dashboard: Last Login Timestamp\" feature end-to-end."
+        },
+        {
+          "score": 8.5,
+          "tokens": 0,
+          "toolCalls": 0,
+          "context_snippet": "new-page",
+          "task": "\"Admin Dashboard: Last Login Timestamp\" feature end-to-end."
+        },
+        {
+          "score": 8.5,
+          "tokens": 0,
+          "toolCalls": 0,
+          "context_snippet": "new-page",
+          "task": "\"Admin Dashboard: Last Login Timestamp\" feature end-to-end."
+        },
+        {
+          "score": 8.8,
+          "tokens": 13661,
+          "toolCalls": 0,
+          "context_snippet": "ui-component",
+          "task": "Improve Smart Router escalation logic: - Analyze task complexity during Medium mode - If Architect-A"
+        },
+        {
+          "score": 8.5,
+          "tokens": 12145,
+          "toolCalls": 0,
+          "context_snippet": "ui-component",
+          "task": "Improve Smart Router escalation logic: - Analyze task complexity during Medium mode - If Architect-A"
+        }
       ],
       "date_extracted": "2026-03-19",
       "source": "auto-extracted from 16 successful runs"
@@ -60,10 +139,8 @@
       "agent": "architect",
       "totalWins": 13,
       "avgScore": 9.7,
-      "score9PlusRate": "100%",
       "avgTokens": 44593,
-      "avgDurationSec": 94,
-      "bestModel": "claude-sonnet-4-6",
+      "bestModel": "claude-opus-4-6",
       "models": [
         "claude-opus-4-6",
         "claude-sonnet-4-6"
@@ -72,13 +149,65 @@
         "avgCalls": 3.9,
         "range": "3-30"
       },
-      "whatWorks": "Performs best on opus with read tools (avg 3.9 calls). FILES_TO_EDIT block format is key to downstream success. High scores when reading real files before designing.",
-      "taskExamples": [
-        "Design the architecture for a global notification banner component that reads from data/config/ui.json.",
-        "Add a \"Last updated\" timestamp footer to all shell pages. Create data/config/ui.json with { lastUpdated: ISO string }. Create GET /api/system/config e",
-        "\"Admin Dashboard: Last Login Timestamp\" feature end-to-end.",
-        "Design the architecture for adding a \"last login\" timestamp field to the admin user session.",
-        "Create GET /api/system/health endpoint returning { status: \"ok\", uptime: number } and add a health status indicator in the Topbar component that polls"
+      "whatWorks": "Performs best on opus with read tools (avg 3.9 calls). FILES_TO_EDIT block format is key to downstream success.",
+      "bestContexts": [
+        {
+          "type": "new-page",
+          "wins": 8
+        },
+        {
+          "type": "api-route",
+          "wins": 2
+        },
+        {
+          "type": "ui-component",
+          "wins": 1
+        },
+        {
+          "type": "security",
+          "wins": 1
+        },
+        {
+          "type": "pipeline-logic",
+          "wins": 1
+        }
+      ],
+      "recentWins": [
+        {
+          "score": 9.1,
+          "tokens": 0,
+          "toolCalls": 0,
+          "context_snippet": "new-page",
+          "task": "\"Admin Dashboard: Last Login Timestamp\" feature end-to-end."
+        },
+        {
+          "score": 9.1,
+          "tokens": 0,
+          "toolCalls": 0,
+          "context_snippet": "new-page",
+          "task": "\"Admin Dashboard: Last Login Timestamp\" feature end-to-end."
+        },
+        {
+          "score": 10,
+          "tokens": 16425,
+          "toolCalls": 0,
+          "context_snippet": "new-page",
+          "task": "project: mission-control, page: orchestration, add option edit name pipeline on workflows"
+        },
+        {
+          "score": 10,
+          "tokens": 15723,
+          "toolCalls": 0,
+          "context_snippet": "new-page",
+          "task": "add option edit name pipeline on workflows, mission-control project, orchestration page"
+        },
+        {
+          "score": 10,
+          "tokens": 15951,
+          "toolCalls": 0,
+          "context_snippet": "new-page",
+          "task": " add option edit name pipeline on mission-control /orchestration page"
+        }
       ],
       "date_extracted": "2026-03-19",
       "source": "auto-extracted from 13 successful runs"
@@ -88,9 +217,7 @@
       "agent": "pm",
       "totalWins": 12,
       "avgScore": 9.7,
-      "score9PlusRate": "75%",
       "avgTokens": 19802,
-      "avgDurationSec": 54,
       "bestModel": "claude-sonnet-4-6",
       "models": [
         "claude-sonnet-4-6"
@@ -99,13 +226,61 @@
         "avgCalls": 0.5,
         "range": "3-3"
       },
-      "whatWorks": "Scores 9+ when given clear upstream context. list_files helps verify real paths. Fails when security context is complex. Keep output under 3000 words.",
-      "taskExamples": [
-        "Improve Smart Router escalation logic: - Analyze task complexity during Medium mode - If Architect-Agent detects cross-cutting concerns    (touches >3",
-        "Add a \"Last updated\" timestamp footer to all shell pages. Create data/config/ui.json with { lastUpdated: ISO string }. Create GET /api/system/config e",
-        "Create GET /api/system/health endpoint returning { status: \"ok\", uptime: number } and add a health status indicator in the Topbar component that polls",
-        "add option edit name pipeline on mission-control /orchestration page",
-        "Design the architecture for agent performance metrics export to CSV. Data source: pipeline-analytics.json."
+      "whatWorks": "Scores 9+ when given clear upstream context. list_files helps verify real paths. Keep output under 3000 words.",
+      "bestContexts": [
+        {
+          "type": "new-page",
+          "wins": 6
+        },
+        {
+          "type": "api-route",
+          "wins": 3
+        },
+        {
+          "type": "ui-component",
+          "wins": 2
+        },
+        {
+          "type": "pipeline-logic",
+          "wins": 1
+        }
+      ],
+      "recentWins": [
+        {
+          "score": 8.7,
+          "tokens": 50253,
+          "toolCalls": 3,
+          "context_snippet": "new-page",
+          "task": "Implement \"Admin Dashboard: Last Login Timestamp\" feature end-to-end."
+        },
+        {
+          "score": 10,
+          "tokens": 13848,
+          "toolCalls": 0,
+          "context_snippet": "new-page",
+          "task": "project: mission-control, page: orchestration, add option edit name pipeline on workflows"
+        },
+        {
+          "score": 10,
+          "tokens": 13910,
+          "toolCalls": 0,
+          "context_snippet": "new-page",
+          "task": "add option edit name pipeline on workflows, mission-control project, orchestration page"
+        },
+        {
+          "score": 10,
+          "tokens": 13956,
+          "toolCalls": 0,
+          "context_snippet": "new-page",
+          "task": " add option edit name pipeline on mission-control /orchestration page"
+        },
+        {
+          "score": 8.7,
+          "tokens": 17205,
+          "toolCalls": 0,
+          "context_snippet": "ui-component",
+          "task": "Improve Smart Router escalation logic: - Analyze task complexity during Medium mode - If Architect-A"
+        }
       ],
       "date_extracted": "2026-03-19",
       "source": "auto-extracted from 12 successful runs"
@@ -115,9 +290,7 @@
       "agent": "cyber",
       "totalWins": 12,
       "avgScore": 8.9,
-      "score9PlusRate": "25%",
       "avgTokens": 14877,
-      "avgDurationSec": 33,
       "bestModel": "claude-opus-4-6",
       "models": [
         "claude-opus-4-6"
@@ -126,13 +299,57 @@
         "avgCalls": 2.3,
         "range": "1-4"
       },
-      "whatWorks": "Best on opus with 2-3 tool calls. save_failure_pattern usage correlates with higher scores. Threshold 8.5 was too high — 8.0 is appropriate.",
-      "taskExamples": [
-        "\"Admin Dashboard: Last Login Timestamp\" feature end-to-end.",
-        "\"Improve Smart Router escalation logic: - Analyze task complexity during Medium mode - If Architect-Agent detects cross-cutting concerns    (touches >",
-        "Perform a security audit of /api/system/config route.",
-        "Review lib/system-config-storage.ts for insecure file operations. Check path traversal risks and missing input validation.",
-        "Admin Dashboard: Last Login Timestamp\" feature end-to-end."
+      "whatWorks": "Best on opus with 2-3 tool calls. save_failure_pattern usage correlates with higher scores.",
+      "bestContexts": [
+        {
+          "type": "new-page",
+          "wins": 7
+        },
+        {
+          "type": "ui-component",
+          "wins": 3
+        },
+        {
+          "type": "api-route",
+          "wins": 2
+        }
+      ],
+      "recentWins": [
+        {
+          "score": 8.5,
+          "tokens": 22858,
+          "toolCalls": 3,
+          "context_snippet": "new-page",
+          "task": "Implement \"Admin Dashboard: Last Login Timestamp\" feature end-to-end."
+        },
+        {
+          "score": 8.6,
+          "tokens": 18269,
+          "toolCalls": 3,
+          "context_snippet": "new-page",
+          "task": "\"Admin Dashboard: Last Login Timestamp\" feature end-to-end."
+        },
+        {
+          "score": 8.6,
+          "tokens": 0,
+          "toolCalls": 0,
+          "context_snippet": "new-page",
+          "task": "\"Admin Dashboard: Last Login Timestamp\" feature end-to-end."
+        },
+        {
+          "score": 10,
+          "tokens": 9273,
+          "toolCalls": 3,
+          "context_snippet": "api-route",
+          "task": "Audit /api/agents/[id] route for injection risks and data exposure. Check if agent prompts could lea"
+        },
+        {
+          "score": 8.9,
+          "tokens": 17976,
+          "toolCalls": 1,
+          "context_snippet": "ui-component",
+          "task": "Improve Smart Router escalation logic: - Analyze task complexity during Medium mode - If Architect-A"
+        }
       ],
       "date_extracted": "2026-03-19",
       "source": "auto-extracted from 12 successful runs"
@@ -142,9 +359,7 @@
       "agent": "frontend",
       "totalWins": 11,
       "avgScore": 10,
-      "score9PlusRate": "100%",
       "avgTokens": 51454,
-      "avgDurationSec": 85,
       "bestModel": "claude-sonnet-4-6",
       "models": [
         "claude-sonnet-4-6",
@@ -154,13 +369,57 @@
         "avgCalls": 2.7,
         "range": "12-18"
       },
-      "whatWorks": "Perfect 10/10 avg. Works with both sonnet and gpt-5.1. 2-3 tool calls optimal (create_file + run_command). First call should be edit/create, not read.",
-      "taskExamples": [
-        "Add inline edit for pipeline name on /orchestration without new API routes",
-        "Add a \"Last updated\" timestamp footer to all shell pages. Create data/config/ui.json with { lastUpdated: ISO string }. Create GET /api/system/config e",
-        "dd option edit name pipeline on mission-control /orchestration page",
-        "давай добавим пульсирующию анимацию на кнопку export json in execution history, когда мышка над иконкой она начинает пульсировать желтым цветом",
-        "Create GET /api/system/health endpoint returning { status: \"ok\", uptime: number } and add a health status indicator in the Topbar component that polls"
+      "whatWorks": "Perfect 10/10 avg. 2-3 tool calls optimal (create_file + run_command). First call should be edit/create.",
+      "bestContexts": [
+        {
+          "type": "new-page",
+          "wins": 6
+        },
+        {
+          "type": "api-route",
+          "wins": 3
+        },
+        {
+          "type": "general",
+          "wins": 2
+        }
+      ],
+      "recentWins": [
+        {
+          "score": 10,
+          "tokens": 17877,
+          "toolCalls": 0,
+          "context_snippet": "new-page",
+          "task": "project: mission-control, page: orchestration, add option edit name pipeline on workflows"
+        },
+        {
+          "score": 10,
+          "tokens": 12904,
+          "toolCalls": 0,
+          "context_snippet": "new-page",
+          "task": "add option edit name pipeline on workflows, mission-control project, orchestration page"
+        },
+        {
+          "score": 10,
+          "tokens": 11735,
+          "toolCalls": 0,
+          "context_snippet": "new-page",
+          "task": " add option edit name pipeline on mission-control /orchestration page"
+        },
+        {
+          "score": 10,
+          "tokens": 114050,
+          "toolCalls": 18,
+          "context_snippet": "new-page",
+          "task": "Add /settings page with app preferences: theme toggle (dark/light), notification settings (toast pos"
+        },
+        {
+          "score": 10,
+          "tokens": 2204,
+          "toolCalls": 0,
+          "context_snippet": "general",
+          "task": "давай добавим пульсирующию анимацию на кнопку export json in execution history"
+        }
       ],
       "date_extracted": "2026-03-19",
       "source": "auto-extracted from 11 successful runs"
@@ -170,9 +429,7 @@
       "agent": "backend",
       "totalWins": 7,
       "avgScore": 10,
-      "score9PlusRate": "100%",
       "avgTokens": 39151,
-      "avgDurationSec": 62,
       "bestModel": "claude-sonnet-4-6",
       "models": [
         "claude-sonnet-4-6",
@@ -183,13 +440,57 @@
         "avgCalls": 3.1,
         "range": "9-13"
       },
-      "whatWorks": "Perfect 10/10 when it edits first. 3 tool calls optimal (edit/create → run_command → fix). Fails when stuck in read loop. \"Edit first\" enforcement is critical.",
-      "taskExamples": [
-        "Add a \"Last updated\" timestamp footer to all shell pages. Create data/config/ui.json with { lastUpdated: ISO string }. Create GET /api/system/config e",
-        "Create GET /api/system/health endpoint returning { status: \"ok\", uptime: number } and add a health status indicator in the Topbar component that polls",
-        "add option edit name pipeline on mission-control /orchestration page",
-        "Design the architecture for agent performance metrics export to CSV. Data source: pipeline-analytics.json.",
-        " add option edit name pipeline on mission-control /orchestration page"
+      "whatWorks": "Perfect 10/10 when it edits first. 3 tool calls optimal (edit/create + run_command + fix). Fails in read loop.",
+      "bestContexts": [
+        {
+          "type": "new-page",
+          "wins": 4
+        },
+        {
+          "type": "api-route",
+          "wins": 2
+        },
+        {
+          "type": "pipeline-logic",
+          "wins": 1
+        }
+      ],
+      "recentWins": [
+        {
+          "score": 10,
+          "tokens": 19186,
+          "toolCalls": 0,
+          "context_snippet": "new-page",
+          "task": "project: mission-control, page: orchestration, add option edit name pipeline on workflows"
+        },
+        {
+          "score": 10,
+          "tokens": 11852,
+          "toolCalls": 0,
+          "context_snippet": "new-page",
+          "task": "add option edit name pipeline on workflows, mission-control project, orchestration page"
+        },
+        {
+          "score": 10,
+          "tokens": 12120,
+          "toolCalls": 0,
+          "context_snippet": "new-page",
+          "task": " add option edit name pipeline on mission-control /orchestration page"
+        },
+        {
+          "score": 10,
+          "tokens": 50209,
+          "toolCalls": 9,
+          "context_snippet": "pipeline-logic",
+          "task": "Design the architecture for agent performance metrics export to CSV. Data source: pipeline-analytics"
+        },
+        {
+          "score": 10,
+          "tokens": 3991,
+          "toolCalls": 0,
+          "context_snippet": "new-page",
+          "task": "add option edit name pipeline on mission-control /orchestration page"
+        }
       ],
       "date_extracted": "2026-03-19",
       "source": "auto-extracted from 7 successful runs"
@@ -199,9 +500,7 @@
       "agent": "qa",
       "totalWins": 4,
       "avgScore": 9.1,
-      "score9PlusRate": "50%",
       "avgTokens": 85592,
-      "avgDurationSec": 219,
       "bestModel": "claude-sonnet-4-6",
       "models": [
         "claude-sonnet-4-6"
@@ -210,12 +509,50 @@
         "avgCalls": 13.3,
         "range": "12-28"
       },
-      "whatWorks": "High token cost (85K avg) but thorough. 12-13 tool calls typical for good results. read_file + run_command + save_failure_pattern is the winning sequence.",
-      "taskExamples": [
-        "Add a \"Last updated\" timestamp footer to all shell pages. Create data/config/ui.json with { lastUpdated: ISO string }. Create GET /api/system/config e",
-        "test light/dark mode in mission-control project",
-        "Add /settings page with app preferences: theme toggle (dark/light), notification settings (toast position, sound on/off), and pipeline defaults (defau",
-        "add option edit name pipeline on workflows, mission-control project, orchestration page"
+      "whatWorks": "High token cost (85K avg) but thorough. 12-13 tool calls typical. read_file + run_command + save_failure_pattern.",
+      "bestContexts": [
+        {
+          "type": "new-page",
+          "wins": 2
+        },
+        {
+          "type": "api-route",
+          "wins": 1
+        },
+        {
+          "type": "testing",
+          "wins": 1
+        }
+      ],
+      "recentWins": [
+        {
+          "score": 8,
+          "tokens": 23342,
+          "toolCalls": 0,
+          "context_snippet": "new-page",
+          "task": "add option edit name pipeline on workflows, mission-control project, orchestration page"
+        },
+        {
+          "score": 10,
+          "tokens": 235378,
+          "toolCalls": 28,
+          "context_snippet": "new-page",
+          "task": "Add /settings page with app preferences: theme toggle (dark/light), notification settings (toast pos"
+        },
+        {
+          "score": 10,
+          "tokens": 48059,
+          "toolCalls": 12,
+          "context_snippet": "testing",
+          "task": "test light/dark mode in mission-control project"
+        },
+        {
+          "score": 8.2,
+          "tokens": 35588,
+          "toolCalls": 13,
+          "context_snippet": "api-route",
+          "task": "Add a \"Last updated\" timestamp footer to all shell pages. Create data/config/ui.json with { lastUpda"
+        }
       ],
       "date_extracted": "2026-03-19",
       "source": "auto-extracted from 4 successful runs"
@@ -225,9 +562,7 @@
       "agent": "cyber-audit",
       "totalWins": 3,
       "avgScore": 10,
-      "score9PlusRate": "100%",
       "avgTokens": 15440,
-      "avgDurationSec": 46,
       "bestModel": "claude-sonnet-4-6",
       "models": [
         "claude-sonnet-4-6"
@@ -236,11 +571,39 @@
         "avgCalls": 3.7,
         "range": "1-6"
       },
-      "whatWorks": "Perfect 10/10 on opus. 3-4 tool calls. Focused audit tasks score best — narrow scope > broad sweep.",
-      "taskExamples": [
-        "Perform a security audit of /api/system/config route.",
-        "Review lib/system-config-storage.ts for insecure file operations. Check path traversal risks and missing input validation.",
-        "Audit /api/agents/[id] route for injection risks and data exposure. Check if agent prompts could leak sensitive data. Use security-playbook.json as re"
+      "whatWorks": "Perfect 10/10 on opus. 3-4 tool calls. Focused narrow-scope audits score best.",
+      "bestContexts": [
+        {
+          "type": "api-route",
+          "wins": 2
+        },
+        {
+          "type": "new-page",
+          "wins": 1
+        }
+      ],
+      "recentWins": [
+        {
+          "score": 10,
+          "tokens": 16986,
+          "toolCalls": 4,
+          "context_snippet": "api-route",
+          "task": "Audit /api/agents/[id] route for injection risks and data exposure. Check if agent prompts could lea"
+        },
+        {
+          "score": 10,
+          "tokens": 7748,
+          "toolCalls": 1,
+          "context_snippet": "new-page",
+          "task": "Review lib/system-config-storage.ts for insecure file operations. Check path traversal risks and mis"
+        },
+        {
+          "score": 10,
+          "tokens": 21587,
+          "toolCalls": 6,
+          "context_snippet": "api-route",
+          "task": "Perform a security audit of /api/system/config route."
+        }
       ],
       "date_extracted": "2026-03-19",
       "source": "auto-extracted from 3 successful runs"
@@ -250,17 +613,27 @@
       "agent": "consolidation",
       "totalWins": 1,
       "avgScore": 10,
-      "score9PlusRate": "100%",
       "avgTokens": 15638,
-      "avgDurationSec": 49,
       "bestModel": "claude-sonnet-4-6",
       "models": [
         "claude-sonnet-4-6"
       ],
       "toolPattern": "no tools",
-      "whatWorks": "Single win at 10/10. Lightweight summarization role. No tools needed.",
-      "taskExamples": [
-        "Improve Smart Router escalation logic: Medium to Full escalation on complexity/security/QA-fail signals."
+      "whatWorks": "Lightweight summarization role. No tools needed.",
+      "bestContexts": [
+        {
+          "type": "security",
+          "wins": 1
+        }
+      ],
+      "recentWins": [
+        {
+          "score": 10,
+          "tokens": 15638,
+          "toolCalls": 0,
+          "context_snippet": "security",
+          "task": "Improve Smart Router escalation logic: Medium to Full escalation on complexity/security/QA-fail sign"
+        }
       ],
       "date_extracted": "2026-03-19",
       "source": "auto-extracted from 1 successful runs"
@@ -270,17 +643,27 @@
       "agent": "designer",
       "totalWins": 1,
       "avgScore": 10,
-      "score9PlusRate": "100%",
       "avgTokens": 17422,
-      "avgDurationSec": 102,
       "bestModel": "claude-sonnet-4-6",
       "models": [
         "claude-sonnet-4-6"
       ],
       "toolPattern": "no tools",
-      "whatWorks": "Single win at 10/10. No tools. Works well for design token and UI spec tasks.",
-      "taskExamples": [
-        "Add /settings page with app preferences: theme toggle (dark/light), notification settings (toast position, sound on/off), and pipeline defaults (defau"
+      "whatWorks": "No tools. Works well for design token and UI spec tasks.",
+      "bestContexts": [
+        {
+          "type": "new-page",
+          "wins": 1
+        }
+      ],
+      "recentWins": [
+        {
+          "score": 10,
+          "tokens": 17422,
+          "toolCalls": 0,
+          "context_snippet": "new-page",
+          "task": "Add /settings page with app preferences: theme toggle (dark/light), notification settings (toast pos"
+        }
       ],
       "date_extracted": "2026-03-19",
       "source": "auto-extracted from 1 successful runs"

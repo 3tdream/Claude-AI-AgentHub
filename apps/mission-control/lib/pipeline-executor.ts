@@ -240,7 +240,7 @@ export async function executePipeline(
     try {
       // Analytics stores short IDs (architect, backend) not full (architect-agent)
       const shortAgentId = step.agentId.replace(/-agent$/, "");
-      const analyticsRes = await fetch(`/api/pipeline/analytics?agentId=${shortAgentId}`);
+      const analyticsRes = await fetch(`/api/pipeline/analytics?agentId=${shortAgentId}&task=${encodeURIComponent(input.slice(0, 150))}`);
       if (analyticsRes.ok) {
         const { context: learningCtx } = await analyticsRes.json();
         if (learningCtx) currentPrompt += learningCtx;

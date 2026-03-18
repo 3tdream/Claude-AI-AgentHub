@@ -12,6 +12,20 @@ interface SuccessEntry {
   duration: number;
   model: string;
   task: string;
+  context_snippet?: string;
+}
+
+function classifyTask(task: string): string {
+  const t = task.toLowerCase();
+  if (/api.*(route|endpoint)|create.*get|create.*post|route\.ts/.test(t)) return "api-route";
+  if (/page|dashboard|settings|view/.test(t)) return "new-page";
+  if (/button|component|footer|header|banner|modal|dialog|badge/.test(t)) return "ui-component";
+  if (/edit|rename|inline|update|modify|refactor/.test(t)) return "refactor";
+  if (/security|audit|cyber|auth|login|encrypt/.test(t)) return "security";
+  if (/test|qa|lint|check/.test(t)) return "testing";
+  if (/deploy|ci|devops|build|docker/.test(t)) return "devops";
+  if (/router|logic|escalation|pipeline|config/.test(t)) return "pipeline-logic";
+  return "general";
 }
 
 export async function POST(request: NextRequest) {
@@ -72,12 +86,22 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Keep last 5 wins
+    // Classify task context
+    const snippet = entry.context_snippet || classifyTask(entry.task || "");
+
+    // Track best contexts
+    if (!pattern.bestContexts) pattern.bestContexts = [];
+    const ctx = pattern.bestContexts.find((c: any) => c.type === snippet);
+    if (ctx) { ctx.wins++; } else { pattern.bestContexts.push({ type: snippet, wins: 1 }); }
+    pattern.bestContexts.sort((a: any, b: any) => b.wins - a.wins);
+
+    // Keep last 5 wins with context_snippet
     if (!pattern.recentWins) pattern.recentWins = [];
     pattern.recentWins.unshift({
       score: entry.score,
       tokens: entry.tokens,
       toolCalls: entry.toolCalls,
+      context_snippet: snippet,
       task: entry.task,
       date: new Date().toISOString().slice(0, 10),
     });
