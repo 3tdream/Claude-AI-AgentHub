@@ -1,6 +1,6 @@
 {
   "_description": "Known issues, root causes, and solutions — maintained by QA-Agent and all agents",
-  "_updated": "2026-03-17",
+  "_updated": "2026-03-18",
   "patterns": [
     {
       "id": "FAIL-001",
@@ -810,6 +810,116 @@
         "app/api/jira/sync/route.ts",
         "lib/jira-sync-service.ts",
         "lib/pipeline-executor.ts"
+      ]
+    },
+    {
+      "id": "FAIL-061",
+      "category": "security",
+      "title": "Prototype pollution via unsanitized agentId as object key",
+      "symptoms": "Crafted agentId values like __proto__, constructor, or toString used as keys in JSON map can pollute Object prototype when assigned via bracket notation map[agentId] = value",
+      "root_cause": "recordAgentActivity(agentId) accepts arbitrary string from request body and uses it directly as object key without validation",
+      "solution": "Validate agentId with regex /^[a-zA-Z0-9_-]+$/ and check against known agent list before writing. Apply this pattern to all file-based storage modules that use user-supplied keys.",
+      "date_discovered": "2026-03-18",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "lib/agent-activity.ts",
+        "app/api/chat/route.ts",
+        "app/api/agent-hub/sessions/route.ts"
+      ]
+    },
+    {
+      "id": "FAIL-062",
+      "category": "security",
+      "title": "Prototype pollution via unsanitized agentId used as JSON object key",
+      "symptoms": "User-supplied agentId from POST body is written directly as a key in agent-activity.json without validation. Crafted keys like __proto__, constructor, or toString can pollute object prototypes when JSON is parsed and consumed.",
+      "root_cause": "recordAgentActivity(agentId) accepts arbitrary string from request body and uses it as object key: map[agentId] = timestamp. No input validation or allowlist check exists.",
+      "solution": "Validate agentId against regex /^[a-zA-Z0-9_-]{1,64}$/ before calling recordAgentActivity(). Alternatively, validate against the known agents config list. Apply same pattern to any file-based storage that uses user input as object keys.",
+      "date_discovered": "2026-03-18",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "lib/agent-activity.ts",
+        "app/api/chat/route.ts",
+        "app/api/agent-hub/sessions/route.ts"
+      ]
+    },
+    {
+      "id": "FAIL-063",
+      "category": "security",
+      "title": "Path traversal via unsanitized agentId in file-based JSON storage",
+      "symptoms": "Attacker sends crafted agentId like \"../../etc/passwd\" or \"__proto__\" as JSON key, potentially causing prototype pollution or writing arbitrary keys into the activity file",
+      "root_cause": "recordAgentActivity(agentId) accepts raw string from request body and uses it directly as a JSON object key without validation. The agentId flows from POST /api/chat body → recordAgentActivity → map[agentId] = timestamp. No allowlist or format check exists.",
+      "solution": "Validate agentId against a strict regex (e.g. /^[a-zA-Z0-9_-]{1,64}$/) or check against known agent list before using as object key. Also reject __proto__, constructor, prototype keys to prevent prototype pollution.",
+      "date_discovered": "2026-03-18",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "lib/agent-activity.ts",
+        "app/api/chat/route.ts"
+      ]
+    },
+    {
+      "id": "FAIL-064",
+      "category": "security",
+      "title": "X-Forwarded-For trusted without validation in audit log IP extraction",
+      "symptoms": "Audit log stores arbitrary attacker-controlled IP addresses; forensic trail is unreliable; 152-FZ compliance audit finds tampered PII (IP is personal data under 152-FZ Art.3)",
+      "root_cause": "extractClientIP() splits X-Forwarded-For and takes leftmost value without validating it is a valid IP or that the proxy chain is trusted. Any client can prepend a fake IP.",
+      "solution": "1) Validate extracted IP with net.isIP() before storing. 2) Configure explicit trusted proxy count (e.g., 1 for Vercel) and read from right side of X-Forwarded-For chain minus trusted hops. 3) Store raw header alongside parsed IP for forensic comparison.",
+      "date_discovered": "2026-03-18",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "lib/middleware/extractClientIP.ts",
+        "docs/architecture/adr-016-audit-log-last-login.md"
+      ]
+    },
+    {
+      "id": "FAIL-065",
+      "category": "security",
+      "title": "audit_log append-only design blocks 152-FZ Art.14 deletion compliance",
+      "symptoms": "User requests data deletion under 152-FZ Art.14. app_user role has REVOKE DELETE. Archival cron sets archived=true but never hard-deletes. PII (ip_address, user_id) persists indefinitely.",
+      "root_cause": "Schema designed for tamper-proof audit trail (append-only) without a separate superuser deletion pipeline for GDPR/152-FZ compliance. No hard-DELETE cron or admin endpoint exists.",
+      "solution": "Add a superuser-owned pg_cron job that hard-DELETEs rows WHERE archived = true AND occurred_at < NOW() - INTERVAL '3 years'. Create a separate superuser-only function for on-demand deletion by user_id to handle Art.14 requests. Document this in the data processing policy.",
+      "date_discovered": "2026-03-18",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "docs/architecture/schema-audit-log.sql",
+        "migrations/20240601_001_create_audit_log.sql"
+      ]
+    },
+    {
+      "id": "FAIL-066",
+      "category": "security",
+      "title": "audit_log lacks 152-FZ deletion pipeline and has IP spoofing + tenant isolation risks",
+      "symptoms": "1) No DELETE path for user PII in append-only audit_log — 152-FZ Art.21 violation. 2) X-Forwarded-For leftmost IP trusted without proxy validation — audit trail poisoning. 3) tenant_id from JWT claim used directly in SET LOCAL without server-side verification — cross-tenant data leak possible.",
+      "root_cause": "ADR-016 focused on performance (BIGSERIAL, lateral JOIN) but omitted: (a) PII deletion mechanism beyond archival, (b) IP validation/sanitization in extractClientIP middleware, (c) server-side tenant_id verification before setting RLS context variable.",
+      "solution": "1) Create SECURITY DEFINER function with dedicated data_deletion_officer role for hard-delete of user PII. 2) Read rightmost X-Forwarded-For hop (proxy-set) instead of leftmost (client-set), validate as IP. 3) Resolve tenant_id from users table via jwt.sub, never trust JWT tenant_id claim directly.",
+      "date_discovered": "2026-03-18",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "docs/architecture/adr-016-audit-log-last-login.md",
+        "docs/architecture/schema-audit-log.sql",
+        "lib/middleware/extractClientIP",
+        "lib/middleware/setTenantContext"
+      ]
+    },
+    {
+      "id": "FAIL-067",
+      "category": "security",
+      "title": "Prototype pollution via unsanitized agentId used as JSON object key",
+      "symptoms": "recordAgentActivity(agentId) writes agentId directly as a JSON key in agent-activity.json. A crafted agentId like \"__proto__\", \"constructor\", or \"prototype\" could pollute the object prototype when parsed, or inject arbitrary keys into the activity map.",
+      "root_cause": "No input validation on agentId before using it as a key in `map[agentId] = ...` in lib/agent-activity.ts:recordAgentActivity(). The agentId originates from POST /api/chat request body and flows unchecked through chat/route.ts into the activity file.",
+      "solution": "Add allowlist validation in lib/agent-activity.ts line 1 of recordAgentActivity(): `if (!/^[a-zA-Z0-9_-]{1,64}$/.test(agentId)) return;`. This blocks prototype keys and path traversal characters. Also applies to existing logs-storage.ts addLog() which has the same pattern.",
+      "date_discovered": "2026-03-18",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "lib/agent-activity.ts",
+        "app/api/chat/route.ts",
+        "lib/logs-storage.ts"
       ]
     }
   ]
