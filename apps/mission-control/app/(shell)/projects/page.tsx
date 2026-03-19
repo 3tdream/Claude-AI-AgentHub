@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   FolderOpen,
   Brain,
@@ -22,6 +22,7 @@ import {
   FileCode,
   Cuboid,
   Siren,
+  Power,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -135,6 +136,7 @@ export default function ProjectsPage() {
   const [kb, setKb] = useState<KnowledgeBase | null>(null);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("");
+  const [activeProjects, setActiveProjects] = useState<string[]>([]);
 
   useEffect(() => {
     fetch("/api/knowledge")
@@ -142,7 +144,26 @@ export default function ProjectsPage() {
       .then(setKb)
       .catch(() => {})
       .finally(() => setLoading(false));
+    fetch("/api/projects/toggle")
+      .then((r) => r.json())
+      .then((d) => setActiveProjects(d.active || []))
+      .catch(() => {});
   }, []);
+
+  const activeSet = useMemo(() => new Set(activeProjects), [activeProjects]);
+
+  const toggleProject = useCallback(async (projectId: string) => {
+    const isActive = activeProjects.includes(projectId);
+    const next = isActive
+      ? activeProjects.filter((id) => id !== projectId)
+      : [...activeProjects, projectId];
+    setActiveProjects(next);
+    await fetch("/api/projects/toggle", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ projectId, active: !isActive }),
+    }).catch(() => setActiveProjects(activeProjects));
+  }, [activeProjects]);
 
   const filteredProjects = statusFilter
     ? projects.filter((p) => p.status === statusFilter)
@@ -239,7 +260,12 @@ export default function ProjectsPage() {
                   const Icon = p.icon;
                   const sc = statusConfig[p.status];
                   return (
-                    <div key={p.id} className="bg-card border border-border rounded-lg p-4 hover:border-primary/30 transition-colors">
+                    <div key={p.id} className={cn(
+                      "bg-card border rounded-lg p-4 transition-colors",
+                      activeSet.has(p.id)
+                        ? "border-emerald-500/40 hover:border-emerald-500/60"
+                        : "border-border hover:border-primary/30",
+                    )}>
                       <div className="flex items-start gap-3">
                         <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
                           <Icon className="w-5 h-5 text-primary" />
@@ -251,15 +277,30 @@ export default function ProjectsPage() {
                           </div>
                           <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{p.description}</p>
                         </div>
+                        <button
+                          onClick={() => toggleProject(p.id)}
+                          className={cn(
+                            "flex-shrink-0 p-1.5 rounded-md transition-all",
+                            activeSet.has(p.id)
+                              ? "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"
+                              : "bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80",
+                          )}
+                          title={activeSet.has(p.id) ? "Remove from pipeline context" : "Add to pipeline context"}
+                        >
+                          <Power className="w-4 h-4" />
+                        </button>
                       </div>
                       <div className="mt-3 flex items-center justify-between">
                         <p className="font-mono text-[10px] text-muted-foreground">{p.stack}</p>
                         <p className="font-mono text-[10px] text-muted-foreground">{p.files} files</p>
                       </div>
-                      <div className="mt-2 flex gap-1 flex-wrap">
-                        {p.tags.map((t) => (
-                          <span key={t} className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{t}</span>
-                        ))}
+                      <div className="mt-2 flex items-center justify-between">
+                        <div className="flex gap-1 flex-wrap">
+                          {p.tags.map((t) => (
+                            <span key={t} className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{t}</span>
+                          ))}
+                        </div>
+                        <span className="font-mono text-[9px] text-muted-foreground/50">{p.id}</span>
                       </div>
                     </div>
                   );
