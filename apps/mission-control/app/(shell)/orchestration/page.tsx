@@ -513,33 +513,33 @@ export default function OrchestrationPage() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header with SlotBar */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight">Orchestration</h1>
-          <p className="font-mono text-xs text-muted-foreground mt-1 tracking-wider uppercase">
-            Smart multi-agent workflow pipelines
-          </p>
+    <div className="space-y-4">
+      {/* Header — responsive: stack on mobile, row on desktop */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Orchestration</h1>
+            <p className="font-mono text-[10px] text-muted-foreground mt-0.5 tracking-wider uppercase">
+              Multi-agent workflow pipelines
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-4">
-          <SlotBar
-            slots={slots ?? EMPTY_SLOTS}
-            activeSlotIndex={activeSlotIndex ?? 0}
-            onSelectSlot={setActiveSlot}
-            onClearSlot={clearSlot}
-            onAddToSlot={handleSlotAdd}
-          />
-        </div>
+        <SlotBar
+          slots={slots ?? EMPTY_SLOTS}
+          activeSlotIndex={activeSlotIndex ?? 0}
+          onSelectSlot={setActiveSlot}
+          onClearSlot={clearSlot}
+          onAddToSlot={handleSlotAdd}
+        />
       </div>
 
-      <div className="flex gap-4 h-[calc(100vh-12rem)]">
+      <div className="flex gap-3 h-[calc(100vh-11rem)]">
         {/* Template Library sidebar */}
         <TemplateLibrary
           workflows={workflows}
           selectedWorkflowId={selectedWorkflow?.id ?? null}
           slots={slots ?? EMPTY_SLOTS}
-          onSelectWorkflow={(wf) => handleLoadToSlot(wf)}
+          onSelectWorkflow={(wf) => loadWorkflowToSlot(activeSlotIndex, wf)}
           onLoadToSlot={handleLoadToSlot}
           onSaveAsTemplate={handleSaveAsTemplate}
           onDeleteWorkflow={deleteWorkflow}
@@ -554,88 +554,90 @@ export default function OrchestrationPage() {
         <div className="flex-1 bg-card border border-border rounded-xl flex flex-col overflow-hidden">
           {selectedWorkflow ? (
             <>
-              <div className="px-6 py-4 border-b border-border">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      {editingWfId === selectedWorkflow.id ? (
-                        <input
-                          autoFocus
-                          value={editingName}
-                          onChange={(e) => setEditingName(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              const trimmed = editingName.trim();
-                              if (trimmed) updateWorkflow(selectedWorkflow.id, { name: trimmed });
-                              setEditingWfId(null);
-                            }
-                            if (e.key === "Escape") setEditingWfId(null);
-                          }}
-                          onBlur={() => {
+              {/* Row 1: Workflow name + action buttons */}
+              <div className="px-4 sm:px-6 py-3 border-b border-border">
+                <div className="flex items-center justify-between gap-3">
+                  {/* Name + edit */}
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    {editingWfId === selectedWorkflow.id ? (
+                      <input
+                        autoFocus
+                        value={editingName}
+                        onChange={(e) => setEditingName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
                             const trimmed = editingName.trim();
                             if (trimmed) updateWorkflow(selectedWorkflow.id, { name: trimmed });
                             setEditingWfId(null);
-                          }}
-                          maxLength={100}
-                          className="bg-background border border-primary/30 rounded px-2 py-0.5 text-lg font-bold focus:outline-none focus:border-primary"
-                        />
-                      ) : (
-                        <>
-                          <h2 className="font-bold text-lg">{selectedWorkflow.name}</h2>
-                          <button
-                            onClick={() => { setEditingWfId(selectedWorkflow.id); setEditingName(selectedWorkflow.name); }}
-                            className="p-1 hover:text-primary transition-colors opacity-50 hover:opacity-100"
-                            title="Rename pipeline"
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </button>
-                        </>
-                      )}
-                      <button
-                        onClick={() => { setInsertPosition(null); setShowRecruitment(true); }}
-                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border text-xs text-muted-foreground hover:text-primary hover:border-primary/50 transition-all ml-2"
-                        title="Add agent to pipeline"
-                      >
-                        <UserPlus className="w-3.5 h-3.5" />
-                        <span className="font-mono text-[10px] uppercase tracking-wider">Recruit</span>
-                      </button>
-                      {/* Core Pipeline pin */}
-                      {selectedProject && (
+                          }
+                          if (e.key === "Escape") setEditingWfId(null);
+                        }}
+                        onBlur={() => {
+                          const trimmed = editingName.trim();
+                          if (trimmed) updateWorkflow(selectedWorkflow.id, { name: trimmed });
+                          setEditingWfId(null);
+                        }}
+                        maxLength={100}
+                        className="flex-1 min-w-0 bg-background border border-primary/30 rounded px-2 py-0.5 text-base font-bold focus:outline-none focus:border-primary"
+                      />
+                    ) : (
+                      <>
+                        <h2 className="font-bold text-base truncate">{selectedWorkflow.name}</h2>
                         <button
-                          onClick={() => {
-                            if (isCurrentWorkflowCore) {
-                              clearCorePipeline(selectedProject);
-                            } else {
-                              setCorePipeline(selectedProject, selectedWorkflow.id);
-                            }
-                          }}
-                          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs transition-all ml-1 ${
-                            isCurrentWorkflowCore
-                              ? "border-amber-500/50 bg-amber-500/10 text-amber-400"
-                              : "border-border text-muted-foreground hover:text-amber-400 hover:border-amber-500/50"
-                          }`}
-                          title={isCurrentWorkflowCore ? `Unpin core pipeline for ${selectedProject}` : `Set as core pipeline for ${selectedProject}`}
+                          onClick={() => { setEditingWfId(selectedWorkflow.id); setEditingName(selectedWorkflow.name); }}
+                          className="p-0.5 hover:text-primary transition-colors opacity-40 hover:opacity-100 flex-shrink-0"
+                          title="Rename"
                         >
-                          {isCurrentWorkflowCore ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
-                          <span className="font-mono text-[10px] uppercase tracking-wider">
-                            {isCurrentWorkflowCore ? "Core" : "Pin"}
-                          </span>
+                          <Pencil className="w-3 h-3" />
                         </button>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 mt-1">
-                      <p className="text-sm text-muted-foreground max-w-[700px]">{selectedWorkflow.description}</p>
-                      {isCurrentWorkflowCore && selectedProject && (
-                        <span className="flex-shrink-0 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-mono text-[9px] border border-amber-500/20">
-                          Core: {selectedProject}
-                        </span>
-                      )}
-                    </div>
+                      </>
+                    )}
+                    {isCurrentWorkflowCore && selectedProject && (
+                      <span className="hidden sm:inline-flex flex-shrink-0 px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-mono text-[8px] border border-amber-500/20">
+                        Core: {selectedProject}
+                      </span>
+                    )}
                   </div>
+
+                  {/* Action buttons */}
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <button
+                      onClick={() => { setInsertPosition(null); setShowRecruitment(true); }}
+                      className="flex items-center gap-1 px-2 py-1 rounded-md border border-border text-muted-foreground hover:text-primary hover:border-primary/50 transition-all"
+                      title="Add agent"
+                    >
+                      <UserPlus className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline font-mono text-[9px] uppercase tracking-wider">Recruit</span>
+                    </button>
+                    {selectedProject && (
+                      <button
+                        onClick={() => {
+                          if (isCurrentWorkflowCore) clearCorePipeline(selectedProject);
+                          else setCorePipeline(selectedProject, selectedWorkflow.id);
+                        }}
+                        className={`flex items-center gap-1 px-2 py-1 rounded-md border transition-all ${
+                          isCurrentWorkflowCore
+                            ? "border-amber-500/50 bg-amber-500/10 text-amber-400"
+                            : "border-border text-muted-foreground hover:text-amber-400 hover:border-amber-500/50"
+                        }`}
+                        title={isCurrentWorkflowCore ? "Unpin core pipeline" : "Pin as core pipeline"}
+                      >
+                        {isCurrentWorkflowCore ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
+                        <span className="hidden sm:inline font-mono text-[9px] uppercase tracking-wider">
+                          {isCurrentWorkflowCore ? "Core" : "Pin"}
+                        </span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Row 2: Description + execution status bar */}
+                <div className="flex items-center justify-between mt-1.5 gap-3">
+                  <p className="text-xs text-muted-foreground truncate">{selectedWorkflow.description}</p>
                   {activeExecution && (
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 flex-shrink-0">
                       {activeExecution.routingDecision && (
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
+                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase ${
                           activeExecution.routingDecision.mode === "quick"
                             ? "bg-emerald-500/10 text-emerald-400"
                             : activeExecution.routingDecision.mode === "medium"
@@ -646,37 +648,28 @@ export default function OrchestrationPage() {
                         </span>
                       )}
                       {activeExecution.jiraKey && (
-                        <a
-                          href={activeExecution.jiraUrl || "#"}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1 px-2 py-1 rounded-lg bg-blue-500/10 text-blue-400 font-mono text-[10px] hover:bg-blue-500/20 transition-colors"
-                        >
-                          <ExternalLink className="w-3 h-3" />
-                          {activeExecution.jiraKey}
+                        <a href={activeExecution.jiraUrl || "#"} target="_blank" rel="noopener noreferrer"
+                          className="hidden sm:flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 font-mono text-[9px] hover:bg-blue-500/20 transition-colors">
+                          <ExternalLink className="w-2.5 h-2.5" />{activeExecution.jiraKey}
                         </a>
                       )}
-                      <span className={`font-mono text-xs font-semibold ${statusColors[activeExecution.status] || ""}`}>
+                      <span className={`font-mono text-[10px] font-semibold ${statusColors[activeExecution.status] || ""}`}>
                         {activeExecution.status.toUpperCase()}
                       </span>
                       {activeExecution.status === "running" && (
                         <>
-                          <button
-                            onClick={() => useOrchestrationStore.getState().requestPause()}
-                            className="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-colors"
-                          >
+                          <button onClick={() => useOrchestrationStore.getState().requestPause()}
+                            className="px-1.5 py-0.5 rounded text-[9px] font-mono uppercase bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-colors">
                             Pause
                           </button>
-                          <button
-                            onClick={() => useOrchestrationStore.getState().requestStop()}
-                            className="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-colors"
-                          >
+                          <button onClick={() => useOrchestrationStore.getState().requestStop()}
+                            className="px-1.5 py-0.5 rounded text-[9px] font-mono uppercase bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-colors">
                             Stop
                           </button>
                         </>
                       )}
                       {activeExecution.totalDuration && (
-                        <span className="font-mono text-[10px] text-muted-foreground">
+                        <span className="font-mono text-[9px] text-muted-foreground">
                           {(activeExecution.totalDuration / 1000).toFixed(1)}s
                         </span>
                       )}
@@ -726,13 +719,12 @@ export default function OrchestrationPage() {
                 )}
               </div>
 
-              {/* Execute bar — two-step: Route → then Confirm */}
-              <div className="border-t border-border p-4 space-y-2">
-                {/* Project context selector */}
+              {/* Execute bar */}
+              <div className="border-t border-border px-4 sm:px-6 py-3 space-y-2">
+                {/* Project context — compact row */}
                 {availableProjects.length > 0 && (
                   <div className="flex items-center gap-2">
-                    <FolderOpen className="w-3.5 h-3.5 text-muted-foreground" />
-                    <span className="font-mono text-[10px] text-muted-foreground uppercase">Project Context:</span>
+                    <FolderOpen className="w-3 h-3 text-muted-foreground/60 flex-shrink-0" />
                     <select
                       value={selectedProject || ""}
                       onChange={(e) => {
@@ -740,21 +732,19 @@ export default function OrchestrationPage() {
                         setSelectedProject(val);
                         updateSlotProject(activeSlotIndex, val);
                       }}
-                      className="bg-background border border-border rounded-md px-2 py-1 font-mono text-xs text-foreground focus:border-primary focus:outline-none transition-colors"
+                      className="bg-transparent border-none font-mono text-[10px] text-muted-foreground focus:text-foreground focus:outline-none cursor-pointer pr-4"
                     >
-                      <option value="">None (no context injection)</option>
+                      <option value="">No project context</option>
                       {availableProjects.map((p) => (
                         <option key={p} value={p}>{p}</option>
                       ))}
                     </select>
                     {selectedProject && (
-                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 font-mono text-[9px]">
-                        Active
-                      </span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0" title="Project context active" />
                     )}
                   </div>
                 )}
-                <div className="flex gap-3">
+                <div className="flex gap-2">
                   <input
                     type="text"
                     value={input}
@@ -762,13 +752,13 @@ export default function OrchestrationPage() {
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && input.trim() && !isRouting) routeTask();
                     }}
-                    placeholder="Describe your task — Smart Router will pick the right agents..."
-                    className="flex-1 bg-background border border-border rounded-lg px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none transition-colors"
+                    placeholder="Describe your task..."
+                    className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-sm placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none transition-colors"
                   />
                   <button
                     onClick={routeTask}
                     disabled={!input.trim() || isRouting || activeExecution?.status === "running"}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-30 transition-all font-mono text-xs uppercase tracking-wider"
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-30 transition-all font-mono text-[10px] uppercase tracking-wider"
                   >
                     {isRouting ? (
                       <>
@@ -784,9 +774,30 @@ export default function OrchestrationPage() {
               </div>
             </>
           ) : (
-            <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-              <GitBranch className="w-12 h-12 mb-4 opacity-20" />
-              <p className="font-mono text-sm">Select a workflow from the library or click (+) on a slot</p>
+            <div className="flex flex-col items-center justify-center h-full text-muted-foreground px-8">
+              <div className="w-16 h-16 rounded-2xl bg-primary/5 border border-primary/10 flex items-center justify-center mb-4">
+                <GitBranch className="w-8 h-8 text-primary/30" />
+              </div>
+              <p className="text-sm font-medium text-foreground/60 mb-1">No workflow loaded</p>
+              <p className="text-xs text-muted-foreground/60 text-center max-w-[280px] mb-5">
+                Select a workflow from the library, or create one to get started.
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={openCreateFromTemplate}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
+                >
+                  <GitBranch className="w-3.5 h-3.5" />
+                  CRM Template
+                </button>
+                <button
+                  onClick={openCreateNew}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-border text-xs text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Empty
+                </button>
+              </div>
             </div>
           )}
         </div>

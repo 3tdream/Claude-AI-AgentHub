@@ -1,6 +1,7 @@
 "use client";
 
-import { BookTemplate, Plus, Trash2, ArrowRight, Copy, Pin } from "lucide-react";
+import { useState } from "react";
+import { BookTemplate, Plus, Trash2, ArrowRight, Copy, Pin, PanelLeftClose, PanelLeft } from "lucide-react";
 import type { Workflow, WorkflowSlot } from "@/types";
 
 interface TemplateLibraryProps {
@@ -32,46 +33,80 @@ export function TemplateLibrary({
   onDropToSlot,
   corePipelineIds,
 }: TemplateLibraryProps) {
+  const [collapsed, setCollapsed] = useState(false);
   const templates = workflows.filter((w) => w.isTemplate);
   const userWorkflows = workflows.filter((w) => !w.isTemplate);
 
+  // Collapsed: thin strip with icon
+  if (collapsed) {
+    return (
+      <div className="w-10 flex-shrink-0 bg-card border border-border rounded-xl flex flex-col items-center py-3 gap-2">
+        <button
+          onClick={() => setCollapsed(false)}
+          className="p-1.5 rounded-lg hover:bg-muted transition-colors"
+          title="Expand library"
+          aria-label="Expand library"
+        >
+          <PanelLeft className="w-4 h-4 text-muted-foreground" />
+        </button>
+        <div className="w-5 border-t border-border" />
+        <button
+          onClick={onCreateFromTemplate}
+          className="p-1.5 rounded-lg hover:bg-muted transition-colors"
+          title="Create from template"
+        >
+          <BookTemplate className="w-3.5 h-3.5 text-muted-foreground" />
+        </button>
+        <button
+          onClick={onCreateNew}
+          className="p-1.5 rounded-lg hover:bg-muted transition-colors"
+          title="New workflow"
+        >
+          <Plus className="w-3.5 h-3.5 text-muted-foreground" />
+        </button>
+        <div className="flex-1" />
+        <span className="font-mono text-[8px] text-muted-foreground/50 -rotate-90 whitespace-nowrap">
+          {workflows.length}
+        </span>
+      </div>
+    );
+  }
+
   return (
-    <div className="w-64 flex-shrink-0 bg-card border border-border rounded-xl overflow-hidden flex flex-col">
-      <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <BookTemplate className="w-4 h-4 text-muted-foreground" />
-          <h2 className="font-bold text-sm">Library</h2>
+    <div className="w-60 flex-shrink-0 bg-card border border-border rounded-xl overflow-hidden flex flex-col hidden lg:flex">
+      {/* Header */}
+      <div className="px-3 py-2.5 border-b border-border flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          <BookTemplate className="w-3.5 h-3.5 text-muted-foreground" />
+          <h2 className="font-bold text-xs">Library</h2>
+          <span className="font-mono text-[9px] text-muted-foreground/60">{workflows.length}</span>
         </div>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={onCreateFromTemplate}
-            className="p-1.5 rounded hover:bg-muted transition-colors"
-            title="Create from CRM template"
-          >
-            <BookTemplate className="w-3.5 h-3.5" />
+        <div className="flex items-center gap-0.5">
+          <button onClick={onCreateFromTemplate} className="p-1 rounded hover:bg-muted transition-colors" title="From template">
+            <BookTemplate className="w-3 h-3 text-muted-foreground" />
           </button>
-          <button
-            onClick={onCreateNew}
-            className="p-1.5 rounded hover:bg-muted transition-colors"
-            title="New empty workflow"
-          >
-            <Plus className="w-3.5 h-3.5" />
+          <button onClick={onCreateNew} className="p-1 rounded hover:bg-muted transition-colors" title="New empty">
+            <Plus className="w-3 h-3 text-muted-foreground" />
+          </button>
+          <button onClick={() => setCollapsed(true)} className="p-1 rounded hover:bg-muted transition-colors ml-0.5" title="Collapse">
+            <PanelLeftClose className="w-3 h-3 text-muted-foreground" />
           </button>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {/* Templates section */}
+        {/* Templates */}
         {templates.length > 0 && (
-          <div className="px-2 pt-2">
-            <p className="px-2 font-mono text-[9px] text-muted-foreground uppercase tracking-wider mb-1">Templates</p>
-            <div className="space-y-0.5">
+          <div className="px-1.5 pt-2">
+            <p className="px-2 font-mono text-[8px] text-muted-foreground/60 uppercase tracking-widest mb-1">Templates</p>
+            <div className="space-y-px">
               {templates.map((wf) => (
                 <WorkflowItem
                   key={wf.id}
                   wf={wf}
                   isSelected={selectedWorkflowId === wf.id}
                   isTemplate
+                  isCore={corePipelineIds?.has(wf.id)}
                   onSelect={() => onSelectWorkflow(wf)}
                   onLoadToSlot={() => onLoadToSlot(wf)}
                   onDelete={() => onDeleteWorkflow(wf.id)}
@@ -82,10 +117,17 @@ export function TemplateLibrary({
           </div>
         )}
 
-        {/* User workflows section */}
-        <div className="px-2 pt-2 pb-2">
-          <p className="px-2 font-mono text-[9px] text-muted-foreground uppercase tracking-wider mb-1">Workflows</p>
-          <div className="space-y-0.5">
+        {/* Divider */}
+        {templates.length > 0 && userWorkflows.length > 0 && (
+          <div className="mx-3 my-1.5 border-t border-border/50" />
+        )}
+
+        {/* User workflows */}
+        <div className="px-1.5 pt-1 pb-2">
+          {templates.length === 0 && (
+            <p className="px-2 font-mono text-[8px] text-muted-foreground/60 uppercase tracking-widest mb-1">Workflows</p>
+          )}
+          <div className="space-y-px">
             {userWorkflows.map((wf) => (
               <WorkflowItem
                 key={wf.id}
@@ -99,37 +141,44 @@ export function TemplateLibrary({
                 onDuplicate={onDuplicateToSlot ? () => onDuplicateToSlot(wf.id) : undefined}
               />
             ))}
-            {userWorkflows.length === 0 && (
-              <p className="text-center font-mono text-[10px] text-muted-foreground py-6">
-                No workflows yet
-              </p>
+            {userWorkflows.length === 0 && templates.length === 0 && (
+              <div className="text-center py-8 px-4">
+                <BookTemplate className="w-8 h-8 mx-auto text-muted-foreground/20 mb-2" />
+                <p className="font-mono text-[10px] text-muted-foreground/50">No workflows yet</p>
+                <button
+                  onClick={onCreateFromTemplate}
+                  className="mt-2 text-[10px] text-primary hover:text-primary/80 font-mono transition-colors"
+                >
+                  Start from template
+                </button>
+              </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Drop zones for slot targets */}
+      {/* Slot drop zones */}
       {slots && onDropToSlot && (
         <div className="px-2 pb-2 pt-1 border-t border-border/50">
-          <p className="px-2 font-mono text-[9px] text-muted-foreground uppercase tracking-wider mb-1.5">Drop to Slot</p>
+          <p className="px-1 font-mono text-[8px] text-muted-foreground/50 uppercase tracking-widest mb-1">Drop to slot</p>
           <div className="flex gap-1">
-            {slots.map((slot, i) => (
+            {slots.map((slot) => (
               <div
-                key={i}
+                key={slot.id}
                 onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; }}
                 onDrop={(e) => {
                   e.preventDefault();
                   const wfId = e.dataTransfer.getData("workflow-id");
-                  if (wfId) onDropToSlot(wfId, i as 0 | 1 | 2 | 3);
+                  if (wfId) onDropToSlot(wfId, slot.id);
                 }}
-                className={`flex-1 h-8 rounded border-2 border-dashed flex items-center justify-center transition-colors ${
+                className={`flex-1 h-7 rounded border-2 border-dashed flex items-center justify-center transition-colors ${
                   slot.status === "empty"
-                    ? "border-border/40 hover:border-primary/40 text-muted-foreground/30 hover:text-primary/40"
-                    : "border-border/20 text-muted-foreground/20"
+                    ? "border-border/30 hover:border-primary/40 text-muted-foreground/25 hover:text-primary/40 hover:bg-primary/5"
+                    : "border-border/15 text-muted-foreground/15"
                 }`}
               >
-                <span className="font-mono text-[9px]">
-                  {slot.status === "empty" ? `${i + 1}` : slot.workflowName?.slice(0, 5)}
+                <span className="font-mono text-[8px]">
+                  {slot.status === "empty" ? `${slot.id + 1}` : (slot.workflowName?.slice(0, 4) ?? "")}
                 </span>
               </div>
             ))}
@@ -141,15 +190,8 @@ export function TemplateLibrary({
 }
 
 function WorkflowItem({
-  wf,
-  isSelected,
-  isTemplate,
-  isCore,
-  onSelect,
-  onLoadToSlot,
-  onSaveAsTemplate,
-  onDelete,
-  onDuplicate,
+  wf, isSelected, isTemplate, isCore,
+  onSelect, onLoadToSlot, onSaveAsTemplate, onDelete, onDuplicate,
 }: {
   wf: Workflow;
   isSelected: boolean;
@@ -168,53 +210,37 @@ function WorkflowItem({
         e.dataTransfer.setData("workflow-id", wf.id);
         e.dataTransfer.effectAllowed = "copyMove";
       }}
-      className={`group flex items-center gap-1 px-2 py-1.5 rounded-lg cursor-pointer transition-all ${
-        isSelected ? "bg-primary/10 border border-primary/20" : "hover:bg-muted"
+      className={`group flex items-center gap-1 px-2 py-1.5 rounded-md cursor-pointer transition-all ${
+        isSelected ? "bg-primary/10 ring-1 ring-primary/20" : "hover:bg-muted/60"
       }`}
     >
       <button onClick={onSelect} className="flex-1 min-w-0 text-left">
         <div className="flex items-center gap-1">
-          {isCore && <Pin className="w-3 h-3 text-amber-400 flex-shrink-0" />}
-          <p className="text-xs font-medium truncate">{wf.name}</p>
+          {isCore && <Pin className="w-2.5 h-2.5 text-amber-400 flex-shrink-0" />}
+          <p className="text-[11px] font-medium truncate">{wf.name}</p>
         </div>
-        <p className="font-mono text-[10px] text-muted-foreground">
+        <p className="font-mono text-[9px] text-muted-foreground/60">
           {wf.steps.length} steps
-          {isTemplate && <span className="ml-1 text-primary/60">template</span>}
-          {isCore && <span className="ml-1 text-amber-400">core</span>}
+          {isTemplate && <span className="ml-1 text-primary/50">tmpl</span>}
+          {isCore && <span className="ml-1 text-amber-400/70">core</span>}
         </p>
       </button>
-      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-        <button
-          onClick={(e) => { e.stopPropagation(); onLoadToSlot(); }}
-          className="p-1 hover:text-primary transition-colors"
-          title="Load to active slot"
-        >
+      <div className="flex items-center gap-px opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+        <button onClick={(e) => { e.stopPropagation(); onLoadToSlot(); }} className="p-0.5 hover:text-primary transition-colors" title="Load to slot">
           <ArrowRight className="w-3 h-3" />
         </button>
         {onDuplicate && (
-          <button
-            onClick={(e) => { e.stopPropagation(); onDuplicate(); }}
-            className="p-1 hover:text-primary transition-colors"
-            title="Clone to empty slot"
-          >
+          <button onClick={(e) => { e.stopPropagation(); onDuplicate(); }} className="p-0.5 hover:text-primary transition-colors" title="Clone">
             <Copy className="w-3 h-3" />
           </button>
         )}
         {onSaveAsTemplate && (
-          <button
-            onClick={(e) => { e.stopPropagation(); onSaveAsTemplate(); }}
-            className="p-1 hover:text-primary transition-colors"
-            title="Save as template"
-          >
+          <button onClick={(e) => { e.stopPropagation(); onSaveAsTemplate(); }} className="p-0.5 hover:text-primary transition-colors" title="Save as template">
             <BookTemplate className="w-3 h-3" />
           </button>
         )}
         {!isCore && (
-          <button
-            onClick={(e) => { e.stopPropagation(); onDelete(); }}
-            className="p-1 hover:text-destructive transition-colors"
-            title="Delete"
-          >
+          <button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="p-0.5 hover:text-destructive transition-colors" title="Delete">
             <Trash2 className="w-3 h-3" />
           </button>
         )}

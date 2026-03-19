@@ -7,6 +7,7 @@ import { getAgentById } from "@/lib/agent-catalog";
 interface AgentPreviewCardProps {
   agentId: string;
   executionHistory: PipelineExecution[];
+  anchorRect?: { top: number; left: number; width: number; height: number } | null;
 }
 
 const departmentIcons: Record<AgentDepartment, React.ReactNode> = {
@@ -35,7 +36,6 @@ function computeAgentStats(agentId: string, history: PipelineExecution[]) {
 
   for (const exec of history) {
     for (const [stepId, result] of Object.entries(exec.stepResults)) {
-      // Match by agentId in stepId pattern (e.g. "s3-architect-agent")
       if (stepId.includes(agentId) || result.model?.includes(agentId)) {
         totalRuns++;
         if (result.status === "completed") successRuns++;
@@ -44,7 +44,6 @@ function computeAgentStats(agentId: string, history: PipelineExecution[]) {
           durationCount++;
         }
       }
-      // Also check quality scores
       const score = exec.qualityScores?.[stepId];
       if (score && stepId.includes(agentId)) {
         totalScore += score.overall;
@@ -61,17 +60,38 @@ function computeAgentStats(agentId: string, history: PipelineExecution[]) {
   };
 }
 
-export function AgentPreviewCard({ agentId, executionHistory }: AgentPreviewCardProps) {
+export function AgentPreviewCard({ agentId, executionHistory, anchorRect }: AgentPreviewCardProps) {
   const agent = getAgentById(agentId);
   if (!agent) return null;
 
   const stats = computeAgentStats(agentId, executionHistory);
 
-  return (
-    <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-[220px] bg-card border border-border rounded-lg shadow-xl p-3 pointer-events-none">
-      {/* Arrow */}
-      <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-card border-r border-b border-border rotate-45" />
+  const cardW = 220;
+  const vw = typeof window !== "undefined" ? window.innerWidth : 1920;
 
+  let posStyle: React.CSSProperties;
+
+  if (anchorRect) {
+    // Place directly above the node with transform to push up from the anchor top edge
+    let left = anchorRect.left + anchorRect.width / 2 - cardW / 2;
+    left = Math.max(8, Math.min(left, vw - cardW - 8));
+
+    posStyle = {
+      position: "fixed",
+      top: anchorRect.top - 2,
+      left,
+      width: cardW,
+      transform: "translateY(-100%)",
+    };
+  } else {
+    posStyle = { position: "absolute", bottom: "100%", left: "50%", transform: "translateX(-50%)", marginBottom: 2, width: cardW };
+  }
+
+  return (
+    <div
+      className="z-[60] bg-card border border-border rounded-lg shadow-xl p-3 pointer-events-none"
+      style={posStyle}
+    >
       <div className="flex items-center gap-2 mb-2">
         <span className={departmentColors[agent.department]}>
           {departmentIcons[agent.department]}
@@ -85,7 +105,6 @@ export function AgentPreviewCard({ agentId, executionHistory }: AgentPreviewCard
         <span className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{agent.provider}</span>
       </div>
 
-      {/* Stats from execution history */}
       {stats.totalRuns > 0 && (
         <div className="border-t border-border/50 pt-2 grid grid-cols-2 gap-1.5">
           {stats.avgScore !== null && (

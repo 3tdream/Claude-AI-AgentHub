@@ -133,16 +133,16 @@ export function PipelineGraph({
   }
 
   return (
-    <div className="overflow-x-auto pb-4">
-      <div className="flex items-center gap-1 min-w-max px-4 py-6">
+    <div className="pb-4">
+      <div className="flex flex-wrap items-center gap-y-2 gap-x-0.5 px-4 py-4">
         {isEditable && (
           <InsertStepButton position={0} onClick={onInsertAtPosition!} />
         )}
 
         {stepGroups.map((group, gi) => (
-          <div key={gi} className="flex items-center gap-1">
+          <div key={gi} className="flex items-center gap-0.5">
             {gi > 0 && (
-              <ArrowRight className="w-4 h-4 text-border flex-shrink-0 mx-1" />
+              <ArrowRight className="w-3.5 h-3.5 text-border/60 flex-shrink-0 mx-0.5" />
             )}
 
             {group.type === "single" && (() => {

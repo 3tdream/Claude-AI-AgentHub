@@ -39,18 +39,18 @@ export function ParallelBranch({
   return (
     <div className="flex items-center gap-0">
       {/* Fork line */}
-      <div className="relative w-6 flex-shrink-0">
-        <svg width="24" height={steps.length * 80} viewBox={`0 0 24 ${steps.length * 80}`} className="overflow-visible">
+      <div className="relative w-5 flex-shrink-0">
+        <svg width="20" height={steps.length * 64} viewBox={`0 0 20 ${steps.length * 64}`} className="overflow-visible">
           {steps.map((_, i) => {
-            const y = i * 80 + 40;
-            const midY = (steps.length * 80) / 2;
+            const y = i * 64 + 32;
+            const midY = (steps.length * 64) / 2;
             return (
               <path
                 key={i}
-                d={`M 0 ${midY} C 12 ${midY}, 12 ${y}, 24 ${y}`}
+                d={`M 0 ${midY} C 10 ${midY}, 10 ${y}, 20 ${y}`}
                 fill="none"
                 stroke="hsl(var(--border))"
-                strokeWidth="2"
+                strokeWidth="1.5"
               />
             );
           })}
@@ -89,18 +89,18 @@ export function ParallelBranch({
       </div>
 
       {/* Join line */}
-      <div className="relative w-6 flex-shrink-0">
-        <svg width="24" height={steps.length * 80} viewBox={`0 0 24 ${steps.length * 80}`} className="overflow-visible">
+      <div className="relative w-5 flex-shrink-0">
+        <svg width="20" height={steps.length * 64} viewBox={`0 0 20 ${steps.length * 64}`} className="overflow-visible">
           {steps.map((_, i) => {
-            const y = i * 80 + 40;
-            const midY = (steps.length * 80) / 2;
+            const y = i * 64 + 32;
+            const midY = (steps.length * 64) / 2;
             return (
               <path
                 key={i}
-                d={`M 0 ${y} C 12 ${y}, 12 ${midY}, 24 ${midY}`}
+                d={`M 0 ${y} C 10 ${y}, 10 ${midY}, 20 ${midY}`}
                 fill="none"
                 stroke="hsl(var(--border))"
-                strokeWidth="2"
+                strokeWidth="1.5"
               />
             );
           })}

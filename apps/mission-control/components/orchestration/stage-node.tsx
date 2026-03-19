@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { createPortal } from "react-dom";
 import {
   Search, Cpu, ClipboardList, Boxes, Shield, Server, Monitor, Palette,
   ShieldCheck, TestTube, Container, FileText, CircleCheck, CircleX,
@@ -67,10 +68,18 @@ export function StageNode({
   const styles = STATUS_STYLES[status];
   const isCheckpoint = metadata?.isCheckpoint;
   const [showPreview, setShowPreview] = useState(false);
+  const [anchorRect, setAnchorRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
 
   function handleMouseEnter() {
-    hoverTimer.current = setTimeout(() => setShowPreview(true), 400);
+    hoverTimer.current = setTimeout(() => {
+      if (btnRef.current) {
+        const r = btnRef.current.getBoundingClientRect();
+        setAnchorRect({ top: r.top, left: r.left, width: r.width, height: r.height });
+      }
+      setShowPreview(true);
+    }, 400);
   }
 
   function handleMouseLeave() {
@@ -78,8 +87,9 @@ export function StageNode({
     setShowPreview(false);
   }
 
-  return (
+  return (<>
     <button
+      ref={btnRef}
       onClick={onClick}
       onContextMenu={onContextMenu}
       onMouseEnter={handleMouseEnter}
@@ -89,49 +99,41 @@ export function StageNode({
       onDragOver={onDragOver}
       onDrop={onDrop}
       className={`
-        relative flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all cursor-pointer
-        min-w-[80px] group
-        ${selected ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""}
+        relative flex flex-col items-center gap-1 p-1.5 rounded-lg transition-all cursor-pointer
+        min-w-[56px] group
+        ${selected ? "ring-2 ring-primary ring-offset-1 ring-offset-background" : ""}
         ${disabled ? "opacity-35 grayscale" : ""}
         ${draggable ? "cursor-grab active:cursor-grabbing" : ""}
         hover:scale-105
       `}
     >
-      {/* Agent preview card on hover */}
-      {showPreview && executionHistory && (
-        <AgentPreviewCard
-          agentId={agentId}
-          executionHistory={executionHistory}
-        />
-      )}
-
       {/* Node circle */}
       <div
         className={`
-          w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all
+          w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all
           ${styles.bg} ${styles.border}
           ${status === "running" || status === "retrying" ? "animate-pulse" : ""}
-          ${isCheckpoint ? "rounded-lg" : ""}
+          ${isCheckpoint ? "rounded-md" : ""}
           ${escalated ? "ring-2 ring-red-500 ring-offset-1 ring-offset-background" : ""}
         `}
       >
         {status === "running" ? (
-          <Loader2 className={`w-5 h-5 ${styles.text} animate-spin`} />
+          <Loader2 className={`w-4 h-4 ${styles.text} animate-spin`} />
         ) : status === "retrying" ? (
-          <Loader2 className="w-5 h-5 text-orange-500 animate-spin" />
+          <Loader2 className="w-4 h-4 text-orange-500 animate-spin" />
         ) : status === "completed" ? (
-          <CircleCheck className="w-5 h-5 text-emerald-500" />
+          <CircleCheck className="w-4 h-4 text-emerald-500" />
         ) : status === "failed" ? (
-          <CircleX className="w-5 h-5 text-red-500" />
+          <CircleX className="w-4 h-4 text-red-500" />
         ) : status === "awaiting_approval" ? (
-          <ShieldAlert className="w-5 h-5 text-amber-500" />
+          <ShieldAlert className="w-4 h-4 text-amber-500" />
         ) : (
-          <Icon className={`w-5 h-5 ${styles.text}`} />
+          <Icon className={`w-4 h-4 ${styles.text}`} />
         )}
       </div>
 
       {/* Label */}
-      <span className="font-mono text-[10px] text-center leading-tight max-w-[80px] truncate">
+      <span className="font-mono text-[9px] text-center leading-tight max-w-[60px] truncate">
         {agentName}
       </span>
 
@@ -145,7 +147,7 @@ export function StageNode({
       {/* Quality score dot */}
       {qualityScore !== undefined && status === "completed" && (
         <div
-          className={`absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold text-white
+          className={`absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center text-[7px] font-bold text-white
             ${qualityScore >= 8 ? "bg-emerald-500" : qualityScore >= 6 ? "bg-amber-500" : "bg-red-500"}
           `}
         >
@@ -155,14 +157,14 @@ export function StageNode({
 
       {/* Retry count badge */}
       {retryCount !== undefined && retryCount > 0 && (
-        <div className="absolute -bottom-1 -left-1 w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold text-white bg-orange-500">
+        <div className="absolute -bottom-0.5 -left-0.5 w-4 h-4 rounded-full flex items-center justify-center text-[7px] font-bold text-white bg-orange-500">
           R{retryCount}
         </div>
       )}
 
       {/* Escalation indicator */}
       {escalated && (
-        <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold text-white bg-red-600">
+        <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center text-[7px] font-bold text-white bg-red-600">
           !
         </div>
       )}
@@ -179,5 +181,15 @@ export function StageNode({
         <div className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-border" />
       )}
     </button>
+    {/* Portal: render preview card at document.body to avoid overflow clipping */}
+    {showPreview && executionHistory && typeof document !== "undefined" && createPortal(
+      <AgentPreviewCard
+        agentId={agentId}
+        executionHistory={executionHistory}
+        anchorRect={anchorRect}
+      />,
+      document.body,
+    )}
+  </>
   );
 }
