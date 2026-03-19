@@ -385,13 +385,16 @@ export default function OrchestrationPage() {
               }`}>
                 <button onClick={() => {
                   setSelectedWorkflow(wf);
-                  // Restore last execution for this workflow, or clear if none
+                  // Restore last execution + task input for this workflow
                   const lastExec = executionHistory.find((e) => e.workflowId === wf.id);
                   if (lastExec) {
                     setActiveExecution(lastExec);
+                    setInput(lastExec.input || "");
                   } else if (activeExecution?.workflowId !== wf.id) {
                     setActiveExecution(null);
+                    setInput("");
                   }
+                  setRoutingDecision(null);
                 }} className="text-left flex-1 min-w-0">
                   {editingWfId === wf.id ? (
                     <input
@@ -459,7 +462,7 @@ export default function OrchestrationPage() {
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">{selectedWorkflow.description}</p>
+                    <p className="text-sm text-muted-foreground mt-1 max-w-[700px]">{selectedWorkflow.description}</p>
                   </div>
                   {activeExecution && (
                     <div className="flex items-center gap-3">
@@ -671,7 +674,7 @@ export default function OrchestrationPage() {
                             </span>
                           )}
                         </div>
-                        <p className="font-mono text-[10px] text-muted-foreground whitespace-pre-wrap break-words mt-0.5">
+                        <p className="font-mono text-[10px] text-muted-foreground mt-0.5 truncate max-w-[600px]">
                           {exec.input}
                         </p>
                       </div>
@@ -697,6 +700,59 @@ export default function OrchestrationPage() {
 
                   {isExpanded && (
                     <div className="px-3 pb-3 pt-2 space-y-3 border-t border-border/30 ml-7">
+                      {/* Full task input — selectable */}
+                      <div className="space-y-1">
+                        <p className="font-mono text-[9px] text-muted-foreground uppercase tracking-wider">Task Input</p>
+                        <div className="bg-background rounded-lg p-3 border border-border/30 select-text cursor-text">
+                          <p className="font-mono text-xs text-foreground/90 whitespace-pre-wrap break-words">{exec.input}</p>
+                        </div>
+                      </div>
+
+                      {/* Step results — selectable logs */}
+                      {Object.keys(exec.stepResults).length > 0 && (
+                        <div className="space-y-1.5">
+                          <p className="font-mono text-[9px] text-muted-foreground uppercase tracking-wider">
+                            Stage Results ({Object.keys(exec.stepResults).length} steps)
+                          </p>
+                          <div className="space-y-1 max-h-[300px] overflow-y-auto">
+                            {Object.values(exec.stepResults)
+                              .sort((a, b) => (a.startedAt || "").localeCompare(b.startedAt || ""))
+                              .map((step) => {
+                                const score = exec.qualityScores?.[step.stepId]?.overall;
+                                return (
+                              <details key={step.stepId} className="rounded-lg border border-border/30 overflow-hidden group">
+                                <summary className="flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-muted/50 transition-colors">
+                                  {step.status === "completed" ? (
+                                    <CheckCircle2 className="w-3 h-3 text-emerald-500 flex-shrink-0" />
+                                  ) : step.status === "failed" ? (
+                                    <XCircle className="w-3 h-3 text-red-500 flex-shrink-0" />
+                                  ) : (
+                                    <Clock className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                                  )}
+                                  <span className="font-mono text-[11px] font-medium">{step.stepId}</span>
+                                  {score != null && (
+                                    <span className={`font-mono text-[9px] px-1.5 py-0.5 rounded ${
+                                      score >= 8 ? "bg-emerald-500/10 text-emerald-400" :
+                                      score >= 6 ? "bg-amber-500/10 text-amber-400" :
+                                      "bg-red-500/10 text-red-400"
+                                    }`}>{score}/10</span>
+                                  )}
+                                  {step.retryCount ? <span className="font-mono text-[9px] text-amber-400">R{step.retryCount}</span> : null}
+                                  {step.error && <span className="font-mono text-[9px] text-red-400 truncate max-w-[200px]">{step.error}</span>}
+                                </summary>
+                                <div className="bg-background p-3 border-t border-border/30 select-text cursor-text max-h-[200px] overflow-y-auto">
+                                  {step.evaluationFeedback && (
+                                    <p className="font-mono text-[10px] text-amber-400/80 mb-2 whitespace-pre-wrap break-words">Feedback: {step.evaluationFeedback}</p>
+                                  )}
+                                  <pre className="font-mono text-[10px] text-foreground/80 whitespace-pre-wrap break-words">{step.output || step.error || "(no output)"}</pre>
+                                </div>
+                              </details>
+                                );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
                       {exec.status === "completed" && (
                         <div className="space-y-1.5">
                           <p className="font-mono text-[9px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
