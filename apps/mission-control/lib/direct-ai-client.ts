@@ -216,6 +216,22 @@ export async function callAIWithTools(req: ToolCallAIRequest): Promise<DirectAIR
 
     const toolResults: Anthropic.Messages.ToolResultBlockParam[] = [];
     for (const toolUse of toolUseBlocks) {
+      // Шаг 4: Force first tool call enforcement for implementation agents
+      if (toolCallLogs.length === 0 && req.readBudget !== undefined && req.readBudget <= 2) {
+        // This is an implementation agent's first call
+        if (toolUse.name === "read_file" || toolUse.name === "list_files") {
+          // Redirect: execute the read but inject correction
+          const result = await req.onToolCall!(toolUse.name, toolUse.input as Record<string, string>);
+          toolCallLogs.push({ name: toolUse.name, input: toolUse.input as Record<string, string>, output: result.output.substring(0, 500), success: result.success, durationMs: 0 });
+          toolResults.push({
+            type: "tool_result", tool_use_id: toolUse.id,
+            content: result.output.substring(0, 3000) + `\n\n🛑 CORRECTION: Your first tool call should have been edit_file or create_file, not ${toolUse.name}. You now have the content. Your NEXT call MUST be edit_file or create_file. Do NOT read any more files.`,
+            is_error: false,
+          });
+          continue;
+        }
+      }
+
       if (req.onToolCall) {
         const toolStart = Date.now();
         const result = await req.onToolCall(toolUse.name, toolUse.input as Record<string, string>);
@@ -226,13 +242,20 @@ export async function callAIWithTools(req: ToolCallAIRequest): Promise<DirectAIR
           success: result.success,
           durationMs: Date.now() - toolStart,
         });
-        // Truncate tool output to prevent context explosion
-        // Tool output limits from config
-        const TOOL_LIMITS: Record<string, number> = { read_file: 12000, list_files: 12000, run_command: 10000 };
+        // Truncate + summarize tool output to prevent context explosion
+        const TOOL_LIMITS: Record<string, number> = { read_file: 12000, list_files: 12000, run_command: 5000 };
         const maxOutputLen = TOOL_LIMITS[toolUse.name] || 8000;
-        const truncatedOutput = result.output.length > maxOutputLen
-          ? result.output.substring(0, maxOutputLen) + `\n\n... (truncated at ${maxOutputLen} chars. Use line_start/line_end for specific sections)`
-          : result.output;
+        let truncatedOutput = result.output;
+        // Summarize run_command output if too large (saves QA tokens)
+        if (toolUse.name === "run_command" && result.output.length > 5000) {
+          const lines = result.output.split("\n");
+          const errorLines = lines.filter((l: string) => /error|Error|ERR|fail/i.test(l));
+          truncatedOutput = errorLines.length > 0
+            ? `${errorLines.length} errors found (${lines.length} total lines):\n${errorLines.slice(0, 20).join("\n")}\n\n... (${lines.length - 20} more lines omitted)`
+            : `Command output: ${lines.length} lines, no errors detected.\nFirst 10 lines:\n${lines.slice(0, 10).join("\n")}`;
+        } else if (truncatedOutput.length > maxOutputLen) {
+          truncatedOutput = truncatedOutput.substring(0, maxOutputLen) + `\n\n... (truncated at ${maxOutputLen} chars)`;
+        }
 
         toolResults.push({
           type: "tool_result",
@@ -255,15 +278,24 @@ export async function callAIWithTools(req: ToolCallAIRequest): Promise<DirectAIR
       if (tc.name === "list_files" || tc.name === "read_file") readOnlyCallCount++;
     }
 
-    // Inject budget warning into the last tool_result content
-    if (readOnlyCallCount >= READ_LIMIT && !toolCallLogs.some((tc) => tc.name === "edit_file" || tc.name === "create_file")) {
+    // Directive read guard — forces agent to stop reading
+    const hasEdited = toolCallLogs.some((tc) => tc.name === "edit_file" || tc.name === "create_file");
+    if (readOnlyCallCount >= 2 && !hasEdited) {
       const last = toolResults[toolResults.length - 1];
       if (last && typeof last.content === "string") {
-        last.content += `\n\n⚠️ BUDGET WARNING: You have used ${readOnlyCallCount} read calls without making any edits. You MUST now either: (1) call edit_file/create_file to implement changes, or (2) output your final analysis. Do NOT read more files.`;
+        last.content += `\n\n🛑 STOP READING. You have made ${readOnlyCallCount} read calls without any edits. You already have enough context. Your NEXT call MUST be edit_file or create_file. If you call read_file again, your output will be scored 0.`;
       }
     }
 
     messages.push({ role: "user", content: toolResults });
+  }
+
+  // If no text was produced but tool calls were made, synthesize content from tool outputs
+  if (!finalContent && toolCallLogs.length > 0) {
+    finalContent = toolCallLogs
+      .filter(t => t.success)
+      .map(t => `[${t.name}]: ${t.output.substring(0, 500)}`)
+      .join("\n\n") || "(Agent completed tool calls but produced no text output)";
   }
 
   return {

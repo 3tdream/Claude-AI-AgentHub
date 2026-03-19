@@ -329,8 +329,17 @@ export async function executePipeline(
 
         const data = await res.json();
 
-        if (!data.success || !data.content) {
-          throw new Error(data.error || `Execution failed (success=${data.success}, contentLen=${data.content?.length || 0})`);
+        if (!data.success) {
+          throw new Error(data.error || `Execution failed (success=false)`);
+        }
+
+        // Empty content with success=true — retry via loop (transient Agent Hub issue)
+        if (!data.content) {
+          if (retryCount < MAX_RETRIES) {
+            retryCount++;
+            continue;
+          }
+          throw new Error(data.error || `Agent returned empty response after ${retryCount + 1} attempts`);
         }
 
         const agentOutput = data.content;
