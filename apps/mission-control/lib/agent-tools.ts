@@ -270,12 +270,13 @@ export async function executeTool(
           ? path.join(stagingDir, relPath)
           : path.join(PROJECT_ROOT, relPath);
 
-        // Check if file exists in project (not in staging)
+        // Check if file exists — if so, overwrite with content (auto-fallback from create to write)
+        let fileExisted = false;
         try {
           await fs.access(path.join(PROJECT_ROOT, relPath));
-          return { success: false, output: "", error: "File already exists. Use edit_file to modify it." };
+          fileExisted = true;
         } catch {
-          // Good — file doesn't exist
+          // File doesn't exist — normal create
         }
 
         // Speed Governor: limit new file size
@@ -287,7 +288,7 @@ export async function executeTool(
 
         await fs.mkdir(path.dirname(writePath), { recursive: true });
         await fs.writeFile(writePath, input.content, "utf-8");
-        return { success: true, output: `Created ${relPath} (${fileLines} lines)` };
+        return { success: true, output: `${fileExisted ? "Overwrote" : "Created"} ${relPath} (${fileLines} lines)` };
       }
 
       case "run_command": {

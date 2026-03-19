@@ -172,6 +172,34 @@ export async function executePipeline(
       } catch { /* cache miss — run normally */ }
     }
 
+    // --- Smart Skip: skip implementation agents if Architect determined no work for them ---
+    const skipCandidates: Record<string, RegExp> = {
+      "frontend-agent": /no\s*(frontend|ui|client|component)\s*(change|work|needed|required)/i,
+      "backend-agent": /no\s*(backend|api|server|endpoint)\s*(change|work|needed|required)/i,
+      "designer-agent": /no\s*(design|css|styling|token)\s*(change|work|needed|required)/i,
+    };
+    if (skipCandidates[step.agentId]) {
+      const architectOutput = context["step_s3-architect_output"] || "";
+      const orchestratorOutput = context["step_s1-orchestrator_output"] || "";
+      const combinedUpstream = architectOutput + "\n" + orchestratorOutput;
+      if (skipCandidates[step.agentId].test(combinedUpstream)) {
+        execution.stepResults[step.id] = {
+          stepId: step.id,
+          status: "completed",
+          output: "Smart Skip: Architect determined no work required for this agent.",
+          completedAt: new Date().toISOString(),
+          source: "skipped" as any,
+        };
+        if (execution.qualityScores) {
+          execution.qualityScores[step.id] = { completeness: 10, specificity: 10, actionability: 10, overall: 10 };
+        }
+        callbacks.onUpdate({ ...execution });
+        postLog({ type: "system", agentId: step.agentId, agentName: step.agentName, content: `Smart Skip: ${step.agentName} — no work determined by Architect` }).catch(() => {});
+        completed.add(step.id);
+        return true;
+      }
+    }
+
     // --- Checkpoint handling ---
     if (step.metadata?.isCheckpoint) {
       execution.stepResults[step.id] = {
