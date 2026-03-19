@@ -10,6 +10,9 @@ const nextConfig: NextConfig = {
     // agents/ subdirectory has its own deps — exclude from build
     ignoreBuildErrors: false,
   },
+  turbopack: {
+    root: ".",
+  },
 };
 
 export default nextConfig;

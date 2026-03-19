@@ -293,10 +293,16 @@ export async function executePipeline(
         });
 
         if (timer) clearTimeout(timer);
+
+        if (!res.ok) {
+          const errText = await res.text().catch(() => "");
+          throw new Error(`API ${res.status}: ${errText.slice(0, 200)}`);
+        }
+
         const data = await res.json();
 
         if (!data.success || !data.content) {
-          throw new Error(data.error || "Execution failed");
+          throw new Error(data.error || `Execution failed (success=${data.success}, contentLen=${data.content?.length || 0})`);
         }
 
         const agentOutput = data.content;
@@ -382,6 +388,7 @@ export async function executePipeline(
           agentOutput,
           threshold,
           step.agentId,
+          data.toolCalls || undefined,
         );
 
         if (execution.qualityScores) {

@@ -11,7 +11,7 @@ const EVALUATION_PROMPT = `You are the Orchestrator quality evaluator. Evaluate 
 
 AGENT: {{agentName}} (Stage {{stageNumber}})
 TASK CONTEXT: {{taskInput}}
-AGENT OUTPUT:
+{{toolCallSection}}AGENT OUTPUT:
 ---
 {{agentOutput}}
 ---
@@ -82,6 +82,12 @@ const RETRY_PROMPT = `You are {{agentName}}. RETRY ATTEMPT — your previous out
  * Calls the Orchestrator agent to evaluate another agent's output.
  * Returns parsed quality scores and pass/fail decision.
  */
+export interface ToolCallInfo {
+  name: string;
+  input: Record<string, string>;
+  success: boolean;
+}
+
 export async function evaluateStepOutput(
   agentName: string,
   stageNumber: string,
@@ -89,20 +95,32 @@ export async function evaluateStepOutput(
   agentOutput: string,
   passThreshold?: number,
   agentId?: string,
+  toolCalls?: ToolCallInfo[],
 ): Promise<EvaluationResult> {
-  // Auto-fail if output is too short — agent didn't produce real work
-  if (!agentOutput || agentOutput.trim().length < 100) {
+  // Auto-fail if output is too short AND no tool calls were made
+  if ((!agentOutput || agentOutput.trim().length < 100) && (!toolCalls || toolCalls.length === 0)) {
     return {
       score: { completeness: 0, specificity: 0, actionability: 0, overall: 0 },
       passed: false,
-      feedback: `Output too short (${agentOutput?.trim().length || 0} chars). Agent did not produce meaningful output — likely stuck in tool loop or timed out.`,
+      feedback: `Output too short (${agentOutput?.trim().length || 0} chars) with no tool calls. Agent did not produce meaningful output.`,
     };
+  }
+
+  // Build tool call summary for evaluator context
+  let toolCallSection = "";
+  if (toolCalls && toolCalls.length > 0) {
+    const lines = toolCalls.map(tc => {
+      const file = tc.input?.path || tc.input?.file_path || tc.input?.command || "";
+      return `  ${tc.success ? "✓" : "✗"} ${tc.name}(${file})`;
+    });
+    toolCallSection = `TOOL CALLS MADE (${toolCalls.length} total):\n${lines.join("\n")}\n\nIMPORTANT: The agent used tools to perform real actions (file edits, file creation, commands).\nEvaluate the TOOL ACTIONS + TEXT OUTPUT together. If tools succeeded (create_file, edit_file), the agent DID deliver — even if the text output is brief.\n\n`;
   }
 
   const prompt = EVALUATION_PROMPT
     .replace("{{agentName}}", agentName)
     .replace("{{stageNumber}}", stageNumber)
     .replace("{{taskInput}}", taskInput.slice(0, 500))
+    .replace("{{toolCallSection}}", toolCallSection)
     .replace("{{agentOutput}}", agentOutput.slice(0, 4000));
 
   try {
