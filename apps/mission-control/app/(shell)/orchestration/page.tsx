@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
-import { GitBranch, Plus, Play, Trash2, History, Clock, CheckCircle2, XCircle, ExternalLink, Brain, Loader2, Download, FolderOpen, ChevronDown, ChevronRight, FileCode2, Rocket, Pencil, Check } from "lucide-react";
+import { GitBranch, Plus, Play, Trash2, History, Clock, CheckCircle2, XCircle, ExternalLink, Brain, Loader2, Download, FolderOpen, ChevronDown, ChevronRight, FileCode2, Rocket, Pencil, Check, X } from "lucide-react";
 import { useOrchestrationStore } from "@/lib/stores/orchestration-store";
 import { CRM_PIPELINE_TEMPLATE } from "@/lib/pipeline-templates";
 import { executePipeline } from "@/lib/pipeline-executor";
@@ -40,6 +40,8 @@ export default function OrchestrationPage() {
   const [discardTarget, setDiscardTarget] = useState<string | null>(null);
   const [discardReason, setDiscardReason] = useState("");
   const [discardCategory, setDiscardCategory] = useState<string>("other");
+  const [showNameDialog, setShowNameDialog] = useState<"template" | "new" | null>(null);
+  const [newWfName, setNewWfName] = useState("");
 
   // Available projects for context injection
   const [availableProjects, setAvailableProjects] = useState<string[]>([]);
@@ -57,14 +59,29 @@ export default function OrchestrationPage() {
     rejected: false,
   });
 
-  function createFromTemplate() {
-    const wf: Workflow = {
-      ...CRM_PIPELINE_TEMPLATE,
-      id: generateId(),
-      createdAt: new Date().toISOString(),
-    };
+  function openCreateFromTemplate() {
+    setNewWfName("");
+    setShowNameDialog("template");
+  }
+
+  function openCreateNew() {
+    setNewWfName("");
+    setShowNameDialog("new");
+  }
+
+  function confirmCreateWorkflow() {
+    const name = newWfName.trim() || (showNameDialog === "template"
+      ? `CRM Pipeline — ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+      : `Workflow — ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}`);
+
+    const wf: Workflow = showNameDialog === "template"
+      ? { ...CRM_PIPELINE_TEMPLATE, id: generateId(), name, createdAt: new Date().toISOString() }
+      : { id: generateId(), name, description: "Custom multi-agent workflow", steps: [], createdAt: new Date().toISOString() };
+
     addWorkflow(wf);
     setSelectedWorkflow(wf);
+    setShowNameDialog(null);
+    setNewWfName("");
   }
 
   const handleApproveCheckpoint = useCallback(() => {
@@ -346,10 +363,10 @@ export default function OrchestrationPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <button onClick={createFromTemplate} className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-sm hover:border-primary/50 transition-colors">
+          <button onClick={openCreateFromTemplate} className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-sm hover:border-primary/50 transition-colors">
             <GitBranch className="w-4 h-4" /> CRM Pipeline Template
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-mono text-xs uppercase tracking-wider hover:bg-primary/90 transition-colors">
+          <button onClick={openCreateNew} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-mono text-xs uppercase tracking-wider hover:bg-primary/90 transition-colors">
             <Plus className="w-4 h-4" /> New Workflow
           </button>
         </div>
@@ -366,7 +383,16 @@ export default function OrchestrationPage() {
               <div key={wf.id} className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-all ${
                 selectedWorkflow?.id === wf.id ? "bg-primary/10 border border-primary/20" : "hover:bg-muted"
               }`}>
-                <button onClick={() => setSelectedWorkflow(wf)} className="text-left flex-1 min-w-0">
+                <button onClick={() => {
+                  setSelectedWorkflow(wf);
+                  // Restore last execution for this workflow, or clear if none
+                  const lastExec = executionHistory.find((e) => e.workflowId === wf.id);
+                  if (lastExec) {
+                    setActiveExecution(lastExec);
+                  } else if (activeExecution?.workflowId !== wf.id) {
+                    setActiveExecution(null);
+                  }
+                }} className="text-left flex-1 min-w-0">
                   {editingWfId === wf.id ? (
                     <input
                       autoFocus
@@ -849,6 +875,43 @@ export default function OrchestrationPage() {
                 className="px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 text-sm font-medium transition-colors"
               >
                 Discard & Save Feedback
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Workflow naming dialog */}
+      {showNameDialog && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center" onClick={() => setShowNameDialog(null)}>
+          <div className="bg-card border border-border rounded-xl p-6 w-[420px] shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-lg">
+                {showNameDialog === "template" ? "Create from CRM Template" : "New Workflow"}
+              </h3>
+              <button onClick={() => setShowNameDialog(null)} className="p-1 hover:text-destructive transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <p className="text-xs text-muted-foreground mb-4">
+              {showNameDialog === "template"
+                ? "13-step CRM pipeline with all agents. Name your workflow or leave blank for auto-generated name."
+                : "Create an empty workflow and add steps manually."}
+            </p>
+            <input
+              autoFocus
+              value={newWfName}
+              onChange={(e) => setNewWfName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") confirmCreateWorkflow(); if (e.key === "Escape") setShowNameDialog(null); }}
+              placeholder={showNameDialog === "template" ? "e.g. Beauty CRM v2" : "e.g. My Custom Pipeline"}
+              className="w-full bg-background border border-border rounded-lg px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none transition-colors mb-4"
+              maxLength={100}
+            />
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setShowNameDialog(null)} className="px-4 py-2 rounded-lg border border-border text-sm hover:bg-muted transition-colors">
+                Cancel
+              </button>
+              <button onClick={confirmCreateWorkflow} className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
+                Create
               </button>
             </div>
           </div>
