@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
-import { GitBranch, Plus, Play, Trash2, History, Clock, CheckCircle2, XCircle, ExternalLink, Brain, Loader2, Download, FolderOpen, ChevronDown, ChevronRight, FileCode2, Rocket, Pencil, Check, X } from "lucide-react";
+import { GitBranch, Plus, Play, Trash2, History, Clock, CheckCircle2, XCircle, ExternalLink, Brain, Loader2, Download, FolderOpen, ChevronDown, ChevronRight, FileCode2, Rocket, Pencil, Check, X, UserPlus, Pin, PinOff } from "lucide-react";
 import { useOrchestrationStore } from "@/lib/stores/orchestration-store";
 import { CRM_PIPELINE_TEMPLATE } from "@/lib/pipeline-templates";
 import { executePipeline } from "@/lib/pipeline-executor";
@@ -11,11 +11,21 @@ import { parseCodeBlocks, type ParsedCodeBlock } from "@/lib/code-block-parser";
 import { PipelineGraph } from "@/components/orchestration/pipeline-graph";
 import { StageDetailPanel } from "@/components/orchestration/stage-detail-panel";
 import { RoutingDecisionPanel } from "@/components/orchestration/routing-decision-panel";
-import type { Workflow, PipelineExecution, RoutingDecisionData, ExecutionMode } from "@/types";
+import { SlotBar } from "@/components/orchestration/slot-bar";
+import { TemplateLibrary } from "@/components/orchestration/template-library";
+import { RecruitmentCenter } from "@/components/orchestration/recruitment-center";
+import type { Workflow, PipelineExecution, RoutingDecisionData, ExecutionMode, AgentCatalogEntry } from "@/types";
 
 function generateId() {
   return Math.random().toString(36).substring(2, 10);
 }
+
+const EMPTY_SLOTS: [import("@/types").WorkflowSlot, import("@/types").WorkflowSlot, import("@/types").WorkflowSlot, import("@/types").WorkflowSlot] = [
+  { id: 0, workflowId: null, workflowName: null, status: "empty", projectContext: null, lastInput: "", executionId: null, progress: 0 },
+  { id: 1, workflowId: null, workflowName: null, status: "empty", projectContext: null, lastInput: "", executionId: null, progress: 0 },
+  { id: 2, workflowId: null, workflowName: null, status: "empty", projectContext: null, lastInput: "", executionId: null, progress: 0 },
+  { id: 3, workflowId: null, workflowName: null, status: "empty", projectContext: null, lastInput: "", executionId: null, progress: 0 },
+];
 
 export default function OrchestrationPage() {
   const {
@@ -25,9 +35,18 @@ export default function OrchestrationPage() {
     selectedStageId, selectStage,
     selectedProject, setSelectedProject,
     approveCheckpoint, rejectCheckpoint,
+    // V2: Slots
+    slots, activeSlotIndex,
+    setActiveSlot, loadWorkflowToSlot, clearSlot,
+    updateSlotInput, updateSlotProject,
+    insertStepAtPosition, removeStep,
+    // V2 Phase 2
+    reorderStep, toggleStepDisabled, toggleStepParallel,
+    duplicateStep, duplicateWorkflowToSlot,
+    // V2: Core pipelines
+    corePipelines, setCorePipeline, clearCorePipeline,
   } = useOrchestrationStore();
   const [input, setInput] = useState("");
-  const [selectedWorkflow, setSelectedWorkflow] = useState<Workflow | null>(null);
   const [routingDecision, setRoutingDecision] = useState<RoutingDecisionData | null>(null);
   const [isRouting, setIsRouting] = useState(false);
   const [expandedExecId, setExpandedExecId] = useState<string | null>(null);
@@ -42,6 +61,8 @@ export default function OrchestrationPage() {
   const [discardCategory, setDiscardCategory] = useState<string>("other");
   const [showNameDialog, setShowNameDialog] = useState<"template" | "new" | null>(null);
   const [newWfName, setNewWfName] = useState("");
+  const [showRecruitment, setShowRecruitment] = useState(false);
+  const [insertPosition, setInsertPosition] = useState<number | null>(null);
 
   // Available projects for context injection
   const [availableProjects, setAvailableProjects] = useState<string[]>([]);
@@ -51,6 +72,53 @@ export default function OrchestrationPage() {
       .then((d) => setAvailableProjects(d.projects || []))
       .catch(() => {});
   }, []);
+
+  // Derive the selected workflow from the active slot (guard against hydration with old localStorage)
+  const activeSlot = slots?.[activeSlotIndex] ?? { workflowId: null, workflowName: null, status: "empty" as const, projectContext: null, lastInput: "", executionId: null, progress: 0, id: 0 as const };
+  const selectedWorkflow = activeSlot.workflowId
+    ? (workflows.find((w) => w.id === activeSlot.workflowId) ?? null)
+    : null;
+
+  // Sync input from slot when switching
+  useEffect(() => {
+    setInput(activeSlot.lastInput || "");
+    setSelectedProject(activeSlot.projectContext);
+    setRoutingDecision(null);
+    // Restore last execution for this slot's workflow
+    if (activeSlot.workflowId) {
+      const lastExec = executionHistory.find((e) => e.workflowId === activeSlot.workflowId);
+      if (lastExec) {
+        setActiveExecution(lastExec);
+      } else {
+        setActiveExecution(null);
+      }
+    } else {
+      setActiveExecution(null);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSlotIndex]);
+
+  // Auto-load core pipeline when project context changes
+  const currentCorePipelineId = selectedProject ? (corePipelines?.[selectedProject] ?? null) : null;
+  const isCurrentWorkflowCore = selectedWorkflow ? currentCorePipelineId === selectedWorkflow.id : false;
+
+  useEffect(() => {
+    if (!selectedProject || !corePipelines) return;
+    const coreId = corePipelines[selectedProject];
+    if (!coreId) return;
+    // If active slot is empty, auto-load core pipeline
+    if (activeSlot.status === "empty") {
+      const coreWf = workflows.find((w) => w.id === coreId);
+      if (coreWf) loadWorkflowToSlot(activeSlotIndex, coreWf);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedProject]);
+
+  // Save input changes back to slot
+  function handleInputChange(val: string) {
+    setInput(val);
+    updateSlotInput(activeSlotIndex, val);
+  }
 
   // Checkpoint resolution refs
   const checkpointResolveRef = useRef<((approved: boolean) => void) | null>(null);
@@ -79,9 +147,105 @@ export default function OrchestrationPage() {
       : { id: generateId(), name, description: "Custom multi-agent workflow", steps: [], createdAt: new Date().toISOString() };
 
     addWorkflow(wf);
-    setSelectedWorkflow(wf);
+    // Auto-load into first empty slot, or the active slot
+    const emptySlotIdx = slots.findIndex((s) => s.status === "empty");
+    const targetSlot = emptySlotIdx !== -1 ? (emptySlotIdx as 0 | 1 | 2 | 3) : activeSlotIndex;
+    loadWorkflowToSlot(targetSlot, wf);
     setShowNameDialog(null);
     setNewWfName("");
+  }
+
+  function handleLoadToSlot(wf: Workflow) {
+    const emptySlotIdx = slots.findIndex((s) => s.status === "empty");
+    const targetSlot = emptySlotIdx !== -1 ? (emptySlotIdx as 0 | 1 | 2 | 3) : activeSlotIndex;
+    loadWorkflowToSlot(targetSlot, wf);
+  }
+
+  function handleSaveAsTemplate(wf: Workflow) {
+    const templateWf: Workflow = {
+      ...wf,
+      id: generateId(),
+      name: `${wf.name} (Template)`,
+      isTemplate: true,
+      createdAt: new Date().toISOString(),
+    };
+    addWorkflow(templateWf);
+  }
+
+  function handleSlotAdd(index: 0 | 1 | 2 | 3) {
+    setActiveSlot(index);
+    if (workflows.length === 0) {
+      openCreateFromTemplate();
+    }
+  }
+
+  // Recruitment Center: add agent to pipeline
+  function handleAddAgent(agent: AgentCatalogEntry) {
+    if (!selectedWorkflow) return;
+    const step = {
+      id: `s${selectedWorkflow.steps.length}-${agent.agentId}`,
+      agentId: agent.agentId,
+      agentName: agent.agentName,
+      promptTemplate: `{{input}}`,
+      dependsOn: selectedWorkflow.steps.length > 0
+        ? [selectedWorkflow.steps[selectedWorkflow.steps.length - 1].id]
+        : [],
+      outputKey: agent.agentId.replace("-agent", ""),
+      metadata: {
+        stageNumber: String(selectedWorkflow.steps.length),
+        qualityThreshold: agent.qualityThreshold,
+        leadAgent: agent.agentId,
+        model: agent.model,
+      },
+    };
+
+    if (insertPosition !== null) {
+      insertStepAtPosition(selectedWorkflow.id, step, insertPosition);
+      setInsertPosition(null);
+    } else {
+      // Append at end
+      insertStepAtPosition(selectedWorkflow.id, step, selectedWorkflow.steps.length);
+    }
+    setShowRecruitment(false);
+  }
+
+  // Recruitment Center: add multiple agents as parallel stage
+  function handleAddParallelAgents(agents: AgentCatalogEntry[]) {
+    if (!selectedWorkflow || agents.length < 2) return;
+    const groupId = `parallel-${generateId()}`;
+    const pos = Math.min(insertPosition ?? selectedWorkflow.steps.length, selectedWorkflow.steps.length);
+    agents.forEach((agent, i) => {
+      const step = {
+        id: `s${pos + i}-${agent.agentId}`,
+        agentId: agent.agentId,
+        agentName: agent.agentName,
+        promptTemplate: `{{input}}`,
+        dependsOn: pos > 0 ? [selectedWorkflow.steps[pos - 1]?.id].filter(Boolean) : [],
+        outputKey: agent.agentId.replace("-agent", ""),
+        metadata: {
+          stageNumber: String(pos + i),
+          qualityThreshold: agent.qualityThreshold,
+          leadAgent: agent.agentId,
+          model: agent.model,
+          isParallel: true,
+          group: groupId,
+        },
+      };
+      insertStepAtPosition(selectedWorkflow.id, step, pos + i);
+    });
+    setInsertPosition(null);
+  }
+
+  // Insert at position — opens recruitment center
+  function handleInsertAtPosition(position: number) {
+    setInsertPosition(position);
+    setShowRecruitment(true);
+  }
+
+  // Drag-to-slot from library
+  function handleDropToSlot(workflowId: string, slotIndex: 0 | 1 | 2 | 3) {
+    const wf = workflows.find((w) => w.id === workflowId);
+    if (wf) loadWorkflowToSlot(slotIndex, wf);
   }
 
   const handleApproveCheckpoint = useCallback(() => {
@@ -191,7 +355,10 @@ export default function OrchestrationPage() {
   // Resume a paused/failed/stopped execution
   async function resumeExecution(exec: PipelineExecution) {
     if (!selectedWorkflow) return;
-    const steps = filterStepsForRouting(selectedWorkflow.steps, exec.routingDecision || routingDecision!);
+    const effectiveRouting = exec.routingDecision ?? routingDecision ?? null;
+    const steps = effectiveRouting
+      ? filterStepsForRouting(selectedWorkflow.steps, effectiveRouting)
+      : selectedWorkflow.steps;
 
     checkpointStatusRef.current = { approved: false, rejected: false };
     useOrchestrationStore.getState().clearControlFlags();
@@ -214,7 +381,7 @@ export default function OrchestrationPage() {
         isPauseRequested: () => useOrchestrationStore.getState().pauseRequested,
         isStopRequested: () => useOrchestrationStore.getState().stopRequested,
       },
-      exec.routingDecision || routingDecision || undefined,
+      effectiveRouting || undefined,
       selectedProject,
       exec, // previousExecution — resume from here
     );
@@ -252,7 +419,6 @@ export default function OrchestrationPage() {
       const data = await res.json();
       setApplyResult((prev) => ({
         ...prev,
-        // staged=true, success=false: files are staged but NOT yet deployed
         [exec.id]: { success: false, staged: data.success, summary: data.summary },
       }));
     } catch {
@@ -299,7 +465,6 @@ export default function OrchestrationPage() {
   // Confirm discard with feedback
   async function handleConfirmDiscard() {
     if (!discardTarget) return;
-    // Save feedback to knowledge base
     if (discardReason.trim()) {
       fetch("/api/knowledge/feedback", {
         method: "POST",
@@ -311,7 +476,6 @@ export default function OrchestrationPage() {
         }),
       }).catch(() => {});
     }
-    // Delete staged files
     await fetch(`/api/orchestration/deploy?pipelineId=${discardTarget}`, { method: "DELETE" });
     setApplyResult((prev) => {
       const next = { ...prev };
@@ -328,7 +492,7 @@ export default function OrchestrationPage() {
     a.href = url;
     a.download = file.filePath.split("/").pop() || "file.txt";
     a.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 100);
   }
 
   function toggleFileView(execId: string, idx: number) {
@@ -338,12 +502,7 @@ export default function OrchestrationPage() {
     }));
   }
 
-  // Keep selectedWorkflow in sync with store (so rename reflects immediately in header)
-  const syncedSelectedWorkflow = selectedWorkflow
-    ? (workflows.find((w) => w.id === selectedWorkflow.id) ?? selectedWorkflow)
-    : null;
-
-  const selectedStep = syncedSelectedWorkflow?.steps.find((s) => s.id === selectedStageId);
+  const selectedStep = selectedWorkflow?.steps.find((s) => s.id === selectedStageId);
 
   const statusColors: Record<string, string> = {
     pending: "text-muted-foreground",
@@ -355,6 +514,7 @@ export default function OrchestrationPage() {
 
   return (
     <div className="space-y-6">
+      {/* Header with SlotBar */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight">Orchestration</h1>
@@ -362,88 +522,33 @@ export default function OrchestrationPage() {
             Smart multi-agent workflow pipelines
           </p>
         </div>
-        <div className="flex gap-2">
-          <button onClick={openCreateFromTemplate} className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-sm hover:border-primary/50 transition-colors">
-            <GitBranch className="w-4 h-4" /> CRM Pipeline Template
-          </button>
-          <button onClick={openCreateNew} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-mono text-xs uppercase tracking-wider hover:bg-primary/90 transition-colors">
-            <Plus className="w-4 h-4" /> New Workflow
-          </button>
+        <div className="flex items-center gap-4">
+          <SlotBar
+            slots={slots ?? EMPTY_SLOTS}
+            activeSlotIndex={activeSlotIndex ?? 0}
+            onSelectSlot={setActiveSlot}
+            onClearSlot={clearSlot}
+            onAddToSlot={handleSlotAdd}
+          />
         </div>
       </div>
 
       <div className="flex gap-4 h-[calc(100vh-12rem)]">
-        {/* Workflow list */}
-        <div className="w-72 flex-shrink-0 bg-card border border-border rounded-xl overflow-hidden flex flex-col">
-          <div className="px-4 py-3 border-b border-border">
-            <h2 className="font-bold text-sm">Workflows</h2>
-          </div>
-          <div className="flex-1 overflow-y-auto p-2 space-y-1">
-            {workflows.map((wf) => (
-              <div key={wf.id} className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-all ${
-                selectedWorkflow?.id === wf.id ? "bg-primary/10 border border-primary/20" : "hover:bg-muted"
-              }`}>
-                <button onClick={() => {
-                  setSelectedWorkflow(wf);
-                  // Restore last execution + task input for this workflow
-                  const lastExec = executionHistory.find((e) => e.workflowId === wf.id);
-                  if (lastExec) {
-                    setActiveExecution(lastExec);
-                    setInput(lastExec.input || "");
-                  } else if (activeExecution?.workflowId !== wf.id) {
-                    setActiveExecution(null);
-                    setInput("");
-                  }
-                  setRoutingDecision(null);
-                }} className="text-left flex-1 min-w-0">
-                  {editingWfId === wf.id ? (
-                    <input
-                      autoFocus
-                      value={editingName}
-                      onChange={(e) => setEditingName(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          const trimmed = editingName.trim();
-                          if (trimmed) updateWorkflow(wf.id, { name: trimmed });
-                          setEditingWfId(null);
-                        }
-                        if (e.key === "Escape") setEditingWfId(null);
-                      }}
-                      onBlur={() => {
-                        const trimmed = editingName.trim();
-                        if (trimmed) updateWorkflow(wf.id, { name: trimmed });
-                        setEditingWfId(null);
-                      }}
-                      onClick={(e) => e.stopPropagation()}
-                      maxLength={100}
-                      className="w-full bg-background border border-primary/30 rounded px-1.5 py-0.5 text-sm font-medium focus:outline-none focus:border-primary"
-                    />
-                  ) : (
-                    <div className="text-sm font-medium truncate">{wf.name}</div>
-                  )}
-                  <div className="font-mono text-[10px] text-muted-foreground">{wf.steps.length} steps</div>
-                </button>
-                <div className="flex items-center gap-0.5 flex-shrink-0">
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setEditingWfId(wf.id); setEditingName(wf.name); }}
-                    className="p-1 hover:text-primary transition-colors"
-                    title="Rename"
-                  >
-                    <Pencil className="w-3 h-3" />
-                  </button>
-                  <button onClick={() => deleteWorkflow(wf.id)} className="p-1 hover:text-destructive transition-colors">
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-            ))}
-            {workflows.length === 0 && (
-              <p className="text-center font-mono text-[10px] text-muted-foreground py-8">
-                No workflows yet. Create from template.
-              </p>
-            )}
-          </div>
-        </div>
+        {/* Template Library sidebar */}
+        <TemplateLibrary
+          workflows={workflows}
+          selectedWorkflowId={selectedWorkflow?.id ?? null}
+          slots={slots ?? EMPTY_SLOTS}
+          onSelectWorkflow={(wf) => handleLoadToSlot(wf)}
+          onLoadToSlot={handleLoadToSlot}
+          onSaveAsTemplate={handleSaveAsTemplate}
+          onDeleteWorkflow={deleteWorkflow}
+          onCreateFromTemplate={openCreateFromTemplate}
+          onCreateNew={openCreateNew}
+          onDuplicateToSlot={duplicateWorkflowToSlot}
+          onDropToSlot={handleDropToSlot}
+          corePipelineIds={new Set(Object.values(corePipelines ?? {}))}
+        />
 
         {/* Workflow detail + execution */}
         <div className="flex-1 bg-card border border-border rounded-xl flex flex-col overflow-hidden">
@@ -453,16 +558,79 @@ export default function OrchestrationPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="flex items-center gap-2">
-                      <h2 className="font-bold text-lg">{selectedWorkflow.name}</h2>
+                      {editingWfId === selectedWorkflow.id ? (
+                        <input
+                          autoFocus
+                          value={editingName}
+                          onChange={(e) => setEditingName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              const trimmed = editingName.trim();
+                              if (trimmed) updateWorkflow(selectedWorkflow.id, { name: trimmed });
+                              setEditingWfId(null);
+                            }
+                            if (e.key === "Escape") setEditingWfId(null);
+                          }}
+                          onBlur={() => {
+                            const trimmed = editingName.trim();
+                            if (trimmed) updateWorkflow(selectedWorkflow.id, { name: trimmed });
+                            setEditingWfId(null);
+                          }}
+                          maxLength={100}
+                          className="bg-background border border-primary/30 rounded px-2 py-0.5 text-lg font-bold focus:outline-none focus:border-primary"
+                        />
+                      ) : (
+                        <>
+                          <h2 className="font-bold text-lg">{selectedWorkflow.name}</h2>
+                          <button
+                            onClick={() => { setEditingWfId(selectedWorkflow.id); setEditingName(selectedWorkflow.name); }}
+                            className="p-1 hover:text-primary transition-colors opacity-50 hover:opacity-100"
+                            title="Rename pipeline"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                        </>
+                      )}
                       <button
-                        onClick={() => { setEditingWfId(selectedWorkflow.id); setEditingName(selectedWorkflow.name); }}
-                        className="p-1 hover:text-primary transition-colors opacity-50 hover:opacity-100"
-                        title="Rename pipeline"
+                        onClick={() => { setInsertPosition(null); setShowRecruitment(true); }}
+                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border text-xs text-muted-foreground hover:text-primary hover:border-primary/50 transition-all ml-2"
+                        title="Add agent to pipeline"
                       >
-                        <Pencil className="w-3.5 h-3.5" />
+                        <UserPlus className="w-3.5 h-3.5" />
+                        <span className="font-mono text-[10px] uppercase tracking-wider">Recruit</span>
                       </button>
+                      {/* Core Pipeline pin */}
+                      {selectedProject && (
+                        <button
+                          onClick={() => {
+                            if (isCurrentWorkflowCore) {
+                              clearCorePipeline(selectedProject);
+                            } else {
+                              setCorePipeline(selectedProject, selectedWorkflow.id);
+                            }
+                          }}
+                          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs transition-all ml-1 ${
+                            isCurrentWorkflowCore
+                              ? "border-amber-500/50 bg-amber-500/10 text-amber-400"
+                              : "border-border text-muted-foreground hover:text-amber-400 hover:border-amber-500/50"
+                          }`}
+                          title={isCurrentWorkflowCore ? `Unpin core pipeline for ${selectedProject}` : `Set as core pipeline for ${selectedProject}`}
+                        >
+                          {isCurrentWorkflowCore ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
+                          <span className="font-mono text-[10px] uppercase tracking-wider">
+                            {isCurrentWorkflowCore ? "Core" : "Pin"}
+                          </span>
+                        </button>
+                      )}
                     </div>
-                    <p className="text-sm text-muted-foreground mt-1 max-w-[700px]">{selectedWorkflow.description}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <p className="text-sm text-muted-foreground max-w-[700px]">{selectedWorkflow.description}</p>
+                      {isCurrentWorkflowCore && selectedProject && (
+                        <span className="flex-shrink-0 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-mono text-[9px] border border-amber-500/20">
+                          Core: {selectedProject}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   {activeExecution && (
                     <div className="flex items-center gap-3">
@@ -534,10 +702,17 @@ export default function OrchestrationPage() {
                 <PipelineGraph
                   steps={selectedWorkflow.steps}
                   execution={activeExecution}
+                  executionHistory={executionHistory}
                   selectedStageId={selectedStageId}
                   onSelectStage={selectStage}
                   onApproveCheckpoint={handleApproveCheckpoint}
                   onRejectCheckpoint={handleRejectCheckpoint}
+                  onInsertAtPosition={handleInsertAtPosition}
+                  onRemoveStep={(stepId) => removeStep(selectedWorkflow.id, stepId)}
+                  onReorderStep={(from, to) => reorderStep(selectedWorkflow.id, from, to)}
+                  onToggleDisabled={(stepId) => toggleStepDisabled(selectedWorkflow.id, stepId)}
+                  onToggleParallel={(stepId) => toggleStepParallel(selectedWorkflow.id, stepId)}
+                  onDuplicateStep={(stepId) => duplicateStep(selectedWorkflow.id, stepId)}
                 />
 
                 {/* Stage detail panel */}
@@ -560,7 +735,11 @@ export default function OrchestrationPage() {
                     <span className="font-mono text-[10px] text-muted-foreground uppercase">Project Context:</span>
                     <select
                       value={selectedProject || ""}
-                      onChange={(e) => setSelectedProject(e.target.value || null)}
+                      onChange={(e) => {
+                        const val = e.target.value || null;
+                        setSelectedProject(val);
+                        updateSlotProject(activeSlotIndex, val);
+                      }}
                       className="bg-background border border-border rounded-md px-2 py-1 font-mono text-xs text-foreground focus:border-primary focus:outline-none transition-colors"
                     >
                       <option value="">None (no context injection)</option>
@@ -579,7 +758,7 @@ export default function OrchestrationPage() {
                   <input
                     type="text"
                     value={input}
-                    onChange={(e) => setInput(e.target.value)}
+                    onChange={(e) => handleInputChange(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && input.trim() && !isRouting) routeTask();
                     }}
@@ -607,7 +786,7 @@ export default function OrchestrationPage() {
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
               <GitBranch className="w-12 h-12 mb-4 opacity-20" />
-              <p className="font-mono text-sm">Select or create a workflow</p>
+              <p className="font-mono text-sm">Select a workflow from the library or click (+) on a slot</p>
             </div>
           )}
         </div>
@@ -936,6 +1115,7 @@ export default function OrchestrationPage() {
           </div>
         </div>
       )}
+
       {/* Workflow naming dialog */}
       {showNameDialog && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center" onClick={() => setShowNameDialog(null)}>
@@ -973,6 +1153,15 @@ export default function OrchestrationPage() {
           </div>
         </div>
       )}
+
+      {/* Recruitment Center */}
+      <RecruitmentCenter
+        open={showRecruitment}
+        onClose={() => { setShowRecruitment(false); setInsertPosition(null); }}
+        onAddAgent={handleAddAgent}
+        onAddParallelAgents={handleAddParallelAgents}
+        existingAgentIds={selectedWorkflow?.steps.map((s) => s.agentId) || []}
+      />
     </div>
   );
 }

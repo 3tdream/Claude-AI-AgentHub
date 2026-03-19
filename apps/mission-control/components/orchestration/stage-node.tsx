@@ -1,11 +1,13 @@
 "use client";
 
+import { useState, useRef } from "react";
 import {
   Search, Cpu, ClipboardList, Boxes, Shield, Server, Monitor, Palette,
   ShieldCheck, TestTube, Container, FileText, CircleCheck, CircleX,
-  Loader2, Clock, ShieldAlert,
+  Loader2, Clock, ShieldAlert, Headphones, Megaphone,
 } from "lucide-react";
-import type { StepStatus, StageMetadata } from "@/types";
+import type { StepStatus, StageMetadata, PipelineExecution } from "@/types";
+import { AgentPreviewCard } from "./agent-preview-card";
 
 const AGENT_ICONS: Record<string, React.ElementType> = {
   "research-agent": Search,
@@ -18,6 +20,12 @@ const AGENT_ICONS: Record<string, React.ElementType> = {
   "designer-agent": Palette,
   "qa-agent": TestTube,
   "devops-agent": Container,
+  "michael-personal-bot": Headphones,
+  "email-calendar-agent": Clock,
+  "tech-support-agent": ShieldCheck,
+  "assistant-agent": FileText,
+  "avatar-prompter": Megaphone,
+  "profile-generator": Megaphone,
 };
 
 const STATUS_STYLES: Record<StepStatus, { bg: string; border: string; text: string }> = {
@@ -37,27 +45,66 @@ interface StageNodeProps {
   status: StepStatus;
   metadata?: StageMetadata;
   selected?: boolean;
+  disabled?: boolean;
   onClick?: () => void;
+  onContextMenu?: (e: React.MouseEvent) => void;
+  onDragStart?: (e: React.DragEvent) => void;
+  onDragOver?: (e: React.DragEvent) => void;
+  onDrop?: (e: React.DragEvent) => void;
   qualityScore?: number;
   retryCount?: number;
   escalated?: boolean;
+  executionHistory?: PipelineExecution[];
+  draggable?: boolean;
 }
 
-export function StageNode({ id, agentId, agentName, status, metadata, selected, onClick, qualityScore, retryCount, escalated }: StageNodeProps) {
+export function StageNode({
+  id, agentId, agentName, status, metadata, selected, disabled,
+  onClick, onContextMenu, onDragStart, onDragOver, onDrop,
+  qualityScore, retryCount, escalated, executionHistory, draggable,
+}: StageNodeProps) {
   const Icon = AGENT_ICONS[agentId] || FileText;
   const styles = STATUS_STYLES[status];
   const isCheckpoint = metadata?.isCheckpoint;
+  const [showPreview, setShowPreview] = useState(false);
+  const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function handleMouseEnter() {
+    hoverTimer.current = setTimeout(() => setShowPreview(true), 400);
+  }
+
+  function handleMouseLeave() {
+    if (hoverTimer.current) clearTimeout(hoverTimer.current);
+    setShowPreview(false);
+  }
 
   return (
     <button
       onClick={onClick}
+      onContextMenu={onContextMenu}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      draggable={draggable}
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
       className={`
         relative flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all cursor-pointer
         min-w-[80px] group
         ${selected ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""}
+        ${disabled ? "opacity-35 grayscale" : ""}
+        ${draggable ? "cursor-grab active:cursor-grabbing" : ""}
         hover:scale-105
       `}
     >
+      {/* Agent preview card on hover */}
+      {showPreview && executionHistory && (
+        <AgentPreviewCard
+          agentId={agentId}
+          executionHistory={executionHistory}
+        />
+      )}
+
       {/* Node circle */}
       <div
         className={`
@@ -120,8 +167,15 @@ export function StageNode({ id, agentId, agentName, status, metadata, selected, 
         </div>
       )}
 
+      {/* Disabled strike-through */}
+      {disabled && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="w-16 h-0.5 bg-muted-foreground/40 rotate-[-30deg]" />
+        </div>
+      )}
+
       {/* Status dot for pending */}
-      {status === "pending" && (
+      {status === "pending" && !disabled && (
         <div className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-border" />
       )}
     </button>

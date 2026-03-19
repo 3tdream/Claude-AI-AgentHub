@@ -7,6 +7,7 @@ export interface StageMetadata {
   group?: string;
   stageNumber: string;
   conditional?: string;
+  disabled?: boolean;
 }
 
 export interface QualityScore {
@@ -33,6 +34,34 @@ export interface Workflow {
   description: string;
   steps: WorkflowStep[];
   createdAt: string;
+  isTemplate?: boolean;
+}
+
+// === Workflow V2: Slot System ===
+
+export type SlotStatus = "empty" | "idle" | "running" | "paused" | "failed";
+
+export interface WorkflowSlot {
+  id: 0 | 1 | 2 | 3;
+  workflowId: string | null;
+  workflowName: string | null;
+  status: SlotStatus;
+  projectContext: string | null;
+  lastInput: string;
+  executionId: string | null;
+  progress: number; // 0-100
+}
+
+export type AgentDepartment = "Strategy" | "Engineering" | "Security" | "Support" | "Herald";
+
+export interface AgentCatalogEntry {
+  agentId: string;
+  agentName: string;
+  department: AgentDepartment;
+  description: string;
+  model: string;
+  provider: string;
+  qualityThreshold: number;
 }
 
 export type StepStatus = "pending" | "running" | "completed" | "failed" | "skipped" | "awaiting_approval" | "retrying";

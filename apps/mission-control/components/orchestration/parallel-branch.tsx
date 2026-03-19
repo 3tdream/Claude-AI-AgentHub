@@ -1,6 +1,6 @@
 "use client";
 
-import type { WorkflowStep, StepResult, QualityScore } from "@/types";
+import type { WorkflowStep, StepResult, QualityScore, PipelineExecution } from "@/types";
 import { StageNode } from "./stage-node";
 
 interface ParallelBranchProps {
@@ -9,6 +9,13 @@ interface ParallelBranchProps {
   qualityScores?: Record<string, QualityScore>;
   selectedStageId: string | null;
   onSelectStage: (id: string) => void;
+  executionHistory?: PipelineExecution[];
+  onContextMenu?: (e: React.MouseEvent, stepId: string, stepIndex: number) => void;
+  allSteps?: WorkflowStep[];
+  draggable?: boolean;
+  onDragStart?: (e: React.DragEvent, index: number) => void;
+  onDragOver?: (e: React.DragEvent) => void;
+  onDrop?: (e: React.DragEvent, toIndex: number) => void;
 }
 
 export function ParallelBranch({
@@ -17,7 +24,18 @@ export function ParallelBranch({
   qualityScores,
   selectedStageId,
   onSelectStage,
+  executionHistory,
+  onContextMenu,
+  allSteps,
+  draggable,
+  onDragStart,
+  onDragOver,
+  onDrop,
 }: ParallelBranchProps) {
+  function getStepIndex(stepId: string): number {
+    return allSteps ? allSteps.findIndex((s) => s.id === stepId) : -1;
+  }
+
   return (
     <div className="flex items-center gap-0">
       {/* Fork line */}
@@ -44,6 +62,7 @@ export function ParallelBranch({
         {steps.map((step) => {
           const result = stepResults[step.id];
           const score = qualityScores?.[step.id];
+          const idx = getStepIndex(step.id);
           return (
             <StageNode
               key={step.id}
@@ -52,11 +71,18 @@ export function ParallelBranch({
               agentName={step.agentName}
               status={result?.status || "pending"}
               metadata={step.metadata}
+              disabled={step.metadata?.disabled}
               selected={selectedStageId === step.id}
               onClick={() => onSelectStage(step.id)}
+              onContextMenu={onContextMenu ? (e) => onContextMenu(e, step.id, idx) : undefined}
               qualityScore={score?.overall}
               retryCount={result?.retryCount}
               escalated={result?.escalated}
+              executionHistory={executionHistory}
+              draggable={draggable}
+              onDragStart={draggable && onDragStart ? (e) => onDragStart(e, idx) : undefined}
+              onDragOver={draggable && onDragOver ? onDragOver : undefined}
+              onDrop={draggable && onDrop ? (e) => onDrop(e, idx) : undefined}
             />
           );
         })}

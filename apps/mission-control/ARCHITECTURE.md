@@ -1,6 +1,6 @@
 # Mission Control — Architecture
 
-AI Agent Management Platform. 8 feature areas, 19 API routes, 16 agents across 3 teams.
+AI Agent Management Platform. 9 feature areas, 19 API routes, 16 agents across 5 departments.
 
 ## Tech Stack
 
@@ -143,9 +143,15 @@ Pattern (from `lib/logs-storage.ts`):
 {
   workflows: Workflow[],            // persisted
   activeExecution: PipelineExecution | null,
-  executionHistory: PipelineExecution[]  // capped at 50
+  executionHistory: PipelineExecution[],  // capped at 50
+  selectedProject: string | null,   // persisted
+  // V2: Slot system
+  slots: [WorkflowSlot x4],         // persisted — 4 parallel workspace slots
+  activeSlotIndex: 0|1|2|3,         // persisted — currently active slot
 }
 ```
+
+**V2 Slot actions**: `setActiveSlot`, `loadWorkflowToSlot`, `clearSlot`, `updateSlotStatus`, `updateSlotProject`, `updateSlotInput`, `insertStepAtPosition`, `removeStep`, `reorderStep`, `toggleStepDisabled`, `toggleStepParallel`, `duplicateStep`, `duplicateWorkflowToSlot`
 
 ## Type System (`types/`)
 
@@ -155,7 +161,7 @@ Pattern (from `lib/logs-storage.ts`):
 | `team.ts` | `Team`, `CreateTeamParams` |
 | `session.ts` | `Session`, `Message`, `SessionChannel` |
 | `cost.ts` | `CostSummary`, `DailyCost`, `LLMModel` |
-| `workflow.ts` | `Workflow`, `WorkflowStep`, `PipelineExecution`, `StepResult` |
+| `workflow.ts` | `Workflow`, `WorkflowStep`, `PipelineExecution`, `StepResult`, `WorkflowSlot`, `SlotStatus`, `AgentCatalogEntry`, `AgentDepartment` |
 | `log.ts` | `LogEntry`, `CreateLogParams` |
 | `api.ts` | `ApiResponse<T>`, `PaginatedResponse<T>` |
 
@@ -359,3 +365,96 @@ Key file: `lib/knowledge-manager.ts`
 | Grid | 4px base |
 | Touch targets | min 44px |
 | Contrast | body min 4.5:1, large text min 3:1 (WCAG AA) |
+
+## Workflow V2 — Slot System + Dynamic Builder
+
+> Added 2026-03-19. Branch: `feature/workflow-v2-slots`
+
+### Overview
+
+The Orchestration page was upgraded from a single-workflow sidebar to a multi-slot workspace with dynamic pipeline construction. Users can run up to 4 workflows in parallel slots, add/remove/reorder agents via drag-and-drop and context menus, and compose parallel stages from the Recruitment Center.
+
+### Architecture
+
+```
+SlotBar (header)          — 4 bookmark slots, status indicators, progress bars
+TemplateLibrary (sidebar) — saved templates vs user workflows, drag-to-slot zones
+PipelineGraph (main)      — stage nodes + InsertStepButton + drag reorder + context menu
+RecruitmentCenter (modal) — 16 agents / 5 departments, single + parallel multi-select
+AgentPreviewCard (hover)  — avgScore, avgDuration, successRate from execution history
+StageContextMenu (right-click) — remove, enable/disable, make parallel, duplicate
+```
+
+### New Types (`types/workflow.ts`)
+
+| Type | Purpose |
+|------|---------|
+| `WorkflowSlot` | `{ id: 0-3, workflowId, workflowName, status, projectContext, lastInput, executionId, progress }` |
+| `SlotStatus` | `"empty" \| "idle" \| "running" \| "paused" \| "failed"` |
+| `AgentCatalogEntry` | `{ agentId, agentName, department, description, model, provider, qualityThreshold }` |
+| `AgentDepartment` | `"Strategy" \| "Engineering" \| "Security" \| "Support" \| "Herald"` |
+| `Workflow.isTemplate` | Optional flag — separates templates from user workflows in the library |
+| `StageMetadata.disabled` | Optional — visually dims and skips the stage during execution |
+
+### New Files
+
+| File | Purpose |
+|------|---------|
+| `lib/agent-catalog.ts` | 16 agents grouped into 5 departments. Exports `AGENT_CATALOG`, `DEPARTMENTS`, `getAgentsByDepartment()`, `getAgentById()` |
+| `components/orchestration/slot-bar.tsx` | 4 bookmark slots — empty=(+), occupied=name+status+progress |
+| `components/orchestration/template-library.tsx` | Left sidebar with template/workflow split, load-to-slot, save-as-template, drag-to-slot drop zones, quick duplicate |
+| `components/orchestration/recruitment-center.tsx` | Modal: department tabs, search, agent cards, multi-select for parallel stages |
+| `components/orchestration/insert-step-button.tsx` | (+) button between pipeline stages, hover-reveal |
+| `components/orchestration/agent-preview-card.tsx` | Hover card with agent stats (avgScore, avgDuration, successRate, totalRuns) computed from execution history |
+| `components/orchestration/stage-context-menu.tsx` | Right-click menu: Remove, Enable/Disable, Make Parallel/Sequential, Duplicate |
+
+### Modified Files
+
+| File | Changes |
+|------|---------|
+| `types/workflow.ts` | Added `WorkflowSlot`, `SlotStatus`, `AgentCatalogEntry`, `AgentDepartment`, `Workflow.isTemplate`, `StageMetadata.disabled` |
+| `lib/stores/orchestration-store.ts` | Added `slots[4]`, `activeSlotIndex`, 12 new slot/step actions (see store section above), all persisted to localStorage |
+| `components/orchestration/stage-node.tsx` | Hover preview (400ms delay), context menu, drag-to-reorder, disabled visual (opacity+grayscale+strike), expanded agent icon map |
+| `components/orchestration/parallel-branch.tsx` | Passes through executionHistory, context menu, drag events, disabled state |
+| `components/orchestration/pipeline-graph.tsx` | InsertStepButton between groups, drag-to-reorder via HTML5 DnD, right-click StageContextMenu, executionHistory pass-through |
+| `app/(shell)/orchestration/page.tsx` | Header→SlotBar, sidebar→TemplateLibrary, slot-derived workflow state, per-slot input/project sync, Recruit button, parallel agent add, drag-to-slot, quick duplicate |
+
+### Agent Catalog — 5 Departments
+
+| Department | Agents | Color |
+|------------|--------|-------|
+| Strategy | Orchestrator, PM-Agent, Research-Agent | violet |
+| Engineering | Architect, Backend, Frontend, Designer, DevOps | blue |
+| Security | Cyber-Agent, QA-Agent | red |
+| Support | Personal Bot, Email & Calendar, Tech Support, Assistant | emerald |
+| Herald | Avatar Prompter, Profile Generator | amber |
+
+### Slot Lifecycle
+
+```
+Empty slot → user clicks (+) or drags workflow from Library
+  → loadWorkflowToSlot() → status: "idle"
+  → user types task + clicks Route → Smart Router → Execute
+  → status: "running" (progress bar updates)
+  → completion → status: "idle", executionId set
+  → clearSlot() → status: "empty"
+```
+
+Slots persist across page reloads via Zustand `persist` middleware (localStorage key: `mission-control-orchestration`).
+
+### Interaction Matrix
+
+| Action | Trigger | Handler |
+|--------|---------|---------|
+| Add agent to pipeline | Click in Recruitment Center | `handleAddAgent()` → `insertStepAtPosition()` |
+| Add parallel stage | Multi-select in Recruitment Center | `handleAddParallelAgents()` → multiple `insertStepAtPosition()` with shared group |
+| Insert between stages | Click (+) button in pipeline | `handleInsertAtPosition()` → opens Recruitment Center |
+| Remove stage | Right-click → Remove | `removeStep()` |
+| Disable/enable stage | Right-click → Disable/Enable | `toggleStepDisabled()` |
+| Make parallel | Right-click → Make Parallel | `toggleStepParallel()` |
+| Duplicate stage | Right-click → Duplicate | `duplicateStep()` |
+| Reorder stages | Drag & drop in pipeline | `reorderStep()` |
+| Clone workflow to slot | Copy button in Library | `duplicateWorkflowToSlot()` |
+| Drag workflow to slot | Drag from Library → drop zone | `handleDropToSlot()` → `loadWorkflowToSlot()` |
+| Save as template | Template button in Library | `handleSaveAsTemplate()` → `addWorkflow({ isTemplate: true })` |
+| Hover agent preview | Mouse hover on stage node (400ms) | `AgentPreviewCard` with computed stats |
