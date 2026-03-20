@@ -112,13 +112,20 @@ ${findingList}
 YOUR ORIGINAL ARCHITECTURE:
 ${originalArchOutput.substring(0, 6000)}
 
+REDESIGN SCOPE:
+- Fix ONLY the findings listed above
+- Do NOT change: authentication flow, database schema, API endpoint paths,
+  response shapes, or data model UNLESS directly required by the finding
+- Do NOT rewrite the ADR, redefine the tech stack, or reorganize file structure
+- Designer and Backend are working from the ORIGINAL contracts in parallel —
+  any change you make to an API contract MUST be listed explicitly so they can adapt
+
 INSTRUCTIONS:
-1. Address EACH critical finding with a specific architectural change
-2. Output ONLY the changes (delta) — do NOT rewrite the entire ADR
-3. Update the affected API CONTRACTS if endpoints need to change
-4. Update the DATA MODEL if schema needs to change
-5. Keep all non-affected parts of the architecture intact
-6. Do NOT introduce new patterns, services, or dependencies unless the fix requires it
+1. Address EACH critical finding with the minimal architectural change
+2. Output ONLY the delta — what changed and why
+3. If an API CONTRACT must change, show the before→after
+4. If the DATA MODEL must change, show only affected entities
+5. Everything not listed as changed remains exactly as before
 
 OUTPUT FORMAT:
 SECURITY FIXES:
