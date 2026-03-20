@@ -41,6 +41,12 @@ export interface Workflow {
 
 export type SlotStatus = "empty" | "idle" | "running" | "paused" | "failed";
 
+export interface QARetryCycle {
+  count: number;
+  status: "fixing" | "re-evaluating" | "resolved" | "escalated";
+  failedCriteriaIds: string[];
+}
+
 export interface WorkflowSlot {
   id: 0 | 1 | 2 | 3;
   workflowId: string | null;
@@ -50,6 +56,7 @@ export interface WorkflowSlot {
   lastInput: string;
   executionId: string | null;
   progress: number; // 0-100
+  retryCycles?: Record<string, QARetryCycle>; // stepId → retry state
 }
 
 export type AgentDepartment = "Strategy" | "Engineering" | "Security" | "Support" | "Herald";

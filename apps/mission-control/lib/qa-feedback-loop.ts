@@ -144,6 +144,7 @@ export function buildFixPrompt(
   target: FixTarget,
   originalOutput: string,
   fixCycle: number,
+  architectOutput?: string,
 ): string {
   const failureList = target.failures.map((f) =>
     `- ${f.criteria_id} [${f.severity}] — ${f.status}\n  GIVEN: ${f.given}\n  WHEN: ${f.when}\n  THEN: ${f.then}\n  Evidence: ${f.evidence}\n  Fix required: ${f.fix_required || "see evidence"}`
@@ -153,11 +154,21 @@ export function buildFixPrompt(
     ? `Files to fix:\n${target.filePaths.map((f) => `- ${f}`).join("\n")}`
     : "";
 
+  const archBlock = architectOutput
+    ? `\nSTRICT ADHERENCE — ARCHITECTURE (from Architect S3):
+${architectOutput.substring(0, 4000)}
+
+You MUST follow the API contracts, data model, and file structure above.
+Do NOT deviate from the architecture. Do NOT introduce new patterns or endpoints.
+Fix the bug within the existing structure.\n`
+    : "";
+
   return `QA FEEDBACK LOOP — Fix Cycle ${fixCycle}/2
 
 QA found ${target.failures.length} failure(s) in your previous output.
 Fix ONLY the issues listed below. Do NOT rewrite files that are working.
-
+Do NOT introduce new bugs — you will be re-evaluated on ALL criteria, not just these.
+${archBlock}
 FAILURES TO FIX:
 ${failureList}
 
@@ -169,8 +180,10 @@ ${originalOutput.substring(0, 8000)}
 INSTRUCTIONS:
 1. Read each failure's evidence (file:line)
 2. Fix ONLY the specific issue described
-3. Output the corrected files in the standard JSON format
-4. Do NOT change files that passed QA
+3. Verify your fix doesn't break other acceptance criteria
+4. Output the corrected files in the standard JSON format
+5. Do NOT change files that passed QA
+6. Do NOT add new dependencies, endpoints, or architectural patterns
 
 FILE OUTPUT FORMAT:
 \`\`\`json
@@ -184,40 +197,53 @@ FILE OUTPUT FORMAT:
  * Build a targeted re-validation prompt for QA to check only failed criteria.
  */
 export function buildRevalidationPrompt(
+  allCriteria: AcceptanceResult[],
   failedCriteria: AcceptanceResult[],
   fixOutputs: Record<string, string>,
 ): string {
-  const criteriaList = failedCriteria.map((f) =>
-    `- ${f.criteria_id} [${f.severity}]: GIVEN ${f.given} WHEN ${f.when} THEN ${f.then}`
+  const failedIds = new Set(failedCriteria.map((f) => f.criteria_id));
+
+  const criteriaList = allCriteria.map((c) =>
+    `- ${c.criteria_id} [${c.severity}] ${failedIds.has(c.criteria_id) ? "⚠️ PREVIOUSLY FAILED" : "✅ was passing"}: GIVEN ${c.given} WHEN ${c.when} THEN ${c.then}`
   ).join("\n");
 
   const fixSummary = Object.entries(fixOutputs).map(([agentId, output]) =>
     `### ${agentId} fix output:\n${output.substring(0, 4000)}`
   ).join("\n\n");
 
-  return `QA RE-VALIDATION — Check only previously failed criteria.
+  return `QA RE-VALIDATION — FULL REGRESSION CHECK.
 
-CRITERIA TO RE-VALIDATE:
+IMPORTANT: Check ALL criteria, not just previously failed ones.
+Fixes may have introduced regressions in passing criteria.
+
+ALL ACCEPTANCE CRITERIA:
 ${criteriaList}
 
-FIX OUTPUTS:
+FIX OUTPUTS (changes made):
 ${fixSummary}
 
-Re-check ONLY the criteria listed above against the fix outputs.
-Output the same JSON format:
+For EACH criterion:
+- Re-evaluate against the current code (original + fixes)
+- Mark as PASS, FAIL, PARTIAL, or BLOCKED
+- If a previously PASSING criterion now FAILS → this is a REGRESSION, mark severity as P0
+
+Output the FULL results:
 
 \`\`\`json
 {"acceptance_results": [
   {
     "criteria_id": "AC-X",
-    "status": "PASS | FAIL",
-    "evidence": "what changed",
+    "status": "PASS | FAIL | PARTIAL | BLOCKED",
+    "evidence": "what confirms or contradicts",
     "severity": "P0 | P1 | P2",
-    "fix_required": "only if still failing"
+    "fix_required": "only if failing",
+    "regression": true
   }
 ],
 "summary": {"total": 0, "pass": 0, "fail": 0, "partial": 0, "blocked": 0, "p0_failures": 0},
 "verdict": "PASS | FAIL"
 }
-\`\`\``;
+\`\`\`
+
+VERDICT: FAIL if ANY P0 criterion fails (including regressions).`;
 }

@@ -696,7 +696,7 @@ export async function executePipeline(
         const qaOutput = execution.stepResults[step.id]?.output || "";
         const qaResults = parseQAResults(qaOutput);
 
-        if (qaResults && qaResults.verdict === "FAIL" && qaResults.summary.p0_failures > 0) {
+        if (qaResults && qaResults.verdict === "FAIL" && qaResults.summary.fail > 0) {
           postLog({
             type: "system",
             content: `QA FEEDBACK LOOP: ${qaResults.summary.fail} failures (${qaResults.summary.p0_failures} P0). Starting targeted fix cycle.`,
@@ -720,7 +720,8 @@ export async function executePipeline(
             for (const target of fixTargets) {
               const originalStepId = steps.find((s) => s.agentId === target.agentId)?.id;
               const originalOutput = originalStepId ? (execution.stepResults[originalStepId]?.output || "") : "";
-              const fixPrompt = buildFixPrompt(target, originalOutput, cycle);
+              const architectOutput = context["step_s3-architect_output"] || "";
+              const fixPrompt = buildFixPrompt(target, originalOutput, cycle, architectOutput);
               const fixStepId = `${originalStepId || target.agentId}-fix-${cycle}`;
 
               execution.stepResults[fixStepId] = {
@@ -784,11 +785,13 @@ export async function executePipeline(
               }
             }
 
-            // Re-validate: run QA only on failed criteria
+            // Re-validate: full regression check (all criteria, not just failed)
             const failedCriteria = currentResults.acceptance_results.filter(
               (r) => r.status === "FAIL" || r.status === "PARTIAL"
             );
-            const revalPrompt = buildRevalidationPrompt(failedCriteria, fixOutputs);
+            const revalPrompt = buildRevalidationPrompt(
+              currentResults.acceptance_results, failedCriteria, fixOutputs
+            );
             const revalStepId = `s5-qa-reval-${cycle}`;
 
             execution.stepResults[revalStepId] = {
