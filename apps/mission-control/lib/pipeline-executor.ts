@@ -2,10 +2,11 @@ import type { WorkflowStep, PipelineExecution, QualityScore } from "@/types";
 import { postLog } from "@/lib/hooks/use-logs";
 import { evaluateStepOutput, buildRetryPrompt } from "@/lib/quality-evaluator";
 import { PIPELINE, AGENT_CONFIG, TOOL_OUTPUT_LIMITS } from "@/lib/config";
+import { parseQAResults, groupFailuresByAgent, buildFixPrompt, buildRevalidationPrompt, type FixTarget } from "@/lib/qa-feedback-loop";
 import type { RoutingDecisionData } from "@/types";
 // Analytics storage accessed via API (can't import fs in client-side code)
 
-const { MAX_RETRIES, STEP_TIMEOUT_MS } = PIPELINE;
+const { MAX_RETRIES, STEP_TIMEOUT_MS, MAX_QA_FIX_CYCLES } = PIPELINE;
 
 function generateId() {
   return crypto.randomUUID();
@@ -688,6 +689,191 @@ export async function executePipeline(
       if (!success) {
         execution.status = "failed";
         break;
+      }
+
+      // --- QA Feedback Loop: if QA step completed with VERDICT: FAIL, run fix cycles ---
+      if (step.agentId === "qa-agent" && success) {
+        const qaOutput = execution.stepResults[step.id]?.output || "";
+        const qaResults = parseQAResults(qaOutput);
+
+        if (qaResults && qaResults.verdict === "FAIL" && qaResults.summary.p0_failures > 0) {
+          postLog({
+            type: "system",
+            content: `QA FEEDBACK LOOP: ${qaResults.summary.fail} failures (${qaResults.summary.p0_failures} P0). Starting targeted fix cycle.`,
+          }).catch(() => {});
+
+          let currentResults = qaResults;
+          let fixCycleSuccess = false;
+
+          for (let cycle = 1; cycle <= MAX_QA_FIX_CYCLES; cycle++) {
+            const fixTargets = groupFailuresByAgent(currentResults);
+            if (fixTargets.length === 0) { fixCycleSuccess = true; break; }
+
+            postLog({
+              type: "system",
+              content: `Fix cycle ${cycle}/${MAX_QA_FIX_CYCLES}: ${fixTargets.map((t) => `${t.agentId} (${t.failures.length} failures)`).join(", ")}`,
+            }).catch(() => {});
+
+            // Run targeted fixes for each responsible agent
+            const fixOutputs: Record<string, string> = {};
+
+            for (const target of fixTargets) {
+              const originalStepId = steps.find((s) => s.agentId === target.agentId)?.id;
+              const originalOutput = originalStepId ? (execution.stepResults[originalStepId]?.output || "") : "";
+              const fixPrompt = buildFixPrompt(target, originalOutput, cycle);
+              const fixStepId = `${originalStepId || target.agentId}-fix-${cycle}`;
+
+              execution.stepResults[fixStepId] = {
+                stepId: fixStepId,
+                status: "running",
+                startedAt: new Date().toISOString(),
+              };
+              callbacks.onUpdate({ ...execution });
+
+              try {
+                const agentCfg = AGENT_CONFIG[target.agentId];
+                const res = await fetch("/api/ai/execute", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    agentId: target.agentId,
+                    model: "sonnet-4-6",
+                    userInput: fixPrompt,
+                    useTools: true,
+                    toolMode: "readwrite",
+                    maxToolSteps: agentCfg?.maxTurns || 5,
+                    readBudget: agentCfg?.readBudget || 5,
+                  }),
+                });
+
+                const data = await res.json();
+                const fixOutput = data.content || "";
+                fixOutputs[target.agentId] = fixOutput;
+
+                // Update context with fix output so downstream steps see it
+                if (originalStepId) {
+                  context[`step_${originalStepId}_output`] = fixOutput;
+                }
+
+                execution.stepResults[fixStepId] = {
+                  stepId: fixStepId,
+                  status: "completed",
+                  output: fixOutput.substring(0, 20000),
+                  duration: Date.now() - new Date(execution.stepResults[fixStepId].startedAt!).getTime(),
+                  completedAt: new Date().toISOString(),
+                  inputTokens: data.tokensUsed?.input || 0,
+                  outputTokens: data.tokensUsed?.output || 0,
+                  provider: data.provider || "unknown",
+                  model: data.model || "unknown",
+                };
+                callbacks.onUpdate({ ...execution });
+
+                postLog({
+                  type: "decision",
+                  agentId: target.agentId,
+                  content: `Fix cycle ${cycle}: ${target.agentId} fixed ${target.failures.length} failures in ${target.filePaths.join(", ")}`,
+                }).catch(() => {});
+              } catch (err) {
+                execution.stepResults[fixStepId] = {
+                  stepId: fixStepId,
+                  status: "failed",
+                  error: err instanceof Error ? err.message : "Fix failed",
+                  completedAt: new Date().toISOString(),
+                };
+                callbacks.onUpdate({ ...execution });
+              }
+            }
+
+            // Re-validate: run QA only on failed criteria
+            const failedCriteria = currentResults.acceptance_results.filter(
+              (r) => r.status === "FAIL" || r.status === "PARTIAL"
+            );
+            const revalPrompt = buildRevalidationPrompt(failedCriteria, fixOutputs);
+            const revalStepId = `s5-qa-reval-${cycle}`;
+
+            execution.stepResults[revalStepId] = {
+              stepId: revalStepId,
+              status: "running",
+              startedAt: new Date().toISOString(),
+            };
+            callbacks.onUpdate({ ...execution });
+
+            try {
+              const revalRes = await fetch("/api/ai/execute", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  agentId: "qa-agent",
+                  model: "sonnet-4-6",
+                  userInput: revalPrompt,
+                  useTools: true,
+                  toolMode: "qa",
+                  maxToolSteps: 5,
+                  readBudget: 5,
+                }),
+              });
+
+              const revalData = await revalRes.json();
+              const revalOutput = revalData.content || "";
+              const revalResults = parseQAResults(revalOutput);
+
+              execution.stepResults[revalStepId] = {
+                stepId: revalStepId,
+                status: "completed",
+                output: revalOutput.substring(0, 20000),
+                duration: Date.now() - new Date(execution.stepResults[revalStepId].startedAt!).getTime(),
+                completedAt: new Date().toISOString(),
+                inputTokens: revalData.tokensUsed?.input || 0,
+                outputTokens: revalData.tokensUsed?.output || 0,
+              };
+              callbacks.onUpdate({ ...execution });
+
+              if (revalResults && revalResults.verdict === "PASS") {
+                postLog({
+                  type: "system",
+                  content: `QA FEEDBACK LOOP: All criteria PASS after fix cycle ${cycle}. Continuing pipeline.`,
+                }).catch(() => {});
+                // Update original QA step output with passing results
+                execution.stepResults[step.id] = {
+                  ...execution.stepResults[step.id],
+                  output: revalOutput.substring(0, 20000),
+                  evaluationFeedback: `Fixed after ${cycle} cycle(s)`,
+                };
+                context[`step_${step.id}_output`] = revalOutput;
+                fixCycleSuccess = true;
+                break;
+              }
+
+              // Still failing — update currentResults for next cycle
+              if (revalResults) {
+                currentResults = revalResults;
+                postLog({
+                  type: "system",
+                  content: `Fix cycle ${cycle} incomplete: ${revalResults.summary.fail} criteria still failing. ${cycle < MAX_QA_FIX_CYCLES ? "Retrying..." : "Escalating to user."}`,
+                }).catch(() => {});
+              }
+            } catch {
+              execution.stepResults[revalStepId] = {
+                stepId: revalStepId,
+                status: "failed",
+                error: "Re-validation failed",
+                completedAt: new Date().toISOString(),
+              };
+              callbacks.onUpdate({ ...execution });
+            }
+          }
+
+          if (!fixCycleSuccess) {
+            postLog({
+              type: "system",
+              content: `QA FEEDBACK LOOP: ${MAX_QA_FIX_CYCLES} fix cycles exhausted. ${currentResults.summary.p0_failures} P0 failures remain. Escalating to user.`,
+            }).catch(() => {});
+            execution.status = "paused";
+            execution.escalatedSteps = [...(execution.escalatedSteps || []), step.id];
+            callbacks.onUpdate({ ...execution });
+            break;
+          }
+        }
       }
     }
   }

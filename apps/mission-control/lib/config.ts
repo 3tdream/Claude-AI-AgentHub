@@ -25,6 +25,8 @@ export const PIPELINE = {
   MAX_OUTPUT_TOKENS: 65_536,
   /** Short output auto-fail threshold (chars) */
   SHORT_OUTPUT_THRESHOLD: 100,
+  /** Max QA feedback fix cycles before escalating to user */
+  MAX_QA_FIX_CYCLES: 2,
 } as const;
 
 /** Per-agent dynamic configuration */
