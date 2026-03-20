@@ -223,20 +223,22 @@ michael-personal-bot, Email & Calendar Manager, tech-support, assistant
 ### Herald Sub-agents (2)
 avatar-prompter (gpt-4.1-mini), profile-generator (gpt-4.1-mini)
 
-## Beauty CRM Pipeline — 10-Stage Execution
+## Beauty CRM Pipeline — 13-Stage Execution (v2)
 
 ```
-Stage 0   Research-Agent      Market research, competitor analysis (before everything)
-Stage 1   Orchestrator        Clarify requirements (5-10 questions to user)
-Stage 2   PM-Agent            Product Definition + Jira epic/story setup
-Stage 3   Architect-Agent     System Architecture + ADRs
-Stage 3.5 Cyber-Agent         Threat Model (MANDATORY if public API / auth / payments)
-Stage 4   PARALLEL            Backend-Agent + Frontend-Agent + Designer-Agent
-Stage 4.5 Orchestrator        ⚠️ HUMAN CHECKPOINT — must wait for user confirmation
-Stage 5   QA-Agent            Attack Plan (minimum 12 findings required)
-Stage 5.5 Cyber-Agent         Deep Security Audit
-Stage 6   DevOps-Agent        Infrastructure + CI/CD + rollback plan
-Stage 7   Orchestrator        Final Consolidation + Weekly Report
+Stage 0   Research-Agent      Discovery: personas, competitive matrix, market sizing
+Stage 1   Orchestrator        ⚠️ CHECKPOINT: assumptions + questions with defaults + risk levels
+Stage 2   PM-Agent            PRD + acceptance criteria (AC-1..AC-N with GIVEN/WHEN/THEN)
+Stage 3   Architect-Agent     ADR + API contracts + data model (single source of truth)
+Stage 3.5 Cyber-Agent         Threat model (conditional) → CRITICAL triggers redesign cycle
+Stage 4a  Designer-Agent    ═╗ PARALLEL: design tokens, component specs, CSS files
+Stage 4b  Backend-Agent     ═╝ PARALLEL: API implementation, DB schema, env vars, shared types
+Stage 4c  Frontend-Agent      Wires Designer specs + Backend APIs (depends on 4a + 4b)
+Stage 4.5 Orchestrator        ⚠️ HUMAN CHECKPOINT — review before QA
+Stage 5   QA-Agent            Acceptance criteria validation → FAIL triggers fix cycle
+Stage 5.5 Cyber-Agent         Deep security audit (OWASP Top 10 against actual code)
+Stage 6   DevOps-Agent        Infra, CI/CD, .env.example (from Backend env vars), Dockerfile
+Stage 7   Orchestrator        Delivery summary + deployment checklist
 ```
 
 ### Pipeline Modes (Quick / Medium / Full)
@@ -277,6 +279,65 @@ Per-mode thresholds:
 - **Quick**: evaluation skipped entirely (threshold=0, auto-pass)
 - **Medium**: final step must score ≥7, other steps auto-pass
 - **Full**: every step must score ≥8.5, retries on failure, escalation if score <5 after max retries
+
+### Self-Healing & Quality Gates
+
+Two-layer automatic error correction system. Each layer has its own trigger, scope, and escalation path.
+
+| Layer | Trigger | Max Cycles | Scope | Fallback |
+|-------|---------|------------|-------|----------|
+| **Architecture Guard** (S3.5) | Cyber CRITICAL (CVSS 9+) | 1 | Architect delta redesign | Escalate to user |
+| **Implementation Guard** (S5) | QA FAIL on acceptance criteria | 2 | Targeted agent fix + full regression | Escalate to user |
+
+**Architecture Guard** (`lib/cyber-redesign-loop.ts`):
+
+```
+S3.5 Cyber → CRITICAL vulnerability found
+  → Pipeline pauses
+  → Architect receives targeted redesign prompt:
+    - Only the critical findings (not entire architecture)
+    - REDESIGN SCOPE: Do NOT change auth flow, DB schema, API paths
+      unless directly required by the finding
+    - Delta output only (what changed and why)
+  → Cyber re-evaluates updated architecture
+  → Resolved? → pipeline continues with updated context
+  → Still CRITICAL? → escalate to user
+```
+
+Severity routing:
+- **CRITICAL** (injection, auth bypass, RCE) → triggers redesign cycle
+- **HIGH** (missing rate limiting, CSRF) → appended as SECURITY BACKLOG, fixed by DevOps/Backend downstream
+- **MEDIUM/LOW** → logged to security report, non-blocking
+
+**Implementation Guard** (`lib/qa-feedback-loop.ts`):
+
+```
+S5 QA → VERDICT: FAIL (any P0 or P1 acceptance criteria)
+  → Parse acceptance_results JSON → group failures by responsible agent
+  → Fix cycle:
+    1. Responsible agents get surgical fix prompt (specific AC failures + Architect S3 context)
+    2. QA re-validates ALL criteria (full regression, not just failed ones)
+    3. Regression detection: previously passing → now failing = auto-P0
+  → PASS? → pipeline continues
+  → Still FAIL? → cycle 2 (same flow)
+  → 2 cycles exhausted? → escalate to user
+```
+
+Key files: `lib/qa-feedback-loop.ts`, `lib/cyber-redesign-loop.ts`, `lib/pipeline-executor.ts`, `lib/config.ts` (`MAX_QA_FIX_CYCLES`, `MAX_CYBER_REDESIGN_CYCLES`)
+
+### Structured Output Contracts
+
+Agents exchange structured JSON blocks for machine-parseable data flow:
+
+| Agent | Output Block | Consumer |
+|-------|-------------|----------|
+| Orchestrator (S1) | `{"questions": [{id, default_answer, assumption_level, user_answer}]}` | PM (risk flags) |
+| PM (S2) | `AC-1, AC-2...` sequential IDs with GIVEN/WHEN/THEN | QA (criteria validation) |
+| Architect (S3) | API CONTRACTS + DATA MODEL sections | Designer, Backend, Frontend |
+| Backend (S4b) | `{"required_env_vars": [{name, description, example, required}]}` | DevOps (.env.example) |
+| Designer (S4a) | `{"files": [{path, action, content}]}` — CSS, components | Frontend (design tokens) |
+| QA (S5) | `{"acceptance_results": [{criteria_id, status, evidence, severity}]}` | Feedback Loop |
+| All code agents | `{"files": [{path, action, content}]}` | Code parser (`lib/code-block-parser.ts`) |
 
 ## Jira Governance
 
