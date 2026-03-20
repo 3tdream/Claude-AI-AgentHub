@@ -47,6 +47,12 @@ export interface QARetryCycle {
   failedCriteriaIds: string[];
 }
 
+export interface CyberRedesignCycle {
+  count: number;
+  status: "redesigning" | "re-evaluating" | "resolved" | "escalated";
+  criticalFindings: string[];
+}
+
 export interface WorkflowSlot {
   id: 0 | 1 | 2 | 3;
   workflowId: string | null;

@@ -27,6 +27,8 @@ export const PIPELINE = {
   SHORT_OUTPUT_THRESHOLD: 100,
   /** Max QA feedback fix cycles before escalating to user */
   MAX_QA_FIX_CYCLES: 2,
+  /** Max Cyber-gated architecture redesign cycles (1 = one chance to fix) */
+  MAX_CYBER_REDESIGN_CYCLES: 1,
 } as const;
 
 /** Per-agent dynamic configuration */

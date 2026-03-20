@@ -3,10 +3,11 @@ import { postLog } from "@/lib/hooks/use-logs";
 import { evaluateStepOutput, buildRetryPrompt } from "@/lib/quality-evaluator";
 import { PIPELINE, AGENT_CONFIG, TOOL_OUTPUT_LIMITS } from "@/lib/config";
 import { parseQAResults, groupFailuresByAgent, buildFixPrompt, buildRevalidationPrompt, type FixTarget } from "@/lib/qa-feedback-loop";
+import { parseCyberOutput, shouldTriggerRedesign, triageFindings, buildRedesignPrompt, buildCyberReevalPrompt } from "@/lib/cyber-redesign-loop";
 import type { RoutingDecisionData } from "@/types";
 // Analytics storage accessed via API (can't import fs in client-side code)
 
-const { MAX_RETRIES, STEP_TIMEOUT_MS, MAX_QA_FIX_CYCLES } = PIPELINE;
+const { MAX_RETRIES, STEP_TIMEOUT_MS, MAX_QA_FIX_CYCLES, MAX_CYBER_REDESIGN_CYCLES } = PIPELINE;
 
 function generateId() {
   return crypto.randomUUID();
@@ -120,6 +121,7 @@ export async function executePipeline(
 
   const completed = new Set<string>();
   const context: Record<string, string> = {};
+  let cyberRedesignCycles = 0;
 
   // QA-gated success capture: implementation agent wins are held until QA confirms
   const pendingSuccessCaptures: Array<{
@@ -689,6 +691,160 @@ export async function executePipeline(
       if (!success) {
         execution.status = "failed";
         break;
+      }
+
+      // --- Cyber-Gated Redesign: if Cyber finds CRITICAL, trigger Architect redesign ---
+      if (step.agentId === "cyber-agent" && success) {
+        const cyberOutput = execution.stepResults[step.id]?.output || "";
+        const { riskLevel, findings } = parseCyberOutput(cyberOutput);
+
+        if (shouldTriggerRedesign(riskLevel, findings, cyberRedesignCycles)) {
+          const { redesignTargets, backlog } = triageFindings(findings);
+
+          postLog({
+            type: "system",
+            content: `CYBER-GATED REDESIGN: ${redesignTargets.length} CRITICAL finding(s). Triggering Architect redesign (cycle ${cyberRedesignCycles + 1}/${MAX_CYBER_REDESIGN_CYCLES}).`,
+          }).catch(() => {});
+
+          // Log HIGH/MEDIUM/LOW findings as backlog (passed downstream, not blocking)
+          if (backlog.length > 0) {
+            postLog({
+              type: "decision",
+              agentId: "cyber-agent",
+              content: `Security backlog (non-blocking): ${backlog.map((f) => `${f.severity}: ${f.title}`).join(", ")}`,
+            }).catch(() => {});
+          }
+
+          // Step 1: Architect redesign
+          const archOutput = context["step_s3-architect_output"] || "";
+          const redesignPrompt = buildRedesignPrompt(archOutput, redesignTargets);
+          const redesignStepId = `s3-architect-redesign-${cyberRedesignCycles + 1}`;
+
+          execution.stepResults[redesignStepId] = {
+            stepId: redesignStepId,
+            status: "running",
+            startedAt: new Date().toISOString(),
+          };
+          callbacks.onUpdate({ ...execution });
+
+          try {
+            const res = await fetch("/api/ai/execute", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                agentId: "architect-agent",
+                model: "opus-4-6",
+                userInput: redesignPrompt,
+                useTools: true,
+                toolMode: "readonly",
+                maxToolSteps: 3,
+                readBudget: 3,
+              }),
+            });
+            const data = await res.json();
+            const redesignOutput = data.content || "";
+
+            // Update architecture context with redesign delta
+            context["step_s3-architect_output"] = archOutput + "\n\n--- SECURITY REDESIGN ---\n" + redesignOutput;
+
+            execution.stepResults[redesignStepId] = {
+              stepId: redesignStepId,
+              status: "completed",
+              output: redesignOutput.substring(0, 20000),
+              duration: Date.now() - new Date(execution.stepResults[redesignStepId].startedAt!).getTime(),
+              completedAt: new Date().toISOString(),
+              inputTokens: data.tokensUsed?.input || 0,
+              outputTokens: data.tokensUsed?.output || 0,
+            };
+            callbacks.onUpdate({ ...execution });
+
+            postLog({
+              type: "decision",
+              agentId: "architect-agent",
+              content: `Architecture redesign completed: ${redesignTargets.map((f) => f.title).join(", ")}`,
+            }).catch(() => {});
+
+            // Step 2: Cyber re-evaluation
+            const reevalPrompt = buildCyberReevalPrompt(redesignTargets, redesignOutput);
+            const reevalStepId = `s3.5-cyber-reeval-${cyberRedesignCycles + 1}`;
+
+            execution.stepResults[reevalStepId] = {
+              stepId: reevalStepId,
+              status: "running",
+              startedAt: new Date().toISOString(),
+            };
+            callbacks.onUpdate({ ...execution });
+
+            const reevalRes = await fetch("/api/ai/execute", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                agentId: "cyber-agent",
+                model: "opus-4-6",
+                userInput: reevalPrompt,
+                useTools: false,
+                maxToolSteps: 0,
+                readBudget: 0,
+              }),
+            });
+            const reevalData = await reevalRes.json();
+            const reevalOutput = reevalData.content || "";
+            const reevalParsed = parseCyberOutput(reevalOutput);
+
+            execution.stepResults[reevalStepId] = {
+              stepId: reevalStepId,
+              status: "completed",
+              output: reevalOutput.substring(0, 20000),
+              duration: Date.now() - new Date(execution.stepResults[reevalStepId].startedAt!).getTime(),
+              completedAt: new Date().toISOString(),
+              inputTokens: reevalData.tokensUsed?.input || 0,
+              outputTokens: reevalData.tokensUsed?.output || 0,
+            };
+            // Update Cyber output context
+            context[`step_${step.id}_output`] = reevalOutput;
+            callbacks.onUpdate({ ...execution });
+
+            cyberRedesignCycles++;
+
+            if (reevalParsed.riskLevel === "Critical" || reevalParsed.findings.some((f) => f.severity === "Critical")) {
+              postLog({
+                type: "system",
+                content: `CYBER-GATED REDESIGN: Critical vulnerability persists after redesign. Escalating to user.`,
+              }).catch(() => {});
+              execution.status = "paused";
+              execution.escalatedSteps = [...(execution.escalatedSteps || []), step.id];
+              callbacks.onUpdate({ ...execution });
+              break;
+            }
+
+            postLog({
+              type: "system",
+              content: `CYBER-GATED REDESIGN: All critical findings resolved. Pipeline continuing with updated architecture.`,
+            }).catch(() => {});
+
+          } catch (err) {
+            execution.stepResults[redesignStepId] = {
+              stepId: redesignStepId,
+              status: "failed",
+              error: err instanceof Error ? err.message : "Redesign failed",
+              completedAt: new Date().toISOString(),
+            };
+            callbacks.onUpdate({ ...execution });
+            // Don't halt pipeline on redesign failure — continue with original architecture
+            postLog({
+              type: "system",
+              content: `CYBER-GATED REDESIGN: Architect redesign failed. Continuing with original architecture.`,
+            }).catch(() => {});
+          }
+        } else if (findings.length > 0) {
+          // Non-critical findings → log as backlog for downstream agents
+          const { backlog } = triageFindings(findings);
+          if (backlog.length > 0) {
+            // Append to cyber output context so DevOps/Backend can see them
+            const backlogNote = `\n\nSECURITY BACKLOG (non-blocking, fix downstream):\n${backlog.map((f) => `- ${f.severity}: ${f.title} — ${f.fix}`).join("\n")}`;
+            context[`step_${step.id}_output`] = (context[`step_${step.id}_output`] || "") + backlogNote;
+          }
+        }
       }
 
       // --- QA Feedback Loop: if QA step completed with VERDICT: FAIL, run fix cycles ---
