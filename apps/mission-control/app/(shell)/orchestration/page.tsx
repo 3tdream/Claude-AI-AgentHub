@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
-import { GitBranch, Plus, Play, Trash2, History, Clock, CheckCircle2, XCircle, ExternalLink, Brain, Loader2, Download, FolderOpen, ChevronDown, ChevronRight, FileCode2, Rocket, Pencil, Check, X, UserPlus, Pin, PinOff } from "lucide-react";
+import { GitBranch, Plus, Play, History, Clock, CheckCircle2, XCircle, ExternalLink, Brain, Loader2, Download, FolderOpen, ChevronDown, ChevronRight, FileCode2, Rocket, Pencil, X, UserPlus, Pin, PinOff } from "lucide-react";
 import { useOrchestrationStore } from "@/lib/stores/orchestration-store";
 import { CRM_PIPELINE_TEMPLATE } from "@/lib/pipeline-templates";
 import { executePipeline } from "@/lib/pipeline-executor";
@@ -14,17 +14,17 @@ import { RoutingDecisionPanel } from "@/components/orchestration/routing-decisio
 import { SlotBar } from "@/components/orchestration/slot-bar";
 import { TemplateLibrary } from "@/components/orchestration/template-library";
 import { RecruitmentCenter } from "@/components/orchestration/recruitment-center";
-import type { Workflow, PipelineExecution, RoutingDecisionData, ExecutionMode, AgentCatalogEntry } from "@/types";
+import type { Workflow, PipelineExecution, RoutingDecisionData, ExecutionMode, AgentCatalogEntry, WorkflowSlot } from "@/types";
 
 function generateId() {
   return Math.random().toString(36).substring(2, 10);
 }
 
-const EMPTY_SLOTS: [import("@/types").WorkflowSlot, import("@/types").WorkflowSlot, import("@/types").WorkflowSlot, import("@/types").WorkflowSlot] = [
-  { id: 0, workflowId: null, workflowName: null, status: "empty", projectContext: null, lastInput: "", executionId: null, progress: 0 },
-  { id: 1, workflowId: null, workflowName: null, status: "empty", projectContext: null, lastInput: "", executionId: null, progress: 0 },
-  { id: 2, workflowId: null, workflowName: null, status: "empty", projectContext: null, lastInput: "", executionId: null, progress: 0 },
-  { id: 3, workflowId: null, workflowName: null, status: "empty", projectContext: null, lastInput: "", executionId: null, progress: 0 },
+function createEmptySlot(id: 0 | 1 | 2 | 3): WorkflowSlot {
+  return { id, workflowId: null, workflowName: null, status: "empty", projectContext: null, lastInput: "", executionId: null, progress: 0 };
+}
+const EMPTY_SLOTS: [WorkflowSlot, WorkflowSlot, WorkflowSlot, WorkflowSlot] = [
+  createEmptySlot(0), createEmptySlot(1), createEmptySlot(2), createEmptySlot(3),
 ];
 
 export default function OrchestrationPage() {
