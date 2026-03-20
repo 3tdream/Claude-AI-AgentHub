@@ -27,11 +27,13 @@ export function parseCodeBlocks(output: string): ParsedCodeBlock[] {
 }
 
 function parseJsonOutput(output: string): ParsedCodeBlock[] {
-  // Extract JSON from ```json ... ``` fence
-  const jsonFenceMatch = output.match(/```json\s*\n([\s\S]*?)\n```/);
-  if (jsonFenceMatch) {
+  // Extract ALL ```json ... ``` fences — agents may output multiple JSON blocks
+  // (files, required_env_vars, acceptance_results, questions)
+  // We only care about the one containing "files" array
+  const jsonFences = [...output.matchAll(/```json\s*\n([\s\S]*?)\n```/g)];
+  for (const match of jsonFences) {
     try {
-      const parsed = JSON.parse(jsonFenceMatch[1]);
+      const parsed = JSON.parse(match[1]);
       if (parsed?.files && Array.isArray(parsed.files)) {
         return parsed.files
           .filter((f: any) => f.path && f.content)
@@ -43,11 +45,11 @@ function parseJsonOutput(output: string): ParsedCodeBlock[] {
           }));
       }
     } catch {
-      // JSON parse failed — fall through to legacy
+      // This fence isn't valid JSON or doesn't have files — try next
     }
   }
 
-  // Try bare JSON (no fence)
+  // Try bare JSON (no fence) — look specifically for {"files": [...]}
   const bareJsonMatch = output.match(/\{"files"\s*:\s*\[[\s\S]*?\]\s*\}/);
   if (bareJsonMatch) {
     try {

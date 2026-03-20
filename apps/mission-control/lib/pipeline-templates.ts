@@ -1,11 +1,51 @@
 import type { WorkflowStep } from "@/types";
 
+const FILE_OUTPUT_INSTRUCTIONS = `
+
+FILE OUTPUT FORMAT (STRICT):
+Your code output MUST be a single \`\`\`json fenced block with a "files" key:
+
+\`\`\`json
+{"files": [
+  {"path": "relative/path/to/file.ts", "action": "create", "content": "full file content here"},
+  {"path": "relative/path/to/existing.ts", "action": "modify", "content": "full file content here"}
+]}
+\`\`\`
+
+Rules:
+- "path": relative from project root (e.g. "app/api/users/route.ts")
+- "action": "create" for new files, "modify" for existing
+- "content": the COMPLETE file content — not a diff, not a snippet
+- The \`\`\`json block must contain ONLY the {"files": [...]} object
+- If you have other structured data (env vars, etc.), put it in a SEPARATE \`\`\`json block
+- No commentary, explanations, or markdown outside the json blocks
+- The parser extracts ONLY the block containing "files" — everything else is ignored`;
+
 export const CRM_PIPELINE_STAGES: WorkflowStep[] = [
+  // ═══════════════════════════════════════════════════════════════
+  // S0 — Research: Discovery & competitive audit
+  // ═══════════════════════════════════════════════════════════════
   {
     id: "s0-research",
     agentId: "research-agent",
     agentName: "Research-Agent",
-    promptTemplate: "Conduct market research and competitor analysis for: {{input}}",
+    promptTemplate: `Conduct discovery research for: {{input}}
+
+Your output MUST include these sections:
+
+1. USER PERSONAS (2-3 personas)
+   - Name, role, goals, pain points, tech comfort level
+
+2. COMPETITIVE MATRIX
+   | Competitor | Strengths | Weaknesses | Pricing | Key Differentiator |
+
+3. MARKET SIZING
+   - TAM, SAM, SOM estimates with reasoning
+
+4. KEY INSIGHTS
+   - 3-5 actionable insights that should drive product decisions
+
+MAX 1500 words. Be specific — no generic filler.`,
     dependsOn: [],
     outputKey: "research",
     metadata: {
@@ -15,11 +55,52 @@ export const CRM_PIPELINE_STAGES: WorkflowStep[] = [
       model: "sonnet-4-6",
     },
   },
+
+  // ═══════════════════════════════════════════════════════════════
+  // S1 — Orchestrator: Requirements clarification (CHECKPOINT)
+  // User answers questions before pipeline continues
+  // ═══════════════════════════════════════════════════════════════
   {
     id: "s1-orchestrator",
     agentId: "orchestrator",
     agentName: "Orchestrator",
-    promptTemplate: "Based on research:\n{{step_s0-research_output}}\n\nClarify requirements for: {{input}}\nAsk 5-10 targeted questions.",
+    promptTemplate: `Based on research:
+{{step_s0-research_output}}
+
+Original task: {{input}}
+
+Analyze the task and research. Output a STRUCTURED REQUIREMENTS BRIEF in two sections.
+
+SECTION 1 — ASSUMPTIONS
+List 5-8 assumptions. For each:
+- Statement of what you're assuming
+- Confidence: HIGH / MEDIUM / LOW
+- Impact if wrong: what breaks
+
+SECTION 2 — CRITICAL QUESTIONS
+Ask 3-5 questions that would significantly change scope or architecture.
+Output as JSON array so downstream agents can parse risk zones:
+
+\`\`\`json
+{"questions": [
+  {
+    "id": "Q1",
+    "question": "...",
+    "default_answer": "what you'll assume if no response",
+    "user_answer": null,
+    "default_used": true,
+    "assumption_level": "HIGH_RISK | MEDIUM_RISK | LOW_RISK",
+    "impacts": ["architecture", "scope", "security", "ux"]
+  }
+]}
+\`\`\`
+
+Rules:
+- HIGH_RISK: wrong default could cause rework of 3+ stages
+- MEDIUM_RISK: wrong default affects 1-2 stages
+- LOW_RISK: cosmetic or easily reversible
+- Pipeline will proceed using defaults if user doesn't answer at checkpoint
+- PM-Agent will flag all HIGH_RISK defaults prominently in the PRD`,
     dependsOn: ["s0-research"],
     outputKey: "requirements",
     metadata: {
@@ -27,13 +108,55 @@ export const CRM_PIPELINE_STAGES: WorkflowStep[] = [
       qualityThreshold: 7.0,
       leadAgent: "orchestrator",
       model: "sonnet-4-6",
+      isCheckpoint: true,
     },
   },
+
+  // ═══════════════════════════════════════════════════════════════
+  // S2 — PM: PRD with acceptance criteria
+  // ═══════════════════════════════════════════════════════════════
   {
     id: "s2-pm",
     agentId: "pm-agent",
     agentName: "PM-Agent",
-    promptTemplate: "Create detailed PRD and Jira epic/story structure based on:\n{{step_s1-orchestrator_output}}",
+    promptTemplate: `Create a Product Requirements Document based on:
+Requirements & assumptions: {{step_s1-orchestrator_output}}
+Research: {{step_s0-research_output}}
+
+IMPORTANT: Check the requirements for a "questions" JSON block.
+Any question where "default_used": true and "assumption_level": "HIGH_RISK"
+must be flagged in the PRD with ⚠️ — these are unconfirmed assumptions
+that could require rework if wrong.
+
+Your PRD MUST include:
+
+1. OVERVIEW — One paragraph summary of what we're building and why
+
+2. RISK ASSUMPTIONS
+   List any HIGH_RISK or MEDIUM_RISK defaults that were used.
+   For each: what was assumed, what could go wrong, mitigation.
+
+3. USER STORIES (5-10)
+   Format: As a [persona], I want to [action], so that [outcome]
+   Priority: P0 (must-have) / P1 (should-have) / P2 (nice-to-have)
+
+3. ACCEPTANCE CRITERIA
+   For each P0 and P1 user story, list testable acceptance criteria with IDs:
+   - AC-1: GIVEN [context] WHEN [action] THEN [result] (P0)
+   - AC-2: GIVEN [context] WHEN [action] THEN [result] (P0)
+   IDs must be sequential (AC-1, AC-2, ...) — QA will reference them.
+
+4. SCOPE BOUNDARIES
+   - IN SCOPE: explicit list
+   - OUT OF SCOPE: explicit list
+   - FUTURE PHASE: what we're deferring
+
+5. JIRA STRUCTURE
+   - Epic name and description
+   - Stories with story points (Fibonacci: 1,2,3,5,8,13)
+   - Sprint capacity: 40-50 SP
+
+MAX 2000 words.`,
     dependsOn: ["s1-orchestrator"],
     outputKey: "prd",
     metadata: {
@@ -43,11 +166,39 @@ export const CRM_PIPELINE_STAGES: WorkflowStep[] = [
       model: "sonnet-4-6",
     },
   },
+
+  // ═══════════════════════════════════════════════════════════════
+  // S3 — Architect: System design + API contracts
+  // ═══════════════════════════════════════════════════════════════
   {
     id: "s3-architect",
     agentId: "architect-agent",
     agentName: "Architect-Agent",
-    promptTemplate: "Design system architecture based on PRD:\n{{step_s2-pm_output}}\n\nOUTPUT FORMAT (strict):\n1. ONE ADR (max 300 words): Decision, Context, Chosen option, Rationale\n2. FILES_TO_READ block: exact paths + line ranges for Backend/Frontend\n3. FILES_TO_EDIT block: exact paths + what to change\n4. CHANGE SUMMARY: numbered list of changes\n\nTotal output: MAX 1500 words. No Knowledge Base JSON. No risk matrices. No alternatives analysis beyond the ADR.",
+    promptTemplate: `Design system architecture based on PRD:
+{{step_s2-pm_output}}
+
+OUTPUT FORMAT (strict):
+
+1. ADR (max 300 words)
+   Decision, Context, Chosen option, Rationale
+
+2. API CONTRACTS
+   For each endpoint:
+   \`[METHOD] /api/path\`
+   Request: { field: type }
+   Response: { field: type }
+   Auth: required/public
+
+3. DATA MODEL
+   For each entity:
+   \`EntityName\`: { field: type, constraints }
+   Relations: EntityA → EntityB (1:N)
+
+4. FILES_TO_READ: exact paths + line ranges for Backend/Frontend
+5. FILES_TO_EDIT: exact paths + what to change
+6. CHANGE SUMMARY: numbered list of changes
+
+Total output: MAX 1500 words. The API CONTRACTS section is critical — Backend, Designer, and Frontend all depend on it.`,
     dependsOn: ["s2-pm"],
     outputKey: "architecture",
     metadata: {
@@ -57,11 +208,30 @@ export const CRM_PIPELINE_STAGES: WorkflowStep[] = [
       model: "opus-4-6",
     },
   },
+
+  // ═══════════════════════════════════════════════════════════════
+  // S3.5 — Cyber: Threat model (conditional)
+  // ═══════════════════════════════════════════════════════════════
   {
     id: "s3.5-cyber",
     agentId: "cyber-agent",
     agentName: "Cyber-Agent",
-    promptTemplate: "Security review based on architecture:\n{{step_s3-architect_output}}\n\nYour output MUST follow this EXACT format (no deviations):\n\nRISK LEVEL: [Low/Medium/High/Critical]\n\nFinding 1: [Title]\nRisk: [One sentence]\nFix: [One sentence]\n\nFinding 2: [Title]\nRisk: [One sentence]\nFix: [One sentence]\n\nThat's it. MAX 2-3 findings. MAX 400 words total. If no security concerns: just write 'RISK LEVEL: Low' and stop. Do NOT write threat models, matrices, or long analysis.",
+    promptTemplate: `Security review based on architecture:
+{{step_s3-architect_output}}
+
+Your output MUST follow this EXACT format (no deviations):
+
+RISK LEVEL: [Low/Medium/High/Critical]
+
+Finding 1: [Title]
+Risk: [One sentence]
+Fix: [One sentence]
+
+Finding 2: [Title]
+Risk: [One sentence]
+Fix: [One sentence]
+
+That's it. MAX 2-3 findings. MAX 400 words total. If no security concerns: just write 'RISK LEVEL: Low' and stop. Do NOT write threat models, matrices, or long analysis.`,
     dependsOn: ["s3-architect"],
     outputKey: "threat_model",
     metadata: {
@@ -72,28 +242,138 @@ export const CRM_PIPELINE_STAGES: WorkflowStep[] = [
       conditional: "public API / auth / payments",
     },
   },
+
+  // ═══════════════════════════════════════════════════════════════
+  // S4a — Designer: UI/UX specs + design tokens + component CSS
+  // Runs PARALLEL with Backend (both depend on Architect/Cyber)
+  // ═══════════════════════════════════════════════════════════════
+  {
+    id: "s4-designer",
+    agentId: "designer-agent",
+    agentName: "Designer-Agent",
+    promptTemplate: `Create UI/UX design system and component specs based on:
+Architecture & API contracts: {{step_s3-architect_output}}
+PRD & user stories: {{step_s2-pm_output}}
+Security constraints: {{step_s3.5-cyber_output}}
+
+Your output MUST include:
+
+1. DESIGN TOKENS (as CSS variables)
+   Colors, typography scale, spacing, border-radius, shadows
+
+2. PAGE LAYOUTS
+   For each page/view in the PRD:
+   - Layout description (grid/flex structure)
+   - Component hierarchy (tree of components)
+   - Responsive breakpoints behavior
+
+3. COMPONENT SPECS
+   For each UI component:
+   - Props interface (TypeScript)
+   - States: default, hover, active, disabled, loading, error, empty
+   - Accessibility: ARIA labels, keyboard navigation, focus management
+
+4. DATA MAPPING
+   Map each API endpoint from Architecture to the UI component that consumes it:
+   \`GET /api/users\` → UserTable component → columns: [name, email, role]
+
+${FILE_OUTPUT_INSTRUCTIONS}
+
+Generate these files:
+- globals.css (design tokens as CSS custom properties)
+- Component files (.tsx) for the main UI components`,
+    dependsOn: ["s3.5-cyber"],
+    outputKey: "design",
+    metadata: {
+      stageNumber: "4",
+      qualityThreshold: 7.5,
+      leadAgent: "designer-agent",
+      model: "sonnet-4-6",
+      isParallel: true,
+      group: "implementation",
+    },
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // S4b — Backend: API implementation + DB schema
+  // Runs PARALLEL with Designer
+  // ═══════════════════════════════════════════════════════════════
   {
     id: "s4-backend",
     agentId: "backend-agent",
     agentName: "Backend-Agent",
-    promptTemplate: "Create backend implementation based on:\nArchitecture: {{step_s3-architect_output}}\nThreat model: {{step_s3.5-cyber_output}}",
+    promptTemplate: `Create backend implementation based on:
+Architecture & API contracts: {{step_s3-architect_output}}
+Security constraints: {{step_s3.5-cyber_output}}
+PRD & acceptance criteria: {{step_s2-pm_output}}
+
+CRITICAL: You MUST implement EXACTLY the API endpoints defined in the Architecture's API CONTRACTS section.
+- Same paths, same methods, same request/response shapes — no deviations
+- Frontend and Designer are working from the same contract in parallel
+- Any mismatch will break integration
+
+For each endpoint from the contract:
+1. Create the route handler with input validation
+2. Implement business logic to satisfy the PRD acceptance criteria (GIVEN/WHEN/THEN)
+3. Return the EXACT response shape from the contract
+4. Handle errors with proper status codes
+
+Also create:
+- Database schema/migrations matching the DATA MODEL from Architecture
+- Shared TypeScript types (exported, so Frontend can import them)
+- Utility functions for common patterns
+
+At the END of your output, include a structured env vars block:
+\`\`\`json
+{"required_env_vars": [
+  {"name": "DATABASE_URL", "description": "PostgreSQL connection string", "example": "postgresql://user:pass@localhost:5432/db", "required": true},
+  {"name": "JWT_SECRET", "description": "Secret for signing auth tokens", "example": "random-32-char-string", "required": true}
+]}
+\`\`\`
+List EVERY env var your code references. DevOps depends on this to build .env.example and deployment config.
+
+${FILE_OUTPUT_INSTRUCTIONS}`,
     dependsOn: ["s3.5-cyber"],
-    outputKey: "backend_plan",
+    outputKey: "backend_code",
     metadata: {
       stageNumber: "4",
       qualityThreshold: 7.5,
       leadAgent: "backend-agent",
       model: "sonnet-4-6",
-      // Sequential execution to avoid rate limits (30K tokens/min)
+      isParallel: true,
+      group: "implementation",
     },
   },
+
+  // ═══════════════════════════════════════════════════════════════
+  // S4c — Frontend: UI implementation using Designer + Backend output
+  // Runs AFTER Designer and Backend complete
+  // ═══════════════════════════════════════════════════════════════
   {
     id: "s4-frontend",
     agentId: "frontend-agent",
     agentName: "Frontend-Agent",
-    promptTemplate: "Create frontend implementation based on:\nArchitecture: {{step_s3-architect_output}}\nThreat model: {{step_s3.5-cyber_output}}",
-    dependsOn: ["s4-backend"],
-    outputKey: "frontend_plan",
+    promptTemplate: `Create frontend implementation based on:
+Design system & component specs: {{step_s4-designer_output}}
+Backend API implementation: {{step_s4-backend_output}}
+Architecture: {{step_s3-architect_output}}
+
+IMPORTANT:
+- Use the design tokens and component specs from Designer output
+- Call the actual API endpoints from Backend output (not mocked)
+- Follow the page layouts and component hierarchy from the design specs
+- Implement all states: loading, error, empty, success
+- Use TypeScript types from Backend's shared type definitions
+
+For each page in the PRD:
+1. Create the page component using the Designer's layout spec
+2. Wire up API calls to Backend endpoints
+3. Handle loading/error/empty states
+4. Implement responsive behavior per Designer's breakpoint specs
+
+${FILE_OUTPUT_INSTRUCTIONS}`,
+    dependsOn: ["s4-designer", "s4-backend"],
+    outputKey: "frontend_code",
     metadata: {
       stageNumber: "4",
       qualityThreshold: 7.5,
@@ -101,26 +381,27 @@ export const CRM_PIPELINE_STAGES: WorkflowStep[] = [
       model: "sonnet-4-6",
     },
   },
-  {
-    id: "s4-designer",
-    agentId: "designer-agent",
-    agentName: "Designer-Agent",
-    promptTemplate: "Create UI/UX design based on:\nArchitecture: {{step_s3-architect_output}}\nPRD: {{step_s2-pm_output}}",
-    dependsOn: ["s4-frontend"],
-    outputKey: "design",
-    metadata: {
-      stageNumber: "4",
-      qualityThreshold: 7.5,
-      leadAgent: "designer-agent",
-      model: "sonnet-4-6",
-    },
-  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // S4.5 — Human Checkpoint: Review before QA
+  // ═══════════════════════════════════════════════════════════════
   {
     id: "s4.5-checkpoint",
     agentId: "orchestrator",
     agentName: "Human Checkpoint",
-    promptTemplate: "⚠️ HUMAN CHECKPOINT — Review implementation outputs before proceeding.\nBackend: {{step_s4-backend_output}}\nFrontend: {{step_s4-frontend_output}}\nDesign: {{step_s4-designer_output}}",
-    dependsOn: ["s4-backend", "s4-frontend", "s4-designer"],
+    promptTemplate: `⚠️ HUMAN CHECKPOINT — Review implementation outputs before proceeding.
+
+Design: {{step_s4-designer_output}}
+Backend: {{step_s4-backend_output}}
+Frontend: {{step_s4-frontend_output}}
+
+Summary for reviewer:
+- Designer produced design tokens and component specs
+- Backend implemented API endpoints per architecture contracts
+- Frontend wired up Designer specs with Backend APIs
+
+Please review and approve/reject to continue to QA.`,
+    dependsOn: ["s4-frontend"],
     outputKey: "checkpoint_approval",
     metadata: {
       stageNumber: "4.5",
@@ -130,11 +411,68 @@ export const CRM_PIPELINE_STAGES: WorkflowStep[] = [
       isCheckpoint: true,
     },
   },
+
+  // ═══════════════════════════════════════════════════════════════
+  // S5 — QA: Test plan against PRD acceptance criteria
+  // ═══════════════════════════════════════════════════════════════
   {
     id: "s5-qa",
     agentId: "qa-agent",
     agentName: "QA-Agent",
-    promptTemplate: "Generate attack plan (minimum 12 findings) for:\nBackend: {{step_s4-backend_output}}\nFrontend: {{step_s4-frontend_output}}\nDesign: {{step_s4-designer_output}}",
+    promptTemplate: `Validate the implementation against the PRD acceptance criteria.
+
+PRD with acceptance criteria: {{step_s2-pm_output}}
+Backend implementation: {{step_s4-backend_output}}
+Frontend implementation: {{step_s4-frontend_output}}
+Design specs: {{step_s4-designer_output}}
+
+STEP 1 — ACCEPTANCE CRITERIA VERIFICATION (MANDATORY)
+Extract every GIVEN/WHEN/THEN from the PRD. For each, output a structured result.
+
+Output as JSON:
+\`\`\`json
+{"acceptance_results": [
+  {
+    "criteria_id": "AC-1",
+    "user_story": "As a [persona], I want to...",
+    "given": "...",
+    "when": "...",
+    "then": "...",
+    "status": "PASS | FAIL | PARTIAL | BLOCKED",
+    "evidence": "file:line — what confirms or contradicts this",
+    "severity": "P0 | P1 | P2",
+    "fix_required": "description of what needs to change (if FAIL/PARTIAL)"
+  }
+],
+"summary": {
+  "total": 0,
+  "pass": 0,
+  "fail": 0,
+  "partial": 0,
+  "blocked": 0,
+  "p0_failures": 0
+},
+"verdict": "PASS | FAIL"
+}
+\`\`\`
+
+Rules for verdict:
+- VERDICT: FAIL if any P0 criteria has status FAIL
+- VERDICT: FAIL if p0_failures > 0
+- VERDICT: PASS only if all P0 criteria are PASS or PARTIAL
+
+STEP 2 — EDGE CASES
+Cases not covered by acceptance criteria:
+- Empty states, boundary values, concurrent access, network failures
+- List each with: scenario, expected behavior, status (COVERED/MISSING)
+
+STEP 3 — INTEGRATION CHECK
+For each API endpoint from Architecture:
+- Is it implemented in Backend? (yes/no, file path)
+- Is it consumed by Frontend? (yes/no, file path)
+- Do request/response shapes match the contract? (yes/no, mismatch details)
+
+Report exactly what you find. Do NOT pad with generic advice.`,
     dependsOn: ["s4.5-checkpoint"],
     outputKey: "test_plan",
     metadata: {
@@ -144,11 +482,37 @@ export const CRM_PIPELINE_STAGES: WorkflowStep[] = [
       model: "sonnet-4-6",
     },
   },
+
+  // ═══════════════════════════════════════════════════════════════
+  // S5.5 — Cyber: Deep security audit post-implementation
+  // ═══════════════════════════════════════════════════════════════
   {
     id: "s5.5-cyber-audit",
     agentId: "cyber-agent",
     agentName: "Cyber-Agent",
-    promptTemplate: "Deep security audit based on:\nBackend: {{step_s4-backend_output}}\nQA findings: {{step_s5-qa_output}}",
+    promptTemplate: `Deep security audit based on:
+Backend implementation: {{step_s4-backend_output}}
+Frontend implementation: {{step_s4-frontend_output}}
+QA findings: {{step_s5-qa_output}}
+
+Review actual code for OWASP Top 10:
+1. Injection (SQL, NoSQL, command)
+2. Broken authentication
+3. Sensitive data exposure
+4. XSS (stored, reflected, DOM)
+5. CSRF
+6. Insecure dependencies
+7. Missing rate limiting
+8. Improper error handling (stack traces leaked)
+
+For each finding:
+SEVERITY: Critical/High/Medium/Low
+FILE: exact file path
+LINE: approximate line number
+VULNERABILITY: one sentence
+FIX: concrete code change
+
+MAX 800 words. Only report real issues found in the code.`,
     dependsOn: ["s5-qa"],
     outputKey: "security_audit",
     metadata: {
@@ -158,11 +522,46 @@ export const CRM_PIPELINE_STAGES: WorkflowStep[] = [
       model: "opus-4-6",
     },
   },
+
+  // ═══════════════════════════════════════════════════════════════
+  // S6 — DevOps: Infrastructure + CI/CD (sees all outputs)
+  // ═══════════════════════════════════════════════════════════════
   {
     id: "s6-devops",
     agentId: "devops-agent",
     agentName: "DevOps-Agent",
-    promptTemplate: "Create infrastructure, CI/CD, and rollback plan based on:\nArchitecture: {{step_s3-architect_output}}\nBackend: {{step_s4-backend_output}}\nSecurity audit: {{step_s5.5-cyber-audit_output}}",
+    promptTemplate: `Create infrastructure, CI/CD, and deployment configuration based on:
+Architecture: {{step_s3-architect_output}}
+Backend: {{step_s4-backend_output}}
+Frontend: {{step_s4-frontend_output}}
+Security audit: {{step_s5.5-cyber-audit_output}}
+
+IMPORTANT: Backend output contains a "required_env_vars" JSON block.
+Parse it and use it as the source of truth for environment configuration.
+Do NOT guess env vars — use exactly what Backend declared.
+
+Your output MUST include:
+
+1. ENVIRONMENT VARIABLES
+   From Backend's required_env_vars block, create a complete table:
+   | Variable | Description | Required | Example | Used by |
+
+2. CI/CD PIPELINE
+   - Build steps, test steps, deploy steps
+   - Branch strategy (main, staging, feature)
+
+3. DEPLOYMENT CONFIG
+   - Dockerfile or platform config (Vercel/Railway/etc)
+   - Database setup/migration commands
+   - Health check endpoints
+
+4. ROLLBACK PLAN
+   - How to revert if deployment fails
+   - Database rollback strategy
+
+${FILE_OUTPUT_INSTRUCTIONS}
+
+Generate: Dockerfile, .env.example, CI config (GitHub Actions or similar)`,
     dependsOn: ["s5.5-cyber-audit"],
     outputKey: "infrastructure",
     metadata: {
@@ -172,11 +571,41 @@ export const CRM_PIPELINE_STAGES: WorkflowStep[] = [
       model: "sonnet-4-6",
     },
   },
+
+  // ═══════════════════════════════════════════════════════════════
+  // S7 — Orchestrator: Final consolidation
+  // ═══════════════════════════════════════════════════════════════
   {
     id: "s7-consolidation",
     agentId: "orchestrator",
     agentName: "Orchestrator",
-    promptTemplate: "Final consolidation and weekly report.\nAll outputs: Research→{{step_s0-research_output}}, PRD→{{step_s2-pm_output}}, Architecture→{{step_s3-architect_output}}, QA→{{step_s5-qa_output}}, DevOps→{{step_s6-devops_output}}",
+    promptTemplate: `Final consolidation and delivery report.
+
+All outputs:
+- Research: {{step_s0-research_output}}
+- PRD: {{step_s2-pm_output}}
+- Architecture: {{step_s3-architect_output}}
+- Design: {{step_s4-designer_output}}
+- Backend: {{step_s4-backend_output}}
+- Frontend: {{step_s4-frontend_output}}
+- QA: {{step_s5-qa_output}}
+- Security: {{step_s5.5-cyber-audit_output}}
+- DevOps: {{step_s6-devops_output}}
+
+Create a DELIVERY SUMMARY:
+
+1. WHAT WAS BUILT — 2-3 sentences
+2. FILES CREATED — list all file paths from Backend, Frontend, Designer, DevOps outputs
+3. OPEN ISSUES — any FAIL items from QA or Critical/High from Cyber audit
+4. DEPLOYMENT CHECKLIST
+   - [ ] Environment variables configured
+   - [ ] Database migrated
+   - [ ] CI/CD pipeline passing
+   - [ ] Security findings addressed
+   - [ ] Acceptance criteria verified
+5. NEXT STEPS — what should happen after deployment
+
+MAX 800 words.`,
     dependsOn: ["s6-devops"],
     outputKey: "final_report",
     metadata: {
@@ -190,6 +619,6 @@ export const CRM_PIPELINE_STAGES: WorkflowStep[] = [
 
 export const CRM_PIPELINE_TEMPLATE = {
   name: "Beauty CRM Full Pipeline",
-  description: "10-stage pipeline: Research → PM → Architect → Cyber → Backend/Frontend/Designer (parallel) → Human Checkpoint → QA → Cyber Audit → DevOps → Consolidation",
+  description: "13-stage pipeline: Research → Requirements (checkpoint) → PRD → Architect → Cyber → Designer+Backend (parallel) → Frontend → Checkpoint → QA → Cyber Audit → DevOps → Consolidation",
   steps: CRM_PIPELINE_STAGES,
 };
