@@ -177,33 +177,47 @@ MAX 2000 words.`,
     promptTemplate: `Design system architecture based on PRD:
 {{step_s2-pm_output}}
 
-OUTPUT FORMAT (strict):
+YOU ARE THE ARCHITECT — you design, you do NOT write code.
+No SQL. No TypeScript. No implementation. Only decisions and contracts.
 
-1. ADR (max 300 words)
-   Decision, Context, Chosen option, Rationale
+OUTPUT FORMAT (strict — 4 sections only):
 
-2. API CONTRACTS
+1. ADR (max 200 words)
+   Decision: [one sentence]
+   Context: [why this decision matters]
+   Chosen option: [what we're doing]
+   Rationale: [why this over alternatives]
+
+2. API CONTRACTS (the single source of truth for Backend, Designer, Frontend)
    For each endpoint:
    \`[METHOD] /api/path\`
    Request: { field: type }
    Response: { field: type }
-   Auth: required/public
+   Auth: required | public
+   Notes: [rate limit, pagination, etc.]
 
-3. DATA MODEL
+3. DATA MODEL (ERD — entities and relations, NOT SQL)
    For each entity:
-   \`EntityName\`: { field: type, constraints }
-   Relations: EntityA → EntityB (1:N)
+   \`EntityName\`
+   - field: type (constraints in plain English)
+   Relations: EntityA → EntityB (1:N, cascade delete)
 
-4. FILES_TO_READ: exact paths + line ranges for Backend/Frontend
-5. FILES_TO_EDIT: exact paths + what to change
-6. CHANGE SUMMARY: numbered list of changes
+   Backend will write the actual CREATE TABLE statements from this ERD.
+   Do NOT write SQL, migrations, or DDL.
 
-Total output: MAX 1500 words. The API CONTRACTS section is critical — Backend, Designer, and Frontend all depend on it.`,
+4. FILE PLAN
+   FILES_TO_CREATE:
+   - path/to/file.ts — purpose (one line)
+   FILES_TO_MODIFY:
+   - path/to/existing.ts — what changes (one line)
+
+MAX 1000 words total. If you exceed this, you are writing too much detail.
+API CONTRACTS is the most important section — all 3 downstream agents depend on it.`,
     dependsOn: ["s2-pm"],
     outputKey: "architecture",
     metadata: {
       stageNumber: "3",
-      qualityThreshold: 8.3,
+      qualityThreshold: 7.5,
       leadAgent: "architect-agent",
       model: "opus-4-6",
     },
@@ -312,16 +326,22 @@ CRITICAL: You MUST implement EXACTLY the API endpoints defined in the Architectu
 - Frontend and Designer are working from the same contract in parallel
 - Any mismatch will break integration
 
-For each endpoint from the contract:
-1. Create the route handler with input validation
-2. Implement business logic to satisfy the PRD acceptance criteria (GIVEN/WHEN/THEN)
-3. Return the EXACT response shape from the contract
-4. Handle errors with proper status codes
+YOUR RESPONSIBILITIES (Architect does not write code — you do):
 
-Also create:
-- Database schema/migrations matching the DATA MODEL from Architecture
-- Shared TypeScript types (exported, so Frontend can import them)
-- Utility functions for common patterns
+1. DATABASE: Convert Architect's DATA MODEL (ERD) into actual SQL migrations
+   - CREATE TABLE statements with proper types, constraints, indexes
+   - Use the entity names, fields, and relations from the ERD exactly
+
+2. API ROUTES: For each endpoint from the contract:
+   - Create the route handler with input validation
+   - Implement business logic to satisfy the PRD acceptance criteria (GIVEN/WHEN/THEN)
+   - Return the EXACT response shape from the contract
+   - Handle errors with proper status codes
+
+3. SHARED TYPES: TypeScript interfaces matching the DATA MODEL entities
+   - Export from a shared location so Frontend can import them
+
+4. UTILITIES: Helper functions for common patterns (auth, validation, etc.)
 
 At the END of your output, include a structured env vars block:
 \`\`\`json
