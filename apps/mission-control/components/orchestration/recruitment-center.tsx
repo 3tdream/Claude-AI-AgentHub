@@ -151,14 +151,13 @@ export function RecruitmentCenter({ open, onClose, onAddAgent, onAddParallelAgen
                 <button
                   key={agent.agentId}
                   onClick={() => {
-                    if (alreadyAdded && !multiSelectMode) return;
                     if (multiSelectMode) {
-                      if (!alreadyAdded) toggleAgentSelection(agent.agentId);
+                      toggleAgentSelection(agent.agentId);
                     } else {
                       onAddAgent(agent);
                     }
                   }}
-                  disabled={alreadyAdded && !multiSelectMode}
+                  disabled={false}
                   className={`text-left p-3 rounded-lg border transition-all ${
                     isSelected
                       ? "border-primary bg-primary/5 ring-1 ring-primary/30"

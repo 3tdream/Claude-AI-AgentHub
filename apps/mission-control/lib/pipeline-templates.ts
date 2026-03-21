@@ -798,6 +798,6 @@ MAX 800 words.`,
 
 export const CRM_PIPELINE_TEMPLATE = {
   name: "Beauty CRM Full Pipeline",
-  description: "13-stage pipeline: Research → Requirements (checkpoint) → PRD → Architect → Cyber → Designer+Backend (parallel) → Frontend → Checkpoint → QA → Cyber Audit → DevOps → Consolidation",
+  description: "16-stage pipeline: S0 Research → S1 Requirements (checkpoint) → S2 PRD → S3.1 ADR → S3.2 API Contracts → S3.3 ERD → S3.4 File Plan → S3.5 Cyber Threat Model → S4 Designer+Backend (parallel) → S4 Frontend → S4.5 Checkpoint → S5 QA Validation → S5.5 Cyber Audit → S6 DevOps → S7 Consolidation",
   steps: CRM_PIPELINE_STAGES,
 };
