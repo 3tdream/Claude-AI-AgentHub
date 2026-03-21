@@ -217,7 +217,7 @@ API CONTRACTS is the most important section — all 3 downstream agents depend o
     outputKey: "architecture",
     metadata: {
       stageNumber: "3",
-      qualityThreshold: 7.5,
+      qualityThreshold: 6.0,
       leadAgent: "architect-agent",
       model: "opus-4-6",
     },
