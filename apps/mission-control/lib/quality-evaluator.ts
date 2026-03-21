@@ -29,23 +29,27 @@ Score this output on FOUR axes (1-10 each). Use ROLE-AWARE criteria:
   Backend: exact endpoint names, schema, inputs/outputs
   Frontend: component + props structure
   Designer: exact Tailwind classes / design tokens
-  Architect: exact FILES_TO_EDIT with line ranges
+  Architect: complete API contracts (method, path, request/response shapes) + data model entities
 
 **ACTIONABILITY** — Next agent can work immediately?
   PM→Architect: all technical decisions included
-  Architect→Backend/Frontend: detailed implementation instructions
-  Backend/Frontend: code runs or is directly usable
+  Architect→Backend/Designer/Frontend: API contracts are complete, ERD is clear, file plan lists all files
+  Backend/Frontend: code files in {"files": [...]} JSON format
   QA: clear pass/fail with reproduction steps
 
 **TASK COMPLETION** — Did agent deliver what their ROLE requires?
   Research: insights + sources → 10
-  PM: PRD + Jira stories in format → 10
-  Architect: ADR + FILES_TO_EDIT block → 10
-  Backend/Frontend: edit_file/create_file succeeded → 10
-  QA: VERDICT + findings → 10
-  Cyber: vulnerability summary + severity → 10
+  PM: PRD + acceptance criteria (AC-1..AC-N) + Jira stories → 10
+  Architect: ADR + API contracts (ALL endpoints) + data model (ERD) + file plan → 10
+  Designer: {"files": [...]} with CSS tokens + component specs → 10
+  Backend: {"files": [...]} with SQL migrations + route handlers + types → 10
+  Frontend: {"files": [...]} with page components wiring Designer + Backend → 10
+  DevOps: {"files": [...]} with Dockerfile + .env.example + CI config → 10
+  QA: {"acceptance_results": [...]} with VERDICT → 10
+  Cyber: vulnerability summary + severity + fix → 10
   If output truncated mid-sentence → max 4
   If described but didn't deliver → max 5
+  NOTE: Architect does NOT write code or call create_file — do NOT penalize for missing tool calls
 
 You MUST respond in EXACTLY this format (one line each, no extra text):
 [SCORE] completeness: X.X, specificity: X.X, actionability: X.X, taskCompletion: X.X → PASS/FAIL
