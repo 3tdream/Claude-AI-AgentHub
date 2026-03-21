@@ -71,7 +71,7 @@ export async function runQAFeedbackLoop({
     for (const target of fixTargets) {
       const originalStepId = steps.find((s) => s.agentId === target.agentId)?.id;
       const originalOutput = originalStepId ? (execution.stepResults[originalStepId]?.output || "") : "";
-      const architectOutput = context["step_s3-architect_output"] || "";
+      const architectOutput = context["step_s3.2-api_output"] || "";
       const fixPrompt = buildFixPrompt(target, originalOutput, cycle, architectOutput);
       const fixStepId = `${originalStepId || target.agentId}-fix-${cycle}`;
 

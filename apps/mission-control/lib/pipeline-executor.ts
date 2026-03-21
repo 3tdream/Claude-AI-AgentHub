@@ -183,7 +183,7 @@ export async function executePipeline(
       "designer-agent": /no\s*(design|css|styling|token)\s*(change|work|needed|required)/i,
     };
     if (skipCandidates[step.agentId]) {
-      const architectOutput = context["step_s3-architect_output"] || "";
+      const architectOutput = context["step_s3.2-api_output"] || "";
       const orchestratorOutput = context["step_s1-orchestrator_output"] || "";
       const combinedUpstream = architectOutput + "\n" + orchestratorOutput;
       if (skipCandidates[step.agentId].test(combinedUpstream)) {

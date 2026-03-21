@@ -168,55 +168,160 @@ MAX 2000 words.`,
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // S3 — Architect: System design + API contracts
+  // S3 — Architect Suite (4 micro-stages)
+  // Cognitive Decomposition: each sub-stage focuses on ONE deliverable
   // ═══════════════════════════════════════════════════════════════
+
+  // S3.1 — ADR: Architecture Decision Record
   {
-    id: "s3-architect",
+    id: "s3.1-adr",
     agentId: "architect-agent",
     agentName: "Architect-Agent",
-    promptTemplate: `Design system architecture based on PRD:
+    promptTemplate: `Based on the PRD below, write ONE Architecture Decision Record.
+
+PRD:
 {{step_s2-pm_output}}
 
-YOU ARE THE ARCHITECT — you design, you do NOT write code.
-No SQL. No TypeScript. No implementation. Only decisions and contracts.
+OUTPUT — ONE ADR only (max 300 words):
 
-OUTPUT FORMAT (strict — 4 sections only):
+DECISION: [one sentence — what are we building and how]
+CONTEXT: [why this decision matters, what constraints exist]
+CHOSEN OPTION: [tech stack, architecture pattern, deployment model]
+ALTERNATIVES CONSIDERED: [2-3 alternatives with why rejected]
+RATIONALE: [why this option wins]
+CONSEQUENCES: [trade-offs accepted]
 
-1. ADR (max 200 words)
-   Decision: [one sentence]
-   Context: [why this decision matters]
-   Chosen option: [what we're doing]
-   Rationale: [why this over alternatives]
-
-2. API CONTRACTS (the single source of truth for Backend, Designer, Frontend)
-   For each endpoint:
-   \`[METHOD] /api/path\`
-   Request: { field: type }
-   Response: { field: type }
-   Auth: required | public
-   Notes: [rate limit, pagination, etc.]
-
-3. DATA MODEL (ERD — entities and relations, NOT SQL)
-   For each entity:
-   \`EntityName\`
-   - field: type (constraints in plain English)
-   Relations: EntityA → EntityB (1:N, cascade delete)
-
-   Backend will write the actual CREATE TABLE statements from this ERD.
-   Do NOT write SQL, migrations, or DDL.
-
-4. FILE PLAN
-   FILES_TO_CREATE:
-   - path/to/file.ts — purpose (one line)
-   FILES_TO_MODIFY:
-   - path/to/existing.ts — what changes (one line)
-
-MAX 1000 words total. If you exceed this, you are writing too much detail.
-API CONTRACTS is the most important section — all 3 downstream agents depend on it.`,
+Be specific: name exact technologies, frameworks, databases.
+This ADR will be read by Backend, Frontend, Designer, DevOps, and Cyber agents.`,
     dependsOn: ["s2-pm"],
-    outputKey: "architecture",
+    outputKey: "adr",
     metadata: {
-      stageNumber: "3",
+      stageNumber: "3.1",
+      qualityThreshold: 6.0,
+      leadAgent: "architect-agent",
+      model: "sonnet-4-6",
+    },
+  },
+
+  // S3.2 — API Contracts
+  {
+    id: "s3.2-api",
+    agentId: "architect-agent",
+    agentName: "Architect-Agent",
+    promptTemplate: `Based on the ADR and PRD, define ALL API endpoints.
+
+ADR: {{step_s3.1-adr_output}}
+PRD: {{step_s2-pm_output}}
+
+OUTPUT — COMPLETE API CONTRACT for every endpoint:
+
+For EACH endpoint:
+\`[METHOD] /api/path\`
+Request: { field: type, field: type }
+Response 200: { field: type, field: type }
+Response errors: 400 (reason), 404 (reason)
+Auth: required (JWT) | public
+Rate limit: N/min
+Notes: [pagination, filtering, sorting if applicable]
+
+RULES:
+- List EVERY endpoint the system needs — Backend will implement exactly these
+- Designer will map each endpoint to a UI component
+- Frontend will call exactly these paths with these shapes
+- Missing an endpoint = broken feature downstream
+- Do NOT write code. Only contracts.
+
+MAX 500 words.`,
+    dependsOn: ["s3.1-adr"],
+    outputKey: "api_contracts",
+    metadata: {
+      stageNumber: "3.2",
+      qualityThreshold: 6.0,
+      leadAgent: "architect-agent",
+      model: "sonnet-4-6",
+    },
+  },
+
+  // S3.3 — Data Model (ERD)
+  {
+    id: "s3.3-erd",
+    agentId: "architect-agent",
+    agentName: "Architect-Agent",
+    promptTemplate: `Based on the API contracts, define the data model as ERD.
+
+API Contracts: {{step_s3.2-api_output}}
+ADR: {{step_s3.1-adr_output}}
+
+OUTPUT — ENTITY RELATIONSHIP DIAGRAM (plain text, NOT SQL):
+
+For EACH entity:
+\`EntityName\`
+- field_name: type (constraints in plain English)
+- field_name: type (unique, not null, default: value)
+Relations:
+- EntityA.field → EntityB.id (1:N, cascade delete)
+- EntityC.field → EntityD.id (N:M via join table)
+
+RULES:
+- Use plain English for constraints — "unique", "not null", "max 255 chars"
+- Do NOT write SQL, CREATE TABLE, or DDL
+- Backend-Agent will convert this ERD into actual SQL migrations
+- Include estimated row growth per month for each entity
+- Include which indexes are needed and why
+
+MAX 400 words.`,
+    dependsOn: ["s3.2-api"],
+    outputKey: "data_model",
+    metadata: {
+      stageNumber: "3.3",
+      qualityThreshold: 6.0,
+      leadAgent: "architect-agent",
+      model: "sonnet-4-6",
+    },
+  },
+
+  // S3.4 — File Plan
+  {
+    id: "s3.4-fileplan",
+    agentId: "architect-agent",
+    agentName: "Architect-Agent",
+    promptTemplate: `Based on ADR, API contracts, and data model — list all files to create or modify.
+
+ADR: {{step_s3.1-adr_output}}
+API Contracts: {{step_s3.2-api_output}}
+Data Model: {{step_s3.3-erd_output}}
+
+OUTPUT — COMPLETE FILE PLAN:
+
+FILES_TO_CREATE:
+- path/to/file.ts — purpose (one line)
+- path/to/file.ts — purpose (one line)
+
+FILES_TO_MODIFY:
+- path/to/existing.ts — what changes (one line)
+
+Group by agent responsibility:
+### Backend-Agent files:
+- migrations/001_create_xxx.sql — migration for EntityName
+- app/api/v1/xxx/route.ts — POST /api/xxx endpoint
+- types/xxx.ts — shared TypeScript types
+
+### Frontend-Agent files:
+- app/(shell)/xxx/page.tsx — page component
+- components/xxx/yyy.tsx — component
+
+### Designer-Agent files:
+- globals.css additions — design tokens
+
+### DevOps-Agent files:
+- .env.example — env vars
+- Dockerfile — container config
+
+MAX 300 words. One line per file.`,
+    dependsOn: ["s3.3-erd"],
+    outputKey: "file_plan",
+    metadata: {
+      stageNumber: "3.4",
       qualityThreshold: 6.0,
       leadAgent: "architect-agent",
       model: "sonnet-4-6",
@@ -231,7 +336,16 @@ API CONTRACTS is the most important section — all 3 downstream agents depend o
     agentId: "cyber-agent",
     agentName: "Cyber-Agent",
     promptTemplate: `Security review based on architecture:
-{{step_s3-architect_output}}
+{{step_s3.1-adr_output}}
+
+API Contracts:
+{{step_s3.2-api_output}}
+
+Data Model:
+{{step_s3.3-erd_output}}
+
+File Plan:
+{{step_s3.4-fileplan_output}}
 
 Your output MUST follow this EXACT format (no deviations):
 
@@ -246,7 +360,7 @@ Risk: [One sentence]
 Fix: [One sentence]
 
 That's it. MAX 2-3 findings. MAX 400 words total. If no security concerns: just write 'RISK LEVEL: Low' and stop. Do NOT write threat models, matrices, or long analysis.`,
-    dependsOn: ["s3-architect"],
+    dependsOn: ["s3.4-fileplan"],
     outputKey: "threat_model",
     metadata: {
       stageNumber: "3.5",
@@ -266,7 +380,16 @@ That's it. MAX 2-3 findings. MAX 400 words total. If no security concerns: just 
     agentId: "designer-agent",
     agentName: "Designer-Agent",
     promptTemplate: `Create UI/UX design system and component specs based on:
-Architecture & API contracts: {{step_s3-architect_output}}
+Architecture & API contracts: {{step_s3.1-adr_output}}
+
+API Contracts:
+{{step_s3.2-api_output}}
+
+Data Model:
+{{step_s3.3-erd_output}}
+
+File Plan:
+{{step_s3.4-fileplan_output}}
 PRD & user stories: {{step_s2-pm_output}}
 Security constraints: {{step_s3.5-cyber_output}}
 
@@ -317,7 +440,16 @@ Generate these files:
     agentId: "backend-agent",
     agentName: "Backend-Agent",
     promptTemplate: `Create backend implementation based on:
-Architecture & API contracts: {{step_s3-architect_output}}
+Architecture & API contracts: {{step_s3.1-adr_output}}
+
+API Contracts:
+{{step_s3.2-api_output}}
+
+Data Model:
+{{step_s3.3-erd_output}}
+
+File Plan:
+{{step_s3.4-fileplan_output}}
 Security constraints: {{step_s3.5-cyber_output}}
 PRD & acceptance criteria: {{step_s2-pm_output}}
 
@@ -376,7 +508,16 @@ ${FILE_OUTPUT_INSTRUCTIONS}`,
     promptTemplate: `Create frontend implementation based on:
 Design system & component specs: {{step_s4-designer_output}}
 Backend API implementation: {{step_s4-backend_output}}
-Architecture: {{step_s3-architect_output}}
+Architecture: {{step_s3.1-adr_output}}
+
+API Contracts:
+{{step_s3.2-api_output}}
+
+Data Model:
+{{step_s3.3-erd_output}}
+
+File Plan:
+{{step_s3.4-fileplan_output}}
 
 IMPORTANT:
 - Use the design tokens and component specs from Designer output
@@ -551,7 +692,16 @@ MAX 800 words. Only report real issues found in the code.`,
     agentId: "devops-agent",
     agentName: "DevOps-Agent",
     promptTemplate: `Create infrastructure, CI/CD, and deployment configuration based on:
-Architecture: {{step_s3-architect_output}}
+Architecture: {{step_s3.1-adr_output}}
+
+API Contracts:
+{{step_s3.2-api_output}}
+
+Data Model:
+{{step_s3.3-erd_output}}
+
+File Plan:
+{{step_s3.4-fileplan_output}}
 Backend: {{step_s4-backend_output}}
 Frontend: {{step_s4-frontend_output}}
 Security audit: {{step_s5.5-cyber-audit_output}}
@@ -604,7 +754,16 @@ Generate: Dockerfile, .env.example, CI config (GitHub Actions or similar)`,
 All outputs:
 - Research: {{step_s0-research_output}}
 - PRD: {{step_s2-pm_output}}
-- Architecture: {{step_s3-architect_output}}
+- Architecture: {{step_s3.1-adr_output}}
+
+API Contracts:
+{{step_s3.2-api_output}}
+
+Data Model:
+{{step_s3.3-erd_output}}
+
+File Plan:
+{{step_s3.4-fileplan_output}}
 - Design: {{step_s4-designer_output}}
 - Backend: {{step_s4-backend_output}}
 - Frontend: {{step_s4-frontend_output}}

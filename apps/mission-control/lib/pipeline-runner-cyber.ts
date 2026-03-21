@@ -61,9 +61,9 @@ export async function runCyberRedesignLoop({
     }
 
     // Step 1: Architect redesign
-    const archOutput = context["step_s3-architect_output"] || "";
+    const archOutput = context["step_s3.2-api_output"] || "";
     const redesignPrompt = buildRedesignPrompt(archOutput, redesignTargets);
-    const redesignStepId = `s3-architect-redesign-${cyberRedesignCycles + 1}`;
+    const redesignStepId = `s3.2-api-redesign-${cyberRedesignCycles + 1}`;
 
     execution.stepResults[redesignStepId] = {
       stepId: redesignStepId,
@@ -89,7 +89,7 @@ export async function runCyberRedesignLoop({
       const data = await res.json();
       const redesignOutput = data.content || "";
 
-      context["step_s3-architect_output"] = archOutput + "\n\n--- SECURITY REDESIGN ---\n" + redesignOutput;
+      context["step_s3.2-api_output"] = archOutput + "\n\n--- SECURITY REDESIGN ---\n" + redesignOutput;
 
       execution.stepResults[redesignStepId] = {
         stepId: redesignStepId,
