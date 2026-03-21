@@ -16,6 +16,20 @@ import { TemplateLibrary } from "@/components/orchestration/template-library";
 import { RecruitmentCenter } from "@/components/orchestration/recruitment-center";
 import type { Workflow, PipelineExecution, RoutingDecisionData, ExecutionMode, AgentCatalogEntry, WorkflowSlot } from "@/types";
 
+function LiveTimer({ startedAt }: { startedAt: string }) {
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    setElapsed(Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000));
+    const interval = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [startedAt]);
+  const mins = Math.floor(elapsed / 60);
+  const secs = elapsed % 60;
+  return <span className="tabular-nums">{mins > 0 ? `${mins}m ${secs}s` : `${secs}s`}</span>;
+}
+
 function generateId() {
   return Math.random().toString(36).substring(2, 10);
 }
@@ -668,11 +682,14 @@ export default function OrchestrationPage() {
                           </button>
                         </>
                       )}
-                      {activeExecution.totalDuration && (
-                        <span className="font-mono text-[9px] text-muted-foreground">
-                          {(activeExecution.totalDuration / 1000).toFixed(1)}s
-                        </span>
-                      )}
+                      <span className="font-mono text-[9px] text-muted-foreground">
+                        {activeExecution.totalDuration
+                          ? `${(activeExecution.totalDuration / 1000).toFixed(1)}s`
+                          : activeExecution.startedAt && activeExecution.status === "running"
+                          ? <LiveTimer startedAt={activeExecution.startedAt} />
+                          : null
+                        }
+                      </span>
                     </div>
                   )}
                 </div>

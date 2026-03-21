@@ -1,7 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, Clock, Cpu, Layers, RefreshCw, AlertTriangle, FileCode2, Check, XCircle, Loader2, BarChart3, Search, BookOpen, Pencil, FilePlus, Terminal } from "lucide-react";
+
+function LiveTimer({ startedAt }: { startedAt: string }) {
+  const [elapsed, setElapsed] = useState(() => Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000));
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [startedAt]);
+  return <span className="tabular-nums">{elapsed}s</span>;
+}
 import type { WorkflowStep, StepResult, QualityScore } from "@/types";
 import { QualityScoreBadge } from "./quality-score-badge";
 import { parseCodeBlocks, type ParsedCodeBlock } from "@/lib/code-block-parser";
@@ -117,7 +128,12 @@ export function StageDetailPanel({ step, result, qualityScore, onClose }: StageD
           <div>
             <p className="font-mono text-[9px] text-muted-foreground uppercase">Duration</p>
             <p className="font-mono text-xs">
-              {result?.duration ? `${(result.duration / 1000).toFixed(1)}s` : "—"}
+              {result?.duration
+                ? `${(result.duration / 1000).toFixed(1)}s`
+                : result?.startedAt && (result.status === "running" || result.status === "retrying")
+                ? <LiveTimer startedAt={result.startedAt} />
+                : "—"
+              }
             </p>
           </div>
         </div>
