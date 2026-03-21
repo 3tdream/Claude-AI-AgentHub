@@ -303,7 +303,8 @@ export async function executePipeline(
         const agentCfg = AGENT_CONFIG[step.agentId];
         const implementationAgents = ["backend-agent", "frontend-agent"];
         const qaAgent = step.agentId === "qa-agent";
-        const hasTools = !!agentCfg && step.agentId !== "research-agent" && step.agentId !== "designer-agent";
+        const plannerAgents = ["research-agent", "designer-agent", "architect-agent"];
+        const hasTools = !!agentCfg && !plannerAgents.includes(step.agentId);
         const useTools = hasTools;
         const toolMode = qaAgent ? "qa" : implementationAgents.includes(step.agentId) ? "readwrite" : "readonly";
         const maxToolSteps = agentCfg?.maxTurns || 5;
@@ -840,7 +841,9 @@ function buildPrompt(
 
     prompt += `\n\n---\n### TOOL ACCESS${fileList}\n\nYou have these tools:\n- **list_files**, **read_file** — read project code\n- **run_command** — run \`npx tsc --noEmit\` or \`grep\` to verify\n- **save_failure_pattern** — record critical bugs in knowledge base\n\n### QA WORKFLOW\n1. Read changed files (max 8 read calls)\n2. Run \`npx tsc --noEmit\` to check compilation\n3. Analyze for bugs, security issues, architectural violations\n4. For each CRITICAL finding: call **save_failure_pattern** with category, title, symptoms, root_cause, solution\n5. Output your QA report with all findings\n\n### VERDICT\nEnd your report with one of:\n- **VERDICT: PASS** — no critical issues, safe to deploy\n- **VERDICT: FAIL** — critical issues found, saved to failure patterns\n\n### TOKEN BUDGET (CRITICAL)\n- **MAX 10 tool calls total**. Read only changed files, not the entire project.\n- Do NOT re-read files. Read once, analyze, write.`;
   } else if (step.agentId === "architect-agent") {
-    prompt += `\n\n---\n### TOOL ACCESS (READ-ONLY)\nYou have: list_files, read_file. Max 3 tool calls.\n\n### MANDATORY OUTPUT FORMAT\nYour output MUST end with this exact block:\n\n\`\`\`\nFILES_TO_READ:\n- path/to/file.ts (lines X-Y) — reason\n- path/to/other.ts (full) — reason\n\nFILES_TO_EDIT:\n- path/to/file.ts (lines X-Y) — what to change\n- path/to/new-file.ts — create: purpose\n\nCHANGE SUMMARY:\n1. In file.ts: add function X that does Y\n2. In other.ts: modify import to include Z\n\`\`\`\n\nThis block is READ BY Backend/Frontend agents to know exactly where to look.\nWithout it they will waste tokens reading the entire project.\n\n### RULES\n- Max 2000 words. ADR + specs + FILES block.\n- Do NOT output Knowledge Base JSON.\n- Be SPECIFIC: exact file paths, exact line ranges, exact function names.`;
+    // Architect is a Planner — NO tool instructions, no FILES_TO_EDIT format
+    // Pipeline prompt in pipeline-templates.ts defines the output format (ADR + API contracts + ERD + file plan)
+    prompt += `\n\n---\nYou do NOT have tool access. Do NOT try to read files or call any tools.\nProduce your architecture output as plain text following the format in the task above.\nFocus on completing ALL sections — especially API CONTRACTS (every endpoint must have method, path, request, response, auth).`;
   } else if (step.agentId === "pm-agent") {
     prompt += `\n\n---\n### TOOL ACCESS (READ-ONLY)\nYou have: list_files, read_file. Max 2 tool calls.\n\nBefore writing stories, check the REAL project structure:\n1. list_files on the relevant directory (app/(shell)/, app/api/, lib/stores/, types/)\n2. read_file on types or store if you need exact field names\n\nThis prevents writing stories about files/APIs that don't exist.\nDo NOT guess paths — verify them.\n\n### TOKEN BUDGET\n- Max 2 tool calls. Quick look, then write.\n- Keep output under 3000 words.`;
   } else if (readOnlyAgents.includes(step.agentId)) {
