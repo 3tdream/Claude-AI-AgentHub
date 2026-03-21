@@ -198,10 +198,11 @@ export async function callAIWithTools(req: ToolCallAIRequest): Promise<DirectAIR
     totalInput += response.usage.input_tokens;
     totalOutput += response.usage.output_tokens;
 
-    // Extract text content
+    // Extract text content — accumulate across turns (don't overwrite)
     const textBlocks = response.content.filter((b): b is Anthropic.Messages.TextBlock => b.type === "text");
     if (textBlocks.length > 0) {
-      finalContent = textBlocks.map((b) => b.text).join("\n");
+      const turnText = textBlocks.map((b) => b.text).join("\n");
+      finalContent = finalContent ? finalContent + "\n" + turnText : turnText;
     }
 
     // Check for tool use
