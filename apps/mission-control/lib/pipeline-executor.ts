@@ -4,6 +4,7 @@ import { evaluateStepOutput, buildRetryPrompt } from "@/lib/quality-evaluator";
 import { PIPELINE, AGENT_CONFIG, TOOL_OUTPUT_LIMITS } from "@/lib/config";
 import { runCyberRedesignLoop } from "@/lib/pipeline-runner-cyber";
 import { runQAFeedbackLoop } from "@/lib/pipeline-runner-qa";
+import { isTruncationFailure, continueOutput } from "@/lib/output-continuation";
 import type { RoutingDecisionData } from "@/types";
 // Analytics storage accessed via API (can't import fs in client-side code)
 
@@ -519,6 +520,67 @@ export async function executePipeline(
         }
 
         lastFeedback = evaluation.feedback;
+
+        // --- Output continuation: if truncated, try cheap append instead of full retry ---
+        if (isTruncationFailure(evaluation.feedback) && retryCount < MAX_RETRIES) {
+          postLog({
+            type: "system",
+            agentId: step.agentId,
+            content: `Truncation detected — attempting cheap continuation instead of full retry`,
+          }).catch(() => {});
+
+          const contResult = await continueOutput(
+            step.agentId,
+            step.metadata?.model || "sonnet-4-6",
+            "", // system prompt not needed for continuation
+            agentOutput,
+            evaluation.feedback,
+          );
+
+          if (contResult.success) {
+            // Re-evaluate with merged output
+            const mergedOutput = contResult.mergedOutput;
+            context[`step_${step.id}_output`] = mergedOutput;
+
+            const reEval = await evaluateStepOutput(
+              step.agentName,
+              step.metadata?.stageNumber || "?",
+              input,
+              mergedOutput,
+              threshold,
+              step.agentId,
+              data.toolCalls || undefined,
+            );
+
+            if (execution.qualityScores) {
+              execution.qualityScores[step.id] = reEval.score;
+            }
+
+            postLog({
+              type: "decision",
+              agentId: "orchestrator",
+              content: `Continuation re-eval for ${step.agentName}: ${reEval.score.overall}/10 → ${reEval.passed ? "PASS" : "FAIL"} (+${contResult.continuationTokens} tokens)`,
+            }).catch(() => {});
+
+            if (reEval.passed) {
+              execution.stepResults[step.id] = {
+                stepId: step.id,
+                status: "completed",
+                output: mergedOutput.substring(0, 20000),
+                duration: Date.now() - new Date(execution.stepResults[step.id].startedAt!).getTime(),
+                completedAt: new Date().toISOString(),
+                retryCount,
+                evaluationFeedback: `Passed after continuation (+${contResult.continuationTokens} tokens)`,
+                ...stepAnalytics,
+              };
+              callbacks.onUpdate({ ...execution });
+              completed.add(step.id);
+              return true;
+            }
+            // Continuation didn't fix it — fall through to regular retry
+            lastFeedback = reEval.feedback;
+          }
+        }
 
         // Smart retry: stop early if score isn't improving
         const scoreImproved = evaluation.score.overall > lastScore + 0.5;
