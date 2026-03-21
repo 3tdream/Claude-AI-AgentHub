@@ -40,7 +40,11 @@ Score this output on FOUR axes (1-10 each). Use ROLE-AWARE criteria:
 **TASK COMPLETION** — Did agent deliver what their ROLE requires?
   Research: insights + sources → 10
   PM: PRD + acceptance criteria (AC-1..AC-N) + Jira stories → 10
-  Architect: ADR + API contracts (ALL endpoints) + data model (ERD) + file plan → 10
+  Architect (Stage 3.1): ADR only — decision, context, rationale, consequences → 10
+  Architect (Stage 3.2): API contracts only — ALL endpoints with method, path, shapes → 10
+  Architect (Stage 3.3): Data model ERD only — entities, fields, relations → 10
+  Architect (Stage 3.4): File plan only — list of files to create/modify → 10
+  Architect (any other stage): evaluate what was asked in the task prompt → 10
   Designer: {"files": [...]} with CSS tokens + component specs → 10
   Backend: {"files": [...]} with SQL migrations + route handlers + types → 10
   Frontend: {"files": [...]} with page components wiring Designer + Backend → 10

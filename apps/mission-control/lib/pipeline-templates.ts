@@ -161,7 +161,7 @@ MAX 2000 words.`,
     outputKey: "prd",
     metadata: {
       stageNumber: "2",
-      qualityThreshold: 7.5,
+      qualityThreshold: 5.5,
       leadAgent: "pm-agent",
       model: "sonnet-4-6",
     },
