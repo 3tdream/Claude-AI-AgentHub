@@ -223,23 +223,49 @@ michael-personal-bot, Email & Calendar Manager, tech-support, assistant
 ### Herald Sub-agents (2)
 avatar-prompter (gpt-4.1-mini), profile-generator (gpt-4.1-mini)
 
-## Beauty CRM Pipeline — 13-Stage Execution (v2)
+## Beauty CRM Pipeline — V3 (19 stages with Orchestrator Gates)
+
+> **Rule: Task Done threshold = 7.5 for ALL agents. Do NOT lower without explicit approval.**
 
 ```
-Stage 0   Research-Agent      Discovery: personas, competitive matrix, market sizing
-Stage 1   Orchestrator        ⚠️ CHECKPOINT: assumptions + questions with defaults + risk levels
-Stage 2   PM-Agent            PRD + acceptance criteria (AC-1..AC-N with GIVEN/WHEN/THEN)
-Stage 3   Architect-Agent     ADR + API contracts + data model (single source of truth)
-Stage 3.5 Cyber-Agent         Threat model (conditional) → CRITICAL triggers redesign cycle
-Stage 4a  Designer-Agent    ═╗ PARALLEL: design tokens, component specs, CSS files
-Stage 4b  Backend-Agent     ═╝ PARALLEL: API implementation, DB schema, env vars, shared types
-Stage 4c  Frontend-Agent      Wires Designer specs + Backend APIs (depends on 4a + 4b)
-Stage 4.5 Orchestrator        ⚠️ HUMAN CHECKPOINT — review before QA
-Stage 5   QA-Agent            Acceptance criteria validation → FAIL triggers fix cycle
-Stage 5.5 Cyber-Agent         Deep security audit (OWASP Top 10 against actual code)
-Stage 6   DevOps-Agent        Infra, CI/CD, .env.example (from Backend env vars), Dockerfile
-Stage 7   Orchestrator        Delivery summary + deployment checklist
+Stage   Agent              Role                   Notes
+─────   ─────              ────                   ─────
+S0      Research           Market Scan            Raw data collection
+S1      Orchestrator       Requirements & Goal    Translates Research → concrete goal
+S2      PM                 PRD & Acceptance       "What we build" (AC-1..AC-N)
+S2.5    Orchestrator       PRD Validation         ⚠️ GATE 1: is PRD sufficient for Architect?
+S3.1    Architect          ADR (Strategy)         Tech choices, rationale
+S3.2    Architect          API Contracts          Endpoint definitions (source of truth)
+S3.3    Architect          ERD (Data Model)       Entities, relations (not SQL)
+S3.4    Architect          File Plan              Execution map for coders
+S4      Cyber              Design Audit           Security check on blueprints
+S4.5    Orchestrator       Architecture Gate      ⚠️ GATE 2: Plan (S3.4) vs PRD (S2). Mismatch → back to S3.1
+S5      Backend            Core Logic             SQL migrations, routes, types
+S6      Designer           Visual Tokens          CSS tokens, component specs
+S7      Frontend           UI/UX                  Pages wiring Designer + Backend
+S8      Technical QA       White Box              Compilation, types, contract compliance
+S8.5    Orchestrator       Technical Review       ⚠️ GATE 3: reviews QA logs. Dirty → back to coders
+S9      Business QA        Black Box              PRD acceptance criteria check
+S10     Cyber Audit        Code Audit             OWASP Top 10 on actual code
+S11     Orchestrator       Final Verdict          ⚠️ GATE 4: "Ready for release or scrap?"
+S12     Consolidation      Learning               Save experience to knowledge base
 ```
+
+### Orchestrator Gates (4 checkpoints)
+
+| Gate | Stage | Question | On Fail |
+|------|-------|----------|---------|
+| Gate 1 | S2.5 | Is PRD complete enough for Architect? | Return to PM (S2) |
+| Gate 2 | S4.5 | Does Architecture match PRD scope? | Return to Architect (S3.1) |
+| Gate 3 | S8.5 | Is code quality acceptable? | Return to Backend/Frontend (S5-S7) |
+| Gate 4 | S11 | Is product ready for release? | Return to any stage or scrap |
+
+### Implementation Order (Sequential)
+```
+Backend (S5) → Designer (S6) → Frontend (S7)
+```
+Designer depends on Backend (sees real endpoints).
+Frontend depends on Designer + Backend (has both design and API).
 
 ### Pipeline Modes (Quick / Medium / Full)
 

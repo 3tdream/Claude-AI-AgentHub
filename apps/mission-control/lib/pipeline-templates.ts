@@ -50,7 +50,7 @@ MAX 800 words. Be specific — no generic filler.`,
     outputKey: "research",
     metadata: {
       stageNumber: "0",
-      qualityThreshold: 5.5,
+      qualityThreshold: 7.5,
       leadAgent: "research-agent",
       model: "sonnet-4-6",
     },
@@ -105,7 +105,7 @@ Rules:
     outputKey: "requirements",
     metadata: {
       stageNumber: "1",
-      qualityThreshold: 5.5,
+      qualityThreshold: 7.5,
       leadAgent: "orchestrator",
       model: "sonnet-4-6",
       isCheckpoint: true,
@@ -161,8 +161,45 @@ MAX 1000 words.`,
     outputKey: "prd",
     metadata: {
       stageNumber: "2",
-      qualityThreshold: 5.5,
+      qualityThreshold: 7.5,
       leadAgent: "pm-agent",
+      model: "sonnet-4-6",
+    },
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // S2.5 — Orchestrator: PRD Validation Gate
+  // GATE 1: Is PRD sufficient for Architect?
+  // ═══════════════════════════════════════════════════════════════
+  {
+    id: "s2.5-prd-gate",
+    agentId: "orchestrator",
+    agentName: "Orchestrator",
+    promptTemplate: `PRD VALIDATION GATE — Review the PM's PRD before sending to Architect.
+
+PRD: {{step_s2-pm_output}}
+Research: {{step_s0-research_output}}
+Requirements: {{step_s1-orchestrator_output}}
+
+Check:
+1. Are ALL P0 user stories specific enough for an Architect to design APIs?
+2. Do acceptance criteria (AC-1..AC-N) have concrete GIVEN/WHEN/THEN?
+3. Are scope boundaries clear (IN/OUT)?
+4. Are there any ambiguities that will cause Architect to guess?
+
+Output:
+GATE VERDICT: PASS | FAIL
+REASON: [one paragraph — what's missing or why it's sufficient]
+MISSING ITEMS: [list, if FAIL]
+
+If FAIL: pipeline will return to PM for revision.
+If PASS: Architect proceeds with confidence.`,
+    dependsOn: ["s2-pm"],
+    outputKey: "prd_gate",
+    metadata: {
+      stageNumber: "2.5",
+      qualityThreshold: 7.5,
+      leadAgent: "orchestrator",
       model: "sonnet-4-6",
     },
   },
@@ -193,11 +230,11 @@ CONSEQUENCES: [trade-offs accepted]
 
 Be specific: name exact technologies, frameworks, databases.
 This ADR will be read by Backend, Frontend, Designer, DevOps, and Cyber agents.`,
-    dependsOn: ["s2-pm"],
+    dependsOn: ["s2.5-prd-gate"],
     outputKey: "adr",
     metadata: {
       stageNumber: "3.1",
-      qualityThreshold: 5.5,
+      qualityThreshold: 7.5,
       leadAgent: "architect-agent",
       model: "sonnet-4-6",
     },
@@ -236,7 +273,7 @@ MAX 500 words.`,
     outputKey: "api_contracts",
     metadata: {
       stageNumber: "3.2",
-      qualityThreshold: 5.5,
+      qualityThreshold: 7.5,
       leadAgent: "architect-agent",
       model: "sonnet-4-6",
     },
@@ -274,7 +311,7 @@ MAX 400 words.`,
     outputKey: "data_model",
     metadata: {
       stageNumber: "3.3",
-      qualityThreshold: 5.5,
+      qualityThreshold: 7.5,
       leadAgent: "architect-agent",
       model: "sonnet-4-6",
     },
@@ -322,7 +359,7 @@ MAX 300 words. One line per file.`,
     outputKey: "file_plan",
     metadata: {
       stageNumber: "3.4",
-      qualityThreshold: 5.5,
+      qualityThreshold: 7.5,
       leadAgent: "architect-agent",
       model: "sonnet-4-6",
     },
@@ -364,7 +401,7 @@ That's it. MAX 2-3 findings. MAX 400 words total. If no security concerns: just 
     outputKey: "threat_model",
     metadata: {
       stageNumber: "3.5",
-      qualityThreshold: 5.5,
+      qualityThreshold: 7.5,
       leadAgent: "cyber-agent",
       model: "sonnet-4-6",
       conditional: "public API / auth / payments",
@@ -420,7 +457,7 @@ Generate these files:
     outputKey: "design",
     metadata: {
       stageNumber: "4",
-      qualityThreshold: 5.5,
+      qualityThreshold: 7.5,
       leadAgent: "designer-agent",
       model: "sonnet-4-6",
     },
@@ -480,11 +517,11 @@ At the END of your output, include a structured env vars block:
 List EVERY env var your code references. DevOps depends on this to build .env.example and deployment config.
 
 ${FILE_OUTPUT_INSTRUCTIONS}`,
-    dependsOn: ["s3.5-cyber"],
+    dependsOn: ["s4.5-arch-gate"],
     outputKey: "backend_code",
     metadata: {
       stageNumber: "4",
-      qualityThreshold: 5.5,
+      qualityThreshold: 7.5,
       leadAgent: "backend-agent",
       model: "sonnet-4-6",
     },
@@ -530,39 +567,50 @@ ${FILE_OUTPUT_INSTRUCTIONS}`,
     outputKey: "frontend_code",
     metadata: {
       stageNumber: "4",
-      qualityThreshold: 5.5,
+      qualityThreshold: 7.5,
       leadAgent: "frontend-agent",
       model: "sonnet-4-6",
     },
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // S4.5 — Human Checkpoint: Review before QA
+  // S4.5 — Orchestrator: Architecture Gate
+  // GATE 2: Does Architecture match PRD? Mismatch → back to S3.1
   // ═══════════════════════════════════════════════════════════════
   {
-    id: "s4.5-checkpoint",
+    id: "s4.5-arch-gate",
     agentId: "orchestrator",
-    agentName: "Human Checkpoint",
-    promptTemplate: `⚠️ HUMAN CHECKPOINT — Review implementation outputs before proceeding.
+    agentName: "Orchestrator",
+    promptTemplate: `ARCHITECTURE GATE — Verify Architecture matches PRD before implementation.
 
-Design: {{step_s4-designer_output}}
-Backend: {{step_s4-backend_output}}
-Frontend: {{step_s4-frontend_output}}
+PRD: {{step_s2-pm_output}}
+ADR: {{step_s3.1-adr_output}}
+API Contracts: {{step_s3.2-api_output}}
+ERD: {{step_s3.3-erd_output}}
+File Plan: {{step_s3.4-fileplan_output}}
+Cyber Findings: {{step_s3.5-cyber_output}}
 
-Summary for reviewer:
-- Designer produced design tokens and component specs
-- Backend implemented API endpoints per architecture contracts
-- Frontend wired up Designer specs with Backend APIs
+Check:
+1. Does every P0 user story from PRD have corresponding API endpoints?
+2. Does the data model support all acceptance criteria?
+3. Are Cyber findings addressed in the architecture?
+4. Is the file plan complete — all files needed for Backend, Designer, Frontend?
 
-Please review and approve/reject to continue to QA.`,
-    dependsOn: ["s4-frontend"],
-    outputKey: "checkpoint_approval",
+Output:
+GATE VERDICT: PASS | FAIL
+COVERAGE: [X of Y user stories covered by API contracts]
+GAPS: [list any PRD requirements not reflected in architecture]
+CYBER STATUS: [all findings addressed | N unresolved]
+
+If FAIL: pipeline should return to Architect (S3.1) for redesign.
+If PASS: implementation begins.`,
+    dependsOn: ["s3.5-cyber"],
+    outputKey: "arch_gate",
     metadata: {
       stageNumber: "4.5",
-      qualityThreshold: 0,
+      qualityThreshold: 7.5,
       leadAgent: "orchestrator",
       model: "sonnet-4-6",
-      isCheckpoint: true,
     },
   },
 
@@ -621,18 +669,54 @@ Output:
 \`\`\`
 
 VERDICT: FAIL if any compilation error or P0 issue. MAX 500 words.`,
-    dependsOn: ["s4.5-checkpoint"],
+    dependsOn: ["s4-frontend"],
     outputKey: "technical_qa",
     metadata: {
       stageNumber: "5",
-      qualityThreshold: 5.5,
+      qualityThreshold: 7.5,
       leadAgent: "qa-agent",
       model: "sonnet-4-6",
     },
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // S5.5 — Business QA (Black Box): acceptance criteria vs PRD
+  // S8.5 — Orchestrator: Technical Review Gate
+  // GATE 3: Reviews QA logs. Dirty code → back to coders
+  // ═══════════════════════════════════════════════════════════════
+  {
+    id: "s8.5-tech-review",
+    agentId: "orchestrator",
+    agentName: "Orchestrator",
+    promptTemplate: `TECHNICAL REVIEW GATE — Review Technical QA results before business validation.
+
+Technical QA Results: {{step_s5-technical-qa_output}}
+Backend: {{step_s4-backend_output}}
+Frontend: {{step_s4-frontend_output}}
+
+Check:
+1. Are there any P0 technical issues (compilation errors, type mismatches)?
+2. Do all API endpoints match the contracts from S3.2?
+3. Are there critical missing files from the file plan?
+
+Output:
+GATE VERDICT: PASS | FAIL
+P0 ISSUES: [count]
+ACTION: [continue to Business QA | return to Backend/Frontend for fixes]
+
+If FAIL with P0 issues: pipeline returns to the responsible coder.
+If PASS: Business QA proceeds.`,
+    dependsOn: ["s5-technical-qa"],
+    outputKey: "tech_review_gate",
+    metadata: {
+      stageNumber: "8.5",
+      qualityThreshold: 7.5,
+      leadAgent: "orchestrator",
+      model: "sonnet-4-6",
+    },
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // S9 — Business QA (Black Box): acceptance criteria vs PRD
   // The "External Gate" — validates business value delivery
   // ═══════════════════════════════════════════════════════════════
   {
@@ -677,11 +761,11 @@ Rules:
 - ONLY check: "Does the system satisfy what the PRD promised?"
 
 MAX 500 words.`,
-    dependsOn: ["s5-technical-qa"],
+    dependsOn: ["s8.5-tech-review"],
     outputKey: "business_qa",
     metadata: {
       stageNumber: "5.5",
-      qualityThreshold: 5.5,
+      qualityThreshold: 7.5,
       leadAgent: "qa-agent",
       model: "sonnet-4-6",
     },
@@ -721,14 +805,54 @@ MAX 500 words. Only report real issues found in the code.`,
     outputKey: "security_audit",
     metadata: {
       stageNumber: "6",
-      qualityThreshold: 5.5,
+      qualityThreshold: 7.5,
       leadAgent: "cyber-agent",
       model: "sonnet-4-6",
     },
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // S7 — DevOps: Infrastructure + CI/CD (sees all outputs)
+  // S11 — Orchestrator: Final Verdict
+  // GATE 4: "Ready for release or scrap?"
+  // ═══════════════════════════════════════════════════════════════
+  {
+    id: "s11-final-verdict",
+    agentId: "orchestrator",
+    agentName: "Orchestrator",
+    promptTemplate: `FINAL VERDICT — Is this product ready for release?
+
+Technical QA: {{step_s5-technical-qa_output}}
+Business QA: {{step_s5.5-business-qa_output}}
+Security Audit: {{step_s6-cyber-audit_output}}
+PRD: {{step_s2-pm_output}}
+
+Review ALL quality gates:
+1. Technical QA verdict: PASS/FAIL?
+2. Business QA verdict: PASS/FAIL? How many AC passed?
+3. Security Audit: any Critical/High unresolved?
+4. Overall: does the product satisfy the original task?
+
+Output:
+FINAL VERDICT: RELEASE | REVISE | SCRAP
+REASON: [one paragraph]
+UNRESOLVED: [list of open issues, if any]
+RECOMMENDATION: [what to do next]
+
+RELEASE = all gates passed, ready for deployment
+REVISE = fixable issues, return to specific stage
+SCRAP = fundamental problems, restart from S1`,
+    dependsOn: ["s6-cyber-audit"],
+    outputKey: "final_verdict",
+    metadata: {
+      stageNumber: "11",
+      qualityThreshold: 7.5,
+      leadAgent: "orchestrator",
+      model: "sonnet-4-6",
+    },
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // S12a — DevOps: Infrastructure + CI/CD (sees all outputs)
   // ═══════════════════════════════════════════════════════════════
   {
     id: "s7-devops",
@@ -775,11 +899,11 @@ Your output MUST include:
 ${FILE_OUTPUT_INSTRUCTIONS}
 
 Generate: Dockerfile, .env.example, CI config (GitHub Actions or similar)`,
-    dependsOn: ["s6-cyber-audit"],
+    dependsOn: ["s11-final-verdict"],
     outputKey: "infrastructure",
     metadata: {
       stageNumber: "7",
-      qualityThreshold: 5.5,
+      qualityThreshold: 7.5,
       leadAgent: "devops-agent",
       model: "sonnet-4-6",
     },
@@ -833,7 +957,7 @@ MAX 800 words.`,
     outputKey: "final_report",
     metadata: {
       stageNumber: "8",
-      qualityThreshold: 5.5,
+      qualityThreshold: 7.5,
       leadAgent: "orchestrator",
       model: "sonnet-4-6",
     },
@@ -842,6 +966,6 @@ MAX 800 words.`,
 
 export const CRM_PIPELINE_TEMPLATE = {
   name: "Beauty CRM Full Pipeline",
-  description: "17-stage pipeline: S0 Research → S1 Requirements → S2 PRD → S3.1-3.4 Architect Suite → S3.5 Cyber → S4 Backend → Designer → Frontend → S4.5 Checkpoint → S5 Technical QA → S5.5 Business QA → S6 Cyber Audit → S7 DevOps → S8 Consolidation",
+  description: "19-stage pipeline with 4 Orchestrator Gates: S0-S2 Planning → S2.5 PRD Gate → S3.1-3.4 Architecture → S4 Cyber → S4.5 Arch Gate → S5-S7 Implementation → S8 Tech QA → S8.5 Tech Gate → S9 Business QA → S10 Cyber Audit → S11 Final Verdict → S12 DevOps + Consolidation",
   steps: CRM_PIPELINE_STAGES,
 };
