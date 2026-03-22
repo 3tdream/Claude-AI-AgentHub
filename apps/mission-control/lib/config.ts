@@ -42,16 +42,16 @@ export const AGENT_CONFIG: Record<string, {
   diffSoft?: { edit: number; create: number };
   diffHard?: number;
 }> = {
-  "research-agent":   { qualityThreshold: 7.0, escalationThreshold: 4, maxTurns: 4,  maxContextChars: 4000,  readBudget: 5,  wordLimit: 4000 },
-  "orchestrator":     { qualityThreshold: 7.0, escalationThreshold: 3, maxTurns: 4,  maxContextChars: 4000,  readBudget: 5,  wordLimit: 2000 },
-  "pm-agent":         { qualityThreshold: 7.3, escalationThreshold: 4, maxTurns: 5,  maxContextChars: 8000,  readBudget: 8,  wordLimit: 4000 },
-  "architect-agent":  { qualityThreshold: 8.3, escalationThreshold: 7, maxTurns: 7,  maxContextChars: 12000, readBudget: 20, wordLimit: 2500 },
-  "cyber-agent":      { qualityThreshold: 8.0, escalationThreshold: 6, maxTurns: 6,  maxContextChars: 8000,  readBudget: 30, wordLimit: 1000 },
-  "backend-agent":    { qualityThreshold: 7.5, escalationThreshold: 5, maxTurns: 5,  maxContextChars: 6000,  readBudget: 2,  diffSoft: { edit: 50, create: 120 }, diffHard: 250 },
-  "frontend-agent":   { qualityThreshold: 7.5, escalationThreshold: 5, maxTurns: 5,  maxContextChars: 6000,  readBudget: 2,  diffSoft: { edit: 30, create: 80 }, diffHard: 150 },
-  "designer-agent":   { qualityThreshold: 7.5, escalationThreshold: 5, maxTurns: 4,  maxContextChars: 4000,  readBudget: 5,  wordLimit: 3000 },
-  "qa-agent":         { qualityThreshold: 8.0, escalationThreshold: 8, maxTurns: 10, maxContextChars: 4000,  readBudget: 15 , wordLimit: 2000 },
-  "devops-agent":     { qualityThreshold: 7.5, escalationThreshold: 5, maxTurns: 7,  maxContextChars: 4000,  readBudget: 10, wordLimit: 2000 },
+  "research-agent":   { qualityThreshold: 7.5, escalationThreshold: 5, maxTurns: 4,  maxContextChars: 8000,  readBudget: 5,  wordLimit: 4000 },
+  "orchestrator":     { qualityThreshold: 7.5, escalationThreshold: 5, maxTurns: 4,  maxContextChars: 8000,  readBudget: 5,  wordLimit: 4000 },
+  "pm-agent":         { qualityThreshold: 7.5, escalationThreshold: 5, maxTurns: 5,  maxContextChars: 8000,  readBudget: 8,  wordLimit: 4000 },
+  "architect-agent":  { qualityThreshold: 7.5, escalationThreshold: 5, maxTurns: 5,  maxContextChars: 8000,  readBudget: 5,  wordLimit: 4000 },
+  "cyber-agent":      { qualityThreshold: 7.5, escalationThreshold: 5, maxTurns: 6,  maxContextChars: 8000,  readBudget: 10, wordLimit: 4000 },
+  "backend-agent":    { qualityThreshold: 7.5, escalationThreshold: 5, maxTurns: 5,  maxContextChars: 8000,  readBudget: 5,  diffSoft: { edit: 50, create: 120 }, diffHard: 250 },
+  "frontend-agent":   { qualityThreshold: 7.5, escalationThreshold: 5, maxTurns: 5,  maxContextChars: 8000,  readBudget: 5,  diffSoft: { edit: 30, create: 80 }, diffHard: 150 },
+  "designer-agent":   { qualityThreshold: 7.5, escalationThreshold: 5, maxTurns: 5,  maxContextChars: 8000,  readBudget: 5,  wordLimit: 4000 },
+  "qa-agent":         { qualityThreshold: 7.5, escalationThreshold: 5, maxTurns: 10, maxContextChars: 8000,  readBudget: 15, wordLimit: 4000 },
+  "devops-agent":     { qualityThreshold: 7.5, escalationThreshold: 5, maxTurns: 7,  maxContextChars: 8000,  readBudget: 10, wordLimit: 4000 },
 };
 
 /** Per-agent scoring weights: task(completion), comp(leteness), spec(ificity), act(ionability) */

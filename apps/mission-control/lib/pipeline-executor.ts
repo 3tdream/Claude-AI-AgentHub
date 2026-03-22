@@ -602,13 +602,10 @@ export async function executePipeline(
           return true;
         }
 
-        // Smart retry: stop early if score isn't improving
-        const scoreImproved = evaluation.score.overall > lastScore + 0.5;
-        const scoreDegraded = evaluation.score.overall < lastScore - 0.3;
-        const worthRetrying = (retryCount < 1) || (scoreImproved && !scoreDegraded);
+        // Always retry up to MAX_RETRIES — no smart retry degradation stopping
         lastScore = evaluation.score.overall;
 
-        if (retryCount < MAX_RETRIES && worthRetrying) {
+        if (retryCount < MAX_RETRIES) {
           postLog({
             type: "system",
             agentId: step.agentId,
@@ -871,7 +868,7 @@ function buildPrompt(
   // --- Inject project context ---
   // Skip full context injection for tool-enabled agents — they can read_file themselves.
   // This saves ~12K tokens per turn in multi-turn tool loops.
-  const toolEnabledAgents = ["backend-agent", "frontend-agent", "architect-agent", "qa-agent", "cyber-agent", "devops-agent"];
+  const toolEnabledAgents = ["backend-agent", "frontend-agent", "qa-agent", "cyber-agent", "devops-agent"];
   const agentHasTools = toolEnabledAgents.includes(step.agentId);
 
   if (projectCtx && (projectCtx.architecture || projectCtx.rules) && !agentHasTools) {
@@ -886,7 +883,7 @@ function buildPrompt(
     if (projectCtx.knowledgeBase.length > 0) {
       contextBlock += `\n### Knowledge Base\n`;
       for (const kb of projectCtx.knowledgeBase) {
-        contextBlock += `\n#### ${kb.name}\n\`\`\`json\n${kb.content.slice(0, 5000)}\n\`\`\`\n`;
+        contextBlock += `\n#### ${kb.name}\n\`\`\`json\n${kb.content}\n\`\`\`\n`;
       }
     }
 
