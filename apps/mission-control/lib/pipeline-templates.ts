@@ -108,7 +108,6 @@ Rules:
       qualityThreshold: 7.5,
       leadAgent: "orchestrator",
       model: "sonnet-4-6",
-      isCheckpoint: true,
     },
   },
 
@@ -369,7 +368,7 @@ MAX 300 words. One line per file.`,
   // S3.5 — Cyber: Threat model (conditional)
   // ═══════════════════════════════════════════════════════════════
   {
-    id: "s3.5-cyber",
+    id: "s4-cyber",
     agentId: "cyber-agent",
     agentName: "Cyber-Agent",
     promptTemplate: `Security review based on architecture:
@@ -400,7 +399,7 @@ That's it. MAX 2-3 findings. MAX 400 words total. If no security concerns: just 
     dependsOn: ["s3.4-fileplan"],
     outputKey: "threat_model",
     metadata: {
-      stageNumber: "3.5",
+      stageNumber: "4",
       qualityThreshold: 7.5,
       leadAgent: "cyber-agent",
       model: "sonnet-4-6",
@@ -423,7 +422,7 @@ ADR: {{step_s3.1-adr_output}}
 API Contracts: {{step_s3.2-api_output}}
 ERD: {{step_s3.3-erd_output}}
 File Plan: {{step_s3.4-fileplan_output}}
-Cyber Findings: {{step_s3.5-cyber_output}}
+Cyber Findings: {{step_s4-cyber_output}}
 
 Check:
 1. Does every P0 user story from PRD have corresponding API endpoints?
@@ -439,7 +438,7 @@ CYBER STATUS: [all findings addressed | N unresolved]
 
 If FAIL: pipeline should return to Architect (S3.1) for redesign.
 If PASS: implementation begins.`,
-    dependsOn: ["s3.5-cyber"],
+    dependsOn: ["s4-cyber"],
     outputKey: "arch_gate",
     metadata: {
       stageNumber: "4.5",
@@ -454,7 +453,7 @@ If PASS: implementation begins.`,
   // FIRST in implementation chain
   // ═══════════════════════════════════════════════════════════════
   {
-    id: "s4-backend",
+    id: "s5-backend",
     agentId: "backend-agent",
     agentName: "Backend-Agent",
     promptTemplate: `Create backend implementation based on:
@@ -468,7 +467,7 @@ Data Model:
 
 File Plan:
 {{step_s3.4-fileplan_output}}
-Security constraints: {{step_s3.5-cyber_output}}
+Security constraints: {{step_s4-cyber_output}}
 PRD & acceptance criteria: {{step_s2-pm_output}}
 
 CRITICAL: You MUST implement EXACTLY the API endpoints defined in the Architecture's API CONTRACTS section.
@@ -506,7 +505,7 @@ ${FILE_OUTPUT_INSTRUCTIONS}`,
     dependsOn: ["s4.5-arch-gate"],
     outputKey: "backend_code",
     metadata: {
-      stageNumber: "4",
+      stageNumber: "5",
       qualityThreshold: 7.5,
       leadAgent: "backend-agent",
       model: "sonnet-4-6",
@@ -517,11 +516,11 @@ ${FILE_OUTPUT_INSTRUCTIONS}`,
   // S6 — Designer: UI/UX specs (depends on Backend — sees real endpoints)
   // ═══════════════════════════════════════════════════════════════
   {
-    id: "s4-designer",
+    id: "s6-designer",
     agentId: "designer-agent",
     agentName: "Designer-Agent",
     promptTemplate: `Create UI/UX design system and component specs based on:
-Backend implementation: {{step_s4-backend_output}}
+Backend implementation: {{step_s5-backend_output}}
 Architecture: {{step_s3.1-adr_output}}
 API Contracts: {{step_s3.2-api_output}}
 File Plan: {{step_s3.4-fileplan_output}}
@@ -553,7 +552,7 @@ ${FILE_OUTPUT_INSTRUCTIONS}
 Generate these files:
 - globals.css (design tokens as CSS custom properties)
 - Component files (.tsx) for the main UI components`,
-    dependsOn: ["s4-backend"],
+    dependsOn: ["s5-backend"],
     outputKey: "design",
     metadata: {
       stageNumber: "6",
@@ -568,12 +567,12 @@ Generate these files:
   // LAST in chain — has both design specs and real API endpoints
   // ═══════════════════════════════════════════════════════════════
   {
-    id: "s4-frontend",
+    id: "s7-frontend",
     agentId: "frontend-agent",
     agentName: "Frontend-Agent",
     promptTemplate: `Create frontend implementation based on:
-Design system & component specs: {{step_s4-designer_output}}
-Backend API implementation: {{step_s4-backend_output}}
+Design system & component specs: {{step_s6-designer_output}}
+Backend API implementation: {{step_s5-backend_output}}
 Architecture: {{step_s3.1-adr_output}}
 
 API Contracts:
@@ -599,10 +598,10 @@ For each page in the PRD:
 4. Implement responsive behavior per Designer's breakpoint specs
 
 ${FILE_OUTPUT_INSTRUCTIONS}`,
-    dependsOn: ["s4-designer", "s4-backend"],
+    dependsOn: ["s6-designer", "s5-backend"],
     outputKey: "frontend_code",
     metadata: {
-      stageNumber: "4",
+      stageNumber: "7",
       qualityThreshold: 7.5,
       leadAgent: "frontend-agent",
       model: "sonnet-4-6",
@@ -614,14 +613,14 @@ ${FILE_OUTPUT_INSTRUCTIONS}`,
   // The "Internal Gate" — catches cheap technical errors early
   // ═══════════════════════════════════════════════════════════════
   {
-    id: "s5-technical-qa",
+    id: "s8-technical-qa",
     agentId: "qa-agent",
     agentName: "QA-Agent",
     promptTemplate: `TECHNICAL QA — verify code quality and correctness.
 
-Backend implementation: {{step_s4-backend_output}}
-Frontend implementation: {{step_s4-frontend_output}}
-Design specs: {{step_s4-designer_output}}
+Backend implementation: {{step_s5-backend_output}}
+Frontend implementation: {{step_s7-frontend_output}}
+Design specs: {{step_s6-designer_output}}
 API Contracts: {{step_s3.2-api_output}}
 
 You are a WHITE BOX tester. Check the CODE, not the business logic.
@@ -664,10 +663,10 @@ Output:
 \`\`\`
 
 VERDICT: FAIL if any compilation error or P0 issue. MAX 500 words.`,
-    dependsOn: ["s4-frontend"],
+    dependsOn: ["s7-frontend"],
     outputKey: "technical_qa",
     metadata: {
-      stageNumber: "5",
+      stageNumber: "8",
       qualityThreshold: 7.5,
       leadAgent: "qa-agent",
       model: "sonnet-4-6",
@@ -684,9 +683,9 @@ VERDICT: FAIL if any compilation error or P0 issue. MAX 500 words.`,
     agentName: "Orchestrator",
     promptTemplate: `TECHNICAL REVIEW GATE — Review Technical QA results before business validation.
 
-Technical QA Results: {{step_s5-technical-qa_output}}
-Backend: {{step_s4-backend_output}}
-Frontend: {{step_s4-frontend_output}}
+Technical QA Results: {{step_s8-technical-qa_output}}
+Backend: {{step_s5-backend_output}}
+Frontend: {{step_s7-frontend_output}}
 
 Check:
 1. Are there any P0 technical issues (compilation errors, type mismatches)?
@@ -700,7 +699,7 @@ ACTION: [continue to Business QA | return to Backend/Frontend for fixes]
 
 If FAIL with P0 issues: pipeline returns to the responsible coder.
 If PASS: Business QA proceeds.`,
-    dependsOn: ["s5-technical-qa"],
+    dependsOn: ["s8-technical-qa"],
     outputKey: "tech_review_gate",
     metadata: {
       stageNumber: "8.5",
@@ -715,15 +714,15 @@ If PASS: Business QA proceeds.`,
   // The "External Gate" — validates business value delivery
   // ═══════════════════════════════════════════════════════════════
   {
-    id: "s5.5-business-qa",
+    id: "s9-business-qa",
     agentId: "qa-agent",
     agentName: "QA-Agent",
     promptTemplate: `BUSINESS QA — validate against PRD acceptance criteria.
 
 PRD with acceptance criteria: {{step_s2-pm_output}}
-Technical QA results: {{step_s5-technical-qa_output}}
-Backend: {{step_s4-backend_output}}
-Frontend: {{step_s4-frontend_output}}
+Technical QA results: {{step_s8-technical-qa_output}}
+Backend: {{step_s5-backend_output}}
+Frontend: {{step_s7-frontend_output}}
 
 You are a BLACK BOX tester. Check BUSINESS LOGIC, not code quality.
 Technical QA (S5) already verified compilation and types.
@@ -759,7 +758,7 @@ MAX 500 words.`,
     dependsOn: ["s8.5-tech-review"],
     outputKey: "business_qa",
     metadata: {
-      stageNumber: "5.5",
+      stageNumber: "9",
       qualityThreshold: 7.5,
       leadAgent: "qa-agent",
       model: "sonnet-4-6",
@@ -770,14 +769,14 @@ MAX 500 words.`,
   // S6 — Cyber: Deep security audit post-implementation
   // ═══════════════════════════════════════════════════════════════
   {
-    id: "s6-cyber-audit",
+    id: "s10-cyber-audit",
     agentId: "cyber-agent",
     agentName: "Cyber-Agent",
     promptTemplate: `Deep security audit based on:
-Backend implementation: {{step_s4-backend_output}}
-Frontend implementation: {{step_s4-frontend_output}}
-Technical QA: {{step_s5-technical-qa_output}}
-Business QA: {{step_s5.5-business-qa_output}}
+Backend implementation: {{step_s5-backend_output}}
+Frontend implementation: {{step_s7-frontend_output}}
+Technical QA: {{step_s8-technical-qa_output}}
+Business QA: {{step_s9-business-qa_output}}
 
 Review actual code for OWASP Top 10:
 1. Injection (SQL, NoSQL, command)
@@ -796,10 +795,10 @@ VULNERABILITY: one sentence
 FIX: concrete code change
 
 MAX 500 words. Only report real issues found in the code.`,
-    dependsOn: ["s5.5-business-qa"],
+    dependsOn: ["s9-business-qa"],
     outputKey: "security_audit",
     metadata: {
-      stageNumber: "6",
+      stageNumber: "10",
       qualityThreshold: 7.5,
       leadAgent: "cyber-agent",
       model: "sonnet-4-6",
@@ -816,9 +815,9 @@ MAX 500 words. Only report real issues found in the code.`,
     agentName: "Orchestrator",
     promptTemplate: `FINAL VERDICT — Is this product ready for release?
 
-Technical QA: {{step_s5-technical-qa_output}}
-Business QA: {{step_s5.5-business-qa_output}}
-Security Audit: {{step_s6-cyber-audit_output}}
+Technical QA: {{step_s8-technical-qa_output}}
+Business QA: {{step_s9-business-qa_output}}
+Security Audit: {{step_s10-cyber-audit_output}}
 PRD: {{step_s2-pm_output}}
 
 Review ALL quality gates:
@@ -836,7 +835,7 @@ RECOMMENDATION: [what to do next]
 RELEASE = all gates passed, ready for deployment
 REVISE = fixable issues, return to specific stage
 SCRAP = fundamental problems, restart from S1`,
-    dependsOn: ["s6-cyber-audit"],
+    dependsOn: ["s10-cyber-audit"],
     outputKey: "final_verdict",
     metadata: {
       stageNumber: "11",
@@ -850,7 +849,7 @@ SCRAP = fundamental problems, restart from S1`,
   // S12a — DevOps: Infrastructure + CI/CD (sees all outputs)
   // ═══════════════════════════════════════════════════════════════
   {
-    id: "s7-devops",
+    id: "s12a-devops",
     agentId: "devops-agent",
     agentName: "DevOps-Agent",
     promptTemplate: `Create infrastructure, CI/CD, and deployment configuration based on:
@@ -864,9 +863,9 @@ Data Model:
 
 File Plan:
 {{step_s3.4-fileplan_output}}
-Backend: {{step_s4-backend_output}}
-Frontend: {{step_s4-frontend_output}}
-Security audit: {{step_s6-cyber-audit_output}}
+Backend: {{step_s5-backend_output}}
+Frontend: {{step_s7-frontend_output}}
+Security audit: {{step_s10-cyber-audit_output}}
 
 IMPORTANT: Backend output contains a "required_env_vars" JSON block.
 Parse it and use it as the source of truth for environment configuration.
@@ -897,7 +896,7 @@ Generate: Dockerfile, .env.example, CI config (GitHub Actions or similar)`,
     dependsOn: ["s11-final-verdict"],
     outputKey: "infrastructure",
     metadata: {
-      stageNumber: "7",
+      stageNumber: "12",
       qualityThreshold: 7.5,
       leadAgent: "devops-agent",
       model: "sonnet-4-6",
@@ -908,7 +907,7 @@ Generate: Dockerfile, .env.example, CI config (GitHub Actions or similar)`,
   // S7 — Orchestrator: Final consolidation
   // ═══════════════════════════════════════════════════════════════
   {
-    id: "s8-consolidation",
+    id: "s12b-consolidation",
     agentId: "orchestrator",
     agentName: "Orchestrator",
     promptTemplate: `Final consolidation and delivery report.
@@ -926,13 +925,13 @@ Data Model:
 
 File Plan:
 {{step_s3.4-fileplan_output}}
-- Design: {{step_s4-designer_output}}
-- Backend: {{step_s4-backend_output}}
-- Frontend: {{step_s4-frontend_output}}
-- Technical QA: {{step_s5-technical-qa_output}}
-- Business QA: {{step_s5.5-business-qa_output}}
-- Security Audit: {{step_s6-cyber-audit_output}}
-- DevOps: {{step_s7-devops_output}}
+- Design: {{step_s6-designer_output}}
+- Backend: {{step_s5-backend_output}}
+- Frontend: {{step_s7-frontend_output}}
+- Technical QA: {{step_s8-technical-qa_output}}
+- Business QA: {{step_s9-business-qa_output}}
+- Security Audit: {{step_s10-cyber-audit_output}}
+- DevOps: {{step_s12a-devops_output}}
 
 Create a DELIVERY SUMMARY:
 
@@ -948,10 +947,10 @@ Create a DELIVERY SUMMARY:
 5. NEXT STEPS — what should happen after deployment
 
 MAX 800 words.`,
-    dependsOn: ["s7-devops"],
+    dependsOn: ["s12a-devops"],
     outputKey: "final_report",
     metadata: {
-      stageNumber: "8",
+      stageNumber: "12",
       qualityThreshold: 7.5,
       leadAgent: "orchestrator",
       model: "sonnet-4-6",
