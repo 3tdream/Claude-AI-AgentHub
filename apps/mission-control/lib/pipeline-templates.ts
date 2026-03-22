@@ -372,21 +372,19 @@ That's it. MAX 2-3 findings. MAX 400 words total. If no security concerns: just 
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // S4a — Designer: UI/UX specs + design tokens + component CSS
-  // Runs PARALLEL with Backend (both depend on Architect/Cyber)
+  // S4a — Backend: API implementation + DB schema
+  // FIRST in implementation chain — Designer and Frontend depend on real endpoints
   // ═══════════════════════════════════════════════════════════════
   {
     id: "s4-designer",
     agentId: "designer-agent",
     agentName: "Designer-Agent",
     promptTemplate: `Create UI/UX design system and component specs based on:
-Architecture & API contracts: {{step_s3.1-adr_output}}
+Backend implementation: {{step_s4-backend_output}}
+Architecture: {{step_s3.1-adr_output}}
 
 API Contracts:
 {{step_s3.2-api_output}}
-
-Data Model:
-{{step_s3.3-erd_output}}
 
 File Plan:
 {{step_s3.4-fileplan_output}}
@@ -419,15 +417,13 @@ ${FILE_OUTPUT_INSTRUCTIONS}
 Generate these files:
 - globals.css (design tokens as CSS custom properties)
 - Component files (.tsx) for the main UI components`,
-    dependsOn: ["s3.5-cyber"],
+    dependsOn: ["s4-backend"],
     outputKey: "design",
     metadata: {
       stageNumber: "4",
       qualityThreshold: 7.5,
       leadAgent: "designer-agent",
       model: "sonnet-4-6",
-      isParallel: true,
-      group: "implementation",
     },
   },
 
@@ -492,8 +488,6 @@ ${FILE_OUTPUT_INSTRUCTIONS}`,
       qualityThreshold: 7.5,
       leadAgent: "backend-agent",
       model: "sonnet-4-6",
-      isParallel: true,
-      group: "implementation",
     },
   },
 
@@ -574,23 +568,88 @@ Please review and approve/reject to continue to QA.`,
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // S5 — QA: Test plan against PRD acceptance criteria
+  // S5 — Technical QA (White Box): code compiles, types match, tests pass
+  // The "Internal Gate" — catches cheap technical errors early
   // ═══════════════════════════════════════════════════════════════
   {
-    id: "s5-qa",
+    id: "s5-technical-qa",
     agentId: "qa-agent",
     agentName: "QA-Agent",
-    promptTemplate: `Validate the implementation against the PRD acceptance criteria.
+    promptTemplate: `TECHNICAL QA — verify code quality and correctness.
 
-PRD with acceptance criteria: {{step_s2-pm_output}}
 Backend implementation: {{step_s4-backend_output}}
 Frontend implementation: {{step_s4-frontend_output}}
 Design specs: {{step_s4-designer_output}}
+API Contracts: {{step_s3.2-api_output}}
 
-STEP 1 — ACCEPTANCE CRITERIA VERIFICATION (MANDATORY)
-Extract every GIVEN/WHEN/THEN from the PRD. For each, output a structured result.
+You are a WHITE BOX tester. Check the CODE, not the business logic.
 
-Output as JSON:
+STEP 1 — COMPILATION CHECK
+- Do all TypeScript files compile without errors?
+- Are all imports valid?
+- Are there type mismatches?
+
+STEP 2 — API CONTRACT COMPLIANCE
+For each endpoint in the API contracts:
+- Is it implemented in Backend? (file path)
+- Does request shape match the contract? (yes/mismatch details)
+- Does response shape match the contract? (yes/mismatch details)
+
+STEP 3 — DATA MODEL COMPLIANCE
+- Do database schema fields match the ERD types?
+- Are all relations implemented (foreign keys, cascades)?
+- Are indexes present for query patterns?
+
+STEP 4 — CODE QUALITY
+- N+1 query risks
+- Missing error handling
+- Hardcoded values that should be config
+- Missing input validation on endpoints
+
+Output:
+\`\`\`json
+{"technical_results": {
+  "compilation": "PASS | FAIL",
+  "api_compliance": "PASS | FAIL (N mismatches)",
+  "data_compliance": "PASS | FAIL",
+  "issues": [
+    {"type": "type_mismatch | missing_endpoint | n_plus_one | no_validation",
+     "file": "path", "description": "...", "severity": "P0 | P1 | P2"}
+  ],
+  "verdict": "PASS | FAIL"
+}}
+\`\`\`
+
+VERDICT: FAIL if any compilation error or P0 issue. MAX 500 words.`,
+    dependsOn: ["s4.5-checkpoint"],
+    outputKey: "technical_qa",
+    metadata: {
+      stageNumber: "5",
+      qualityThreshold: 6.0,
+      leadAgent: "qa-agent",
+      model: "sonnet-4-6",
+    },
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // S5.5 — Business QA (Black Box): acceptance criteria vs PRD
+  // The "External Gate" — validates business value delivery
+  // ═══════════════════════════════════════════════════════════════
+  {
+    id: "s5.5-business-qa",
+    agentId: "qa-agent",
+    agentName: "QA-Agent",
+    promptTemplate: `BUSINESS QA — validate against PRD acceptance criteria.
+
+PRD with acceptance criteria: {{step_s2-pm_output}}
+Technical QA results: {{step_s5-technical-qa_output}}
+Backend: {{step_s4-backend_output}}
+Frontend: {{step_s4-frontend_output}}
+
+You are a BLACK BOX tester. Check BUSINESS LOGIC, not code quality.
+Technical QA (S5) already verified compilation and types.
+
+For EACH acceptance criterion from the PRD:
 \`\`\`json
 {"acceptance_results": [
   {
@@ -600,61 +659,45 @@ Output as JSON:
     "when": "...",
     "then": "...",
     "status": "PASS | FAIL | PARTIAL | BLOCKED",
-    "evidence": "file:line — what confirms or contradicts this",
+    "evidence": "what confirms or contradicts this",
     "severity": "P0 | P1 | P2",
-    "fix_required": "description of what needs to change (if FAIL/PARTIAL)"
+    "fix_required": "description (if FAIL)"
   }
 ],
-"summary": {
-  "total": 0,
-  "pass": 0,
-  "fail": 0,
-  "partial": 0,
-  "blocked": 0,
-  "p0_failures": 0
-},
+"summary": {"total": 0, "pass": 0, "fail": 0, "partial": 0, "blocked": 0, "p0_failures": 0},
 "verdict": "PASS | FAIL"
 }
 \`\`\`
 
-Rules for verdict:
-- VERDICT: FAIL if any P0 criteria has status FAIL
-- VERDICT: FAIL if p0_failures > 0
-- VERDICT: PASS only if all P0 criteria are PASS or PARTIAL
+Rules:
+- VERDICT: FAIL if any P0 criteria FAIL
+- If Technical QA found P0 issues, those are auto-FAIL here too
+- Check edge cases: empty states, boundary values, error flows
+- PASS only if ALL P0 criteria are PASS or PARTIAL
 
-STEP 2 — EDGE CASES
-Cases not covered by acceptance criteria:
-- Empty states, boundary values, concurrent access, network failures
-- List each with: scenario, expected behavior, status (COVERED/MISSING)
-
-STEP 3 — INTEGRATION CHECK
-For each API endpoint from Architecture:
-- Is it implemented in Backend? (yes/no, file path)
-- Is it consumed by Frontend? (yes/no, file path)
-- Do request/response shapes match the contract? (yes/no, mismatch details)
-
-Report exactly what you find. Do NOT pad with generic advice.`,
-    dependsOn: ["s4.5-checkpoint"],
-    outputKey: "test_plan",
+MAX 500 words.`,
+    dependsOn: ["s5-technical-qa"],
+    outputKey: "business_qa",
     metadata: {
-      stageNumber: "5",
-      qualityThreshold: 8.0,
+      stageNumber: "5.5",
+      qualityThreshold: 6.0,
       leadAgent: "qa-agent",
       model: "sonnet-4-6",
     },
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // S5.5 — Cyber: Deep security audit post-implementation
+  // S6 — Cyber: Deep security audit post-implementation
   // ═══════════════════════════════════════════════════════════════
   {
-    id: "s5.5-cyber-audit",
+    id: "s6-cyber-audit",
     agentId: "cyber-agent",
     agentName: "Cyber-Agent",
     promptTemplate: `Deep security audit based on:
 Backend implementation: {{step_s4-backend_output}}
 Frontend implementation: {{step_s4-frontend_output}}
-QA findings: {{step_s5-qa_output}}
+Technical QA: {{step_s5-technical-qa_output}}
+Business QA: {{step_s5.5-business-qa_output}}
 
 Review actual code for OWASP Top 10:
 1. Injection (SQL, NoSQL, command)
@@ -669,26 +712,25 @@ Review actual code for OWASP Top 10:
 For each finding:
 SEVERITY: Critical/High/Medium/Low
 FILE: exact file path
-LINE: approximate line number
 VULNERABILITY: one sentence
 FIX: concrete code change
 
-MAX 800 words. Only report real issues found in the code.`,
-    dependsOn: ["s5-qa"],
+MAX 500 words. Only report real issues found in the code.`,
+    dependsOn: ["s5.5-business-qa"],
     outputKey: "security_audit",
     metadata: {
-      stageNumber: "5.5",
-      qualityThreshold: 8.5,
+      stageNumber: "6",
+      qualityThreshold: 6.0,
       leadAgent: "cyber-agent",
-      model: "opus-4-6",
+      model: "sonnet-4-6",
     },
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // S6 — DevOps: Infrastructure + CI/CD (sees all outputs)
+  // S7 — DevOps: Infrastructure + CI/CD (sees all outputs)
   // ═══════════════════════════════════════════════════════════════
   {
-    id: "s6-devops",
+    id: "s7-devops",
     agentId: "devops-agent",
     agentName: "DevOps-Agent",
     promptTemplate: `Create infrastructure, CI/CD, and deployment configuration based on:
@@ -704,7 +746,7 @@ File Plan:
 {{step_s3.4-fileplan_output}}
 Backend: {{step_s4-backend_output}}
 Frontend: {{step_s4-frontend_output}}
-Security audit: {{step_s5.5-cyber-audit_output}}
+Security audit: {{step_s6-cyber-audit_output}}
 
 IMPORTANT: Backend output contains a "required_env_vars" JSON block.
 Parse it and use it as the source of truth for environment configuration.
@@ -732,11 +774,11 @@ Your output MUST include:
 ${FILE_OUTPUT_INSTRUCTIONS}
 
 Generate: Dockerfile, .env.example, CI config (GitHub Actions or similar)`,
-    dependsOn: ["s5.5-cyber-audit"],
+    dependsOn: ["s6-cyber-audit"],
     outputKey: "infrastructure",
     metadata: {
-      stageNumber: "6",
-      qualityThreshold: 7.5,
+      stageNumber: "7",
+      qualityThreshold: 6.0,
       leadAgent: "devops-agent",
       model: "sonnet-4-6",
     },
@@ -746,7 +788,7 @@ Generate: Dockerfile, .env.example, CI config (GitHub Actions or similar)`,
   // S7 — Orchestrator: Final consolidation
   // ═══════════════════════════════════════════════════════════════
   {
-    id: "s7-consolidation",
+    id: "s8-consolidation",
     agentId: "orchestrator",
     agentName: "Orchestrator",
     promptTemplate: `Final consolidation and delivery report.
@@ -767,9 +809,10 @@ File Plan:
 - Design: {{step_s4-designer_output}}
 - Backend: {{step_s4-backend_output}}
 - Frontend: {{step_s4-frontend_output}}
-- QA: {{step_s5-qa_output}}
-- Security: {{step_s5.5-cyber-audit_output}}
-- DevOps: {{step_s6-devops_output}}
+- Technical QA: {{step_s5-technical-qa_output}}
+- Business QA: {{step_s5.5-business-qa_output}}
+- Security Audit: {{step_s6-cyber-audit_output}}
+- DevOps: {{step_s7-devops_output}}
 
 Create a DELIVERY SUMMARY:
 
@@ -785,11 +828,11 @@ Create a DELIVERY SUMMARY:
 5. NEXT STEPS — what should happen after deployment
 
 MAX 800 words.`,
-    dependsOn: ["s6-devops"],
+    dependsOn: ["s7-devops"],
     outputKey: "final_report",
     metadata: {
-      stageNumber: "7",
-      qualityThreshold: 7.5,
+      stageNumber: "8",
+      qualityThreshold: 6.0,
       leadAgent: "orchestrator",
       model: "sonnet-4-6",
     },
