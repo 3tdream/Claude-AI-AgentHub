@@ -514,11 +514,11 @@ File Plan:
 {{step_s3.4-fileplan_output}}
 
 IMPORTANT:
-- Use the design tokens and component specs from Designer output
-- Call the actual API endpoints from Backend output (not mocked)
-- Follow the page layouts and component hierarchy from the design specs
-- Implement all states: loading, error, empty, success
-- Use TypeScript types from Backend's shared type definitions
+- API endpoints: use paths and shapes from API Contracts (S3.2) as source of truth
+- Types: import TypeScript types from Backend's shared type definitions
+- Design: use tokens and component specs from Designer output
+- States: implement loading, error, empty, success for every component
+- Do NOT invent endpoints — if it's not in S3.2 API contracts, don't call it
 
 For each page in the PRD:
 1. Create the page component using the Designer's layout spec
@@ -613,8 +613,9 @@ Output:
   "api_compliance": "PASS | FAIL (N mismatches)",
   "data_compliance": "PASS | FAIL",
   "issues": [
-    {"type": "type_mismatch | missing_endpoint | n_plus_one | no_validation",
-     "file": "path", "description": "...", "severity": "P0 | P1 | P2"}
+    {"type": "type_mismatch | missing_endpoint | missing_file | contract_mismatch | n_plus_one | no_validation",
+     "file": "path", "description": "...", "severity": "P0 | P1 | P2",
+     "fix_agent": "backend-agent | frontend-agent | designer-agent"}
   ],
   "verdict": "PASS | FAIL"
 }}
@@ -671,9 +672,10 @@ For EACH acceptance criterion from the PRD:
 
 Rules:
 - VERDICT: FAIL if any P0 criteria FAIL
-- If Technical QA found P0 issues, those are auto-FAIL here too
-- Check edge cases: empty states, boundary values, error flows
+- If Technical QA (S5) found P0 issues, those are auto-FAIL here too
 - PASS only if ALL P0 criteria are PASS or PARTIAL
+- Do NOT check: code style, architecture, security, performance
+- ONLY check: "Does the system satisfy what the PRD promised?"
 
 MAX 500 words.`,
     dependsOn: ["s5-technical-qa"],
