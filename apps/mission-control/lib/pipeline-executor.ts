@@ -721,7 +721,8 @@ export async function executePipeline(
   }
 
   // --- Topological execution with parallel group support ---
-  const remaining = [...steps];
+  // Exclude steps already completed from a resumed run
+  const remaining = steps.filter((s) => !completed.has(s.id));
 
   while (remaining.length > 0) {
     // Check pause/stop flags (read from callbacks)

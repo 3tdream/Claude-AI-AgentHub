@@ -51,7 +51,7 @@ export const AGENT_CONFIG: Record<string, {
   "frontend-agent":   { qualityThreshold: 7.5, escalationThreshold: 5, maxTurns: 5,  maxContextChars: 8000,  readBudget: 5,  diffSoft: { edit: 30, create: 80 }, diffHard: 150 },
   "designer-agent":   { qualityThreshold: 7.5, escalationThreshold: 5, maxTurns: 5,  maxContextChars: 8000,  readBudget: 5,  wordLimit: 4000 },
   "qa-agent":         { qualityThreshold: 7.5, escalationThreshold: 5, maxTurns: 10, maxContextChars: 8000,  readBudget: 15, wordLimit: 4000 },
-  "devops-agent":     { qualityThreshold: 7.5, escalationThreshold: 5, maxTurns: 7,  maxContextChars: 8000,  readBudget: 10, wordLimit: 4000 },
+  "devops-agent":     { qualityThreshold: 7.5, escalationThreshold: 5, maxTurns: 7,  maxContextChars: 8000,  readBudget: 10 },
 };
 
 /** Per-agent scoring weights: task(completion), comp(leteness), spec(ificity), act(ionability) */
