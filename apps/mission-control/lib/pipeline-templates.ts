@@ -45,7 +45,7 @@ Your output MUST include these sections:
 4. KEY INSIGHTS
    - 3-5 actionable insights that should drive product decisions
 
-MAX 1500 words. Be specific — no generic filler.`,
+MAX 800 words. Be specific — no generic filler.`,
     dependsOn: [],
     outputKey: "research",
     metadata: {
@@ -156,7 +156,7 @@ Your PRD MUST include:
    - Stories with story points (Fibonacci: 1,2,3,5,8,13)
    - Sprint capacity: 40-50 SP
 
-MAX 2000 words.`,
+MAX 1000 words.`,
     dependsOn: ["s1-orchestrator"],
     outputKey: "prd",
     metadata: {
@@ -842,6 +842,6 @@ MAX 800 words.`,
 
 export const CRM_PIPELINE_TEMPLATE = {
   name: "Beauty CRM Full Pipeline",
-  description: "16-stage pipeline: S0 Research → S1 Requirements (checkpoint) → S2 PRD → S3.1 ADR → S3.2 API Contracts → S3.3 ERD → S3.4 File Plan → S3.5 Cyber Threat Model → S4 Designer+Backend (parallel) → S4 Frontend → S4.5 Checkpoint → S5 QA Validation → S5.5 Cyber Audit → S6 DevOps → S7 Consolidation",
+  description: "17-stage pipeline: S0 Research → S1 Requirements → S2 PRD → S3.1-3.4 Architect Suite → S3.5 Cyber → S4 Backend → Designer → Frontend → S4.5 Checkpoint → S5 Technical QA → S5.5 Business QA → S6 Cyber Audit → S7 DevOps → S8 Consolidation",
   steps: CRM_PIPELINE_STAGES,
 };
