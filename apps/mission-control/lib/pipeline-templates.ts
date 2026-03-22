@@ -409,63 +409,49 @@ That's it. MAX 2-3 findings. MAX 400 words total. If no security concerns: just 
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // S4a — Designer: UI/UX specs (depends on Backend — sees real endpoints)
+  // S4.5 — Orchestrator: Architecture Gate
+  // GATE 2: Does Architecture match PRD? Mismatch → back to S3.1
   // ═══════════════════════════════════════════════════════════════
   {
-    id: "s4-designer",
-    agentId: "designer-agent",
-    agentName: "Designer-Agent",
-    promptTemplate: `Create UI/UX design system and component specs based on:
-Backend implementation: {{step_s4-backend_output}}
-Architecture: {{step_s3.1-adr_output}}
+    id: "s4.5-arch-gate",
+    agentId: "orchestrator",
+    agentName: "Orchestrator",
+    promptTemplate: `ARCHITECTURE GATE — Verify Architecture matches PRD before implementation.
 
-API Contracts:
-{{step_s3.2-api_output}}
+PRD: {{step_s2-pm_output}}
+ADR: {{step_s3.1-adr_output}}
+API Contracts: {{step_s3.2-api_output}}
+ERD: {{step_s3.3-erd_output}}
+File Plan: {{step_s3.4-fileplan_output}}
+Cyber Findings: {{step_s3.5-cyber_output}}
 
-File Plan:
-{{step_s3.4-fileplan_output}}
-PRD & user stories: {{step_s2-pm_output}}
-Security constraints: {{step_s3.5-cyber_output}}
+Check:
+1. Does every P0 user story from PRD have corresponding API endpoints?
+2. Does the data model support all acceptance criteria?
+3. Are Cyber findings addressed in the architecture?
+4. Is the file plan complete — all files needed for Backend, Designer, Frontend?
 
-Your output MUST include:
+Output:
+GATE VERDICT: PASS | FAIL
+COVERAGE: [X of Y user stories covered by API contracts]
+GAPS: [list any PRD requirements not reflected in architecture]
+CYBER STATUS: [all findings addressed | N unresolved]
 
-1. DESIGN TOKENS (as CSS variables)
-   Colors, typography scale, spacing, border-radius, shadows
-
-2. PAGE LAYOUTS
-   For each page/view in the PRD:
-   - Layout description (grid/flex structure)
-   - Component hierarchy (tree of components)
-   - Responsive breakpoints behavior
-
-3. COMPONENT SPECS
-   For each UI component:
-   - Props interface (TypeScript)
-   - States: default, hover, active, disabled, loading, error, empty
-   - Accessibility: ARIA labels, keyboard navigation, focus management
-
-4. DATA MAPPING
-   Map each API endpoint from Architecture to the UI component that consumes it:
-   \`GET /api/users\` → UserTable component → columns: [name, email, role]
-
-${FILE_OUTPUT_INSTRUCTIONS}
-
-Generate these files:
-- globals.css (design tokens as CSS custom properties)
-- Component files (.tsx) for the main UI components`,
-    dependsOn: ["s4-backend"],
-    outputKey: "design",
+If FAIL: pipeline should return to Architect (S3.1) for redesign.
+If PASS: implementation begins.`,
+    dependsOn: ["s3.5-cyber"],
+    outputKey: "arch_gate",
     metadata: {
-      stageNumber: "4",
+      stageNumber: "4.5",
       qualityThreshold: 7.5,
-      leadAgent: "designer-agent",
+      leadAgent: "orchestrator",
       model: "sonnet-4-6",
     },
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // S4b — Backend: API implementation + DB schema
-  // FIRST in chain — Designer and Frontend depend on this
+  // S5 — Backend: API implementation + DB schema
+  // FIRST in implementation chain
   // ═══════════════════════════════════════════════════════════════
   {
     id: "s4-backend",
@@ -528,7 +514,57 @@ ${FILE_OUTPUT_INSTRUCTIONS}`,
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // S4c — Frontend: UI implementation using Designer + Backend output
+  // S6 — Designer: UI/UX specs (depends on Backend — sees real endpoints)
+  // ═══════════════════════════════════════════════════════════════
+  {
+    id: "s4-designer",
+    agentId: "designer-agent",
+    agentName: "Designer-Agent",
+    promptTemplate: `Create UI/UX design system and component specs based on:
+Backend implementation: {{step_s4-backend_output}}
+Architecture: {{step_s3.1-adr_output}}
+API Contracts: {{step_s3.2-api_output}}
+File Plan: {{step_s3.4-fileplan_output}}
+PRD & user stories: {{step_s2-pm_output}}
+
+Your output MUST include:
+
+1. DESIGN TOKENS (as CSS variables)
+   Colors, typography scale, spacing, border-radius, shadows
+
+2. PAGE LAYOUTS
+   For each page/view in the PRD:
+   - Layout description (grid/flex structure)
+   - Component hierarchy (tree of components)
+   - Responsive breakpoints behavior
+
+3. COMPONENT SPECS
+   For each UI component:
+   - Props interface (TypeScript)
+   - States: default, hover, active, disabled, loading, error, empty
+   - Accessibility: ARIA labels, keyboard navigation, focus management
+
+4. DATA MAPPING
+   Map each API endpoint to the UI component that consumes it:
+   \`GET /api/endpoint\` → Component → data fields
+
+${FILE_OUTPUT_INSTRUCTIONS}
+
+Generate these files:
+- globals.css (design tokens as CSS custom properties)
+- Component files (.tsx) for the main UI components`,
+    dependsOn: ["s4-backend"],
+    outputKey: "design",
+    metadata: {
+      stageNumber: "6",
+      qualityThreshold: 7.5,
+      leadAgent: "designer-agent",
+      model: "sonnet-4-6",
+    },
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // S7 — Frontend: UI implementation using Designer + Backend output
   // LAST in chain — has both design specs and real API endpoints
   // ═══════════════════════════════════════════════════════════════
   {
@@ -574,48 +610,7 @@ ${FILE_OUTPUT_INSTRUCTIONS}`,
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // S4.5 — Orchestrator: Architecture Gate
-  // GATE 2: Does Architecture match PRD? Mismatch → back to S3.1
-  // ═══════════════════════════════════════════════════════════════
-  {
-    id: "s4.5-arch-gate",
-    agentId: "orchestrator",
-    agentName: "Orchestrator",
-    promptTemplate: `ARCHITECTURE GATE — Verify Architecture matches PRD before implementation.
-
-PRD: {{step_s2-pm_output}}
-ADR: {{step_s3.1-adr_output}}
-API Contracts: {{step_s3.2-api_output}}
-ERD: {{step_s3.3-erd_output}}
-File Plan: {{step_s3.4-fileplan_output}}
-Cyber Findings: {{step_s3.5-cyber_output}}
-
-Check:
-1. Does every P0 user story from PRD have corresponding API endpoints?
-2. Does the data model support all acceptance criteria?
-3. Are Cyber findings addressed in the architecture?
-4. Is the file plan complete — all files needed for Backend, Designer, Frontend?
-
-Output:
-GATE VERDICT: PASS | FAIL
-COVERAGE: [X of Y user stories covered by API contracts]
-GAPS: [list any PRD requirements not reflected in architecture]
-CYBER STATUS: [all findings addressed | N unresolved]
-
-If FAIL: pipeline should return to Architect (S3.1) for redesign.
-If PASS: implementation begins.`,
-    dependsOn: ["s3.5-cyber"],
-    outputKey: "arch_gate",
-    metadata: {
-      stageNumber: "4.5",
-      qualityThreshold: 7.5,
-      leadAgent: "orchestrator",
-      model: "sonnet-4-6",
-    },
-  },
-
-  // ═══════════════════════════════════════════════════════════════
-  // S5 — Technical QA (White Box): code compiles, types match, tests pass
+  // S8 — Technical QA (White Box): code compiles, types match, tests pass
   // The "Internal Gate" — catches cheap technical errors early
   // ═══════════════════════════════════════════════════════════════
   {
