@@ -582,10 +582,30 @@ export async function executePipeline(
           }
         }
 
+        // If score meets threshold despite evaluator saying FAIL — accept with warning
+        if (evaluation.score.overall >= threshold) {
+          execution.stepResults[step.id] = {
+            stepId: step.id,
+            status: "completed",
+            output: agentOutput.substring(0, 20000),
+            duration: Date.now() - new Date(execution.stepResults[step.id].startedAt!).getTime(),
+            completedAt: new Date().toISOString(),
+            retryCount,
+            evaluationFeedback: `Accepted (${evaluation.score.overall}/10 ≥ ${threshold} threshold): ${evaluation.feedback}`,
+            ...stepAnalytics,
+          };
+          if (execution.qualityScores) {
+            execution.qualityScores[step.id] = evaluation.score;
+          }
+          callbacks.onUpdate({ ...execution });
+          completed.add(step.id);
+          return true;
+        }
+
         // Smart retry: stop early if score isn't improving
         const scoreImproved = evaluation.score.overall > lastScore + 0.5;
         const scoreDegraded = evaluation.score.overall < lastScore - 0.3;
-        const worthRetrying = (retryCount < 1) || (scoreImproved && !scoreDegraded); // First retry always, then only if improving
+        const worthRetrying = (retryCount < 1) || (scoreImproved && !scoreDegraded);
         lastScore = evaluation.score.overall;
 
         if (retryCount < MAX_RETRIES && worthRetrying) {
