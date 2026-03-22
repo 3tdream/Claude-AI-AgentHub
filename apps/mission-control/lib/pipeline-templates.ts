@@ -45,7 +45,7 @@ Your output MUST include these sections:
 4. KEY INSIGHTS
    - 3-5 actionable insights that should drive product decisions
 
-MAX 800 words. Be specific — no generic filler.`,
+MAX 4000 words. If you reach 3600 words (90%), stop and finalize.`,
     dependsOn: [],
     outputKey: "research",
     metadata: {
@@ -155,7 +155,7 @@ Your PRD MUST include:
    - Stories with story points (Fibonacci: 1,2,3,5,8,13)
    - Sprint capacity: 40-50 SP
 
-MAX 1000 words.`,
+MAX 4000 words. If you reach 3600 words (90%), stop and finalize.`,
     dependsOn: ["s1-orchestrator"],
     outputKey: "prd",
     metadata: {
@@ -267,7 +267,7 @@ RULES:
 - Missing an endpoint = broken feature downstream
 - Do NOT write code. Only contracts.
 
-MAX 500 words.`,
+MAX 4000 words. If you reach 3600 words (90%), stop and finalize.`,
     dependsOn: ["s3.1-adr"],
     outputKey: "api_contracts",
     metadata: {
@@ -305,7 +305,7 @@ RULES:
 - Include estimated row growth per month for each entity
 - Include which indexes are needed and why
 
-MAX 400 words.`,
+MAX 4000 words. If you reach 3600 words (90%), stop and finalize.`,
     dependsOn: ["s3.2-api"],
     outputKey: "data_model",
     metadata: {
@@ -353,7 +353,7 @@ Group by agent responsibility:
 - .env.example — env vars
 - Dockerfile — container config
 
-MAX 300 words. One line per file.`,
+MAX 4000 words. If you reach 3600 words (90%), stop and finalize. One line per file.`,
     dependsOn: ["s3.3-erd"],
     outputKey: "file_plan",
     metadata: {
@@ -395,7 +395,7 @@ Finding 2: [Title]
 Risk: [One sentence]
 Fix: [One sentence]
 
-That's it. MAX 2-3 findings. MAX 400 words total. If no security concerns: just write 'RISK LEVEL: Low' and stop. Do NOT write threat models, matrices, or long analysis.`,
+That's it. MAX 2-3 findings. MAX 4000 words. If you reach 3600 words (90%), stop and finalize. If no security concerns: just write 'RISK LEVEL: Low' and stop.`,
     dependsOn: ["s3.4-fileplan"],
     outputKey: "threat_model",
     metadata: {
@@ -662,7 +662,7 @@ Output:
 }}
 \`\`\`
 
-VERDICT: FAIL if any compilation error or P0 issue. MAX 500 words.`,
+VERDICT: FAIL if any compilation error or P0 issue. MAX 4000 words. If you reach 3600 words (90%), stop and finalize.`,
     dependsOn: ["s7-frontend"],
     outputKey: "technical_qa",
     metadata: {
@@ -754,7 +754,7 @@ Rules:
 - Do NOT check: code style, architecture, security, performance
 - ONLY check: "Does the system satisfy what the PRD promised?"
 
-MAX 500 words.`,
+MAX 4000 words. If you reach 3600 words (90%), stop and finalize.`,
     dependsOn: ["s8.5-tech-review"],
     outputKey: "business_qa",
     metadata: {
@@ -794,7 +794,7 @@ FILE: exact file path
 VULNERABILITY: one sentence
 FIX: concrete code change
 
-MAX 500 words. Only report real issues found in the code.`,
+MAX 4000 words. If you reach 3600 words (90%), stop and finalize. Only report real issues found in the code.`,
     dependsOn: ["s9-business-qa"],
     outputKey: "security_audit",
     metadata: {
@@ -946,7 +946,7 @@ Create a DELIVERY SUMMARY:
    - [ ] Acceptance criteria verified
 5. NEXT STEPS — what should happen after deployment
 
-MAX 800 words.`,
+MAX 4000 words. If you reach 3600 words (90%), stop and finalize.`,
     dependsOn: ["s12a-devops"],
     outputKey: "final_report",
     metadata: {
