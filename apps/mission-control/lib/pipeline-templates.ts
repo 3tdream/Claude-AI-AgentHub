@@ -366,14 +366,13 @@ That's it. MAX 2-3 findings. MAX 400 words total. If no security concerns: just 
       stageNumber: "3.5",
       qualityThreshold: 6.0,
       leadAgent: "cyber-agent",
-      model: "opus-4-6",
+      model: "sonnet-4-6",
       conditional: "public API / auth / payments",
     },
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // S4a — Backend: API implementation + DB schema
-  // FIRST in implementation chain — Designer and Frontend depend on real endpoints
+  // S4a — Designer: UI/UX specs (depends on Backend — sees real endpoints)
   // ═══════════════════════════════════════════════════════════════
   {
     id: "s4-designer",
@@ -429,7 +428,7 @@ Generate these files:
 
   // ═══════════════════════════════════════════════════════════════
   // S4b — Backend: API implementation + DB schema
-  // Runs PARALLEL with Designer
+  // FIRST in chain — Designer and Frontend depend on this
   // ═══════════════════════════════════════════════════════════════
   {
     id: "s4-backend",
@@ -451,7 +450,7 @@ PRD & acceptance criteria: {{step_s2-pm_output}}
 
 CRITICAL: You MUST implement EXACTLY the API endpoints defined in the Architecture's API CONTRACTS section.
 - Same paths, same methods, same request/response shapes — no deviations
-- Frontend and Designer are working from the same contract in parallel
+- Designer and Frontend will use your output — any mismatch breaks their work
 - Any mismatch will break integration
 
 YOUR RESPONSIBILITIES (Architect does not write code — you do):
@@ -493,7 +492,7 @@ ${FILE_OUTPUT_INSTRUCTIONS}`,
 
   // ═══════════════════════════════════════════════════════════════
   // S4c — Frontend: UI implementation using Designer + Backend output
-  // Runs AFTER Designer and Backend complete
+  // LAST in chain — has both design specs and real API endpoints
   // ═══════════════════════════════════════════════════════════════
   {
     id: "s4-frontend",
