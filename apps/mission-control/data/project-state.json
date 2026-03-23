@@ -1,0 +1,73 @@
+{
+  "project": {
+    "name": "beauty-crm-loyalty",
+    "version": "0.1.0",
+    "phase": "pipeline-v3-revise",
+    "target": "Beauty CRM — Loyalty & Points Engine",
+    "last_updated": "2026-03-23T16:01:36.133Z"
+  },
+  "architecture": {
+    "api_version": "v1",
+    "stack": {
+      "backend": "NestJS + PostgreSQL 15 + Redis/Upstash",
+      "frontend": "Next.js 14 (PWA) + CRM Dashboard",
+      "queue": "AWS SQS FIFO",
+      "infra": "ECS Fargate + Terraform"
+    },
+    "entities_count": 13,
+    "endpoints_count": 32,
+    "auth_strategy": "JWT + HMAC (internal)"
+  },
+  "security": {
+    "jwt_configured": false,
+    "gdpr_compliant": false,
+    "cyber_findings_total": 19,
+    "cyber_findings_open": 4,
+    "owasp_coverage": "full",
+    "compliance": ["152-FZ", "GDPR", "TCPA"]
+  },
+  "pipeline": {
+    "last_run": "2026-03-23T16:01:36.133Z",
+    "steps_total": 17,
+    "steps_passed": 15,
+    "steps_failed": 0,
+    "final_verdict": "REVISE",
+    "avg_score": 9.2,
+    "p0_blockers": [
+      "JWT stored in localStorage (XSS risk)",
+      "Twilio import TypeError (esModuleInterop)",
+      "Roles decorator guard bypass (Reflect.defineMetadata)",
+      "Truncated globals.css (render failure)",
+      "GDPR purge script incomplete"
+    ],
+    "ac_pass_rate": "13/24"
+  },
+  "knowledge_base": {
+    "files_total": 5,
+    "freshness": {
+      "failure-patterns": "2026-03-22",
+      "security-playbook": "2026-03-22",
+      "architecture-patterns": "2026-03-22",
+      "success-patterns": "2026-03-19",
+      "tech-decisions": "2026-03-14"
+    },
+    "stale_count": 2
+  },
+  "agents": {
+    "total": 10,
+    "scores": {
+      "research": 9.2,
+      "orchestrator": 9.1,
+      "pm": 8.5,
+      "architect": 9.2,
+      "backend": 9.4,
+      "frontend": 8.5,
+      "designer": 8.4,
+      "cyber": 9.4,
+      "qa": 9.3,
+      "devops": 9.4
+    },
+    "weakest": "designer",
+    "truncation_issues": ["designer", "frontend", "backend"]
+  }
+}
