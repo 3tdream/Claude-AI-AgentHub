@@ -1,7 +1,7 @@
 {
   "_description": "Successful agent patterns — what works, with context_snippet for relevance matching",
-  "_updated": "2026-03-19",
-  "_totalWins": 101,
+  "_updated": "2026-03-22",
+  "_totalWins": 104,
   "patterns": [
     {
       "id": "SUCCESS-001",
@@ -137,16 +137,18 @@
     {
       "id": "SUCCESS-003",
       "agent": "architect",
-      "totalWins": 13,
+      "totalWins": 16,
       "avgScore": 9.7,
-      "avgTokens": 44593,
+      "avgTokens": 37888,
       "bestModel": "claude-opus-4-6",
       "models": [
         "claude-opus-4-6",
-        "claude-sonnet-4-6"
+        "claude-sonnet-4-6",
+        "opus-4-6",
+        "sonnet-4-6"
       ],
       "toolPattern": {
-        "avgCalls": 3.9,
+        "avgCalls": 3.8,
         "range": "3-30"
       },
       "whatWorks": "Performs best on opus with read tools (avg 3.9 calls). FILES_TO_EDIT block format is key to downstream success.",
@@ -157,6 +159,10 @@
         },
         {
           "type": "api-route",
+          "wins": 3
+        },
+        {
+          "type": "general",
           "wins": 2
         },
         {
@@ -174,11 +180,28 @@
       ],
       "recentWins": [
         {
-          "score": 9.1,
-          "tokens": 0,
+          "score": 9.2,
+          "tokens": 7357,
           "toolCalls": 0,
-          "context_snippet": "new-page",
-          "task": "\"Admin Dashboard: Last Login Timestamp\" feature end-to-end."
+          "context_snippet": "general",
+          "task": "Add a client loyalty program with points system to Beauty CRM",
+          "date": "2026-03-22"
+        },
+        {
+          "score": 9.2,
+          "tokens": 5856,
+          "toolCalls": 0,
+          "context_snippet": "general",
+          "task": "Add a client loyalty program with points system to Beauty CRM",
+          "date": "2026-03-22"
+        },
+        {
+          "score": 9.3,
+          "tokens": 13278,
+          "toolCalls": 3,
+          "context_snippet": "api-route",
+          "task": "Add a GET /api/pipeline/summary endpoint that returns: totalRuns (number), successRate (percentage), topAgent (name of highest scoring agent), lastRun",
+          "date": "2026-03-19"
         },
         {
           "score": 9.1,
@@ -188,29 +211,16 @@
           "task": "\"Admin Dashboard: Last Login Timestamp\" feature end-to-end."
         },
         {
-          "score": 10,
-          "tokens": 16425,
+          "score": 9.1,
+          "tokens": 0,
           "toolCalls": 0,
           "context_snippet": "new-page",
-          "task": "project: mission-control, page: orchestration, add option edit name pipeline on workflows"
-        },
-        {
-          "score": 10,
-          "tokens": 15723,
-          "toolCalls": 0,
-          "context_snippet": "new-page",
-          "task": "add option edit name pipeline on workflows, mission-control project, orchestration page"
-        },
-        {
-          "score": 10,
-          "tokens": 15951,
-          "toolCalls": 0,
-          "context_snippet": "new-page",
-          "task": " add option edit name pipeline on mission-control /orchestration page"
+          "task": "\"Admin Dashboard: Last Login Timestamp\" feature end-to-end."
         }
       ],
       "date_extracted": "2026-03-19",
-      "source": "auto-extracted from 13 successful runs"
+      "source": "auto-extracted from 13 successful runs",
+      "avgDurationSec": 7
     },
     {
       "id": "SUCCESS-004",

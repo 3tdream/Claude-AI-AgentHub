@@ -1,6 +1,6 @@
 {
   "_description": "Reusable patterns and anti-patterns — maintained by Architect-Agent and Backend-Agent",
-  "_updated": "2026-03-14",
+  "_updated": "2026-03-22",
   "patterns": [
     {
       "id": "PAT-001",
@@ -123,6 +123,60 @@
       "code_reference": "",
       "when_to_use": "Pipeline реализован как линейная цепочка без checkpoint persistence. При abort любого шага весь прогресс теряется. Нет разделения между \"блокирующими\" и \"не блокирующими\" шагами.",
       "source_pipeline": "6bd3e517-9162-4258-a467-d0a687a3e550"
+    },
+    {
+      "id": "PAT-015",
+      "name": "Agent Self-Awareness as a Routing Signal",
+      "context": "Research-Agent demonstrated useful meta-cognitive behavior: it recognized it was the wrong agent for the task and articulated why, naming the correct domain (backend). This is a positive emergent behavior worth formalizing.",
+      "pattern": "Formalize \"domain rejection with redirect\" as a first-class agent response type in the agent contract spec. Structure it as: `{ type: \"scope_rejection\", reason: string, suggested_agent: string, confidence: 0-1 }`. Orchestrator should treat `suggested_agent` as a high-confidence routing hint and auto-redirect without retry. Log these redirects to `knowledge-base/routing-corrections.json` to train the pre-routing classifier over time.",
+      "code_reference": "",
+      "when_to_use": "N/A — this is a pattern to preserve, not a failure.",
+      "source_pipeline": "374d41a7-ca0a-4244-8142-b3e60898ef4f"
+    },
+    {
+      "id": "PAT-016",
+      "name": "Research-Agent as Accurate Scope Classifier Prevents Wasted Downstream Work",
+      "context": "Research-Agent (s0) correctly assessed the task scope in 11.9s, scored 8.9/10, and produced a clear redirect signal: \"no research needed, this is a frontend task.\" This is the correct behavior — the agent functioned as a lightweight classifier before expensive agents (Architect, Backend, Cyber) were invoked.",
+      "pattern": "Formalize the Research-Agent's scope classification output as a structured signal (e.g., `{ research_needed: false, recommended_agents: [\"frontend-agent\"], skip_agents: [\"architect-agent\", \"backend-agent\", \"cyber-agent\"] }`). The Orchestrator should consume this signal to prune the pipeline dynamically. This transforms a narrative redirect into a machine-readable routing directive, making the pattern reliable rather than dependent on Orchestrator interpretation.",
+      "code_reference": "",
+      "when_to_use": "N/A — this is a positive pattern.",
+      "source_pipeline": "29d1d8c5-fc4c-425d-86bc-530656300a5b"
+    },
+    {
+      "id": "PAT-017",
+      "name": "Clarification-First Gate Before Delegation",
+      "context": "When s1-orchestrator received an ambiguous task (\"orchistration test\"), instead of attempting to delegate to downstream agents or making assumptions, it generated 7 targeted clarifying questions to scope the work before any pipeline resources were consumed. Downstream steps (s2–s6) were skipped entirely.",
+      "pattern": "Maintain this pattern: Orchestrator should always block pipeline progression when task intent is undefined. Clarification cost (24.7s) is far cheaper than running 6+ agents on a misunderstood brief. Formalize this as a quality gate: if task description < threshold specificity, emit clarification block instead of TASK BRIEF.",
+      "code_reference": "",
+      "when_to_use": "N/A — this is intentional design behavior",
+      "source_pipeline": "823256db-52b3-4914-96fa-e78ca14c2497"
+    },
+    {
+      "id": "PAT-018",
+      "name": "Mobile-First Tailwind CSS Strategy Adopted for Responsive Shell",
+      "context": "ADR-007 was created and accepted in s3-architect (44s, 10/10) establishing Tailwind CSS responsive utilities with mobile-first breakpoints as the canonical approach for the responsive shell. This decision was made early and cleanly, enabling downstream agents (frontend, designer) to work without ambiguity.",
+      "pattern": "Continue front-loading architecture decisions (ADR format) before frontend/designer work begins. Mobile-first constraint eliminates a whole class of responsive rework later.",
+      "code_reference": "",
+      "when_to_use": "N/A — positive pattern",
+      "source_pipeline": "fe6bc195-9ab2-4591-8ead-db3b5233bc5c"
+    },
+    {
+      "id": "PAT-019",
+      "name": "Sequential PM → Architect → Frontend → Designer → QA Pipeline Worked Without Retries",
+      "context": "All five steps completed without retries. Total duration 351s for a full UX/UI improvement pipeline covering PRD, ADR, implementation, design specs, and QA. No escalations occurred.",
+      "pattern": "This agent ordering (PM defines scope → Architect locks decisions → Frontend implements → Designer specifies → QA validates) is a proven sequence for UI-layer tasks. Note that Designer ran after Frontend (s4-designer after s4-frontend), which is atypical — normally design precedes implementation. This worked here likely because the task was iterative improvement, not greenfield. Flag this ordering as context-dependent: safe for improvement tasks, risky for new feature builds.",
+      "code_reference": "",
+      "when_to_use": "N/A — positive pattern",
+      "source_pipeline": "fe6bc195-9ab2-4591-8ead-db3b5233bc5c"
+    },
+    {
+      "id": "PAT-020",
+      "name": "Compliance-Isolated Database Connection Pattern for Sensitive Loyalty Domain",
+      "context": "s3.4-fileplan and s3.1-adr both specified that the loyalty domain should use a dedicated PostgreSQL client instance (`lib/loyalty/db.ts`) isolated from the general CRM connection pool, explicitly citing 152-FZ (personal data) and 54-FZ (fiscal compliance) requirements. This pattern was consistently applied across the file plan (10 service files all importing from the isolated client) and the ERD (loyalty tables designed as a self-contained domain with UUID foreign keys to the main schema rather than direct joins).",
+      "pattern": "Formalize this as a reusable architectural template for any future domain handling personal or fiscal data: isolated DB client instance, domain-scoped service layer, no cross-domain ORM joins, explicit compliance annotation in the ADR. The pattern should be documented in the project's architecture decision registry as a standing rule, not rediscovered per feature.",
+      "code_reference": "",
+      "when_to_use": "N/A — this is a deliberate positive pattern.",
+      "source_pipeline": "1a3f1cdb-53f9-45d7-92ea-0925506658db"
     }
   ],
   "anti_patterns": [

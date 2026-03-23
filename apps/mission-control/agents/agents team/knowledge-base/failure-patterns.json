@@ -1,6 +1,6 @@
 {
   "_description": "Known issues, root causes, and solutions — maintained by QA-Agent and all agents",
-  "_updated": "2026-03-19",
+  "_updated": "2026-03-22",
   "patterns": [
     {
       "id": "FAIL-001",
@@ -572,6 +572,238 @@
         "app/api/logs/route.ts",
         "app/api/admin/users/route.ts"
       ]
+    },
+    {
+      "id": "FAIL-040",
+      "category": "architecture",
+      "title": "Research-Agent Routed for Pure Backend Implementation Task",
+      "symptoms": "Step s0-research was invoked for a task that is unambiguously a backend development task (implement GET /api/pipeline/summary endpoint with specific field contracts and a known data source). Research-Agent correctly self-identified the mismatch and returned a null deliverable after 4 attempts, scoring 4.8/10 and consuming 14.1s before the pipeline stalled at s1-orchestrator.",
+      "root_cause": "The pipeline template appears to always execute s0-research as a mandatory first step regardless of task type. No pre-routing classification was applied to skip IDLE or irrelevant agents. The Orchestrator's own routing table explicitly maps \"Node.js, APIs, business logic\" to backend-agent, yet the fixed pipeline sequence overrode that logic.",
+      "solution": "Implement a task-type classifier at pipeline entry (before s0) that maps tasks to relevant agent tracks. For implementation tasks with fully-specified requirements (endpoint path, response schema, data source all given), s0-research should be auto-skipped. Add a `skip_if` condition to s0-research: if task contains keywords like \"implement\", \"add endpoint\", \"write code\" AND no ambiguous requirements exist, bypass to s1-orchestrator → s3-architect → s4-backend directly. Codify this in pipeline routing rules.",
+      "date_discovered": "2026-03-18",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "374d41a7-ca0a-4244-8142-b3e60898ef4f"
+    },
+    {
+      "id": "FAIL-041",
+      "category": "build",
+      "title": "s1-orchestrator Hard Failure Cascades Entire Pipeline to Pending",
+      "symptoms": "s1-orchestrator failed with \"Execution failed\" after s0-research returned a non-deliverable (explicit \"no research output exists\" response). All downstream steps (s2 through s7) were left in pending state, meaning zero useful work was produced for a well-specified backend task.",
+      "root_cause": "s1-orchestrator likely attempted to consume s0-research output as a required input for constructing task briefs to downstream agents. When s0 returned a meta-commentary instead of a structured deliverable, the orchestrator had no valid input to process, causing a hard crash rather than a graceful fallback. There is no null-output handling path — the orchestrator treats all upstream outputs as mandatory non-null.",
+      "solution": "Orchestrator must handle null/rejected upstream outputs explicitly: (1) if s0-research returns a null deliverable with a valid reason (wrong domain), treat it as a skip signal, not a failure; (2) add a fallback branch: `if research_output == null AND task_type == implementation → proceed with architect-agent using original task spec directly`; (3) distinguish between \"agent failed\" and \"agent correctly declined\" — the latter should not propagate as an error state.",
+      "date_discovered": "2026-03-18",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "374d41a7-ca0a-4244-8142-b3e60898ef4f"
+    },
+    {
+      "id": "FAIL-042",
+      "category": "architecture",
+      "title": "4 Retry Attempts on an Agent That Was Correct From Attempt 1",
+      "symptoms": "Research-Agent was retried 4 times despite correctly identifying on the first attempt that the task was outside its domain. Each retry produced the same valid meta-response. The final accepted score of 4.8/10 reflects the scorer penalizing absence of a research deliverable — but the absence was the correct behavior.",
+      "root_cause": "The quality gate scoring rubric does not distinguish between \"agent produced poor output\" and \"agent correctly declined an out-of-scope task.\" A score of 4.8 was assigned because completeness/specificity/actionability were measured against an expected research deliverable that should never have existed. The retry logic triggered on low score without checking whether the agent's refusal was semantically valid.",
+      "solution": "Add a `scope_rejection` response type to agent output contracts. When an agent returns scope_rejection with a reason, the quality gate should: (1) validate the reason against the routing table, (2) if reason is valid → score the rejection itself (was the routing error correctly identified? was an alternative agent suggested?), (3) escalate to Orchestrator for re-routing rather than retrying the same agent. This would have saved ~3 retry cycles and prevented the downstream cascade.",
+      "date_discovered": "2026-03-18",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "374d41a7-ca0a-4244-8142-b3e60898ef4f"
+    },
+    {
+      "id": "FAIL-043",
+      "category": "build",
+      "title": "Quality issue in s0-research",
+      "symptoms": "Step s0-research required 1 retries to pass quality evaluation",
+      "root_cause": "Accepted with warning (7.6/10 after 4 attempts): Research-Agent correctly identified that this is not a research task and provided a clear, well-reasoned routing recommendation to Backend-Agent — that",
+      "solution": "Improve prompt specificity for this agent",
+      "date_discovered": "2026-03-18",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "23434f50-132e-4bfe-b244-dda560135c8b",
+      "source_step": "s0-research"
+    },
+    {
+      "id": "FAIL-044",
+      "category": "build",
+      "title": "Orchestrator Step Produces Empty Content Despite success=true",
+      "symptoms": "Step s1-orchestrator reported execution status \"failed\" with error \"Execution failed (success=true, contentLen=0)\". The success flag was true but content length was zero, creating a contradictory state that halted the entire pipeline at step 1, leaving steps s2 through s7 in \"pending\" indefinitely.",
+      "root_cause": "The Orchestrator agent returned a successful exit code but wrote no output to the pipeline buffer. This is a classic \"silent failure\" — the process completed without error but produced no actionable content. Likely cause: the Orchestrator received the Research-Agent's correct \"no research needed, redirect to Frontend\" output and either (a) failed to serialize its Task Brief to the output channel, or (b) short-circuited routing logic when it detected a trivial UI task and exited without emitting a delegation message.",
+      "solution": "Add a mandatory non-empty output assertion in the Orchestrator step runner: if contentLen == 0 after execution, treat as hard failure regardless of success flag. Orchestrator must always emit at minimum a Task Brief or an explicit \"pipeline skip\" directive with justification. Add a canary check: `if output.trim().length === 0 → retry with explicit prompt injection \"You must output a Task Brief even for simple tasks\"`.",
+      "date_discovered": "2026-03-19",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "29d1d8c5-fc4c-425d-86bc-530656300a5b"
+    },
+    {
+      "id": "FAIL-045",
+      "category": "architecture",
+      "title": "Full 10-Agent Pipeline Triggered for Single-Component UI Change",
+      "symptoms": "A task scoped to \"add a dark mode toggle to the Settings page header\" — a pure frontend UI change requiring no DB schema, no API design, no security audit, no backend logic, and no infrastructure changes — was routed through a full 10-step pipeline including s3-architect, s3.5-cyber, s4-backend, s5.5-cyber-audit, and s6-devops. The Research-Agent (s0) correctly identified this in 11.9s and flagged it as frontend-only, but the pipeline structure did not allow early exit.",
+      "root_cause": "The pipeline topology is statically defined with all agents always active. There is no lightweight \"fast-track\" path for tasks that are clearly scoped to a single agent domain. The Orchestrator's role is to route intelligently, but if it fails (as in s1), there is no fallback short-circuit.",
+      "solution": "Define a \"fast-track\" pipeline variant for single-domain tasks: Research → Orchestrator (routing decision) → Target Agent → QA → Consolidation. The Orchestrator should emit a `pipeline_scope: [\"frontend-agent\", \"qa-agent\"]` directive that skips irrelevant agents rather than marking them pending. Implement this as a routing matrix check before pipeline start.",
+      "date_discovered": "2026-03-19",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "29d1d8c5-fc4c-425d-86bc-530656300a5b"
+    },
+    {
+      "id": "FAIL-046",
+      "category": "build",
+      "title": "success=true / contentLen=0 Contradiction Not Caught by Pipeline Runner",
+      "symptoms": "The pipeline runner accepted success=true from s1-orchestrator and simultaneously recorded the step as \"failed\" due to contentLen=0. These two signals were not reconciled — the runner did not retry the step, did not escalate to the user, and did not emit a clear diagnostic. Downstream steps silently moved to \"pending\" with no input to act on.",
+      "root_cause": "The pipeline runner lacks a unified health check that treats (success=true AND contentLen=0) as a retriable error state. The two signals are evaluated independently rather than as a composite health assertion.",
+      "solution": "Implement a composite step health check: `stepHealthy = success && contentLen > MIN_CONTENT_THRESHOLD`. If not healthy, trigger retry (max 2 per agent rules apply). After 2 failed retries with contentLen=0, escalate to user with diagnostic: \"Orchestrator produced no output — manual routing required.\" Log the contradiction explicitly in pipeline telemetry.",
+      "date_discovered": "2026-03-19",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "29d1d8c5-fc4c-425d-86bc-530656300a5b"
+    },
+    {
+      "id": "FAIL-047",
+      "category": "build",
+      "title": "Orchestrator Produces Empty Response on Simple UI Delegation Tasks",
+      "symptoms": "Step s1-orchestrator returned an empty response body (contentLen=0) despite the API call reporting success=true. This caused a retry and halted the entire downstream pipeline (s2-pm through s7-consolidation remained pending).",
+      "root_cause": "The Orchestrator agent likely received a task that was already pre-triaged by s0-research as \"no research needed\" — leaving the Orchestrator with an ambiguous or near-empty input context. The agent may have short-circuited its reasoning (nothing to synthesize from research) and produced no output rather than proceeding to generate a Task Brief for the appropriate agents (Frontend, Designer).",
+      "solution": "Two mitigations: (1) When s0-research returns a \"no research needed\" verdict, the pipeline should pass a canonical stub input to s1-orchestrator explicitly stating \"Research skipped — proceed directly to task routing\" with the original task description preserved verbatim. (2) Add an output guard in the Orchestrator layer: if contentLen=0 and success=true, treat as a soft failure, inject the original task prompt as fallback context, and retry once before escalating.",
+      "date_discovered": "2026-03-19",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "444160fb-6dfd-4d16-92e2-ac305e8b99d5"
+    },
+    {
+      "id": "FAIL-048",
+      "category": "build",
+      "title": "Research Step Activated for Pure UI Component Tasks — Wasted Latency",
+      "symptoms": "s0-research ran for 12.5 seconds on a task (\"Add a dark mode toggle to the Settings page header\") that it correctly self-identified as requiring zero research. The step consumed time and a model call only to produce a redirect message.",
+      "root_cause": "The pipeline routing logic does not pre-classify task type before activating agents. All tasks enter the full pipeline regardless of domain, causing research, cyber, architect, and other agents to spin up for tasks that are purely frontend implementation work.",
+      "solution": "Introduce a lightweight pre-classifier step (rule-based, not LLM) before s0-research. If task keywords match patterns like \"add [component] to [page]\", \"toggle\", \"UI element\", \"dark mode\" — skip s0-research and s3-architect, route directly to s2-pm → s4-designer → s4-frontend. This would have reduced this pipeline from 9 active steps to ~4.",
+      "date_discovered": "2026-03-19",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "444160fb-6dfd-4d16-92e2-ac305e8b99d5"
+    },
+    {
+      "id": "FAIL-049",
+      "category": "build",
+      "title": "success=true With contentLen=0 Is a Silent Failure Mode Not Caught by Pipeline",
+      "symptoms": "The pipeline infrastructure reported the Orchestrator step as having success=true while simultaneously having contentLen=0. These two signals are contradictory — a successful orchestration step must produce a Task Brief. The pipeline did not catch this contradiction and required an explicit retry mechanism to detect it.",
+      "root_cause": "The success flag appears to reflect HTTP/transport-level success (the model responded without error), not semantic success (the response contains valid, non-empty content). There is no output schema validation between steps.",
+      "solution": "Add a post-step validation hook that asserts: if agent role is orchestrator|backend|frontend|architect, then contentLen must be > minimum threshold (e.g., 200 chars). If not, override success=false immediately without waiting for the retry path. This prevents silent empty outputs from masquerading as successful steps.",
+      "date_discovered": "2026-03-19",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "444160fb-6dfd-4d16-92e2-ac305e8b99d5"
+    },
+    {
+      "id": "FAIL-050",
+      "category": "architecture",
+      "title": "Consolidation Step Running Without Upstream Agent Outputs",
+      "symptoms": "s7-consolidation executed and produced a \"Weekly Report\" despite steps s2–s6 being skipped. The consolidation had no real agent outputs to summarize, yet still scored 10/10 and generated a structured report framed as a legitimate pipeline result.",
+      "root_cause": "s7-consolidation was triggered by pipeline completion status rather than by actual upstream output availability. The step has no guard clause checking whether meaningful inputs exist before generating a summary.",
+      "solution": "Add an input-validation check in s7-consolidation: if fewer than N upstream steps produced real output (not null/skipped), emit a short \"pipeline incomplete — nothing to consolidate\" notice instead of fabricating a report structure. A 10/10 score on an empty consolidation is a scoring calibration bug — completeness cannot be 10 when inputs are absent.",
+      "date_discovered": "2026-03-19",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "823256db-52b3-4914-96fa-e78ca14c2497"
+    },
+    {
+      "id": "FAIL-051",
+      "category": "architecture",
+      "title": "Quality Score Inflation on Content-Free Output",
+      "symptoms": "s7-consolidation received a perfect 10/10 (C:10, S:10, A:10) despite having no real agent outputs to consolidate. The scoring rubric rewarded format compliance and structure rather than substantive content.",
+      "root_cause": "The quality gate evaluates output format and internal consistency, not whether the output reflects actual work done. A well-formatted empty report passes the same checks as a well-formatted substantive report.",
+      "solution": "Add a content-presence check to the quality scoring layer: Completeness score must be penalized if the number of summarized agent outputs is zero or below the expected count for the pipeline. Consider a separate \"input coverage\" dimension: what % of expected upstream steps are represented in the consolidation.",
+      "date_discovered": "2026-03-19",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "823256db-52b3-4914-96fa-e78ca14c2497"
+    },
+    {
+      "id": "FAIL-052",
+      "category": "build",
+      "title": "QA Scored 7/10 Despite Preceding Steps All Scoring 10/10 — Delivery Gap",
+      "symptoms": "s5-qa completed with score 7/10 (C:7.5, S:9, A:8.5) and received feedback \"Strong findings, but critical delivery gaps\" — despite all four upstream steps (pm, architect, frontend, designer) scoring perfect 10/10. The QA report covered the right scope but failed to fully close the loop on deliverables.",
+      "root_cause": "QA agent produced strong analytical findings but did not translate them into actionable, structured test artifacts (e.g., explicit pass/fail checklist per component, regression test cases, or a clear sign-off recommendation). High specificity (9) but incomplete completeness (7.5) suggests findings were present but not fully packaged for handoff.",
+      "solution": "QA task briefs must explicitly require: (1) per-component pass/fail matrix, (2) list of open blocking vs. non-blocking issues, (3) explicit SHIP / DO NOT SHIP verdict. Without these three outputs, QA reports score below 8 regardless of finding quality.",
+      "date_discovered": "2026-03-19",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "fe6bc195-9ab2-4591-8ead-db3b5233bc5c"
+    },
+    {
+      "id": "FAIL-053",
+      "category": "design",
+      "title": "Designer Agent Ran After Frontend Agent — Inverted Design-Dev Order",
+      "symptoms": "s4-frontend (27.6s) completed before s4-designer (108.6s). Design specs were produced after implementation code was already written. The designer output references ADR-007 and \"3 new components\" — suggesting specs were written to match existing code rather than guide it.",
+      "root_cause": "Pipeline configuration placed frontend before designer, possibly to allow the designer to spec against real code. This is a pragmatic shortcut for refactor/improvement tasks but creates a structural risk: design specs become documentation rather than constraints.",
+      "solution": "For new feature work, enforce Designer → Frontend order. For improvement/refactor tasks, the current order is acceptable but must be explicitly tagged as \"design-as-documentation mode\" so QA does not treat design specs as the source of truth for acceptance criteria.",
+      "date_discovered": "2026-03-19",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "fe6bc195-9ab2-4591-8ead-db3b5233bc5c"
+    },
+    {
+      "id": "FAIL-054",
+      "category": "api",
+      "title": "LLM Provider Overload Causes Full Pipeline Cascade Failure",
+      "symptoms": "Step s2-pm failed with API 500 \"overloaded_error\" from the underlying LLM provider. Since s2-pm is a blocking dependency for all parallel steps (s3.1–s3.5), the entire downstream pipeline — 13 steps total — was left in `pending` state, resulting in complete task failure despite a successful research phase.",
+      "root_cause": "No retry logic or fallback provider was implemented for transient LLM overload errors. A single point of failure at s2-pm propagated to 100% of remaining work. The pipeline architecture treats LLM API errors identically to logical failures, with no distinction between recoverable (503/overload) and non-recoverable errors.",
+      "solution": "1) Implement exponential backoff retry (3–5 attempts) specifically for 5xx/overload errors before marking a step as failed. 2) Add a secondary LLM provider fallback (e.g., switch model/endpoint on overload). 3) Persist completed step outputs (s0-research scored 8.5/10) so resume is possible from s2-pm without re-running earlier steps. 4) Classify error types: `transient` vs `permanent` — only transient errors should trigger auto-retry.",
+      "date_discovered": "2026-03-21",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "174121a8-90e9-47aa-97d2-bee7a02311a3"
+    },
+    {
+      "id": "FAIL-055",
+      "category": "devops",
+      "title": "No Checkpoint / Resume Capability After Partial Completion",
+      "symptoms": "Step s0-research completed successfully with a quality score of 8.5/10, and s1-orchestrator approved the checkpoint. However, when s2-pm failed, the pipeline had no mechanism to resume from the last successful checkpoint. The entire 31.4s execution is effectively lost and must be restarted from scratch.",
+      "root_cause": "Pipeline state is not persisted between steps in a resumable format. The checkpoint approval at s1-orchestrator is a human gate but not a technical save-point that the execution engine can restore from.",
+      "solution": "Implement durable step-state storage (e.g., Redis or DB record per step) that saves `output`, `status`, and `quality_score` upon step completion. On re-run, skip steps with status `completed` and resume from the first `failed` or `pending` step. This is standard in workflow engines like Temporal, Prefect, or Airflow.",
+      "date_discovered": "2026-03-21",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "174121a8-90e9-47aa-97d2-bee7a02311a3"
+    },
+    {
+      "id": "FAIL-056",
+      "category": "architecture",
+      "title": "Parallel Architecture Block (s3.x) Fully Blocked by Single Sequential Dependency",
+      "symptoms": "Steps s3.1-adr, s3.2-api, s3.3-erd, s3.4-fileplan, and s3.5-cyber were designed to run in parallel — a sound architectural choice — but all five were gated entirely on s2-pm completing. The parallelism provides zero resilience benefit when the single upstream dependency fails.",
+      "root_cause": "The pipeline design optimizes for parallel execution speed but does not account for partial dependency satisfaction. There is no partial-start logic (e.g., \"start s3.x steps that only need s0-research output if s2-pm is unavailable\").",
+      "solution": "Analyze inter-step data dependencies at a granular level. Some s3.x agents (e.g., s3.3-erd, s3.2-api) may be able to start from research output alone. Introduce dependency graphs with optional vs. required inputs, allowing steps to begin with partial context and merge PM output later if/when it becomes available.",
+      "date_discovered": "2026-03-21",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "174121a8-90e9-47aa-97d2-bee7a02311a3"
+    },
+    {
+      "id": "FAIL-057",
+      "category": "build",
+      "title": "Large Code Generation Agents Systematically Truncate Output Under Token Pressure",
+      "symptoms": "Both s4-designer (3.3/10) and s4-backend (3.9/10) failed with escalation after 4 attempts each. In both cases the root failure mode was identical: output was truncated mid-sentence/mid-block — designer cut off inside a CSS `:root` block, backend cut off with \"in parallel:\" — meaning the agents never delivered complete file sets across any attempt. s4-frontend, s4.5-checkpoint, and all downstream steps (s5-qa, s5-cyber-audit, s6-devops, s7-consolidation) remained pending, causing total pipeline failure.",
+      "root_cause": "Implementation-stage agents (designer, backend) were asked to generate large volumes of code (10+ service files, 5 SQL migrations, full CSS design system) in a single prompt turn. Token budget exhaustion caused silent mid-output truncation. Retrying the same prompt structure 4 times reproduced the same truncation at roughly the same point, indicating a structural prompt design problem rather than a transient error. The agents had no mechanism to detect their own truncation and self-correct.",
+      "solution": "Split implementation agents into smaller atomic sub-agents per layer or per file group. For backend: separate agents for (1) migrations, (2) domain services, (3) API routes. For designer: separate agents for (1) CSS tokens/design system, (2) component files, (3) page layouts. Each sub-agent should target a maximum of 3-5 files per invocation. Additionally, implement a structural validator at the orchestrator level that checks JSON completeness and file count against the s3.4-fileplan manifest before accepting output — reject immediately if delivered file count < expected count, rather than scoring and retrying the same oversized prompt.",
+      "date_discovered": "2026-03-22",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "1a3f1cdb-53f9-45d7-92ea-0925506658db"
+    },
+    {
+      "id": "FAIL-058",
+      "category": "build",
+      "title": "PM Output Accepted Below Threshold With Incomplete User Stories — Propagated Defects Downstream",
+      "symptoms": "s2-pm scored 4.9/10 (accepted with warning at 4.8/10 after 4 attempts). The output was truncated mid-sentence at US-8 description and was missing acceptance criteria and a full story set. Despite the warning, the pipeline continued. All architecture and API stages (s3.1–s3.5) scored 9.0+ — meaning they built on a structurally incomplete requirements document, silently filling gaps themselves. This creates undocumented scope assumptions baked into ADR, API contract, and ERD that were never formally approved.",
+      "root_cause": "The acceptance threshold (4.8/10 with warning) is too permissive for a requirements-generating stage. The PM agent hit a token/output limit on the 4th attempt and the orchestrator accepted the truncated output rather than restructuring the prompt. There was no explicit check that all planned user stories were present and complete before proceeding.",
+      "solution": "For pipeline stages whose output serves as the canonical input to all downstream stages (PM/PRD), enforce a hard minimum score of 7.0/10 with a completeness gate: verify that all user stories have titles, descriptions, and acceptance criteria present before passing the checkpoint. If the PM agent truncates, split the PRD generation into two passes — (1) story list + titles, (2) full acceptance criteria per story — rather than retrying the monolithic prompt.",
+      "date_discovered": "2026-03-22",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "1a3f1cdb-53f9-45d7-92ea-0925506658db"
+    },
+    {
+      "id": "FAIL-059",
+      "category": "build",
+      "title": "Retry Loop Reproduces Same Truncation — No Prompt Restructuring Between Attempts",
+      "symptoms": "s2-pm (4 attempts), s4-designer (4 attempts, escalated), s4-backend (4 attempts, escalated) all hit their retry limit without resolution. In each case, the failure mode on attempt N+1 was identical to attempt N — truncation at the same structural point. Four retries were consumed producing the same broken output each time.",
+      "root_cause": "The retry mechanism re-issues the same prompt with feedback appended, but does not restructure the scope of the task. When truncation is caused by prompt size exceeding token budget, appending feedback makes the prompt larger, potentially worsening truncation. There is no escalation-before-limit logic that detects \"same failure mode repeated\" and triggers prompt decomposition instead of a plain retry.",
+      "solution": "Implement a retry classification layer: if the failure reason on attempt 2 is the same category as attempt 1 (e.g., truncation detected via JSON parse failure or output ending mid-token), do not issue attempt 3 with the same prompt — instead trigger a prompt decomposition strategy (split task into smaller sub-tasks) and route to sub-agents. Reserve the escalation path for genuinely ambiguous quality failures, not deterministic token-limit truncations.",
+      "date_discovered": "2026-03-22",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "1a3f1cdb-53f9-45d7-92ea-0925506658db"
+    },
+    {
+      "id": "FAIL-060",
+      "category": "devops",
+      "title": "Pipeline Fails Completely When Parallel Implementation Agents Fail — No Partial Delivery Mechanism",
+      "symptoms": "s4-designer and s4-backend both escalated. Because s4-frontend was pending and s4.5-checkpoint (a gate step) was pending, the entire pipeline halted with zero code delivered to the repository. All the high-quality upstream work (ADR 9.2, API 9.1, ERD 9.2, fileplan 9.2) produced no deployable artifact. Total pipeline duration was 1706.3s with a failed outcome.",
+      "root_cause": "The pipeline treats the implementation stage (s4-*) as an all-or-nothing gate. There is no mechanism to commit partial deliverables (e.g., the SQL migrations that were generated, even if incomplete) or to allow QA/DevOps to begin work on the portions that were delivered.",
+      "solution": "Introduce partial-commit checkpoints within the s4 stage: if migrations are generated and pass a syntax check, commit them independently of whether service files are complete. Allow s5-qa to begin reviewing whatever artifacts exist. This requires the checkpoint agent (s4.5) to support partial-pass states with an explicit list of what is and isn't ready, rather than a binary pass/fail. For the current pipeline, the recovery path is to re-run only s4-backend and s4-designer with decomposed prompts, not restart the full pipeline from s0.",
+      "date_discovered": "2026-03-22",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "1a3f1cdb-53f9-45d7-92ea-0925506658db"
     }
   ]
 }

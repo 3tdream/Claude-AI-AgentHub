@@ -1,6 +1,6 @@
 {
   "_description": "Known issues, root causes, and solutions — maintained by QA-Agent and all agents",
-  "_updated": "2026-03-19",
+  "_updated": "2026-03-22",
   "patterns": [
     {
       "id": "FAIL-001",
@@ -571,6 +571,203 @@
         "lib/logs-storage.ts",
         "app/api/logs/route.ts",
         "app/api/admin/users/route.ts"
+      ]
+    },
+    {
+      "id": "FAIL-070",
+      "category": "security",
+      "title": "No auth on POST /api/pipeline/analytics — unauthenticated data injection",
+      "symptoms": "POST /api/pipeline/analytics accepts arbitrary JSON without session/auth check, allowing anyone to inject fake pipeline run data into the analytics store.",
+      "root_cause": "Route handler at app/api/pipeline/analytics/route.ts lines 8-18 calls savePipelineRun(execution) directly from request.json() with zero authentication or authorization checks.",
+      "solution": "Add session auth check as the FIRST operation in both POST and GET handlers of /api/pipeline/analytics/route.ts, consistent with FAIL-025 pattern. The new /api/pipeline/summary route must also enforce this (ADR already specifies it).",
+      "date_discovered": "2026-03-19",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/api/pipeline/analytics/route.ts"
+      ]
+    },
+    {
+      "id": "FAIL-071",
+      "category": "security",
+      "title": "Sibling route /api/pipeline/analytics has no auth — pattern must not propagate to /summary",
+      "symptoms": "GET /api/pipeline/analytics and POST /api/pipeline/analytics accept requests without any session/auth check. Any unauthenticated user can read agent learning context or write pipeline runs.",
+      "root_cause": "Route handler at app/api/pipeline/analytics/route.ts (lines 8-37) never calls getServerSession or any auth middleware before processing requests.",
+      "solution": "Add session auth check as the FIRST operation in both GET and POST handlers per FAIL-025 pattern. The new /api/pipeline/summary route MUST include auth before any fs.readFile or fs.stat call. Backport auth to the existing /analytics route as well.",
+      "date_discovered": "2026-03-19",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/api/pipeline/analytics/route.ts",
+        "app/api/pipeline/summary/route.ts"
+      ]
+    },
+    {
+      "id": "FAIL-072",
+      "category": "bad-code",
+      "title": "StageStatusBadge missing pill/badge wrapper — renders as bare inline text, not a styled badge",
+      "symptoms": "StageStatusBadge renders only an icon + optional text with `inline-flex items-center gap-1.5 text-xs font-medium` — no background, no border, no border-radius, no padding. Design spec requires pill shape (rounded-full, px-2 py-0.5, bg-*-50, border). On mobile 375px the status is nearly invisible against white card backgrounds.",
+      "root_cause": "The component applies only `config.color` (a text-color class) from STAGE_STATUS_CONFIG but never applies background, border, or padding classes. The design spec Tailwind classes (e.g. `bg-blue-50 border border-blue-500 rounded-full px-2 py-0.5`) are defined in the design doc but were not implemented in the component.",
+      "solution": "Add `rounded-full px-2 py-0.5` base classes to the `<span>` and include `config.bg` and `config.border` fields in STAGE_STATUS_CONFIG. Each status entry must carry its full pill styling, not just text color. Example: `className={cn(\"inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-mono\", config.bg, config.border, config.color)}`",
+      "date_discovered": "2026-03-19",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "components/orchestration/stage-status-badge.tsx",
+        "lib/constants/stage-status.ts"
+      ]
+    },
+    {
+      "id": "FAIL-073",
+      "category": "bad-code",
+      "title": "routeTask() and executePipeline() have no AbortController — requests hang on navigation away",
+      "symptoms": "When user navigates away from /orchestration while routing or executing, the fetch calls in routeTask() (POST /api/pipeline/route) and executePipeline() continue running. State setters (setIsRouting, setActiveExecution) are called on unmounted component, causing React warnings and potential stale-state bugs in the next page load.",
+      "root_cause": "Neither routeTask() nor the executePipeline() wrapper use AbortController or check a mounted-ref before calling setState. The page.tsx has no cleanup in useEffect for these async operations.",
+      "solution": "Add `const abortRef = useRef(new AbortController())` and pass `signal: abortRef.current.signal` to all fetch calls. In a useEffect cleanup: `return () => abortRef.current.abort()`. Alternatively wrap in try/catch that ignores AbortError.",
+      "date_discovered": "2026-03-19",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/(shell)/orchestration/page.tsx"
+      ]
+    },
+    {
+      "id": "FAIL-074",
+      "category": "bad-code",
+      "title": "InsertStepButton position calculation off-by-one for parallel groups",
+      "symptoms": "After a parallel group, InsertStepButton receives a position that equals the last step index of the group rather than the index AFTER the group. New steps inserted after a parallel group land inside it instead of after it.",
+      "root_cause": "getInsertPositionForGroup accumulates steps[0..groupIndex-1] but does NOT include the current group's own steps when called with gi+1. For a parallel group of N steps the returned position is the start index of that group, not start+N.",
+      "solution": "Change the loop bound: `for (let g = 0; g <= groupIndex && g < groups.length; g++)` — include the current group so the returned position is the index AFTER all its steps. Add a unit test covering a 3-step parallel group followed by a single step.",
+      "date_discovered": "2026-03-19",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "components/orchestration/pipeline-graph.tsx"
+      ]
+    },
+    {
+      "id": "FAIL-075",
+      "category": "bad-code",
+      "title": "MobileNav conditionally returns null — no CSS transition on close, causes layout flash",
+      "symptoms": "When isOpen becomes false, the component immediately returns null without playing the close animation. The drawer disappears instantly (no slide-out), causing a jarring visual flash instead of the 250ms ease-in close animation specified in the design spec.",
+      "root_cause": "mobile-nav.tsx line 29: `if (!isOpen) return null` — the component is unmounted immediately when isOpen=false. CSS animations (animate-in slide-in-from-left) only play on mount, not on unmount. There is no exit animation mechanism.",
+      "solution": "Replace conditional null return with a visibility/transform approach: keep the component mounted, use CSS `translate-x-[-100%]` when closed and `translate-x-0` when open. Or use a library like framer-motion AnimatePresence. At minimum, add a `data-state` attribute and CSS keyframe for slide-out. The backdrop also disappears instantly.",
+      "date_discovered": "2026-03-19",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "components/shell/mobile-nav.tsx"
+      ]
+    },
+    {
+      "id": "FAIL-076",
+      "category": "security",
+      "title": "Loyalty ledger CSV export endpoint lacks authorization scoping — full PII exfiltration risk",
+      "symptoms": "GET /api/loyalty/clients/:client_id/ledger/export returns full unpaginated ledger as CSV with no salon_id scoping check. Any authenticated user with a valid JWT can export any client's complete financial loyalty history by enumerating client_id UUIDs. The dashboard endpoint also leaks client names in top_clients without verifying the requester owns that salon.",
+      "root_cause": "API contract defines auth as \"JWT required (admin)\" but does not specify salon-level tenant isolation. No middleware enforces that the authenticated admin belongs to the salon owning the client_id. The export endpoint has no pagination and streams full data, amplifying the impact of any access control bypass. Combined with 152-FZ PII requirements, this is a data breach vector.",
+      "solution": "Every endpoint accepting client_id or salon_id must verify the authenticated user's salon_id matches the resource's salon_id via middleware (tenant isolation guard). The export endpoint must additionally enforce row-level security or an application-layer check that client_id belongs to the admin's salon. Add a shared `assertSalonOwnership(jwt, client_id)` helper used by all route handlers. Rate limit the export endpoint more aggressively (current 10/min is too high for full-dump endpoints).",
+      "date_discovered": "2026-03-22",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/api/loyalty/clients/[client_id]/ledger/export/route.ts",
+        "app/api/loyalty/clients/[client_id]/balance/route.ts",
+        "app/api/loyalty/clients/[client_id]/ledger/route.ts",
+        "app/api/loyalty/clients/[client_id]/manual-adjust/route.ts",
+        "app/api/loyalty/dashboard/route.ts"
+      ]
+    },
+    {
+      "id": "FAIL-077",
+      "category": "security",
+      "title": "Loyalty domain lacks tenant isolation — no BOLA protection on client_id paths",
+      "symptoms": "All 6 endpoints under /api/loyalty/clients/:client_id/* accept arbitrary client_id in the URL path. No middleware validates that the authenticated salon/user owns the requested client_id. An attacker with a valid JWT for Salon A can read balances, export ledgers, and manually adjust points for clients belonging to Salon B by enumerating client_id UUIDs.",
+      "root_cause": "ADR-003 specifies JWT auth on every endpoint but defines no authorization middleware that joins client_id → salon_id and compares against the JWT's salon claim. The API contract lists 'Auth: JWT required' without specifying tenant-scoping logic. loyalty_balance has a salon_id column but no endpoint contract mandates a WHERE salon_id = jwt.salon_id guard.",
+      "solution": "Create a reusable middleware (e.g., assertClientBelongsToSalon) that performs SELECT salon_id FROM loyalty_balance WHERE client_id = :client_id and compares against jwt.salon_id, returning 403 on mismatch. Apply to ALL /clients/:client_id/* routes. Add integration tests with cross-tenant client_ids. Also add salon_id WHERE clause to every loyalty_ledger and loyalty_balance query as a defense-in-depth measure.",
+      "date_discovered": "2026-03-22",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/api/loyalty/clients/[client_id]/balance/route.ts",
+        "app/api/loyalty/clients/[client_id]/ledger/route.ts",
+        "app/api/loyalty/clients/[client_id]/ledger/export/route.ts",
+        "app/api/loyalty/clients/[client_id]/manual-adjust/route.ts",
+        "lib/loyalty/balance.service.ts",
+        "lib/loyalty/ledger.service.ts"
+      ]
+    },
+    {
+      "id": "FAIL-078",
+      "category": "security",
+      "title": "Internal API secret in header is insufficient for server-to-server auth on earn/reverse/bonus endpoints",
+      "symptoms": "POST /api/loyalty/ledger/earn, /reverse, /bonus/* rely solely on x-internal-secret header matching process.env.INTERNAL_API_SECRET. If the secret leaks (logs, error traces, env var exposure), any external actor can award arbitrary points to any clientId, bypassing all role checks.",
+      "root_cause": "Shared-secret header auth has no per-request binding — it is replayable, loggable, and has no expiry. A single leak grants permanent unrestricted access to point-crediting endpoints. There is no IP allowlist, no request signing, and no nonce/timestamp to prevent replay attacks.",
+      "solution": "Add HMAC-SHA256 request signing: sign (method + path + body-hash + unix-timestamp) with INTERNAL_API_SECRET; include signature + timestamp in headers; reject requests where timestamp is >30s old. Alternatively, restrict these routes to localhost/loopback only at the network layer (Next.js middleware or reverse proxy), so they are never reachable from the public internet regardless of secret exposure.",
+      "date_discovered": "2026-03-22",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/api/loyalty/ledger/earn/route.ts",
+        "app/api/loyalty/ledger/reverse/route.ts",
+        "app/api/loyalty/bonus/birthday/route.ts",
+        "app/api/loyalty/bonus/referral/route.ts",
+        "lib/loyalty/rate-limit.ts"
+      ]
+    },
+    {
+      "id": "FAIL-079",
+      "category": "security",
+      "title": "SQL Injection via unparameterized `type` filter in getLedgerEntries()",
+      "symptoms": "In lib/loyalty/ledger.service.ts line 50, the `type` query parameter is interpolated directly into the SQL string: `AND type = '${type}'`. Any caller who passes a crafted `type` value (e.g., `' OR '1'='1`) can read arbitrary rows across all salons, bypassing tenant isolation and BOLA guards entirely.",
+      "root_cause": "The developer used a JavaScript template literal to build the WHERE clause instead of a parameterized placeholder ($N). The `type` value comes from the HTTP query string and is never validated or escaped before interpolation.",
+      "solution": "Replace the interpolated typeFilter with a parameterized approach: collect params in an array and append `AND type = $N` only when type is provided. Additionally, validate `type` against the allowed enum ('earn','redeem','manual_adjust','expire','reverse','bonus') with Zod before it reaches the service layer.",
+      "date_discovered": "2026-03-22",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "lib/loyalty/ledger.service.ts"
+      ]
+    },
+    {
+      "id": "FAIL-080",
+      "category": "security",
+      "title": "SQL Injection via string interpolation in getLedgerEntries type filter",
+      "symptoms": "getLedgerEntries() in lib/loyalty/ledger.service.ts line 50 interpolates the `type` query parameter directly into the SQL string: `AND type = '${type}'`. Any authenticated user can inject arbitrary SQL through the ledger type filter.",
+      "root_cause": "Developer used template literal string interpolation instead of a parameterized placeholder for the optional `type` filter, bypassing pg's parameterized query protection. The pattern was likely copied from a non-security-sensitive context.",
+      "solution": "Add `type` as a positional parameter ($4). Use: `AND ($4::text IS NULL OR type = $4)` with `type ?? null` in the values array. Apply the same fix to the COUNT query. Never interpolate user-controlled values into SQL strings regardless of upstream validation.",
+      "date_discovered": "2026-03-22",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "lib/loyalty/ledger.service.ts"
+      ]
+    },
+    {
+      "id": "FAIL-081",
+      "category": "security",
+      "title": "SQL Injection via string interpolation in getLedgerEntries type filter",
+      "symptoms": "Line 50 of lib/loyalty/ledger.service.ts builds a WHERE clause fragment using `AND type = '${type}'` — direct string interpolation of user-controlled input into raw SQL. An authenticated attacker can inject arbitrary SQL via the `type` query parameter on GET /api/loyalty/clients/:clientId/ledger, enabling full table exfiltration, data corruption, or privilege escalation within the loyalty_ledger table (contains PII).",
+      "root_cause": "The `type` parameter from the HTTP query string is interpolated directly into the SQL string on line 50 instead of being passed as a parameterized placeholder ($N). The function uses parameterized queries for `client_id`, `limit`, and `offset` ($1–$3) but bypasses this pattern for the optional `type` filter by building the clause via template literal.",
+      "solution": "Replace the interpolated filter with parameterized placeholders. Push `type` into the values array as $4 and rewrite the WHERE clause to: `AND ($4::text IS NULL OR type = $4)`. Pass `type ?? null` as the 4th parameter in both the SELECT and COUNT queries. Additionally, validate `type` against the LedgerType enum at the service boundary (Zod schema in the route handler) BEFORE it reaches the query — defense in depth. Never use string interpolation for any SQL fragment derived from user input anywhere in the loyalty module.",
+      "date_discovered": "2026-03-22",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "lib/loyalty/ledger.service.ts"
+      ]
+    },
+    {
+      "id": "FAIL-082",
+      "category": "security",
+      "title": "Missing route handler layer — zero server-side enforcement for loyalty API",
+      "symptoms": "The directory app/api/loyalty/ does not exist on disk. All 12 API routes defined in the ADR contract (config CRUD, accounts, ledger, earn, redeem, export) have no server-side implementation, meaning there is zero enforcement of JWT auth, BOLA guards, role checks, rate limits, input validation, or the redemption_enabled block at the HTTP boundary. Any future scaffolding without a security checklist will expose PII and allow unauthenticated point manipulation.",
+      "root_cause": "Route handlers were never created — the service layer (lib/loyalty/*.service.ts) was built first without corresponding Next.js API route files. There is no architectural gate or pre-merge checklist requiring security controls before a route handler can be merged.",
+      "solution": "Every route handler in app/api/loyalty/ MUST enforce before merge: (1) JWT verification middleware at route level extracting salon_id from token claims; (2) BOLA guard on all :clientId routes verifying client.salon_id === jwt.salon_id; (3) Zod input validation on all POST/PUT bodies and query params; (4) Role-based access control per ADR spec; (5) Rate limiting per endpoint; (6) x-internal-secret routes must use crypto.timingSafeEqual for constant-time comparison; (7) Redeem route must check redemption_enabled server-side AND hard-return 403 with code redemption_blocked_ra1 regardless of config value until RA-1 is resolved; (8) CSV export must set Cache-Control: no-store and sanitize fields against formula injection.",
+      "date_discovered": "2026-03-22",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/api/loyalty"
       ]
     }
   ]

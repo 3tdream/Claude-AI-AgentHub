@@ -1,6 +1,6 @@
 {
   "_description": "Threat responses and recurring vulnerabilities — maintained by Cyber-Agent and QA-Agent",
-  "_updated": "2026-03-14",
+  "_updated": "2026-03-22",
   "threat_model": {
     "framework": "STRIDE + OWASP Top 10",
     "mandatory_triggers": [
@@ -53,6 +53,16 @@
       "mitigation": "Для задач с тегами [sensitive-data, encryption, auth, payments]: переместить первый cyber-agent вызов на s2.5 — между PM и Architect. Cyber формирует \"Security Requirements Brief\" (алгоритм шифрования, key derivation, storage constraints, audit requirements), который Architect получает как обязательный input наравне с PM stories. Конкретно для API key management: AES-256-GCM с PBKDF2/Argon2 для key derivation, запрет хранения plaintext даже временно, audit log должен быть append-only с HMAC integrity check.",
       "date_found": "2026-03-14",
       "source_pipeline": "6bd3e517-9162-4258-a467-d0a687a3e550"
+    },
+    {
+      "id": "VULN-005",
+      "category": "security",
+      "title": "No Rate Limiting or Per-User Request Throttling on Points Earn/Redemption Endpoints",
+      "severity": "high",
+      "description": "s3.5-cyber (8.8/10) identified that the existing stack had no pre-existing rate limiting middleware, and that loyalty earn/redemption endpoints (POST /api/loyalty/earn, POST /api/loyalty/redeem) are high-value targets for replay attacks and rapid-fire abuse. Without throttling, an attacker with a valid session token can loop redemption calls to drain points balances or trigger race conditions on the two-table transactional update (loyalty_balance + loyalty_ledger).",
+      "mitigation": "Add per-user rate limit rules on earn/redeem endpoints (e.g., max 10 earn calls per minute per salon_id+client_id pair, max 3 redemption calls per minute). Implement idempotency keys on POST /api/loyalty/redeem so duplicate requests within a time window return the cached result rather than executing twice. These controls should be specified in the API contract stage and enforced in middleware before business logic executes.",
+      "date_found": "2026-03-22",
+      "source_pipeline": "1a3f1cdb-53f9-45d7-92ea-0925506658db"
     }
   ],
   "security_checklist": {
