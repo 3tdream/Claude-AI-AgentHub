@@ -16,6 +16,34 @@ import { TemplateLibrary } from "@/components/orchestration/template-library";
 import { RecruitmentCenter } from "@/components/orchestration/recruitment-center";
 import type { Workflow, PipelineExecution, RoutingDecisionData, ExecutionMode, AgentCatalogEntry, WorkflowSlot } from "@/types";
 
+/** Model pricing per 1M tokens (USD) */
+const MODEL_PRICING: Record<string, { input: number; output: number }> = {
+  "claude-sonnet-4-6": { input: 3, output: 15 },
+  "sonnet-4-6": { input: 3, output: 15 },
+  "claude-opus-4-6": { input: 15, output: 75 },
+  "opus-4-6": { input: 15, output: 75 },
+  "claude-haiku-4-5-20251001": { input: 0.8, output: 4 },
+  "haiku-4-5": { input: 0.8, output: 4 },
+  "gpt-5.1": { input: 5, output: 15 },
+  "gemini-2.5-pro": { input: 1.25, output: 10 },
+};
+const DEFAULT_PRICING = { input: 3, output: 15 }; // sonnet fallback
+
+function calcExecutionCost(execution: PipelineExecution | null): { tokens: number; cost: number } {
+  if (!execution?.stepResults) return { tokens: 0, cost: 0 };
+  let totalTokens = 0;
+  let totalCost = 0;
+  for (const result of Object.values(execution.stepResults)) {
+    const r = result as any;
+    const input = r.inputTokens || 0;
+    const output = r.outputTokens || 0;
+    totalTokens += input + output;
+    const pricing = MODEL_PRICING[r.model || ""] || DEFAULT_PRICING;
+    totalCost += (input / 1_000_000) * pricing.input + (output / 1_000_000) * pricing.output;
+  }
+  return { tokens: totalTokens, cost: totalCost };
+}
+
 function LiveTimer({ startedAt }: { startedAt: string }) {
   const [elapsed, setElapsed] = useState(0);
   useEffect(() => {
@@ -690,6 +718,16 @@ export default function OrchestrationPage() {
                           : null
                         }
                       </span>
+                      {(() => {
+                        const { tokens, cost } = calcExecutionCost(activeExecution);
+                        if (tokens === 0) return null;
+                        return (
+                          <span className="font-mono text-[9px] text-muted-foreground flex items-center gap-1.5">
+                            <span>{(tokens / 1000).toFixed(1)}K tok</span>
+                            <span className="text-emerald-400 font-semibold">${cost < 0.01 ? cost.toFixed(4) : cost.toFixed(2)}</span>
+                          </span>
+                        );
+                      })()}
                     </div>
                   )}
                 </div>
