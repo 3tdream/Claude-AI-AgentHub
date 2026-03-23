@@ -1,6 +1,6 @@
 ---
 name: edge-cases
-description: Find edge cases for a component, API, or feature — boundary values, race conditions, error states
+description: Brainstorm edge cases — boundary values, race conditions, null inputs, concurrent access for a specific component
 argument-hint: <component or feature>
 ---
 

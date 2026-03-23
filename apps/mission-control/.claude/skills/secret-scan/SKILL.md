@@ -1,6 +1,6 @@
 ---
 name: secret-scan
-description: Scan codebase for exposed secrets — API keys, passwords, tokens, credentials
+description: Grep-based secret scanner — find exposed API keys, passwords, tokens in code and git history
 argument-hint: [directory to scan] or empty for full project
 ---
 

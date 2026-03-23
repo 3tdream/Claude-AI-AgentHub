@@ -1,6 +1,6 @@
 ---
 name: brand-guidelines
-description: Create or enforce brand identity — colors, fonts, tone, logo rules, component styling consistency
+description: Brand identity document or brand consistency audit — "create" for new brand, "audit" to check violations
 argument-hint: <"create" for new brand | "audit" to check consistency | brand-name>
 ---
 

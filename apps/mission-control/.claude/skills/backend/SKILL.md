@@ -1,6 +1,6 @@
 ---
 name: backend
-description: Backend implementation, API routes, SQL migrations, database schemas, business logic, TypeScript server code
+description: Full backend feature implementation — multiple routes, migrations, types, business logic (use /api-scaffold for single endpoint)
 argument-hint: [endpoint or feature to implement]
 ---
 

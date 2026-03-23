@@ -1,6 +1,6 @@
 ---
 name: pm
-description: Product requirements, user stories, acceptance criteria, PRD, scope boundaries, Jira stories
+description: Full PRD document — overview, user stories, acceptance criteria, scope, Jira structure (use /user-story for quick stories only)
 argument-hint: [feature or requirement to define]
 ---
 

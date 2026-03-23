@@ -1,6 +1,6 @@
 ---
 name: cyber
-description: Security vulnerabilities, OWASP top 10, threat modeling, XSS, SQL injection, authentication flaws, penetration testing
+description: Full security audit of code — OWASP top 10 scan, find and fix vulnerabilities in existing files
 argument-hint: [code or system to audit]
 ---
 

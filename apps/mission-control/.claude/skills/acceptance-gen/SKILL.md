@@ -1,6 +1,6 @@
 ---
 name: acceptance-gen
-description: Generate acceptance criteria from user story — GIVEN/WHEN/THEN format with IDs
+description: Generate AC-1..AC-N acceptance criteria from one user story in GIVEN/WHEN/THEN format
 argument-hint: <user story text>
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: architect
-description: System architecture, API contracts, data models, ERD, ADR, file plans, technology decisions
+description: Full system architecture design — complete ADR + API contracts + ERD + file plan for a feature or system
 argument-hint: [system or feature to design]
 ---
 

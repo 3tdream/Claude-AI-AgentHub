@@ -1,6 +1,6 @@
 ---
 name: designer
-description: Design tokens, CSS variables, component specs, UI/UX design system, color palettes, typography, accessibility
+description: Component specs and design system documentation — props, states, layouts (specs only, no code — use /frontend-designer for code)
 argument-hint: [component or design system to create]
 ---
 

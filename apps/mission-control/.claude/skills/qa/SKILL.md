@@ -1,6 +1,6 @@
 ---
 name: qa
-description: Quality assurance, test validation, acceptance criteria verification, regression testing, bug reports
+description: Validate existing code against acceptance criteria — read code, check AC-1..AC-N, report PASS/FAIL verdict
 argument-hint: [feature or code to test]
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: devops
-description: Deployment configuration, Docker, CI/CD pipelines, GitHub Actions, environment variables, infrastructure, rollback plans
+description: Full deployment setup — Dockerfile + CI/CD + env vars + rollback plan (use /docker-compose for just containers)
 argument-hint: [infrastructure task]
 ---
 

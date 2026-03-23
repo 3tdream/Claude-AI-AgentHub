@@ -1,6 +1,6 @@
 ---
 name: auth-review
-description: Audit authentication and authorization — JWT, sessions, RBAC, OAuth, permission checks
+description: Focused auth audit only — JWT flow, session handling, RBAC checks, OAuth (use /cyber for full OWASP scan)
 argument-hint: [file or feature to audit]
 ---
 

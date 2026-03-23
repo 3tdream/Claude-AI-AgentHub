@@ -1,6 +1,6 @@
 ---
 name: frontend
-description: Frontend implementation, React components, page layouts, API integration, state management, UI interactions
+description: Full frontend feature implementation — pages, components, API wiring (use /form-builder, /table-builder for specific patterns)
 argument-hint: [component or page to build]
 ---
 

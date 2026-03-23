@@ -1,6 +1,6 @@
 ---
 name: db-schema
-description: Design database schema for an entity — fields, types, relations, indexes, constraints
+description: Quick single-entity database schema — fields, types, relations in plain English (use /architect for full ERD)
 argument-hint: <entity or feature name>
 ---
 

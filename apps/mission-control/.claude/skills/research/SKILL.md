@@ -1,6 +1,6 @@
 ---
 name: research
-description: Market research, competitor analysis, user personas, technology evaluation, industry trends
+description: Full discovery research report — personas, competitive matrix, market sizing, key insights (use /market-scan for quick scan)
 argument-hint: [topic or question]
 ---
 

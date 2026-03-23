@@ -1,6 +1,6 @@
 ---
 name: api-design
-description: Design API endpoints for a feature — method, path, request/response shapes, auth, rate limits
+description: Quick single-feature API endpoint design — method, path, request/response shapes (use /architect for full system)
 argument-hint: <feature to design API for>
 ---
 

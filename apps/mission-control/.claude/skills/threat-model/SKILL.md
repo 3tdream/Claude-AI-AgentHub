@@ -1,6 +1,6 @@
 ---
 name: threat-model
-description: Create threat model for a feature — attack surfaces, threat actors, STRIDE analysis
+description: STRIDE threat model for a new feature before implementation — attack surfaces, threat actors, mitigations
 argument-hint: <feature name>
 ---
 

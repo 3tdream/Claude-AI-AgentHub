@@ -1,6 +1,6 @@
 ---
 name: regression-suite
-description: Generate regression test cases to prevent known bugs from returning
+description: Generate regression checklist from Knowledge Base failure-patterns — prevent known bugs from returning
 argument-hint: <feature or "from KB"> — use Knowledge Base failure patterns
 ---
 

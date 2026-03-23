@@ -1,6 +1,6 @@
 ---
 name: tech-decision
-description: Quick Architecture Decision Record — evaluate options, make a recommendation
+description: Quick ADR for a single technology choice — "which database?", "Redis vs Memcached?" (use /architect for full system design)
 argument-hint: <decision question> — e.g. "which database for sessions?"
 ---
 

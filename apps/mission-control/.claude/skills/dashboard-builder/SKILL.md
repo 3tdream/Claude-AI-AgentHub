@@ -1,6 +1,6 @@
 ---
 name: dashboard-builder
-description: Generate a dashboard layout with metric cards, charts, tables from a description of metrics
+description: Generate dashboard page — KPI cards + Recharts + detail table from metric descriptions
 argument-hint: <dashboard description> — e.g. "sales dashboard with revenue, orders, conversion rate"
 ---
 

@@ -35,5 +35,12 @@ Check for:
 - Are knowledge base files populated or empty?
 - Any stale patterns (>30 days old)?
 
+**SKILLS CONSISTENCY:**
+- Check all 73 skills in `.claude/skills/` for:
+  - Description overlaps (two skills with similar keywords)
+  - Stale references to renamed files or removed features
+  - Skills referencing non-existent paths or commands
+  - Missing `disable-model-invocation` on dangerous skills
+
 Output a health report table:
-| Agent | Prompt | Config | Model | KB | Status |
+| Agent | Prompt | Config | Model | KB | Skills | Status |

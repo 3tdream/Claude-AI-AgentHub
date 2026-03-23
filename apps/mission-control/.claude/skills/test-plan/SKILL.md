@@ -1,6 +1,6 @@
 ---
 name: test-plan
-description: Create a comprehensive test plan for a feature — unit, integration, e2e, edge cases
+description: Generate test plan document — list of unit/integration/e2e test cases to write (planning, not execution)
 argument-hint: <feature name>
 ---
 

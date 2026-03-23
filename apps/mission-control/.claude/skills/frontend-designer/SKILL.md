@@ -1,6 +1,6 @@
 ---
 name: frontend-designer
-description: Full UI implementation from design to code — design tokens, components, pages, wiring in one pass
+description: Build working UI component end-to-end — design + code in one pass, ready to paste and use
 argument-hint: [component or page to build end-to-end]
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: form-builder
-description: Generate a form component with validation, error handling, submit logic from field descriptions
+description: Generate one form component from field list — "email, password, name" → ready-to-use form with validation
 argument-hint: <form description> — e.g. "user registration form with email, password, name"
 ---
 

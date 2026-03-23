@@ -1,6 +1,6 @@
 ---
 name: table-builder
-description: Generate a data table component with sorting, filtering, pagination from data shape
+description: Generate one data table component — columns, sorting, filtering, pagination from a data shape description
 argument-hint: <data description> — e.g. "users table with name, email, role, last login"
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: api-scaffold
-description: Scaffold a new API endpoint — route handler, types, validation, error handling
+description: Scaffold one new API endpoint file — route.ts with handler, types, validation (use /backend for full feature)
 argument-hint: <METHOD /api/path> — e.g. "POST /api/loyalty/redeem"
 ---
 

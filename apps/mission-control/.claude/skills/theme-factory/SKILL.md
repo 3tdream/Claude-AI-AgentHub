@@ -1,6 +1,6 @@
 ---
 name: theme-factory
-description: Generate complete themes — dark mode, brand themes, color palettes, typography scales, component tokens
+description: Generate complete CSS theme from description — "dark mode", "beauty clinic pink" → full :root variables
 argument-hint: <theme description> — e.g. "dark mode", "beauty clinic pink", "corporate blue"
 ---
 

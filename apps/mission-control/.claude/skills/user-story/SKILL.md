@@ -1,6 +1,6 @@
 ---
 name: user-story
-description: Generate user stories from a feature description — persona, action, outcome, priority
+description: Quick user story generator — 5-10 stories from a one-line feature description (use /pm for full PRD)
 argument-hint: <feature description>
 ---
 
