@@ -244,30 +244,41 @@ This ADR will be read by Backend, Frontend, Designer, DevOps, and Cyber agents.`
     id: "s3.2-api",
     agentId: "architect-agent",
     agentName: "Architect-Agent",
-    promptTemplate: `Based on the ADR and PRD, define ALL API endpoints.
+    promptTemplate: `Define ALL API endpoints based on ADR and PRD.
 
 ADR: {{step_s3.1-adr_output}}
 PRD: {{step_s2-pm_output}}
 
-OUTPUT — COMPLETE API CONTRACT for every endpoint:
+═══ OUTPUT CONTRACT (STRICT — follow exactly) ═══
 
+SECTION 1 — ENDPOINT INDEX (mandatory, always first):
+| # | Method | Path | Auth | Domain |
+|---|--------|------|------|--------|
+| 1 | GET | /api/v1/... | JWT | ... |
+| 2 | POST | /api/v1/... | JWT | ... |
+(list ALL endpoints — this index survives truncation)
+
+SECTION 2 — FULL CONTRACTS (by domain):
 For EACH endpoint:
-\`[METHOD] /api/path\`
-Request: { field: type, field: type }
-Response 200: { field: type, field: type }
-Response errors: 400 (reason), 404 (reason)
-Auth: required (JWT) | public
+\`[METHOD] /api/v1/path\`
+Request: { field: type }
+Response 200: { field: type }
+Errors: 400 (reason), 404 (reason)
+Auth: JWT (role) | HMAC | public
 Rate limit: N/min
-Notes: [pagination, filtering, sorting if applicable]
 
-RULES:
-- List EVERY endpoint the system needs — Backend will implement exactly these
-- Designer will map each endpoint to a UI component
-- Frontend will call exactly these paths with these shapes
-- Missing an endpoint = broken feature downstream
-- Do NOT write code. Only contracts.
+═══ RULES ═══
+- EVERY PRD user story MUST map to at least one endpoint
+- Backend implements exactly these contracts — no deviations
+- Frontend/Designer consume exactly these shapes
+- Missing endpoint = broken feature downstream
+- Do NOT write code. Contracts only.
+- If you have N > 25 endpoints, use shorthand for CRUD groups:
+  CRUD /api/v1/resource → GET list, GET :id, POST, PATCH :id, DELETE :id
+  Then only detail non-standard endpoints fully.
 
-MAX 4000 words. If you reach 3600 words (90%), stop and finalize.`,
+MAX 5000 words. Budget: ~200 words per endpoint.
+If you reach 4500 words (90%), STOP and write: "[TRUNCATION WARNING: N endpoints remaining — list paths only]" then list remaining paths.`,
     dependsOn: ["s3.1-adr"],
     outputKey: "api_contracts",
     metadata: {
@@ -456,52 +467,103 @@ If PASS: implementation begins.`,
     id: "s5-backend",
     agentId: "backend-agent",
     agentName: "Backend-Agent",
-    promptTemplate: `Create backend implementation based on:
-Architecture & API contracts: {{step_s3.1-adr_output}}
+    promptTemplate: `Create backend implementation.
 
-API Contracts:
-{{step_s3.2-api_output}}
+INPUTS:
+- ADR: {{step_s3.1-adr_output}}
+- API Contracts: {{step_s3.2-api_output}}
+- ERD: {{step_s3.3-erd_output}}
+- File Plan: {{step_s3.4-fileplan_output}}
+- Cyber fixes: {{step_s4-cyber_output}}
+- PRD: {{step_s2-pm_output}}
 
-Data Model:
-{{step_s3.3-erd_output}}
+═══════════════════════════════════════════════════
+  BACKEND OUTPUT CONTRACT (STRICT — MANDATORY)
+═══════════════════════════════════════════════════
 
-File Plan:
-{{step_s3.4-fileplan_output}}
-Security constraints: {{step_s4-cyber_output}}
-PRD & acceptance criteria: {{step_s2-pm_output}}
+You MUST follow this output structure EXACTLY.
+Violation = pipeline failure. No exceptions.
 
-CRITICAL: You MUST implement EXACTLY the API endpoints defined in the Architecture's API CONTRACTS section.
-- Same paths, same methods, same request/response shapes — no deviations
-- Designer and Frontend will use your output — any mismatch breaks their work
-- Any mismatch will break integration
+──────────────────────────────────────────────────
+SECTION 1 — FILE TREE (mandatory, always FIRST)
+──────────────────────────────────────────────────
+\`\`\`
+project-root/
+├── migrations/
+│   ├── 001_create_xxx.sql
+│   └── ...
+├── src/
+│   ├── app.module.ts
+│   ├── main.ts
+│   ├── auth/
+│   ├── modules/
+│   │   ├── domain-name/
+│   │   │   ├── domain.module.ts
+│   │   │   ├── domain.controller.ts
+│   │   │   ├── domain.service.ts
+│   │   │   ├── domain.repository.ts
+│   │   │   └── dto/
+│   │   └── ...
+│   └── shared/
+│       ├── types/
+│       └── utils/
+├── docker-compose.yml
+├── Dockerfile
+├── .env.example
+└── tsconfig.json
+\`\`\`
+List EVERY file you will output. This tree is the contract.
+If a file is in the tree, it MUST appear in the files JSON below.
+If a file is NOT in the tree, it MUST NOT appear.
 
-YOUR RESPONSIBILITIES (Architect does not write code — you do):
+──────────────────────────────────────────────────
+SECTION 2 — IMPLEMENTATION PRIORITY (mandatory)
+──────────────────────────────────────────────────
+Classify files into chunks by priority:
 
-1. DATABASE: Convert Architect's DATA MODEL (ERD) into actual SQL migrations
-   - CREATE TABLE statements with proper types, constraints, indexes
-   - Use the entity names, fields, and relations from the ERD exactly
+CHUNK A (critical path — output these FIRST):
+- Migrations (SQL DDL)
+- Shared types/interfaces
+- Auth module (guards, JWT strategy)
+- App module + main.ts
 
-2. API ROUTES: For each endpoint from the contract:
-   - Create the route handler with input validation
-   - Implement business logic to satisfy the PRD acceptance criteria (GIVEN/WHEN/THEN)
-   - Return the EXACT response shape from the contract
-   - Handle errors with proper status codes
+CHUNK B (core business logic):
+- Module files: controller + service + repository + DTOs
+- One module at a time, fully complete
 
-3. SHARED TYPES: TypeScript interfaces matching the DATA MODEL entities
-   - Export from a shared location so Frontend can import them
+CHUNK C (infrastructure):
+- Dockerfile, docker-compose, .env.example, tsconfig
 
-4. UTILITIES: Helper functions for common patterns (auth, validation, etc.)
+──────────────────────────────────────────────────
+SECTION 3 — CODE FILES (the actual output)
+──────────────────────────────────────────────────
+${FILE_OUTPUT_INSTRUCTIONS}
 
-At the END of your output, include a structured env vars block:
+CHUNKING RULES:
+- Output files in the order: Chunk A → Chunk B → Chunk C
+- Each file MUST be COMPLETE — no "// ... rest of implementation"
+- No placeholders, no TODOs, no "similar to above"
+- If you are running out of space (approaching token limit):
+  1. FINISH the current file completely
+  2. Add a final file entry: {"path": "TRUNCATION_MANIFEST.md", "action": "create", "content": "Files not yet generated:\\n- path/to/remaining1.ts\\n- path/to/remaining2.ts\\n..."}
+  3. STOP — do NOT output partial files
+
+──────────────────────────────────────────────────
+SECTION 4 — ENV VARS (mandatory, always LAST)
+──────────────────────────────────────────────────
 \`\`\`json
 {"required_env_vars": [
-  {"name": "DATABASE_URL", "description": "PostgreSQL connection string", "example": "postgresql://user:pass@localhost:5432/db", "required": true},
-  {"name": "JWT_SECRET", "description": "Secret for signing auth tokens", "example": "random-32-char-string", "required": true}
+  {"name": "DATABASE_URL", "description": "...", "example": "postgresql://...", "required": true}
 ]}
 \`\`\`
-List EVERY env var your code references. DevOps depends on this to build .env.example and deployment config.
 
-${FILE_OUTPUT_INSTRUCTIONS}`,
+═══ HARD RULES ═══
+1. Implement EXACTLY the API endpoints from S3.2 contracts — same paths, methods, shapes
+2. Apply ALL cyber fixes from S4 — no security shortcuts
+3. Every file must compile independently (correct imports, no circular deps)
+4. No file > 300 lines. Split large services into service + repository.
+5. Prefer code density over comments — skip obvious JSDoc
+6. Total output budget: aim for 40-60 files. If the project needs more, prioritize Chunk A+B fully over Chunk C completeness.`,
     dependsOn: ["s4.5-arch-gate"],
     outputKey: "backend_code",
     metadata: {
@@ -519,39 +581,57 @@ ${FILE_OUTPUT_INSTRUCTIONS}`,
     id: "s6-designer",
     agentId: "designer-agent",
     agentName: "Designer-Agent",
-    promptTemplate: `Create UI/UX design system and component specs based on:
-Backend implementation: {{step_s5-backend_output}}
-Architecture: {{step_s3.1-adr_output}}
-API Contracts: {{step_s3.2-api_output}}
-File Plan: {{step_s3.4-fileplan_output}}
-PRD & user stories: {{step_s2-pm_output}}
+    promptTemplate: `Create design system + UI component code.
 
-Your output MUST include:
+INPUTS:
+- Backend: {{step_s5-backend_output}}
+- API Contracts: {{step_s3.2-api_output}}
+- File Plan: {{step_s3.4-fileplan_output}}
+- PRD: {{step_s2-pm_output}}
 
-1. DESIGN TOKENS (as CSS variables)
-   Colors, typography scale, spacing, border-radius, shadows
+═══ DESIGNER OUTPUT CONTRACT (STRICT) ═══
 
-2. PAGE LAYOUTS
-   For each page/view in the PRD:
-   - Layout description (grid/flex structure)
-   - Component hierarchy (tree of components)
-   - Responsive breakpoints behavior
+SECTION 1 — FILE TREE (mandatory, always FIRST):
+\`\`\`
+styles/
+├── globals.css          ← design tokens (CSS custom properties)
+├── theme.ts             ← typed token exports
+components/
+├── ui/                  ← reusable primitives (Button, Card, Badge, Input, etc.)
+│   ├── button.tsx
+│   └── ...
+├── layouts/             ← page shells (sidebar + main)
+│   └── dashboard-layout.tsx
+├── domain/              ← business components (TierCard, PointsDisplay, etc.)
+│   ├── component-name.tsx
+│   └── ...
+└── icons/               ← custom SVG icons if needed
+\`\`\`
 
-3. COMPONENT SPECS
-   For each UI component:
-   - Props interface (TypeScript)
-   - States: default, hover, active, disabled, loading, error, empty
-   - Accessibility: ARIA labels, keyboard navigation, focus management
+SECTION 2 — DESIGN TOKENS (globals.css):
+- Colors: brand, tiers (bronze/silver/gold/platinum), status, neutrals — HSL format
+- Typography: font-family, scale (xs through 4xl)
+- Spacing: 4px base grid (--space-1 through --space-16)
+- Radii, shadows, transitions
+- Dark mode support via .dark class
 
-4. DATA MAPPING
-   Map each API endpoint to the UI component that consumes it:
-   \`GET /api/endpoint\` → Component → data fields
-
+SECTION 3 — COMPONENT FILES:
 ${FILE_OUTPUT_INSTRUCTIONS}
 
-Generate these files:
-- globals.css (design tokens as CSS custom properties)
-- Component files (.tsx) for the main UI components`,
+CHUNKING RULES:
+- CHUNK A: globals.css + theme.ts + ui primitives (Button, Card, Badge, Input, Select, Table)
+- CHUNK B: Layout components + domain components (one per business entity)
+- Each file MUST be COMPLETE React/TSX — no stubs
+- Every component MUST have: props interface, all visual states, responsive behavior
+- Map each component to its API endpoint in a comment: // API: GET /api/v1/...
+- If running out of space: finish current file, add TRUNCATION_MANIFEST.md, STOP
+
+═══ HARD RULES ═══
+1. Output REAL .tsx component code — not specs, not descriptions
+2. Use Tailwind CSS + CSS custom properties from globals.css
+3. No file > 200 lines. Split complex components.
+4. Every component must handle: loading, error, empty, populated states
+5. Accessibility: ARIA labels on interactive elements, keyboard navigation`,
     dependsOn: ["s5-backend"],
     outputKey: "design",
     metadata: {
@@ -570,34 +650,57 @@ Generate these files:
     id: "s7-frontend",
     agentId: "frontend-agent",
     agentName: "Frontend-Agent",
-    promptTemplate: `Create frontend implementation based on:
-Design system & component specs: {{step_s6-designer_output}}
-Backend API implementation: {{step_s5-backend_output}}
-Architecture: {{step_s3.1-adr_output}}
+    promptTemplate: `Create frontend implementation (pages + API wiring).
 
-API Contracts:
-{{step_s3.2-api_output}}
+INPUTS:
+- Designer output: {{step_s6-designer_output}}
+- Backend: {{step_s5-backend_output}}
+- API Contracts: {{step_s3.2-api_output}}
+- File Plan: {{step_s3.4-fileplan_output}}
 
-Data Model:
-{{step_s3.3-erd_output}}
+═══ FRONTEND OUTPUT CONTRACT (STRICT) ═══
 
-File Plan:
-{{step_s3.4-fileplan_output}}
+SECTION 1 — FILE TREE (mandatory, always FIRST):
+\`\`\`
+app/
+├── layout.tsx
+├── page.tsx              ← dashboard / landing
+├── (auth)/
+│   └── login/page.tsx
+├── domain-section/
+│   ├── page.tsx          ← list view
+│   └── [id]/page.tsx     ← detail view
+├── globals.css           ← import Designer's tokens
+lib/
+├── api.ts                ← typed API client (all endpoints)
+├── types.ts              ← shared TS interfaces
+├── hooks/
+│   ├── use-domain.ts     ← SWR/React Query hooks per domain
+│   └── ...
+\`\`\`
 
-IMPORTANT:
-- API endpoints: use paths and shapes from API Contracts (S3.2) as source of truth
-- Types: import TypeScript types from Backend's shared type definitions
-- Design: use tokens and component specs from Designer output
-- States: implement loading, error, empty, success for every component
-- Do NOT invent endpoints — if it's not in S3.2 API contracts, don't call it
+SECTION 2 — API CLIENT (lib/api.ts — mandatory, output FIRST):
+- Typed fetch wrapper for EVERY endpoint from S3.2 contracts
+- Same paths, same request/response shapes — no deviations
+- Auth header injection, error handling, base URL config
 
-For each page in the PRD:
-1. Create the page component using the Designer's layout spec
-2. Wire up API calls to Backend endpoints
-3. Handle loading/error/empty states
-4. Implement responsive behavior per Designer's breakpoint specs
+SECTION 3 — PAGES + HOOKS:
+${FILE_OUTPUT_INSTRUCTIONS}
 
-${FILE_OUTPUT_INSTRUCTIONS}`,
+CHUNKING RULES:
+- CHUNK A: lib/api.ts + lib/types.ts + globals.css + layout.tsx
+- CHUNK B: Page files (one page at a time, fully complete with its hook)
+- CHUNK C: Shared hooks, utils, config
+- Each file MUST be COMPLETE — no placeholders
+- If running out of space: finish current file, add TRUNCATION_MANIFEST.md, STOP
+
+═══ HARD RULES ═══
+1. Use ONLY endpoints from S3.2 API contracts — do NOT invent endpoints
+2. Import Designer's components from their paths — do NOT re-implement UI primitives
+3. Every page: loading skeleton, error boundary, empty state, populated state
+4. No file > 250 lines. Split into page + hook + sub-components.
+5. Responsive: mobile-first, breakpoints at sm/md/lg
+6. Auth: use httpOnly cookie or auth context — NEVER localStorage for tokens`,
     dependsOn: ["s6-designer", "s5-backend"],
     outputKey: "frontend_code",
     metadata: {

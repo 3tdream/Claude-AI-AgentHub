@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
 import { addLog } from "@/lib/logs-storage";
+import { addEntry } from "@/lib/kb-storage";
 
 const FAILURE_PATTERNS_PATH = path.join(
   process.cwd(),
@@ -73,6 +74,17 @@ export async function POST(request: NextRequest) {
     data._updated = new Date().toISOString().slice(0, 10);
 
     await fs.writeFile(FAILURE_PATTERNS_PATH, JSON.stringify(data, null, 2), "utf-8");
+
+    // Also write to new KB system (data/knowledge-base/)
+    addEntry("failure-patterns", {
+      title: `User rejected: ${categoryMap[payload.category] || payload.category}`,
+      content: `${payload.reason.trim()}. Pipeline: ${payload.pipelineId}. ${payload.affectedFiles?.length ? `Files: ${payload.affectedFiles.join(", ")}` : ""}`,
+      source: "user-feedback",
+      agentId: payload.agentId || undefined,
+      severity: payload.category === "broke-something" ? "critical" : "high",
+      tags: ["user-feedback", payload.category, ...(payload.agentId ? [payload.agentId.replace("-agent", "")] : [])],
+      pipelineRunId: payload.pipelineId,
+    }).catch(() => {});
 
     await addLog({
       type: "system",

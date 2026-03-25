@@ -5,3 +5,6 @@ export * from "./cost";
 export * from "./workflow";
 export * from "./api";
 export * from "./log";
+export * from "./knowledge-base";
+export * from "./stage-contract";
+export * from "./strategy";

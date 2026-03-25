@@ -1,0 +1,583 @@
+{
+  "category": "failure-patterns",
+  "description": "Recurring failure patterns from pipeline runs — prevent known bugs from returning",
+  "entries": [
+    {
+      "id": "kb-fp-001",
+      "title": "Backend output truncation causes downstream failures",
+      "content": "Backend agent (S5) produces 16K+ words, hitting token limits. Truncated files break Designer (S6) and Frontend (S7) because they reference incomplete code. Root cause: no chunking strategy, no file tree contract. Fix: enforce file tree first, chunk by priority (A/B/C), add TRUNCATION_MANIFEST.md as safety net.",
+      "source": "s5-backend",
+      "agentId": "backend-agent",
+      "severity": "critical",
+      "tags": [
+        "truncation",
+        "backend",
+        "output-contract",
+        "cascading-failure"
+      ],
+      "createdAt": "2026-03-22T18:07:59.791Z",
+      "updatedAt": "2026-03-23T20:00:00.000Z",
+      "pipelineRunId": "pipeline-v3-test",
+      "version": 2
+    },
+    {
+      "id": "kb-fp-002",
+      "title": "JWT stored in localStorage — XSS vector",
+      "content": "Frontend agent stores JWT in localStorage, creating XSS risk. Flagged as P0 by Cyber (S4) and Tech QA (S8). Pattern repeats across runs because Frontend prompt didn't explicitly forbid it. Fix: prompt now mandates httpOnly cookie or auth context.",
+      "source": "s7-frontend",
+      "agentId": "frontend-agent",
+      "severity": "critical",
+      "tags": [
+        "security",
+        "jwt",
+        "xss",
+        "localStorage",
+        "p0"
+      ],
+      "createdAt": "2026-03-22T18:08:33.262Z",
+      "updatedAt": "2026-03-23T20:00:00.000Z",
+      "pipelineRunId": "pipeline-v3-test",
+      "version": 2
+    },
+    {
+      "id": "kb-fp-003",
+      "title": "Twilio import TypeError (esModuleInterop)",
+      "content": "Backend uses `import Twilio from 'twilio'` without esModuleInterop, causing TypeError: Twilio is not a function. Correct: `import * as Twilio from 'twilio'` or enable esModuleInterop in tsconfig. Flagged as P0 compilation error.",
+      "source": "s8-technical-qa",
+      "agentId": "qa-agent",
+      "severity": "high",
+      "tags": [
+        "compilation",
+        "import",
+        "twilio",
+        "esModuleInterop",
+        "p0"
+      ],
+      "createdAt": "2026-03-22T18:08:44.750Z",
+      "updatedAt": "2026-03-22T18:08:44.750Z",
+      "pipelineRunId": "pipeline-v3-test",
+      "version": 1
+    },
+    {
+      "id": "kb-fp-004",
+      "title": "Roles decorator guard bypass via Reflect.defineMetadata",
+      "content": "Backend Roles guard uses Reflect.defineMetadata on descriptor.value instead of using NestJS SetMetadata. This causes context.getHandler() to return undefined metadata, silently bypassing RBAC. Identified by Cyber audit (S10, Finding 3).",
+      "source": "s10-cyber-audit",
+      "agentId": "cyber-agent",
+      "severity": "critical",
+      "tags": [
+        "security",
+        "rbac",
+        "nestjs",
+        "guard-bypass",
+        "p0"
+      ],
+      "createdAt": "2026-03-22T18:09:15.452Z",
+      "updatedAt": "2026-03-22T18:09:15.452Z",
+      "pipelineRunId": "pipeline-v3-test",
+      "version": 1
+    },
+    {
+      "id": "kb-fp-005",
+      "title": "Truncated globals.css causes render failure",
+      "content": "Designer (S6) output was truncated mid-CSS-value (--space-3 cut off), producing invalid CSS that breaks all downstream rendering. Frontend agent consumed broken CSS without validation. Fix: Designer output contract now requires chunking with globals.css in CHUNK A (first priority).",
+      "source": "s6-designer",
+      "agentId": "designer-agent",
+      "severity": "critical",
+      "tags": [
+        "truncation",
+        "css",
+        "designer",
+        "render-failure",
+        "p0"
+      ],
+      "createdAt": "2026-03-22T18:08:09.619Z",
+      "updatedAt": "2026-03-23T20:00:00.000Z",
+      "pipelineRunId": "pipeline-v3-test",
+      "version": 2
+    },
+    {
+      "id": "kb-fp-006",
+      "title": "GDPR purge script incomplete",
+      "content": "Backend DevOps GDPR purge script was truncated mid-function, leaving data deletion incomplete. Compliance risk: 152-FZ and GDPR require full erasure capability. Fix: Backend output contract now prioritizes migrations+auth in Chunk A, ensuring core compliance scripts complete before optional infrastructure.",
+      "source": "s5-backend",
+      "agentId": "backend-agent",
+      "severity": "critical",
+      "tags": [
+        "gdpr",
+        "compliance",
+        "truncation",
+        "data-deletion",
+        "p0"
+      ],
+      "createdAt": "2026-03-22T18:07:59.791Z",
+      "updatedAt": "2026-03-22T18:07:59.791Z",
+      "pipelineRunId": "pipeline-v3-test",
+      "version": 1
+    },
+    {
+      "id": "kb-fp-007",
+      "title": "API stage 86% failure rate — prompt too vague",
+      "content": "S3.2-API (Architect) failed 6 of 7 runs. Root cause: prompt said 'MAX 4000 words' but 32 endpoints need ~5000+. No structured index meant truncation lost all context. No CRUD shorthand meant verbose repetition. Fix: added endpoint index table as first section, CRUD shorthand for standard patterns, increased budget to 5000 words.",
+      "source": "s3.2-api",
+      "agentId": "architect-agent",
+      "severity": "high",
+      "tags": [
+        "api-contracts",
+        "architect",
+        "prompt-engineering",
+        "truncation",
+        "failure-rate"
+      ],
+      "createdAt": "2026-03-23T20:00:00.000Z",
+      "updatedAt": "2026-03-23T20:00:00.000Z",
+      "pipelineRunId": "analytics-review",
+      "version": 1
+    },
+    {
+      "id": "kb-fp-008",
+      "title": "DATE_TRUNC parameterization crash in analytics queries",
+      "content": "Backend analytics endpoint uses DATE_TRUNC with user-supplied interval string directly in SQL, causing parameterized query crash. The `$idx` counter arithmetic in dynamic UPDATE queries was also incorrect. Both caught by Tech QA (S8) as P0.",
+      "source": "s8-technical-qa",
+      "agentId": "qa-agent",
+      "severity": "high",
+      "tags": [
+        "sql-injection",
+        "parameterization",
+        "analytics",
+        "p0"
+      ],
+      "createdAt": "2026-03-22T18:08:44.750Z",
+      "updatedAt": "2026-03-22T18:08:44.750Z",
+      "pipelineRunId": "pipeline-v3-test",
+      "version": 1
+    },
+    {
+      "id": "kb-fp-009",
+      "title": "QA score inflation — 10/10 despite FAIL verdict",
+      "content": "QA-Agent (s8) scored 9.3/10 but verdict was FAIL with 5 P0 issues. Score (quality of analysis) != verdict (pass/fail gate). Downstream gates cannot rely on score thresholds alone — FAIL verdict must be explicit enum. Fix: separate score from verdict in QA output contract.",
+      "source": "s8-technical-qa",
+      "agentId": "qa-agent",
+      "severity": "high",
+      "tags": [
+        "qa",
+        "scoring",
+        "verdict-system",
+        "gate-logic"
+      ],
+      "createdAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "pipelineRunId": "analytics-review",
+      "version": 1
+    },
+    {
+      "id": "kb-fp-010",
+      "title": "Orchestrator zero-score on Agent Hub timeout",
+      "content": "Orchestrator stages show 0 score when Agent Hub returns no response or timeout. 20% fail rate across 69 runs. No graceful degradation. Fix: add timeout handler with cached fallback + explicit error in structured output.",
+      "source": "pipeline-analytics",
+      "agentId": "orchestrator",
+      "severity": "high",
+      "tags": [
+        "agent-hub",
+        "timeout",
+        "fallback",
+        "connection-failure"
+      ],
+      "createdAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "pipelineRunId": "analytics-review",
+      "version": 1
+    },
+    {
+      "id": "kb-fp-011",
+      "title": "PM-Agent fails on ambiguous scope — needs explicit pre-flight decisions",
+      "content": "PM-Agent (s2-pm) 38% success rate across 79 runs. When user input lacks architectural decisions, PM enters clarification loop instead of writing stories. Fix: Orchestrator pre-flight must provide explicit decisions (data storage, API endpoints, auth scope) before PM handoff.",
+      "source": "s2-pm",
+      "agentId": "pm-agent",
+      "severity": "high",
+      "tags": [
+        "ambiguity",
+        "pre-flight",
+        "scope-creep",
+        "pm-agent"
+      ],
+      "createdAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "pipelineRunId": "analytics-review",
+      "version": 1
+    },
+    {
+      "id": "kb-fp-012",
+      "title": "Research-Agent processes then rejects technical tasks — wasted latency",
+      "content": "Research-Agent correctly identifies backend-only tasks and rejects them, but still processes 18-71s before rejection. Fix: Orchestrator pre-flight must classify task type (market/research vs technical) before S0, skip Research for technical-only tasks.",
+      "source": "pipeline-analytics",
+      "agentId": "research-agent",
+      "severity": "medium",
+      "tags": [
+        "task-classification",
+        "research-routing",
+        "latency",
+        "pre-flight"
+      ],
+      "createdAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "pipelineRunId": "analytics-review",
+      "version": 1
+    },
+    {
+      "id": "kb-fp-013",
+      "title": "Architect 39% success rate — context-dependent failures",
+      "content": "Architect: 69 runs, 6.83 avg score, 39.1% success. When context is vague, architect over-generalizes. Compare: fileplan (100%), prd-gate (100%). Fix: inject existing schema files and type definitions into architect prompt before architecture phase.",
+      "source": "pipeline-analytics",
+      "agentId": "architect-agent",
+      "severity": "high",
+      "tags": [
+        "architect",
+        "context-dependency",
+        "schema-awareness",
+        "39pct-success"
+      ],
+      "createdAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "pipelineRunId": "analytics-review",
+      "version": 1
+    },
+    {
+      "id": "kb-fp-014",
+      "title": "Designer output scope creep — delivers API client instead of components",
+      "content": "Designer (S6) scored 8.4 but output was truncated at 156K chars. Delivered token system + API wrapper but actual React components (cards, badges, tier displays) were missing. Root cause: designer allocated tokens to API client (frontend responsibility). Fix: designer prompt now prioritizes component JSX in Chunk A.",
+      "source": "s6-designer",
+      "agentId": "designer-agent",
+      "severity": "high",
+      "tags": [
+        "designer",
+        "scope-creep",
+        "component-delivery",
+        "token-management"
+      ],
+      "createdAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "pipelineRunId": "pipeline-v3-test",
+      "version": 1
+    },
+    {
+      "id": "kb-fp-015",
+      "title": "QA duration anomaly — 444K ms avg (7+ min) in full mode",
+      "content": "QA-Agent: 18 runs, 67.7K avg tokens, 444K ms avg duration — 10x longer than other agents at similar token count. Likely: sequential AC evaluation + timeout hanging. Fix: QA output contract should chunk ACs into P0→P2 batches with 30s per-batch timeout.",
+      "source": "pipeline-analytics",
+      "agentId": "qa-agent",
+      "severity": "high",
+      "tags": [
+        "qa",
+        "timeout",
+        "duration-anomaly",
+        "full-mode"
+      ],
+      "createdAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "pipelineRunId": "analytics-review",
+      "version": 1
+    },
+    {
+      "id": "kb-fp-016",
+      "title": "Quick mode single-agent pattern — task mislabeling causes failures",
+      "content": "26 quick runs often become single-agent tasks (frontend-only or architect-only). When genuinely small task → correct. When mislabeled → single agent fails on multi-stage work. Fix: Orchestrator pre-flight should validate task complexity; reject genuinely-quick classification for multi-concern tasks.",
+      "source": "pipeline-analytics",
+      "agentId": "orchestrator",
+      "severity": "medium",
+      "tags": [
+        "mode-classification",
+        "quick-mode",
+        "single-agent",
+        "over-scoping"
+      ],
+      "createdAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "pipelineRunId": "analytics-review",
+      "version": 1
+    },
+    {
+      "title": "backend failed 4x in recent runs",
+      "content": "Agent backend failed in 4 recent pipeline runs. No error details captured.. Run IDs: 1a3f1cdb-53f9-45d7-92ea-0925506658db, 54cec9a5-6319-40f2-9fef-4a5b08c9b68a, 53f31d99-93eb-48ac-99cd-f9685233a847",
+      "source": "nightly-evolution",
+      "agentId": "backend",
+      "severity": "high",
+      "tags": [
+        "auto-detected",
+        "recurring-failure",
+        "backend"
+      ],
+      "pipelineRunId": "1a3f1cdb-53f9-45d7-92ea-0925506658db",
+      "id": "kb-mn59976p-74f750ce",
+      "createdAt": "2026-03-24T23:38:00.481Z",
+      "updatedAt": "2026-03-24T23:38:00.481Z",
+      "version": 1
+    },
+    {
+      "title": "pm failed 2x in recent runs",
+      "content": "Agent pm failed in 2 recent pipeline runs. No error details captured.. Run IDs: 174121a8-90e9-47aa-97d2-bee7a02311a3, 32d367f5-8d77-4610-8aeb-0809abb4136c",
+      "source": "nightly-evolution",
+      "agentId": "pm",
+      "severity": "medium",
+      "tags": [
+        "auto-detected",
+        "recurring-failure",
+        "pm"
+      ],
+      "pipelineRunId": "174121a8-90e9-47aa-97d2-bee7a02311a3",
+      "id": "kb-mn59977e-55b7a629",
+      "createdAt": "2026-03-24T23:38:00.506Z",
+      "updatedAt": "2026-03-24T23:38:00.506Z",
+      "version": 1
+    },
+    {
+      "title": "orchestrator failed 6x in recent runs",
+      "content": "Agent orchestrator failed in 6 recent pipeline runs. No error details captured.. Run IDs: 444160fb-6dfd-4d16-92e2-ac305e8b99d5, 29d1d8c5-fc4c-425d-86bc-530656300a5b, 16c0be7d-2e8c-4455-809a-3efc5f3efa0b",
+      "source": "nightly-evolution",
+      "agentId": "orchestrator",
+      "severity": "critical",
+      "tags": [
+        "auto-detected",
+        "recurring-failure",
+        "orchestrator"
+      ],
+      "pipelineRunId": "444160fb-6dfd-4d16-92e2-ac305e8b99d5",
+      "id": "kb-mn599783-84cf414d",
+      "createdAt": "2026-03-24T23:38:00.531Z",
+      "updatedAt": "2026-03-24T23:38:00.531Z",
+      "version": 1
+    },
+    {
+      "title": "research failed 3x in recent runs",
+      "content": "Agent research failed in 3 recent pipeline runs. No error details captured.. Run IDs: 23bd9693-d6a7-4342-ad59-93a7dfa7e107, 0ae09e49-1c24-48d8-8606-f1979e85335a, af59a539-5dcc-406e-924f-a1fb8a07a961",
+      "source": "nightly-evolution",
+      "agentId": "research",
+      "severity": "high",
+      "tags": [
+        "auto-detected",
+        "recurring-failure",
+        "research"
+      ],
+      "pipelineRunId": "23bd9693-d6a7-4342-ad59-93a7dfa7e107",
+      "id": "kb-mn599799-ac7b1b2c",
+      "createdAt": "2026-03-24T23:38:00.573Z",
+      "updatedAt": "2026-03-24T23:38:00.573Z",
+      "version": 1
+    },
+    {
+      "title": "architect failed 3x in recent runs",
+      "content": "Agent architect failed in 3 recent pipeline runs. No error details captured.. Run IDs: 2ba56da5-73a3-430d-a772-af68882d4958, 9bb9cfc9-4ab5-489b-bcd0-3d2898fdbdf0, 5960d099-cc9f-4884-b57b-fb080edc624b",
+      "source": "nightly-evolution",
+      "agentId": "architect",
+      "severity": "high",
+      "tags": [
+        "auto-detected",
+        "recurring-failure",
+        "architect"
+      ],
+      "pipelineRunId": "2ba56da5-73a3-430d-a772-af68882d4958",
+      "id": "kb-mn5997al-4ec5ee5e",
+      "createdAt": "2026-03-24T23:38:00.621Z",
+      "updatedAt": "2026-03-24T23:38:00.621Z",
+      "version": 1
+    },
+    {
+      "title": "High pause rate: 44/85 runs paused",
+      "content": "52% of recent runs are in paused state. This may indicate checkpoint bottleneck or missing user approval. Consider auto-approve for low-risk stages.",
+      "source": "nightly-evolution",
+      "severity": "medium",
+      "tags": [
+        "auto-detected",
+        "pause-rate",
+        "checkpoint"
+      ],
+      "pipelineRunId": "2494aced-9ac1-4076-ba62-b440ed21d432",
+      "id": "kb-mn5997c3-07ab2e3b",
+      "createdAt": "2026-03-24T23:38:00.675Z",
+      "updatedAt": "2026-03-24T23:38:00.675Z",
+      "version": 1
+    },
+    {
+      "title": "No auto changes without approval",
+      "content": "Do not write code, edit files, or start processes without the user's explicit approval first.\n\n**Why:** User wants to test the system manually and needs full control over what changes are made and when.\n\n**How to apply:** Always describe the proposed change and wait for \"да\", \"давай\", \"сделай\" or similar confirmation before executing. This applies to all code edits, file writes, and process launches.",
+      "source": "claude-memory",
+      "severity": "high",
+      "tags": [
+        "imported-from-memory",
+        "memory:feedback_no_auto_changes.md",
+        "feedback"
+      ],
+      "id": "kb-mn59rl8r-e09c0734",
+      "createdAt": "2026-03-24T23:52:18.507Z",
+      "updatedAt": "2026-03-24T23:52:18.507Z",
+      "version": 1
+    },
+    {
+      "title": "No threshold lowering without approval",
+      "content": "Do NOT lower quality thresholds to make tests pass. Task Done threshold = 7.5 for ALL agents.\n\n**Why:** Lowering thresholds masks real problems. Fix the root cause (truncation, prompt issues, evaluator bugs) instead of accepting low-quality output.\n\n**How to apply:** When a stage fails with score < 7.5:\n1. Diagnose WHY the score is low\n2. Fix the prompt, model, or infrastructure\n3. Never change qualityThreshold without explicit user approval",
+      "source": "claude-memory",
+      "severity": "high",
+      "tags": [
+        "imported-from-memory",
+        "memory:feedback_no_threshold_lowering.md",
+        "feedback"
+      ],
+      "id": "kb-mn59rl9t-2897c23a",
+      "createdAt": "2026-03-24T23:52:18.545Z",
+      "updatedAt": "2026-03-24T23:52:18.545Z",
+      "version": 1
+    },
+    {
+      "title": "Proactive skill suggestions",
+      "content": "Suggest operational skills, automation, and productivity tools proactively — don't wait for the user to ask.\n\n**Why:** User said \"если бы ты предложил мне эти опции раньше мы бы продвигались на много быстрей\" — suggesting debug-step, tune-prompt, kb-update, cost-analysis etc. would have saved significant development time.\n\n**How to apply:** When building features or workflows, always think about what supporting tools/skills/scripts would accelerate the user's workflow. Propose them without being",
+      "source": "claude-memory",
+      "severity": "high",
+      "tags": [
+        "imported-from-memory",
+        "memory:feedback_proactive_skills.md",
+        "feedback"
+      ],
+      "id": "kb-mn59rlb7-ec326687",
+      "createdAt": "2026-03-24T23:52:18.595Z",
+      "updatedAt": "2026-03-24T23:52:18.595Z",
+      "version": 1
+    },
+    {
+      "title": "Use Mission Control systems actively",
+      "content": "When working in Mission Control, actively use the systems we built — don't just build them and forget.\n\n**Before pipeline run:**\n- Call `POST /api/pipeline/simulate` with the input — show the user the prediction\n- If overall probability < 50%, flag bottlenecks and recommend fixes before running\n\n**After pipeline run:**\n- Call `POST /api/knowledge-base` to persist new failure/success patterns\n- Run `/agent-memory` or manually extract lessons\n\n**When debugging agents:**\n- Call `GET /api/pipeline/c",
+      "source": "claude-memory",
+      "severity": "high",
+      "tags": [
+        "imported-from-memory",
+        "memory:feedback_use_mc_systems.md",
+        "feedback"
+      ],
+      "id": "kb-mn59rlcm-98fc8b80",
+      "createdAt": "2026-03-24T23:52:18.646Z",
+      "updatedAt": "2026-03-24T23:52:18.646Z",
+      "version": 1
+    },
+    {
+      "title": "Duplicate execution ID in history � React key collision",
+      "content": "addToHistory in orchestration-store pushes without dedup check. If called twice for same execution (pause + status update), duplicate appears causing React key collision error. Fix: filter by ID before push. Also add idx to key as safety.",
+      "source": "orchestration-store",
+      "severity": "high",
+      "tags": [
+        "react",
+        "key-collision",
+        "duplicate",
+        "orchestration",
+        "store"
+      ],
+      "id": "kb-mn5c0zu6-09b9e467",
+      "createdAt": "2026-03-25T00:55:36.558Z",
+      "updatedAt": "2026-03-25T00:55:36.558Z",
+      "version": 1
+    },
+    {
+      "title": "Pipeline run file missing agent output and stepResults",
+      "content": "savePipelineRun mapped agents without output field � only saved metadata (id, status, score). stepResults not persisted. UI could not detect code blocks in history. Fix: added output (20K truncated) + error to AgentRunRecord, added stepResults to PipelineRunRecord. Now run files contain full output for file detection and deploy.",
+      "source": "pipeline-analytics-storage",
+      "severity": "critical",
+      "tags": [
+        "pipeline",
+        "output-persistence",
+        "deploy",
+        "file-detection",
+        "data-loss"
+      ],
+      "id": "kb-mn5capgj-3f06fc5a",
+      "createdAt": "2026-03-25T01:03:09.667Z",
+      "updatedAt": "2026-03-25T01:03:09.667Z",
+      "version": 1
+    },
+    {
+      "title": "Resume pipeline shows paused in execution history until completion",
+      "content": "onUpdate callback in resumeExecution only called setActiveExecution, not addToHistory. History entry stayed as paused during entire resumed run. Fix: (1) immediately set status to running in history on resume start, (2) addToHistory on every onUpdate callback to keep history in sync.",
+      "source": "orchestration-page",
+      "severity": "high",
+      "tags": [
+        "pipeline",
+        "resume",
+        "status",
+        "execution-history",
+        "ui-sync"
+      ],
+      "id": "kb-mn5cr0sy-691c796e",
+      "createdAt": "2026-03-25T01:15:50.866Z",
+      "updatedAt": "2026-03-25T01:15:50.866Z",
+      "version": 1
+    },
+    {
+      "title": "High pause rate: 46/88 runs paused",
+      "content": "52% of recent runs are in paused state. This may indicate checkpoint bottleneck or missing user approval. Consider auto-approve for low-risk stages.",
+      "source": "nightly-evolution",
+      "severity": "medium",
+      "tags": [
+        "auto-detected",
+        "pause-rate",
+        "checkpoint"
+      ],
+      "pipelineRunId": "6a18d908-5fe7-4ab1-966f-ab9556f58d87",
+      "id": "kb-mn5d93mi-8de09270",
+      "createdAt": "2026-03-25T01:29:54.330Z",
+      "updatedAt": "2026-03-25T01:29:54.330Z",
+      "version": 1
+    },
+    {
+      "title": "pnpm workspace broken next@16.1.6 symlink � dev servers crash",
+      "content": "Most projects in apps/ reference next@16.1.6 through pnpm workspace root. The actual binary at node_modules/.pnpm/next@16.1.6.../dist/bin/next does not exist on disk. Dev server manager correctly spawns process but next binary cannot be found. Fix: run pnpm install in root to repair symlinks, or pin next version per-project in package.json.",
+      "source": "dev-server-manager",
+      "severity": "high",
+      "tags": [
+        "pnpm",
+        "monorepo",
+        "next",
+        "broken-symlink",
+        "dev-server"
+      ],
+      "id": "kb-mn628dj8-aa13b1bc",
+      "createdAt": "2026-03-25T13:09:10.915Z",
+      "updatedAt": "2026-03-25T13:09:10.915Z",
+      "version": 1
+    },
+    {
+      "title": "pnpm Windows junction symlinks break next binary � use npm install per project",
+      "content": "pnpm monorepo on Windows creates broken junction points for next@16 (styled-jsx/package.json missing as directory instead of file). rm -rf + reinstall does not fix. Solution: npm install next@version --install-strategy=nested --no-workspaces in each project directory. This creates real files instead of pnpm junctions.",
+      "source": "dev-server-manager",
+      "severity": "critical",
+      "tags": [
+        "pnpm",
+        "windows",
+        "junction",
+        "next",
+        "npm",
+        "workaround"
+      ],
+      "id": "kb-mn64fc48-35016808",
+      "createdAt": "2026-03-25T14:10:34.904Z",
+      "updatedAt": "2026-03-25T14:10:34.904Z",
+      "version": 1
+    },
+    {
+      "title": "pnpm install breaks other projects � NEVER run pnpm install in monorepo root",
+      "content": "Running pnpm install (even with --filter) re-creates broken junction symlinks for ALL projects, including previously working ones like MC. After any pnpm install, MC needs: npm install next@15.5.4 --install-strategy=nested --no-workspaces --ignore-scripts. Rule: NEVER run pnpm install in root. Fix individual projects with npm install --nested only. 3 projects permanently broken: jira-integration, cv-creator, uxui-to-dev.",
+      "source": "project-testing",
+      "severity": "critical",
+      "tags": [
+        "pnpm",
+        "danger",
+        "never-run",
+        "monorepo",
+        "mc-broken"
+      ],
+      "id": "kb-mn6ec469-f18f17f0",
+      "createdAt": "2026-03-25T18:48:00.801Z",
+      "updatedAt": "2026-03-25T18:48:00.801Z",
+      "version": 1
+    }
+  ],
+  "contentHash": "a79097c6bc668b404a8d1cd50558e68b4b1a97ec7a4c1439571f752a1868c2b4",
+  "lastUpdated": "2026-03-25T18:48:00.801Z",
+  "schemaVersion": 1
+}

@@ -1,10 +1,13 @@
-import type { WorkflowStep, PipelineExecution, QualityScore } from "@/types";
+import type { WorkflowStep, PipelineExecution, QualityScore, ContractValidation } from "@/types";
 import { postLog } from "@/lib/hooks/use-logs";
 import { evaluateStepOutput, buildRetryPrompt } from "@/lib/quality-evaluator";
 import { PIPELINE, AGENT_CONFIG, TOOL_OUTPUT_LIMITS } from "@/lib/config";
 import { runCyberRedesignLoop } from "@/lib/pipeline-runner-cyber";
 import { runQAFeedbackLoop } from "@/lib/pipeline-runner-qa";
 import { isTruncationFailure, continueOutput } from "@/lib/output-continuation";
+import { getContractPromptBlock, validateStageOutput, fetchKBEntriesForContracts } from "@/lib/stage-contracts";
+import { buildAgentKBContext } from "@/lib/kb-agent-context";
+import { logActivity } from "@/lib/stores/activity-store";
 import type { RoutingDecisionData } from "@/types";
 // Analytics storage accessed via API (can't import fs in client-side code)
 
@@ -74,6 +77,21 @@ export async function executePipeline(
         content: `Warning: Failed to load project context for "${selectedProject}" — agents will run without project context`,
       }).catch(() => {});
     }
+  }
+
+  // --- Fetch KB entries for dynamic contract adaptation ---
+  const kbEntries = await fetchKBEntriesForContracts();
+  if (kbEntries.length > 0) {
+    postLog({
+      type: "system",
+      content: `KB loaded for contracts: ${kbEntries.length} entries (failure-patterns + security-playbook)`,
+    }).catch(() => {});
+    logActivity("kb_read", `KB loaded: ${kbEntries.length} entries`, "failure-patterns + security-playbook for contracts");
+  } else {
+    postLog({
+      type: "system",
+      content: "KB empty — no entries loaded for contracts",
+    }).catch(() => {});
   }
 
   const execution: PipelineExecution = {
@@ -265,7 +283,7 @@ export async function executePipeline(
     let retryCount = 0;
     let lastFeedback = "";
     let lastScore = 0; // Track previous score for smart retry (not from execution which gets overwritten)
-    let currentPrompt = buildPrompt(step, input, context, projectContext, routingDecision?.mode);
+    let currentPrompt = buildPrompt(step, input, context, projectContext, routingDecision?.mode, kbEntries);
     const model = step.metadata?.model || "unknown";
 
     // Inject agent learning context (past performance stats + recent runs)
@@ -278,6 +296,28 @@ export async function executePipeline(
         if (learningCtx) currentPrompt += learningCtx;
       }
     } catch { /* non-blocking */ }
+
+    // ── KB Self-Awareness: agent reads its own failure/success history ──
+    if (kbEntries.length > 0) {
+      const kbContext = buildAgentKBContext(step, kbEntries);
+      if (kbContext.entryCount > 0) {
+        currentPrompt += kbContext.promptBlock;
+        postLog({
+          type: "system",
+          agentId: step.agentId,
+          agentName: step.agentName,
+          content: `KB injected: ${kbContext.entryCount} entries [${kbContext.categories.join(", ")}]`,
+        }).catch(() => {});
+        logActivity("kb_read", `${step.agentName}: ${kbContext.entryCount} KB entries`, kbContext.categories.join(", "));
+      } else {
+        postLog({
+          type: "system",
+          agentId: step.agentId,
+          agentName: step.agentName,
+          content: "No matching KB entries for this agent",
+        }).catch(() => {});
+      }
+    }
 
     // Jira: stage start
     if (jiraKey) {
@@ -349,6 +389,24 @@ export async function executePipeline(
 
         const agentOutput = data.content;
         context[`step_${step.id}_output`] = agentOutput;
+
+        // ── Contract Validation (static + KB-dynamic constraints) ──
+        const contractResult = validateStageOutput(step.id, agentOutput, kbEntries);
+        if (contractResult.score > 0) {
+          (execution.stepResults[step.id] as unknown as Record<string, unknown>).contractValidation = contractResult;
+
+          if (!contractResult.valid) {
+            postLog({
+              type: "system",
+              agentId: step.agentId,
+              agentName: step.agentName,
+              content: `CONTRACT VIOLATION [${step.id}]: missing=${contractResult.missingRequired.join(", ")} | score=${contractResult.score}/100 | warnings=${contractResult.warnings.length}`,
+            }).catch(() => {});
+            logActivity("contract_validate", `${step.id}: VIOLATION ${contractResult.score}/100`, contractResult.missingRequired.join(", "));
+          } else {
+            logActivity("contract_validate", `${step.id}: PASS ${contractResult.score}/100`);
+          }
+        }
 
         // Analytics: capture token usage per step
         const stepAnalytics = {
@@ -615,7 +673,7 @@ export async function executePipeline(
 
           currentPrompt = buildRetryPrompt(
             step.agentName,
-            buildPrompt(step, input, context, projectContext, routingDecision?.mode),
+            buildPrompt(step, input, context, projectContext, routingDecision?.mode, kbEntries),
             agentOutput,
             evaluation.feedback,
             evaluation.score.overall,
@@ -841,6 +899,7 @@ function buildPrompt(
   context: Record<string, string>,
   projectCtx?: ProjectContext | null,
   routingMode?: string,
+  kbEntriesForContracts?: import("@/types").KBEntry[],
 ): string {
   let prompt = step.promptTemplate.replace(/\{\{input\}\}/g, input);
   // Inject upstream outputs — truncate per agent config
@@ -928,6 +987,12 @@ function buildPrompt(
     prompt += `\n\n---\n### TOOL ACCESS (READ-ONLY)\nYou have: list_files, read_file. Max 2 tool calls.\n\nBefore writing stories, check the REAL project structure:\n1. list_files on the relevant directory (app/(shell)/, app/api/, lib/stores/, types/)\n2. read_file on types or store if you need exact field names\n\nThis prevents writing stories about files/APIs that don't exist.\nDo NOT guess paths — verify them.\n\n### TOKEN BUDGET\n- Max 2 tool calls. Quick look, then write.\n- Keep output under 3000 words.`;
   } else if (readOnlyAgents.includes(step.agentId)) {
     prompt += `\n\n---\n### TOOL ACCESS (READ-ONLY)\nYou have: list_files, read_file, save_failure_pattern. Max 3 tool calls.\n- Use **save_failure_pattern** if you find architectural violations, security risks, or critical issues.\n\n### TOKEN BUDGET\n- Read ONLY files directly relevant to your task.\n- Do NOT explore directories or read ARCHITECTURE.md (already in context).\n- Keep output under 2000 words. Be concise.`;
+  }
+
+  // ── Inject Stage Contract (static + KB-dynamic) ──
+  const contractBlock = getContractPromptBlock(step.id, kbEntriesForContracts);
+  if (contractBlock) {
+    prompt += `\n\n${contractBlock}`;
   }
 
   return prompt;

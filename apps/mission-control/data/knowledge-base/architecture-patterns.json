@@ -1,0 +1,253 @@
+{
+  "category": "architecture-patterns",
+  "description": "Validated architecture decisions and patterns from successful pipeline runs",
+  "entries": [
+    {
+      "id": "kb-ap-001",
+      "title": "NestJS domain-driven module structure",
+      "content": "Each business domain gets: module.ts, controller.ts, service.ts, repository.ts, dto/ directory. Max 300 lines per file. Service handles business logic, repository handles DB queries. Controller is thin — validation + delegation only.",
+      "source": "s3.4-fileplan",
+      "agentId": "architect-agent",
+      "severity": "high",
+      "tags": [
+        "nestjs",
+        "module-structure",
+        "domain-driven",
+        "file-organization"
+      ],
+      "createdAt": "2026-03-22T18:07:31.281Z",
+      "updatedAt": "2026-03-23T20:00:00.000Z",
+      "pipelineRunId": "pipeline-v3-test",
+      "version": 2
+    },
+    {
+      "id": "kb-ap-002",
+      "title": "AWS SQS FIFO for async event processing",
+      "content": "Points engine events use SQS FIFO queue (POINTS_ENGINE_EVENT_QUEUE). Chosen over RabbitMQ/Redis Streams for: managed service, exactly-once processing with deduplication, DLQ built-in. Worker consumes with 20s long-poll. Idempotency key per event.",
+      "source": "s3.1-adr",
+      "agentId": "architect-agent",
+      "severity": "high",
+      "tags": [
+        "sqs",
+        "fifo",
+        "async",
+        "event-driven",
+        "adr"
+      ],
+      "createdAt": "2026-03-22T18:06:53.844Z",
+      "updatedAt": "2026-03-22T18:06:53.844Z",
+      "pipelineRunId": "pipeline-v3-test",
+      "version": 1
+    },
+    {
+      "id": "kb-ap-003",
+      "title": "Multi-tenancy stub from day one",
+      "content": "Orchestrator flagged multi-tenancy as critical risk if deferred. Pattern: organization_id + location_id on all entities from migration 001. Even if V1 is single-tenant, the schema supports multi-tenant expansion without migration. Prevents costly late refactor.",
+      "source": "s1-orchestrator",
+      "agentId": "orchestrator",
+      "severity": "medium",
+      "tags": [
+        "multi-tenancy",
+        "schema-design",
+        "future-proofing",
+        "adr"
+      ],
+      "createdAt": "2026-03-22T18:06:26.532Z",
+      "updatedAt": "2026-03-22T18:06:26.532Z",
+      "pipelineRunId": "pipeline-v3-test",
+      "version": 1
+    },
+    {
+      "id": "kb-ap-004",
+      "title": "Dual JWT rotation strategy for zero-downtime key rotation",
+      "content": "DevOps implements dual-secret JWT rotation: new tokens signed with new key, old tokens validated against both keys during rotation window. SSM Parameter Store for secret storage. Rotation script in scripts/rotate-jwt.sh.",
+      "source": "s12a-devops",
+      "agentId": "devops-agent",
+      "severity": "high",
+      "tags": [
+        "jwt",
+        "rotation",
+        "zero-downtime",
+        "ssm",
+        "devops"
+      ],
+      "createdAt": "2026-03-23T16:01:36.133Z",
+      "updatedAt": "2026-03-23T16:01:36.133Z",
+      "pipelineRunId": "pipeline-v3-test",
+      "version": 1
+    },
+    {
+      "id": "kb-ap-005",
+      "title": "Snapshot fields survive config changes",
+      "content": "ERD includes snapshot fields (e.g., tier_name_snapshot on transaction records) so that historical data remains accurate even after config changes. Points awarded at time of transaction are frozen, not recomputed.",
+      "source": "s3.3-erd",
+      "agentId": "architect-agent",
+      "severity": "medium",
+      "tags": [
+        "snapshot",
+        "erd",
+        "data-integrity",
+        "historical-data"
+      ],
+      "createdAt": "2026-03-22T18:07:22.511Z",
+      "updatedAt": "2026-03-22T18:07:22.511Z",
+      "pipelineRunId": "pipeline-v3-test",
+      "version": 1
+    },
+    {
+      "id": "kb-ap-006",
+      "title": "Fire-and-forget side-effect pattern — established across modules",
+      "content": "Pattern: recordAgentActivity(agentId).catch(() => {}) — error swallowed, promise not awaited. Used in: logs-storage, jira-sync, pipeline-executor. Critical ops (logging, sync, timestamps) never block main request. Risk: silent failure. Mitigation: console.error in catch.",
+      "source": "lib/logs-storage.ts",
+      "severity": "medium",
+      "tags": [
+        "fire-and-forget",
+        "non-blocking",
+        "established-pattern"
+      ],
+      "createdAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "pipelineRunId": "code-review",
+      "version": 1
+    },
+    {
+      "id": "kb-ap-007",
+      "title": "File-based storage pattern — ensureDataDir + fs/promises + graceful fallback",
+      "content": "Module pattern in lib/*-storage.ts: (1) ensureDataDir(), (2) readFile+parseJSON with try/catch→default, (3) writeFile atomic, (4) MAX_ENTRIES cap. Consensus: JSON files sufficient for <1MB non-relational data. No DB needed for config/logs/analytics.",
+      "source": "lib/logs-storage.ts",
+      "severity": "medium",
+      "tags": [
+        "file-based-storage",
+        "atomic-writes",
+        "json-storage"
+      ],
+      "createdAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "pipelineRunId": "code-review",
+      "version": 1
+    },
+    {
+      "id": "kb-ap-008",
+      "title": "Hydration-safe date formatting — useEffect guard for SSR",
+      "content": "Dates in Server Components vary by timezone. Pattern: format date only in useEffect after mount, show skeleton until ready. No suppressHydrationWarning. Prevents React hydration mismatch. Proven in footer component and activity timestamps.",
+      "source": "s7-frontend",
+      "agentId": "frontend-agent",
+      "severity": "high",
+      "tags": [
+        "hydration",
+        "ssr",
+        "date-formatting",
+        "useEffect-guard"
+      ],
+      "createdAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "pipelineRunId": "code-review",
+      "version": 1
+    },
+    {
+      "id": "kb-ap-009",
+      "title": "SWR with revalidateOnFocus:false for file-based APIs",
+      "content": "When frontend reads from file-based APIs (/api/system/config, /api/agent-activity), use SWR with revalidateOnFocus: false. File data doesn't change on window focus. Saves unnecessary reads. Established pattern across multiple components.",
+      "source": "s7-frontend",
+      "agentId": "frontend-agent",
+      "severity": "low",
+      "tags": [
+        "swr",
+        "data-fetching",
+        "file-based-api"
+      ],
+      "createdAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "pipelineRunId": "code-review",
+      "version": 1
+    },
+    {
+      "title": "Real-time monitoring � 4 subsystem health checks",
+      "content": "Monitoring engine checks: (1) Agent performance � success rate thresholds at 30% critical, 50% warning, token usage >80K warning. (2) KB integrity � hash validation, stale detection >7 days. (3) Pipeline health � recent run fail rate, pause rate >40%. (4) Dependencies � Agent Hub, OpenAI, KB files, analytics freshness. Auto-refreshes every 30s in UI. Health API at /api/system/health returns full report.",
+      "source": "lib/monitoring.ts",
+      "severity": "high",
+      "tags": [
+        "monitoring",
+        "health-check",
+        "alerts",
+        "architecture"
+      ],
+      "id": "kb-mn595sjk-bb6a1825",
+      "createdAt": "2026-03-24T23:35:21.536Z",
+      "updatedAt": "2026-03-24T23:35:21.536Z",
+      "version": 1
+    },
+    {
+      "title": "5-task system upgrade: monitoring, evolution, multi-project KB, cross-session sync, deploy-check",
+      "content": "Built 5 infrastructure features: (1) Real-time monitoring � 4 subsystem health checks (agents/KB/pipeline/deps) with alerts, /health page. (2) Nightly evolution � auto-extract patterns from runs, calibrate simulation, detect degradation, /api/pipeline/evolution. (3) Multi-project KB � per-project directories, cross-project search, promote-to-global. (4) Cross-session bridge � bidirectional sync between CLI memory and MC KB. (5) Deploy readiness � 6-point check for production deployment.",
+      "source": "system-upgrade",
+      "severity": "high",
+      "tags": [
+        "monitoring",
+        "evolution",
+        "multi-project",
+        "cross-session",
+        "deploy",
+        "architecture"
+      ],
+      "id": "kb-mn59tu31-1c22d166",
+      "createdAt": "2026-03-24T23:54:03.277Z",
+      "updatedAt": "2026-03-24T23:54:03.277Z",
+      "version": 1
+    },
+    {
+      "title": "Smart stage filtering � skip irrelevant agents based on task classification",
+      "content": "Pipeline now classifies tasks as technical/product/research/mixed and skips irrelevant stages even in full mode. Rules: technical tasks skip Research, Designer (unless UI mentioned), DevOps (unless deploy mentioned), ERD (unless DB mentioned), Cyber (unless auth/security mentioned), Business QA, Consolidation. Applied in both server-side smart-router.ts and client-side pipeline-mode-utils.ts.",
+      "source": "smart-router",
+      "severity": "high",
+      "tags": [
+        "routing",
+        "task-classification",
+        "stage-filtering",
+        "efficiency",
+        "pipeline"
+      ],
+      "id": "kb-mn5xhyvm-7ee9db21",
+      "createdAt": "2026-03-25T10:56:40.402Z",
+      "updatedAt": "2026-03-25T10:56:40.402Z",
+      "version": 1
+    },
+    {
+      "title": "Project Discovery + Dev Server Manager � Phase 1 core",
+      "content": "Dynamic project discovery scans apps/ directory. Two-level detection: mission-control.json manifest (full config) or package.json fallback (auto-detect framework/stack). Dev Server Manager spawns/stops next dev on unique ports (3010+). Projects API: GET /api/projects/discover (scan), PATCH (activate/deactivate), POST /api/projects/server (start), DELETE (stop), GET (logs). Port allocation auto-increments from 3010, avoids MC port 3077.",
+      "source": "project-discovery",
+      "severity": "high",
+      "tags": [
+        "projects",
+        "discovery",
+        "dev-server",
+        "ports",
+        "phase-1"
+      ],
+      "id": "kb-mn5z6cjc-d0314aac",
+      "createdAt": "2026-03-25T11:43:37.464Z",
+      "updatedAt": "2026-03-25T11:43:37.464Z",
+      "version": 1
+    },
+    {
+      "title": "Project setup script � one command to prepare all projects",
+      "content": "scripts/setup-projects.mjs: scans apps/, tests binary health (next/vite/tsx --version), auto-fixes broken deps via npm install --nested --ignore-scripts, generates mission-control.json manifest per project with id, port, stack, devCommand, kb_scope. Handles pnpm monorepo broken symlinks by installing binaries directly. Run: node scripts/setup-projects.mjs. Results: 14/14 OK after one run.",
+      "source": "setup-projects",
+      "severity": "high",
+      "tags": [
+        "projects",
+        "setup",
+        "manifest",
+        "auto-fix",
+        "one-command"
+      ],
+      "id": "kb-mn67xvsq-a84614fe",
+      "createdAt": "2026-03-25T15:48:59.066Z",
+      "updatedAt": "2026-03-25T15:48:59.066Z",
+      "version": 1
+    }
+  ],
+  "contentHash": "b915ab274dfefa1af9be37f1ae6621e25106f391f1a7f5cf5cb19eb500687cb1",
+  "lastUpdated": "2026-03-25T15:48:59.066Z",
+  "schemaVersion": 1
+}

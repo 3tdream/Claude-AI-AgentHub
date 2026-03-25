@@ -20,6 +20,8 @@ import {
   AlertTriangle,
   Wifi,
   WifiOff,
+  BookMarked,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -219,6 +221,90 @@ const sections: GuideSection[] = [
     ),
   },
   {
+    id: "knowledge",
+    icon: BookMarked,
+    title: "Knowledge Base",
+    subtitle: "Persistent learning memory — failure patterns, security rules, success patterns",
+    content: (
+      <div className="space-y-4">
+        <p className="text-sm text-foreground/80">
+          The KB stores lessons learned from every pipeline run. Agents read it before acting, and contracts adapt dynamically based on it.
+        </p>
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">5 Categories</p>
+          <ul className="text-sm text-foreground/80 space-y-1 ml-4 list-disc">
+            <li><strong>Failure Patterns</strong> — recurring bugs, truncation issues, prompt gaps</li>
+            <li><strong>Security Playbook</strong> — JWT rules, auth requirements, OWASP findings</li>
+            <li><strong>Success Patterns</strong> — what works: agent pairings, output formats, gate patterns</li>
+            <li><strong>Architecture Patterns</strong> — established code patterns: fire-and-forget, SWR hooks, file storage</li>
+            <li><strong>Tech Decisions</strong> — technology choices with rationale: PostgreSQL, NestJS, Tailwind 4, Zod</li>
+          </ul>
+        </div>
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">How it works</p>
+          <div className="space-y-2">
+            <Step n={1}>Browse entries by category or search across all (full-text on title, content, tags)</Step>
+            <Step n={2}>Each entry has severity (critical/high/medium/low), version counter, and SHA-256 hash validation</Step>
+            <Step n={3}>Click <strong>Validate Hashes</strong> to verify integrity of all KB files</Step>
+          </div>
+        </div>
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Feedback Loop</p>
+          <p className="text-sm text-foreground/80">
+            KB entries are automatically injected into agent prompts before each run. When pipeline fails, QA writes new failure patterns. When it succeeds, success patterns are auto-captured. Each run makes the next one smarter.
+          </p>
+        </div>
+        <Tip>KB entries with severity &ldquo;critical&rdquo; or &ldquo;high&rdquo; become blocking constraints in stage contracts automatically.</Tip>
+      </div>
+    ),
+  },
+  {
+    id: "contracts",
+    icon: ShieldCheck,
+    title: "Stage Contracts & Simulation",
+    subtitle: "Deterministic I/O validation + preflight prediction",
+    content: (
+      <div className="space-y-4">
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Stage Contracts</p>
+          <p className="text-sm text-foreground/80">
+            Each pipeline stage has a deterministic contract defining inputs, required outputs, constraints, and risks.
+            Agents see their contract in the prompt. After output, the executor validates it automatically.
+          </p>
+          <ul className="text-sm text-foreground/80 space-y-1 ml-4 list-disc">
+            <li><strong>Inputs</strong> — what the stage consumes from upstream (with required/optional)</li>
+            <li><strong>Outputs</strong> — what it MUST produce (validated via regex patterns)</li>
+            <li><strong>Constraints</strong> — hard rules: &ldquo;file tree first&rdquo;, &ldquo;no localStorage for tokens&rdquo;, etc.</li>
+            <li><strong>KB Dynamic</strong> — constraints auto-injected from failure patterns (highlighted in amber)</li>
+            <li><strong>Risks</strong> — known risks with probability, impact, and mitigation</li>
+          </ul>
+        </div>
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Preflight Simulation</p>
+          <p className="text-sm text-foreground/80">
+            Type a task description and simulate the pipeline outcome before running it.
+          </p>
+          <div className="space-y-2">
+            <Step n={1}>Enter task description in the simulation input</Step>
+            <Step n={2}>Click <strong>Simulate</strong> — analyzes against 114 historical runs + 58 KB entries</Step>
+            <Step n={3}>See per-stage probability bars, bottlenecks, and recommendations</Step>
+            <Step n={4}>Simulation also runs automatically when you route a task in Orchestration</Step>
+          </div>
+        </div>
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Auto-Routing Adjustments</p>
+          <ul className="text-sm text-foreground/80 space-y-1 ml-4 list-disc">
+            <li>If prediction &lt; 30% on quick mode &rarr; auto-upgrade to medium</li>
+            <li>If any stage is critical &rarr; QA-Agent force-added</li>
+            <li>If security KB patterns active &rarr; Cyber-Agent force-added</li>
+            <li>High-token stages get split suggestions</li>
+          </ul>
+        </div>
+        <Tip>The simulation improves with every pipeline run — new KB entries refine predictions and add dynamic constraints.</Tip>
+      </div>
+    ),
+  },
+  {
     id: "jira",
     icon: TicketCheck,
     title: "Jira Integration",
@@ -312,10 +398,25 @@ const sections: GuideSection[] = [
               <td className="py-2 pr-4">data/</td>
               <td className="py-2">Custom system prompts per agent</td>
             </tr>
-            <tr>
+            <tr className="border-b border-border/50">
               <td className="py-2 pr-4 font-mono text-xs">jira-config.json</td>
               <td className="py-2 pr-4">data/</td>
               <td className="py-2">Jira credentials (gitignored)</td>
+            </tr>
+            <tr className="border-b border-border/50">
+              <td className="py-2 pr-4 font-mono text-xs">knowledge-base/*.json</td>
+              <td className="py-2 pr-4">data/</td>
+              <td className="py-2">KB entries (5 categories, SHA-256 hashed, versioned)</td>
+            </tr>
+            <tr className="border-b border-border/50">
+              <td className="py-2 pr-4 font-mono text-xs">pipeline-analytics.json</td>
+              <td className="py-2 pr-4">data/</td>
+              <td className="py-2">Aggregate pipeline stats (114 runs, per-agent metrics)</td>
+            </tr>
+            <tr>
+              <td className="py-2 pr-4 font-mono text-xs">pipeline-runs/*.json</td>
+              <td className="py-2 pr-4">data/</td>
+              <td className="py-2">Individual pipeline run records (85 files)</td>
             </tr>
           </tbody>
         </table>

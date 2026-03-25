@@ -34,6 +34,9 @@ export interface AgentRunRecord {
   duration: number; // ms
   model: string;
   hadTools: boolean;
+  /** Agent output (truncated to 20K chars) */
+  output?: string;
+  error?: string;
 }
 
 export interface PipelineRunRecord {
@@ -49,6 +52,8 @@ export interface PipelineRunRecord {
   jiraKey?: string;
   agents: AgentRunRecord[];
   stepOutputs?: Record<string, string>;
+  /** Full stepResults for UI (file detection, deploy) */
+  stepResults?: Record<string, unknown>;
 }
 
 export interface AnalyticsSummary {
@@ -103,6 +108,8 @@ export async function savePipelineRun(execution: any): Promise<PipelineRunRecord
       duration: r.duration || 0,
       model: r.model || "unknown",
       hadTools: (r.toolCallCount || 0) > 0,
+      output: r.output ? r.output.substring(0, 20000) : undefined,
+      error: r.error || undefined,
     });
 
     totalInput += inputTokens;
@@ -131,6 +138,7 @@ export async function savePipelineRun(execution: any): Promise<PipelineRunRecord
     jiraKey: execution.jiraKey,
     agents,
     stepOutputs,
+    stepResults: execution.stepResults || undefined,
   };
 
   // Save individual run

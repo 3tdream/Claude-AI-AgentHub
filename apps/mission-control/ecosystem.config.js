@@ -17,5 +17,16 @@ module.exports = {
         PORT: 3077,
       },
     },
+    {
+      name: "nightly-evolution",
+      script: "scripts/nightly-evolution.mjs",
+      cwd: __dirname,
+      cron_restart: "0 3 * * *",
+      autorestart: false,
+      watch: false,
+      env: {
+        MC_URL: "http://localhost:3077",
+      },
+    },
   ],
 };

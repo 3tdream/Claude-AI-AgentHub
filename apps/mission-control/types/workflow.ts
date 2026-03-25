@@ -181,6 +181,34 @@ export interface EscalationEvent {
   userConfirmed?: boolean;
 }
 
+export interface SimulationAdjustmentData {
+  type: "mode_upgrade" | "stage_warning" | "stage_split" | "guard_added";
+  stageId?: string;
+  description: string;
+  reason: string;
+}
+
+export interface RoutingSimulationData {
+  overallProbability: number;
+  overallRisk: string;
+  bottlenecks: { stageId: string; probability: number; reason: string }[];
+  adjustments: SimulationAdjustmentData[];
+  estimates: { totalTokens: number; totalDuration: string; estimatedCost: string };
+  inputComplexity: string;
+}
+
+export interface RoutingReplanData {
+  needed: boolean;
+  initialScore?: number;
+  finalScore?: number;
+  totalLift?: number;
+  liftRate?: number;
+  iterations?: number;
+  stopReason?: string;
+  durationMs?: number;
+  actions?: { type: string; stageId: string; description: string }[];
+}
+
 export interface RoutingDecisionData {
   mode: ExecutionMode;
   selectedAgents: string[];
@@ -193,6 +221,10 @@ export interface RoutingDecisionData {
   includeQualityEval: boolean;
   routedAt: string;
   routerModel: string;
+  /** Preflight simulation results (when available) */
+  simulation?: RoutingSimulationData;
+  /** S0.2 Strategy Architect replan results (when triggered) */
+  replan?: RoutingReplanData;
 }
 
 export interface StepTokenUsage {

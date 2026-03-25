@@ -1,0 +1,47 @@
+{
+  "categories": [
+    {
+      "category": "architecture-patterns",
+      "description": "Validated architecture decisions and patterns from successful pipeline runs",
+      "entryCount": 12,
+      "contentHash": "4669b5fbe4bb0409fafc179e93349ab6f2d95d302b310ca17c5bd0a228b3673b",
+      "lastUpdated": "2026-03-25T10:56:40.402Z",
+      "stale": false
+    },
+    {
+      "category": "failure-patterns",
+      "description": "Recurring failure patterns from pipeline runs — prevent known bugs from returning",
+      "entryCount": 30,
+      "contentHash": "897c7a68c4f283b30198e03e5889264f1d99058bf79619b04d5a885dbca07c4f",
+      "lastUpdated": "2026-03-25T01:29:54.330Z",
+      "stale": false
+    },
+    {
+      "category": "security-playbook",
+      "description": "Security findings, fixes, and hardening rules extracted from Cyber agent and QA audits",
+      "entryCount": 12,
+      "contentHash": "f6096f4e7d9e45e14ff82352edb50ed5ed52b8d3797f0179e791f7dbafe290a0",
+      "lastUpdated": "2026-03-24T10:52:09.668Z",
+      "stale": false
+    },
+    {
+      "category": "success-patterns",
+      "description": "Patterns from high-scoring pipeline stages — what works well",
+      "entryCount": 25,
+      "contentHash": "a6aadd4bbcb47d27194013ac06a55cd7a4498bf18c3dfff119a58f040baf372f",
+      "lastUpdated": "2026-03-25T10:19:40.899Z",
+      "stale": false
+    },
+    {
+      "category": "tech-decisions",
+      "description": "Technology choices, tradeoffs, and rationale from ADR stages",
+      "entryCount": 14,
+      "contentHash": "181caf1e73b9ad88ff311ec47e9032ebc9768f83cf7fcc6bcae4abfc54d7329d",
+      "lastUpdated": "2026-03-24T23:52:18.782Z",
+      "stale": false
+    }
+  ],
+  "totalEntries": 93,
+  "lastValidated": "2026-03-25T11:02:27.765Z",
+  "integrityOk": true
+}

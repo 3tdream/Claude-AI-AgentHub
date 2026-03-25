@@ -13,8 +13,12 @@ import {
   VolumeX,
   GitBranch,
   FolderOpen,
+  Info,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import useSWR from "swr";
+
+const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 // ─── Sub-components ────────────────────────────────────────────────────────
 
@@ -340,6 +344,28 @@ export default function SettingsPage() {
           ))}
         </div>
       </SectionCard>
+
+      {/* Version footer */}
+      <VersionFooter />
+    </div>
+  );
+}
+
+function VersionFooter() {
+  const { data } = useSWR("/api/system/version", fetcher, { revalidateOnFocus: false });
+
+  if (!data?.ok) return null;
+
+  return (
+    <div className="mt-8 pt-4 border-t border-border flex items-center gap-4 text-[10px] font-mono text-muted-foreground/50">
+      <Info className="w-3 h-3" />
+      <span>{data.app} v{data.version}</span>
+      <span>·</span>
+      <span>{data.gitHash}</span>
+      <span>·</span>
+      <span>Node {data.nodeVersion}</span>
+      <span>·</span>
+      <span>{new Date(data.buildTime).toLocaleDateString()}</span>
     </div>
   );
 }

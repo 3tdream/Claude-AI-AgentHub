@@ -1,0 +1,78 @@
+{
+  "projects": {
+    "secretutka": {
+      "active": true,
+      "port": 3014,
+      "startedAt": "2026-03-25T21:06:37.054Z"
+    },
+    "jira-integration": {
+      "active": true,
+      "port": 3019,
+      "startedAt": "2026-03-25T21:06:56.720Z"
+    },
+    "smart-shop": {
+      "active": true,
+      "port": 3013,
+      "startedAt": "2026-03-25T21:07:20.158Z",
+      "pid": 42088
+    },
+    "concierge-ai": {
+      "active": true,
+      "port": 3020,
+      "startedAt": "2026-03-25T21:08:04.853Z"
+    },
+    "snake-3d": {
+      "active": true,
+      "port": 3015,
+      "startedAt": "2026-03-25T21:07:44.244Z",
+      "pid": 43976
+    },
+    "3d-model-render": {
+      "active": true,
+      "port": 3010,
+      "startedAt": "2026-03-25T21:13:36.054Z",
+      "pid": 3200
+    },
+    "briefme-ai": {
+      "active": true,
+      "port": 3021,
+      "startedAt": "2026-03-25T21:08:21.121Z"
+    },
+    "cv-creator": {
+      "active": true,
+      "port": 3012,
+      "startedAt": "2026-03-25T21:08:48.424Z"
+    },
+    "echo": {
+      "active": true,
+      "port": 3022,
+      "startedAt": "2026-03-25T21:09:04.226Z"
+    },
+    "telegram-mcp": {
+      "active": false,
+      "port": 3016,
+      "startedAt": "2026-03-25T19:11:32.512Z"
+    },
+    "tiltan": {
+      "active": true,
+      "port": 3017,
+      "startedAt": "2026-03-25T21:09:51.177Z"
+    },
+    "ai-slide": {
+      "active": true,
+      "port": 3011,
+      "startedAt": "2026-03-25T21:10:29.748Z"
+    },
+    "uxui-to-dev": {
+      "active": true,
+      "port": 3018,
+      "startedAt": "2026-03-25T21:10:09.271Z"
+    },
+    "zdorovdv": {
+      "active": true,
+      "port": 3023,
+      "startedAt": "2026-03-25T21:10:51.634Z"
+    }
+  },
+  "lastUpdated": "2026-03-25T21:13:36.055Z"
+}

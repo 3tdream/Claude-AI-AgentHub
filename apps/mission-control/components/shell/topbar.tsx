@@ -1,63 +1,32 @@
 "use client";
 
-import { Search, Command } from "lucide-react";
+import { Search, Command, DollarSign, Zap, Wallet } from "lucide-react";
 import { useAppStore } from "@/lib/stores/app-store";
-import { useEffect, useState } from "react";
+import { useCostSummary } from "@/lib/hooks/use-costs";
+import useSWR from "swr";
+import { ActivityToggle } from "@/components/shell/activity-sidebar";
 
-type HealthStatus = "ok" | "error" | "loading";
-
-function useHealthCheck(intervalMs = 30_000) {
-  const [status, setStatus] = useState<HealthStatus>("loading");
-  const [uptime, setUptime] = useState<number | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function check() {
-      try {
-        const res = await fetch("/api/system/health", { cache: "no-store" });
-        if (!cancelled) {
-          if (res.ok) {
-            const data = (await res.json()) as { status: string; uptime: number };
-            setStatus(data.status === "ok" ? "ok" : "error");
-            setUptime(data.uptime);
-          } else {
-            setStatus("error");
-          }
-        }
-      } catch {
-        if (!cancelled) setStatus("error");
-      }
-    }
-
-    check();
-    const id = setInterval(check, intervalMs);
-    return () => {
-      cancelled = true;
-      clearInterval(id);
-    };
-  }, [intervalMs]);
-
-  return { status, uptime };
-}
+const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export function Topbar() {
   const { setCommandPaletteOpen } = useAppStore();
-  const { status, uptime } = useHealthCheck();
+  const { costs } = useCostSummary();
+  const { data: realCosts } = useSWR("/api/costs/real", fetcher, { revalidateOnFocus: false });
 
-  const dotColor =
-    status === "ok"
-      ? "bg-green-500"
-      : status === "error"
-        ? "bg-red-500"
-        : "bg-yellow-500";
+  const totalTokens = costs
+    ? (costs.totalInputTokens ?? 0) + (costs.totalOutputTokens ?? 0)
+    : 0;
 
-  const label =
-    status === "ok"
-      ? `Online · ${uptime !== null ? `${uptime}s` : ""}`
-      : status === "error"
-        ? "Offline"
-        : "Checking…";
+  const formatTokens = (t: number) => {
+    if (t > 1_000_000) return (t / 1_000_000).toFixed(1) + "M";
+    if (t > 1_000) return (t / 1_000).toFixed(0) + "K";
+    return String(t);
+  };
+
+  const budget = realCosts?.data?.budget;
+  const spent = budget?.spent;
+  const remaining = budget?.remaining;
+  const usedPercent = budget?.usedPercent ?? 0;
 
   return (
     <header className="h-14 border-b border-border flex items-center justify-between px-6">
@@ -72,18 +41,50 @@ export function Topbar() {
         </kbd>
       </button>
 
-      <div className="flex items-center gap-3">
-        <div
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-card"
-          title={`System health: ${status}`}
-        >
-          <div
-            className={`w-2 h-2 rounded-full ${dotColor} ${status === "ok" ? "animate-pulse" : ""}`}
-          />
-          <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">
-            {label}
-          </span>
+      <div className="flex items-center gap-2">
+        {/* Tokens + API cost (from Agent Hub) */}
+        <div className="flex items-center gap-3 px-3 py-1.5 rounded-lg border border-border bg-card">
+          <div className="flex items-center gap-1.5">
+            <Zap className="w-3 h-3 text-amber-500" />
+            <span className="font-mono text-[10px] text-muted-foreground">
+              {costs ? formatTokens(totalTokens) : "\u2014"}
+            </span>
+            <span className="font-mono text-[9px] text-muted-foreground/50">tok</span>
+          </div>
+          <div className="w-px h-3 bg-border" />
+          <div className="flex items-center gap-1">
+            <DollarSign className="w-3 h-3 text-emerald-500" />
+            <span className="font-mono text-[10px] font-semibold text-emerald-500">
+              {costs
+                ? costs.totalCost < 1
+                  ? costs.totalCost.toFixed(3)
+                  : costs.totalCost.toFixed(2)
+                : "\u2014"}
+            </span>
+            <span className="font-mono text-[9px] text-muted-foreground/50">api</span>
+          </div>
         </div>
+
+        {/* Real total spend + budget */}
+        {spent != null && (
+          <div
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border bg-card ${
+              usedPercent > 90 ? "border-red-500/30" : usedPercent > 70 ? "border-amber-500/30" : "border-border"
+            }`}
+            title={`Budget: $${budget.monthly} | Spent: $${spent} | Remaining: $${remaining}`}
+          >
+            <Wallet className={`w-3 h-3 ${usedPercent > 90 ? "text-red-400" : usedPercent > 70 ? "text-amber-400" : "text-blue-400"}`} />
+            <span className={`font-mono text-[10px] font-semibold ${usedPercent > 90 ? "text-red-400" : usedPercent > 70 ? "text-amber-400" : "text-blue-400"}`}>
+              ${spent.toFixed(0)}
+            </span>
+            <span className="font-mono text-[9px] text-muted-foreground/50">/</span>
+            <span className="font-mono text-[10px] text-muted-foreground">
+              ${budget.monthly}
+            </span>
+          </div>
+        )}
+
+        <ActivityToggle />
       </div>
     </header>
   );

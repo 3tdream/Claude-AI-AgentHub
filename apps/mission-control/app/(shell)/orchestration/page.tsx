@@ -15,6 +15,7 @@ import { SlotBar } from "@/components/orchestration/slot-bar";
 import { TemplateLibrary } from "@/components/orchestration/template-library";
 import { RecruitmentCenter } from "@/components/orchestration/recruitment-center";
 import type { Workflow, PipelineExecution, RoutingDecisionData, ExecutionMode, AgentCatalogEntry, WorkflowSlot } from "@/types";
+import { logActivity } from "@/lib/stores/activity-store";
 
 /** Model pricing per 1M tokens (USD) */
 const MODEL_PRICING: Record<string, { input: number; output: number }> = {
@@ -321,6 +322,18 @@ export default function OrchestrationPage() {
       const data = await res.json();
 
       if (data.success && data.decision) {
+        // Log activity events
+        logActivity("routing", `Mode: ${data.decision.mode}`, data.decision.reasoning?.slice(0, 80));
+        if (data.decision.simulation) {
+          logActivity("simulation", `Prediction: ${data.decision.simulation.overallProbability}%`, `${data.decision.simulation.overallRisk} risk, ${data.decision.simulation.inputComplexity}`);
+        }
+        // Attach replan data if present
+        if (data.replan) {
+          data.decision.replan = data.replan;
+          if (data.replan.needed) {
+            logActivity("replan", `${data.replan.initialScore}% → ${data.replan.finalScore}% (+${data.replan.totalLift})`, `${data.replan.iterations} iterations, ${data.replan.actions?.length || 0} actions`);
+          }
+        }
         setRoutingDecision(data.decision);
       } else {
         // Fallback: full pipeline
@@ -405,6 +418,9 @@ export default function OrchestrationPage() {
     checkpointStatusRef.current = { approved: false, rejected: false };
     useOrchestrationStore.getState().clearControlFlags();
 
+    // Immediately update history status from "paused" to "running"
+    addToHistory({ ...exec, status: "running" });
+
     const result = await executePipeline(
       steps,
       exec.input,
@@ -413,6 +429,8 @@ export default function OrchestrationPage() {
       {
         onUpdate: (execution: PipelineExecution) => {
           setActiveExecution({ ...execution });
+          // Keep history in sync during execution
+          addToHistory({ ...execution });
         },
         onCheckpointReached: () => {
           return new Promise<boolean>((resolve) => {
@@ -435,7 +453,7 @@ export default function OrchestrationPage() {
   // Override routing mode — recalculates steps and thresholds for the new mode
   function handleOverrideMode(mode: ExecutionMode) {
     if (!routingDecision) return;
-    setRoutingDecision(recalculateForMode(routingDecision, mode));
+    setRoutingDecision(recalculateForMode(routingDecision, mode, input));
   }
 
   function getDetectedFiles(exec: PipelineExecution): ParsedCodeBlock[] {
@@ -883,12 +901,12 @@ export default function OrchestrationPage() {
             </button>
           </div>
           <div className="p-2 space-y-1 max-h-[500px] overflow-y-auto">
-            {executionHistory.map((exec) => {
+            {executionHistory.map((exec, idx) => {
               const isExpanded = expandedExecId === exec.id;
               const detectedFiles = isExpanded ? getDetectedFiles(exec) : [];
 
               return (
-                <div key={exec.id} className="rounded-lg overflow-hidden">
+                <div key={`${exec.id}-${idx}`} className="rounded-lg overflow-hidden">
                   <button
                     onClick={() => setExpandedExecId(isExpanded ? null : exec.id)}
                     className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-muted transition-colors text-left"

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readFile, writeFile, mkdir } from "fs/promises";
 import { join } from "path";
+import { addEntry } from "@/lib/kb-storage";
 
 const KB_PATH = join(process.cwd(), "projects", "mission-control", "knowledge-base", "success-patterns.json");
 
@@ -111,6 +112,18 @@ export async function POST(request: NextRequest) {
     data._updated = new Date().toISOString().slice(0, 10);
 
     await writeFile(KB_PATH, JSON.stringify(data, null, 2) + "\n");
+
+    // Also write to new KB system (data/knowledge-base/) for high-scoring wins
+    if (entry.score >= 9.0) {
+      addEntry("success-patterns", {
+        title: `${entry.agent} scored ${entry.score}/10 on ${classifyTask(entry.task || "")}`,
+        content: `Agent: ${entry.agent}, Score: ${entry.score}, Tokens: ${entry.tokens}, Duration: ${Math.round((entry.duration || 0) / 1000)}s, Model: ${entry.model || "unknown"}. Task: ${(entry.task || "").slice(0, 200)}`,
+        source: "pipeline-auto-capture",
+        agentId: entry.agent ? `${entry.agent}-agent` : undefined,
+        severity: entry.score >= 9.5 ? "high" : "medium",
+        tags: ["auto-captured", classifyTask(entry.task || ""), entry.agent || "unknown"],
+      }).catch(() => {});
+    }
 
     return NextResponse.json({ ok: true, agent: entry.agent, totalWins: pattern.totalWins });
   } catch (err) {

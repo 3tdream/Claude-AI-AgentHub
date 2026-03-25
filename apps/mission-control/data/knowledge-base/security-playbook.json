@@ -1,0 +1,223 @@
+{
+  "category": "security-playbook",
+  "description": "Security findings, fixes, and hardening rules extracted from Cyber agent and QA audits",
+  "entries": [
+    {
+      "id": "kb-sp-001",
+      "title": "JWT must use httpOnly cookies, never localStorage",
+      "content": "All pipeline runs that stored JWT in localStorage were flagged P0 by Cyber (S4) and QA (S8/S9). Rule: auth tokens go in httpOnly secure cookies with SameSite=Strict. Frontend must use auth context provider, never direct token access.",
+      "source": "s4-cyber",
+      "agentId": "cyber-agent",
+      "severity": "critical",
+      "tags": [
+        "jwt",
+        "httpOnly",
+        "xss",
+        "auth",
+        "mandatory"
+      ],
+      "createdAt": "2026-03-22T18:07:40.430Z",
+      "updatedAt": "2026-03-23T20:00:00.000Z",
+      "pipelineRunId": "pipeline-v3-test",
+      "version": 2
+    },
+    {
+      "id": "kb-sp-002",
+      "title": "HMAC for internal service-to-service auth",
+      "content": "Internal endpoints (points engine, event processing) must use HMAC-SHA256 with shared secret, not JWT. Prevent replay with timestamp window (300s max). Worker endpoints should be VPC-internal only (ALB internal listener).",
+      "source": "s4-cyber",
+      "agentId": "cyber-agent",
+      "severity": "high",
+      "tags": [
+        "hmac",
+        "internal-auth",
+        "replay-prevention",
+        "vpc"
+      ],
+      "createdAt": "2026-03-22T18:07:40.430Z",
+      "updatedAt": "2026-03-22T18:07:40.430Z",
+      "pipelineRunId": "pipeline-v3-test",
+      "version": 1
+    },
+    {
+      "id": "kb-sp-003",
+      "title": "NestJS SetMetadata instead of Reflect.defineMetadata for RBAC",
+      "content": "Custom Roles decorator must use NestJS @SetMetadata() or Reflector.createDecorator(), NOT raw Reflect.defineMetadata(). The latter writes to descriptor.value which doesn't match context.getHandler() in guards, silently bypassing all role checks.",
+      "source": "s10-cyber-audit",
+      "agentId": "cyber-agent",
+      "severity": "critical",
+      "tags": [
+        "nestjs",
+        "rbac",
+        "roles",
+        "guard",
+        "decorator"
+      ],
+      "createdAt": "2026-03-22T18:09:15.452Z",
+      "updatedAt": "2026-03-22T18:09:15.452Z",
+      "pipelineRunId": "pipeline-v3-test",
+      "version": 1
+    },
+    {
+      "id": "kb-sp-004",
+      "title": "Referral codes must use crypto.randomBytes, not Math.random",
+      "content": "Referral code generation used Math.random() (PRNG seeded by time), giving 36^8 entropy which is brutable. Use crypto.randomBytes(16).toString('base64url') for 128-bit entropy. Also rate-limit redemption to 10/min per staff_id.",
+      "source": "s10-cyber-audit",
+      "agentId": "cyber-agent",
+      "severity": "high",
+      "tags": [
+        "crypto",
+        "randomness",
+        "referral-codes",
+        "brute-force"
+      ],
+      "createdAt": "2026-03-22T18:09:15.452Z",
+      "updatedAt": "2026-03-22T18:09:15.452Z",
+      "pipelineRunId": "pipeline-v3-test",
+      "version": 1
+    },
+    {
+      "id": "kb-sp-005",
+      "title": "Referrer-Policy: no-referrer on all PWA endpoints",
+      "content": "PWA magic-link tokens appear in URL path. Without Referrer-Policy: no-referrer, tokens leak via HTTP Referer header to third-party resources. Set header globally for all /pwa/* routes.",
+      "source": "s4-cyber",
+      "agentId": "cyber-agent",
+      "severity": "high",
+      "tags": [
+        "referrer",
+        "token-leak",
+        "pwa",
+        "headers"
+      ],
+      "createdAt": "2026-03-22T18:07:40.430Z",
+      "updatedAt": "2026-03-22T18:07:40.430Z",
+      "pipelineRunId": "pipeline-v3-test",
+      "version": 1
+    },
+    {
+      "id": "kb-sp-006",
+      "title": "Points ledger must be append-only with recomputation for GDPR erasure",
+      "content": "Points balance uses append-only ledger pattern. GDPR erasure cannot simply DELETE rows — must anonymize client data while preserving aggregate integrity. Recompute balances after anonymization. new_balance field in response should come from ledger SUM, not cached value.",
+      "source": "s10-cyber-audit",
+      "agentId": "cyber-agent",
+      "severity": "high",
+      "tags": [
+        "gdpr",
+        "ledger",
+        "append-only",
+        "data-erasure",
+        "compliance"
+      ],
+      "createdAt": "2026-03-22T18:09:15.452Z",
+      "updatedAt": "2026-03-22T18:09:15.452Z",
+      "pipelineRunId": "pipeline-v3-test",
+      "version": 1
+    },
+    {
+      "id": "kb-sp-007",
+      "title": "Prototype pollution risk in fire-and-forget — validate keys with regex",
+      "content": "Functions using agentId/keys as JSON properties (e.g., recordAgentActivity) are vulnerable to __proto__ pollution. Fix: regex guard at entry: /^[a-zA-Z0-9_-]{1,64}$/ before using as key. Mandatory for any module accepting user-supplied keys.",
+      "source": "s4-cyber",
+      "agentId": "cyber-agent",
+      "severity": "high",
+      "tags": [
+        "prototype-pollution",
+        "injection",
+        "input-validation"
+      ],
+      "createdAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "pipelineRunId": "pipeline-runs-analysis",
+      "version": 1
+    },
+    {
+      "id": "kb-sp-008",
+      "title": "Unauthenticated data endpoints leak system topology",
+      "content": "GET endpoints without auth (e.g., /api/agent-activity, /api/system/config) leak internal agent names, usage patterns, system structure. Not PII, but enables reconnaissance. Fix: add internal header check or localhost-only restriction. All admin endpoints need auth.",
+      "source": "s4-cyber",
+      "agentId": "cyber-agent",
+      "severity": "high",
+      "tags": [
+        "authentication",
+        "topology-leak",
+        "access-control"
+      ],
+      "createdAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "pipelineRunId": "pipeline-runs-analysis",
+      "version": 1
+    },
+    {
+      "id": "kb-sp-009",
+      "title": "File-based storage without size caps — DoS via unbounded growth",
+      "content": "Unlike logs-storage (MAX_ENTRIES=200), some stores have no cap. Attacker writes thousands of unique keys, bloating JSON file. Fix: add safety cap (if entries > N return). All file-based stores MUST have max entry count or file size limit.",
+      "source": "s4-cyber",
+      "agentId": "cyber-agent",
+      "severity": "medium",
+      "tags": [
+        "dos-attack",
+        "unbounded-growth",
+        "resource-limits"
+      ],
+      "createdAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "pipelineRunId": "pipeline-runs-analysis",
+      "version": 1
+    },
+    {
+      "id": "kb-sp-010",
+      "title": "Rate limiting documented but not implemented = false security",
+      "content": "Endpoints have rate limit comments (60 req/min GET, 10 req/min POST) but zero code enforcement. Attacker floods file I/O. Fix: implement with @upstash/ratelimit sliding window. Return 429 with Retry-After header. Documentation != enforcement.",
+      "source": "s8-technical-qa",
+      "agentId": "qa-agent",
+      "severity": "critical",
+      "tags": [
+        "rate-limiting",
+        "dos-protection",
+        "implementation-gap"
+      ],
+      "createdAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "pipelineRunId": "pipeline-runs-analysis",
+      "version": 1
+    },
+    {
+      "id": "kb-sp-011",
+      "title": "POST endpoints without authentication = arbitrary data write",
+      "content": "POST /api/system/config has zero auth — anyone can overwrite config. Fix: validate CRON_SECRET header for backend-to-backend, getServerSession() for user-facing. Rule: ALL POST/PATCH/DELETE must authenticate. GET for non-PII can be public.",
+      "source": "s8-technical-qa",
+      "agentId": "qa-agent",
+      "severity": "critical",
+      "tags": [
+        "authentication",
+        "write-protection",
+        "mutation-security"
+      ],
+      "createdAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "pipelineRunId": "pipeline-runs-analysis",
+      "version": 1
+    },
+    {
+      "id": "kb-sp-012",
+      "title": "Timestamp + user_id + IP = PII under 152-FZ",
+      "content": "Timestamp alone: not PII. With user_id + IP address: personal data per 152-FZ Article 3, requires Russian server localization. Store timestamp-only without IP by default. If IP logging added — requires Cyber review + 152-FZ compliance audit.",
+      "source": "s0-research",
+      "agentId": "research-agent",
+      "severity": "medium",
+      "tags": [
+        "152-fz",
+        "pii",
+        "audit-logging",
+        "compliance"
+      ],
+      "createdAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "pipelineRunId": "pipeline-runs-analysis",
+      "version": 1
+    }
+  ],
+  "contentHash": "f6096f4e7d9e45e14ff82352edb50ed5ed52b8d3797f0179e791f7dbafe290a0",
+  "lastUpdated": "2026-03-24T10:52:09.668Z",
+  "schemaVersion": 1
+}

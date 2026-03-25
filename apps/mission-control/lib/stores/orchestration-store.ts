@@ -3,6 +3,18 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { Workflow, PipelineExecution, WorkflowSlot, SlotStatus, WorkflowStep } from "@/types";
+import { CRM_PIPELINE_TEMPLATE } from "@/lib/pipeline-templates";
+
+const DEFAULT_CRM_TEMPLATE_ID = "default-crm-template";
+
+function getDefaultCrmWorkflow(): Workflow {
+  return {
+    ...CRM_PIPELINE_TEMPLATE,
+    id: DEFAULT_CRM_TEMPLATE_ID,
+    isTemplate: true,
+    createdAt: "2025-01-01T00:00:00.000Z",
+  };
+}
 
 function createEmptySlot(id: 0 | 1 | 2 | 3): WorkflowSlot {
   return {
@@ -67,7 +79,7 @@ interface OrchestrationState {
 export const useOrchestrationStore = create<OrchestrationState>()(
   persist(
     (set, get) => ({
-      workflows: [],
+      workflows: [getDefaultCrmWorkflow()],
       activeExecution: null,
       executionHistory: [],
       selectedStageId: null,
@@ -109,7 +121,7 @@ export const useOrchestrationStore = create<OrchestrationState>()(
         set({ activeExecution: execution }),
       addToHistory: (execution) =>
         set((s) => ({
-          executionHistory: [execution, ...s.executionHistory].slice(0, 50),
+          executionHistory: [execution, ...s.executionHistory.filter((e) => e.id !== execution.id)].slice(0, 50),
         })),
       selectStage: (id) =>
         set({ selectedStageId: id }),
@@ -356,9 +368,14 @@ export const useOrchestrationStore = create<OrchestrationState>()(
         const p = persisted as Partial<OrchestrationState> | undefined;
         const isValidSlot = (s: unknown): s is WorkflowSlot =>
           typeof s === "object" && s !== null && "id" in s && "status" in s && "workflowId" in s;
+        // Seed default CRM template if not present
+        const workflows = Array.isArray(p?.workflows) ? p.workflows : [];
+        const hasDefault = workflows.some((w: Workflow) => w.id === DEFAULT_CRM_TEMPLATE_ID);
+        const seededWorkflows = hasDefault ? workflows : [getDefaultCrmWorkflow(), ...workflows];
         return {
           ...current,
           ...p,
+          workflows: seededWorkflows,
           slots: (p?.slots && Array.isArray(p.slots) && p.slots.length === 4 && p.slots.every(isValidSlot)
             ? p.slots
             : [createEmptySlot(0), createEmptySlot(1), createEmptySlot(2), createEmptySlot(3)]

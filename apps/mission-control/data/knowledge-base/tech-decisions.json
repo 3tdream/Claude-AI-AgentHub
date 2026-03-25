@@ -1,0 +1,287 @@
+{
+  "category": "tech-decisions",
+  "description": "Technology choices, tradeoffs, and rationale from ADR stages",
+  "entries": [
+    {
+      "id": "kb-td-001",
+      "title": "PostgreSQL 15 over MongoDB for loyalty data",
+      "content": "Loyalty system requires ACID transactions (point awards, redemptions), complex joins (tier calculations across config+client+transaction), and referential integrity (cascade deletes for GDPR). PostgreSQL 15 chosen for: JSONB for flexible fields, UUID extension, strong constraint support, proven at scale for financial-adjacent data.",
+      "source": "s3.1-adr",
+      "agentId": "architect-agent",
+      "severity": "high",
+      "tags": [
+        "postgresql",
+        "database",
+        "adr",
+        "acid",
+        "loyalty"
+      ],
+      "createdAt": "2026-03-22T18:06:53.844Z",
+      "updatedAt": "2026-03-22T18:06:53.844Z",
+      "pipelineRunId": "pipeline-v3-test",
+      "version": 1
+    },
+    {
+      "id": "kb-td-002",
+      "title": "Redis/Upstash for caching and rate limiting",
+      "content": "Redis chosen for: session cache, rate limit counters (sliding window), tier calculation cache. Upstash (serverless Redis) for cost efficiency at low-to-medium traffic. Can switch to ElastiCache if traffic exceeds Upstash free tier.",
+      "source": "s3.1-adr",
+      "agentId": "architect-agent",
+      "severity": "medium",
+      "tags": [
+        "redis",
+        "upstash",
+        "caching",
+        "rate-limiting",
+        "adr"
+      ],
+      "createdAt": "2026-03-22T18:06:53.844Z",
+      "updatedAt": "2026-03-22T18:06:53.844Z",
+      "pipelineRunId": "pipeline-v3-test",
+      "version": 1
+    },
+    {
+      "id": "kb-td-003",
+      "title": "ECS Fargate over Lambda for API + Worker",
+      "content": "ECS Fargate chosen over Lambda for: predictable latency (no cold starts for API), long-running SQS consumers (worker polls 20s), WebSocket support if needed later, Docker-based local dev parity. Lambda considered for individual event handlers but rejected due to 15min timeout and cold start impact on SLA.",
+      "source": "s3.1-adr",
+      "agentId": "architect-agent",
+      "severity": "medium",
+      "tags": [
+        "ecs",
+        "fargate",
+        "lambda",
+        "deployment",
+        "adr"
+      ],
+      "createdAt": "2026-03-22T18:06:53.844Z",
+      "updatedAt": "2026-03-22T18:06:53.844Z",
+      "pipelineRunId": "pipeline-v3-test",
+      "version": 1
+    },
+    {
+      "id": "kb-td-004",
+      "title": "NestJS over Express for backend framework",
+      "content": "NestJS chosen for: built-in DI, module system (maps to domain-driven design), decorator-based guards/pipes/interceptors, TypeORM/Prisma integration, OpenAPI generation. Express too low-level for a 32-endpoint system with RBAC, validation, and multiple service layers.",
+      "source": "s3.1-adr",
+      "agentId": "architect-agent",
+      "severity": "medium",
+      "tags": [
+        "nestjs",
+        "express",
+        "framework",
+        "backend",
+        "adr"
+      ],
+      "createdAt": "2026-03-22T18:06:53.844Z",
+      "updatedAt": "2026-03-22T18:06:53.844Z",
+      "pipelineRunId": "pipeline-v3-test",
+      "version": 1
+    },
+    {
+      "id": "kb-td-005",
+      "title": "Next.js 14 PWA + CRM Dashboard dual frontend",
+      "content": "Two frontend surfaces: (1) PWA for end-customers (loyalty card, points, redemptions) — lightweight, mobile-first, magic-link auth. (2) CRM Dashboard for salon owners/staff — full CRUD, analytics, config wizard. Both share TypeScript types from Backend shared/ directory.",
+      "source": "s3.4-fileplan",
+      "agentId": "architect-agent",
+      "severity": "medium",
+      "tags": [
+        "nextjs",
+        "pwa",
+        "crm",
+        "dual-frontend",
+        "adr"
+      ],
+      "createdAt": "2026-03-22T18:07:31.281Z",
+      "updatedAt": "2026-03-22T18:07:31.281Z",
+      "pipelineRunId": "pipeline-v3-test",
+      "version": 1
+    },
+    {
+      "id": "kb-td-006",
+      "title": "Zod validation mandatory for all API route inputs",
+      "content": "Every new API route must validate with Zod schema. Pattern: const InputSchema = z.object({...}), parse with .safeParse(), return 400 on invalid. Not optional. Rationale: type safety, clear error messages, consistent DX across codebase.",
+      "source": "code-review",
+      "agentId": "backend-agent",
+      "severity": "high",
+      "tags": [
+        "zod",
+        "validation",
+        "api-routes",
+        "type-safety"
+      ],
+      "createdAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "pipelineRunId": "code-review",
+      "version": 1
+    },
+    {
+      "id": "kb-td-007",
+      "title": "Agent Hub proxy + cached fallback pattern for all external calls",
+      "content": "All Agent Hub calls: (1) try with timeout, (2) on failure use cached fallback from data/ or return null, (3) never block pipeline on external timeout. Applied to: /api/chat, /api/agent-hub/*, KB sync. Decision: mandatory for any new Agent Hub integration.",
+      "source": "architecture",
+      "severity": "high",
+      "tags": [
+        "agent-hub",
+        "proxy",
+        "fallback",
+        "resilience"
+      ],
+      "createdAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "pipelineRunId": "code-review",
+      "version": 1
+    },
+    {
+      "id": "kb-td-008",
+      "title": "Tailwind CSS 4 CSS-first config — no tailwind.config.ts",
+      "content": "All CSS variables and design tokens defined in app/globals.css, not tailwind.config.ts. Tailwind 4 uses CSS-first configuration. All agents must follow this — Designer outputs globals.css, Frontend consumes it.",
+      "source": "CLAUDE.md",
+      "severity": "high",
+      "tags": [
+        "tailwind-4",
+        "css-first",
+        "design-tokens"
+      ],
+      "createdAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "pipelineRunId": "code-review",
+      "version": 1
+    },
+    {
+      "id": "kb-td-009",
+      "title": "TypeScript strict mode — noImplicitAny: true mandatory",
+      "content": "All new tsconfig.json must have noImplicitAny: true. Backend test-steps flagged noImplicitAny: false as code quality concern. Exception: don't change existing mid-sprint. Enforce at merge gate.",
+      "source": "s5-backend",
+      "agentId": "backend-agent",
+      "severity": "medium",
+      "tags": [
+        "typescript",
+        "strict-mode",
+        "noImplicitAny"
+      ],
+      "createdAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "pipelineRunId": "pipeline-v3-test",
+      "version": 1
+    },
+    {
+      "id": "kb-td-010",
+      "title": "Database migrations must be sequentially numbered with idempotent tracking",
+      "content": "Pattern: 001_create_xxx.sql, 002_add_yyy.sql. Must track applied migrations in migration_log table. No implicit 'run all SQL'. Always enforce sequence + idempotency. NestJS: TypeORM or custom runner with tracking.",
+      "source": "s3.4-fileplan",
+      "agentId": "architect-agent",
+      "severity": "high",
+      "tags": [
+        "migrations",
+        "idempotency",
+        "sequencing",
+        "database"
+      ],
+      "createdAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "pipelineRunId": "pipeline-v3-test",
+      "version": 1
+    },
+    {
+      "title": "Agent tools two-layer architecture",
+      "content": "## Two Tool Layers (as of 2026-03-21)\n\nPipeline executor uses MC local tools (callAI/callAIWithTools).\nAgent Hub actions (Jira, Perplexity, workspace) are NOT available in pipeline.\n\n### MC Executor Tools (used in pipeline)\n- read_file, edit_file, create_file, list_files, run_command, save_failure_pattern\n\n### Agent Hub Actions (used in chat only, unused in pipeline)\n- Jira: 29 actions (createTicket, fetchTickets, setStoryPoints, etc.)\n- Perplexity: web search\n- Workspace: store/retrieve/vector ",
+      "source": "claude-memory",
+      "severity": "medium",
+      "tags": [
+        "imported-from-memory",
+        "memory:agent_tools_architecture.md",
+        "project"
+      ],
+      "id": "kb-mn59rl7b-3de4ef12",
+      "createdAt": "2026-03-24T23:52:18.455Z",
+      "updatedAt": "2026-03-24T23:52:18.455Z",
+      "version": 1
+    },
+    {
+      "title": "MC vs SB comparison table",
+      "content": "## Mission Control vs Singularity Bridge — Comparison (2026-03-21)\n\n### Identity\n- **Mission Control**: Pipeline orchestration — 13-stage workflow with quality gates, self-healing, structured contracts\n- **Singularity Bridge**: Agent chat platform — rich chat/voice/screen share UI, 28+ integrations, multi-tenant\n\n### Tech Stack Differences\n- MC: Next.js 15.5 (unified), file-based storage, single user, Tailwind 4\n- SB: Express + React/Vite (separate), MongoDB, JWT auth, multi-tenant, Tailwind 3.4",
+      "source": "claude-memory",
+      "severity": "medium",
+      "tags": [
+        "imported-from-memory",
+        "memory:mc_vs_sb_comparison.md",
+        "project"
+      ],
+      "id": "kb-mn59rlds-c0bad011",
+      "createdAt": "2026-03-24T23:52:18.688Z",
+      "updatedAt": "2026-03-24T23:52:18.688Z",
+      "version": 1
+    },
+    {
+      "title": "Pipeline V2 test findings",
+      "content": "## Pipeline V2 Live Test Results (2026-03-21)\n\n15 tests, 18 commits. Task: \"Add a client loyalty program with points system to Beauty CRM\"\n\n### Score: S0-S2 stable, Architect 0/15\n\n| Stage | Pass Rate | Avg Score | Avg Retries |\n|-------|-----------|-----------|-------------|\n| S0 Research | 15/15 (100%) | 7.3 | 1.3 |\n| S1 Orchestrator | 15/15 (100%) | 10.0 | 0 |\n| S2 PM | 15/15 (100%) | 5.8 | 1.5 |\n| S3 Architect | **0/15 (0%)** | 5.2 | 1-2 |\n| S3.5+ | never reached | — | — |\n\n### Root Causes F",
+      "source": "claude-memory",
+      "severity": "medium",
+      "tags": [
+        "imported-from-memory",
+        "memory:pipeline_test_findings.md",
+        "project"
+      ],
+      "id": "kb-mn59rlf6-8ffbd48a",
+      "createdAt": "2026-03-24T23:52:18.738Z",
+      "updatedAt": "2026-03-24T23:52:18.738Z",
+      "version": 1
+    },
+    {
+      "title": "Pipeline V3 definitive structure",
+      "content": "## Pipeline V3 — Definitive Structure (DO NOT CHANGE WITHOUT APPROVAL)\n\n| Stage | Agent | Role | Why Critical |\n|-------|-------|------|-------------|\n| S0 | Research | Market Scan | Raw data collection |\n| S1 | Orchestrator | Requirements & Goal | Translates Research into concrete goal — without this PM guesses |\n| S2 | PM | PRD & Acceptance | \"What we build\" in business language |\n| S2.5 | Orchestrator | PRD Validation | Gate 1: \"Is PRD sufficient for Architect?\" |\n| S3.1 | Architect (ADR) | S",
+      "source": "claude-memory",
+      "severity": "medium",
+      "tags": [
+        "imported-from-memory",
+        "memory:pipeline_v3_structure.md",
+        "project"
+      ],
+      "id": "kb-mn59rlge-1ef46e1c",
+      "createdAt": "2026-03-24T23:52:18.782Z",
+      "updatedAt": "2026-03-24T23:52:18.782Z",
+      "version": 1
+    },
+    {
+      "title": "Dev server launch: use node_modules/.bin/next directly, not npm run dev",
+      "content": "In pnpm monorepo on Windows, npm run dev fails because pnpm junction symlinks are broken. Working solution: run binary directly via node_modules/.bin/next dev -p {port}. This bypasses npm script resolution and pnpm symlink chain. Example: cd apps/secretutka && node_modules/.bin/next dev -p 3013. Always specify -p flag explicitly. PORT env var alone is not reliable across Next.js versions.",
+      "source": "dev-server-testing",
+      "severity": "critical",
+      "tags": [
+        "dev-server",
+        "pnpm",
+        "windows",
+        "next",
+        "direct-binary",
+        "port",
+        "working-solution"
+      ],
+      "id": "kb-mn69f1yy-988f89a7",
+      "createdAt": "2026-03-25T16:30:19.834Z",
+      "updatedAt": "2026-03-25T16:30:19.834Z",
+      "version": 1
+    },
+    {
+      "title": "npm install in pnpm monorepo: move root package.json temporarily",
+      "content": "To npm install in any project inside pnpm monorepo on Windows: (1) mv root/package.json root/package.json.bak, (2) mv root/pnpm-workspace.yaml root/pnpm-workspace.yaml.bak, (3) cd apps/project && rm -rf node_modules && npm install --ignore-scripts, (4) restore both files. This bypasses pnpm workspace detection and creates real files instead of broken junctions. All 13 projects work after this. Script: scripts/setup-projects.mjs should use this method.",
+      "source": "project-testing-final",
+      "severity": "critical",
+      "tags": [
+        "npm",
+        "pnpm",
+        "monorepo",
+        "windows",
+        "working-solution",
+        "all-projects"
+      ],
+      "id": "kb-mn6ifw0w-5bf70522",
+      "createdAt": "2026-03-25T20:42:55.328Z",
+      "updatedAt": "2026-03-25T20:42:55.328Z",
+      "version": 1
+    }
+  ],
+  "contentHash": "ba73aa3bc87f547d3f01789f3584f0a25b498b357e051ff9cfcaa1440c6af047",
+  "lastUpdated": "2026-03-25T20:42:55.328Z",
+  "schemaVersion": 1
+}

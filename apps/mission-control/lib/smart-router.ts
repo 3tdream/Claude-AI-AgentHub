@@ -27,6 +27,78 @@ export interface RoutingDecision {
   routerModel: string;
 }
 
+// --- Task classification ---
+
+type TaskType = "technical" | "product" | "research" | "mixed";
+
+function classifyTask(input: string): TaskType {
+  const t = input.toLowerCase();
+  const technicalSignals = /\b(endpoint|api|route|component|page|fix|bug|refactor|migrate|update|add.*to|create.*file|implement|deploy|dockerfile|config)\b/i;
+  const researchSignals = /\b(research|market|competitor|analyze|explore|discover|survey|benchmark|compare.*tools|industry)\b/i;
+  const productSignals = /\b(feature|user story|prd|requirements|design|ux|workflow|flow|system.*from scratch|build.*module|new.*product)\b/i;
+
+  const tech = technicalSignals.test(t);
+  const research = researchSignals.test(t);
+  const product = productSignals.test(t);
+
+  if (research && !tech) return "research";
+  if (product && !tech) return "product";
+  if (tech && !product && !research) return "technical";
+  return "mixed";
+}
+
+/**
+ * Smart stage filtering — even in full mode, skip agents that don't match the task.
+ * Maps task type + keywords to stages that should be included.
+ */
+function getRelevantStages(taskInput: string, taskType: TaskType): Set<string> {
+  const t = taskInput.toLowerCase();
+  const skip = new Set<string>();
+
+  // Research — only for NEW products/markets, never for tasks inside existing projects
+  // If task mentions existing project paths, files, or features → skip Research
+  if (taskType === "technical" || taskType === "mixed") {
+    skip.add("s0-research");
+  }
+  // Even for product tasks, skip if it references existing codebase
+  if (/\b(app\/|lib\/|components\/|api\/|page\.|route\.|\.tsx|\.ts|existing|current|our|this project)\b/i.test(t)) {
+    skip.add("s0-research");
+  }
+
+  // Designer — only when UI/design work is needed
+  if (!/\b(ui|design|css|theme|style|component|page|dashboard|layout|mockup|token)\b/i.test(t)) {
+    skip.add("s6-designer");
+  }
+
+  // DevOps — only when infra/deploy/docker is mentioned
+  if (!/\b(deploy|docker|ci|cd|infra|terraform|env|devops|nginx|pm2|build)\b/i.test(t)) {
+    skip.add("s12a-devops");
+  }
+
+  // ERD — only when database/schema/migration is involved
+  if (!/\b(database|db|schema|migration|table|entity|model|postgres|sql|erd)\b/i.test(t)) {
+    skip.add("s3.3-erd");
+  }
+
+  // Cyber — only when security-sensitive
+  if (!/\b(auth|security|jwt|token|password|encrypt|permission|role|rbac|payment|pii|gdpr|compliance|secret)\b/i.test(t)) {
+    skip.add("s4-cyber");
+    skip.add("s10-cyber-audit");
+  }
+
+  // Business QA — skip for pure technical tasks
+  if (taskType === "technical") {
+    skip.add("s9-business-qa");
+  }
+
+  // Consolidation — only for large multi-file outputs
+  if (taskType === "technical") {
+    skip.add("s12b-consolidation");
+  }
+
+  return skip;
+}
+
 // --- Routing prompt ---
 
 const ROUTING_PROMPT = `You are the Orchestrator's task router for a 10-agent AI team.
@@ -108,10 +180,11 @@ function parseRoutingResponse(
 
     const agents: string[] = Array.isArray(data.agents) ? data.agents : [];
 
-    // Map agents to pipeline steps
+    // Map agents to pipeline steps (with task classification for full mode)
     const { selectedStepIds, skippedStepIds } = mapAgentsToSteps(
       agents,
       mode,
+      taskInput,
     );
 
     return {
@@ -134,12 +207,16 @@ function parseRoutingResponse(
 function mapAgentsToSteps(
   agents: string[],
   mode: ExecutionMode,
+  taskInput?: string,
 ): { selectedStepIds: string[]; skippedStepIds: string[] } {
   if (mode === "full") {
-    return {
-      selectedStepIds: CRM_PIPELINE_STAGES.map((s) => s.id),
-      skippedStepIds: [],
-    };
+    const taskType = taskInput ? classifyTask(taskInput) : "mixed";
+    const skipSet = taskInput ? getRelevantStages(taskInput, taskType) : new Set<string>();
+
+    const selected = CRM_PIPELINE_STAGES.filter((s) => !skipSet.has(s.id)).map((s) => s.id);
+    const skipped = CRM_PIPELINE_STAGES.filter((s) => skipSet.has(s.id)).map((s) => s.id);
+
+    return { selectedStepIds: selected, skippedStepIds: skipped };
   }
 
   const modeConf = MODE_CONFIG[mode];

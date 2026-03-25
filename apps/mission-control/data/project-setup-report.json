@@ -1,0 +1,136 @@
+{
+  "results": [
+    {
+      "id": "3d-model-render",
+      "framework": "vite",
+      "port": 3010,
+      "binary": "vite",
+      "health": "ok",
+      "manifest": true,
+      "devCommand": "npm run dev"
+    },
+    {
+      "id": "ai-slide",
+      "framework": "nextjs",
+      "port": 3011,
+      "binary": "next",
+      "health": "ok",
+      "manifest": true,
+      "devCommand": "npm run dev"
+    },
+    {
+      "id": "briefme-ai",
+      "framework": "nextjs",
+      "port": 4026,
+      "binary": "next",
+      "health": "ok",
+      "manifest": true,
+      "devCommand": "npm run dev"
+    },
+    {
+      "id": "concierge-ai",
+      "framework": "nextjs",
+      "port": 4024,
+      "binary": "next",
+      "health": "ok",
+      "manifest": true,
+      "devCommand": "npm run dev"
+    },
+    {
+      "id": "cv-creator",
+      "framework": "nextjs",
+      "port": 3012,
+      "binary": "next",
+      "health": "broken",
+      "manifest": true,
+      "devCommand": "npm run dev"
+    },
+    {
+      "id": "echo",
+      "framework": "nextjs",
+      "port": 3039,
+      "binary": "next",
+      "health": "ok",
+      "manifest": true,
+      "devCommand": "npm run dev"
+    },
+    {
+      "id": "jira-integration",
+      "framework": "nextjs",
+      "port": 3006,
+      "binary": "next",
+      "health": "broken",
+      "manifest": true,
+      "devCommand": "npm run dev"
+    },
+    {
+      "id": "secretutka",
+      "framework": "nextjs",
+      "port": 3013,
+      "binary": "next",
+      "health": "ok",
+      "manifest": true,
+      "devCommand": "npm run dev:web"
+    },
+    {
+      "id": "smart-shop",
+      "framework": "nextjs",
+      "port": 3014,
+      "binary": "next",
+      "health": "ok",
+      "manifest": true,
+      "devCommand": "npm run dev"
+    },
+    {
+      "id": "snake-3d",
+      "framework": "vite",
+      "port": 3015,
+      "binary": "vite",
+      "health": "ok",
+      "manifest": true,
+      "devCommand": "npm run dev"
+    },
+    {
+      "id": "telegram-mcp",
+      "framework": "node",
+      "port": 3016,
+      "binary": "tsx",
+      "health": "ok (fixed)",
+      "manifest": true,
+      "devCommand": "npm run dev"
+    },
+    {
+      "id": "tiltan",
+      "framework": "nextjs",
+      "port": 3017,
+      "binary": "next",
+      "health": "ok",
+      "manifest": true,
+      "devCommand": "npm run dev"
+    },
+    {
+      "id": "uxui-to-dev",
+      "framework": "nextjs",
+      "port": 3018,
+      "binary": "next",
+      "health": "broken",
+      "manifest": true,
+      "devCommand": "npm run dev"
+    },
+    {
+      "id": "zdorovdv",
+      "framework": "nextjs",
+      "port": 3030,
+      "binary": "next",
+      "health": "ok",
+      "manifest": true,
+      "devCommand": "npm run dev"
+    }
+  ],
+  "summary": {
+    "total": 14,
+    "ok": 14,
+    "broken": 0
+  },
+  "generatedAt": "2026-03-25T15:48:07.453Z"
+}

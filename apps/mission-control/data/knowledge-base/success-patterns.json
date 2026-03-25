@@ -1,0 +1,434 @@
+{
+  "category": "success-patterns",
+  "description": "Patterns from high-scoring pipeline stages — what works well",
+  "entries": [
+    {
+      "id": "kb-su-001",
+      "title": "Orchestrator gates are the highest-value stages",
+      "content": "S2.5 PRD Gate (9.5), S4.5 Arch Gate (9.7), S8.5 Tech Review (9.7) consistently score highest. They catch issues before expensive implementation. The cross-referencing pattern (checking every PRD AC against API contracts, ERD, and cyber findings with specific evidence) is the key to quality.",
+      "source": "pipeline-analytics",
+      "severity": "high",
+      "tags": [
+        "orchestrator",
+        "gates",
+        "quality",
+        "cross-referencing"
+      ],
+      "createdAt": "2026-03-22T18:08:55.595Z",
+      "updatedAt": "2026-03-23T20:00:00.000Z",
+      "pipelineRunId": "pipeline-v3-test",
+      "version": 2
+    },
+    {
+      "id": "kb-su-002",
+      "title": "Research agent produces highest-reliability output",
+      "content": "Research (S0) has 70% success rate and 8.0 avg score across 67 runs — the most reliable agent. Key factors: no upstream dependencies, well-structured prompt with explicit sections (personas, competitive matrix, market sizing, key insights), word limit enforced.",
+      "source": "pipeline-analytics",
+      "severity": "medium",
+      "tags": [
+        "research",
+        "reliability",
+        "prompt-design"
+      ],
+      "createdAt": "2026-03-23T20:00:00.000Z",
+      "updatedAt": "2026-03-23T20:00:00.000Z",
+      "pipelineRunId": "analytics-review",
+      "version": 1
+    },
+    {
+      "id": "kb-su-003",
+      "title": "Cyber agent catches non-obvious security issues",
+      "content": "S4 Cyber and S10 Cyber Audit both score 9.4. Standout catches: Roles decorator guard bypass (non-trivial NestJS internals), modulo bias in random generation, HMAC replay window, worker-tier-trust boundary. These would likely be missed in manual review.",
+      "source": "pipeline-analytics",
+      "severity": "medium",
+      "tags": [
+        "cyber",
+        "security",
+        "high-value",
+        "non-obvious"
+      ],
+      "createdAt": "2026-03-22T18:09:15.452Z",
+      "updatedAt": "2026-03-22T18:09:15.452Z",
+      "pipelineRunId": "pipeline-v3-test",
+      "version": 1
+    },
+    {
+      "id": "kb-su-004",
+      "title": "Final Verdict (S11) at 9.8 — model gate evaluation",
+      "content": "Orchestrator final verdict consistently delivers: exact file paths, exact error types, exact AC numbers, exact security classifications, 32-item unresolved issues list categorized by severity, sprint plan with day-by-day priorities and agent assignments. This is the output format all other gates should aspire to.",
+      "source": "s11-final-verdict",
+      "agentId": "orchestrator",
+      "severity": "medium",
+      "tags": [
+        "orchestrator",
+        "verdict",
+        "output-quality",
+        "benchmark"
+      ],
+      "createdAt": "2026-03-22T18:09:26.724Z",
+      "updatedAt": "2026-03-22T18:09:26.724Z",
+      "pipelineRunId": "pipeline-v3-test",
+      "version": 1
+    },
+    {
+      "id": "kb-su-005",
+      "title": "Consolidation agent achieves 100% success rate",
+      "content": "S12 Consolidation: 3 runs, avg score 10.0, 100% success. Small scope (merge outputs, no generation) + clear contract = perfect reliability. Lesson: agents with narrow, well-defined roles outperform broad ones.",
+      "source": "pipeline-analytics",
+      "severity": "medium",
+      "tags": [
+        "consolidation",
+        "narrow-scope",
+        "reliability",
+        "100-percent"
+      ],
+      "createdAt": "2026-03-23T20:00:00.000Z",
+      "updatedAt": "2026-03-23T20:00:00.000Z",
+      "pipelineRunId": "analytics-review",
+      "version": 1
+    },
+    {
+      "id": "kb-su-006",
+      "title": "Designer + Frontend paired delivery achieves 10/10 consistency",
+      "content": "When Designer (S6) and Frontend (S7) run as tight pair on same PRD, both score 10/10. Example: run 165aef87 — Designer 5.3K tokens/78s, Frontend 1.1K tokens/22s. Lesson: spatial proximity in PRD + tight handoff ceremony between design and frontend improves both outputs.",
+      "source": "pipeline-analytics",
+      "severity": "medium",
+      "tags": [
+        "designer-frontend-pairing",
+        "coordinated-output",
+        "token-efficiency"
+      ],
+      "createdAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "pipelineRunId": "analytics-review",
+      "version": 1
+    },
+    {
+      "id": "kb-su-007",
+      "title": "ADR with concrete technology names scores 1.0+ points higher",
+      "content": "S3.1 ADR: 8.8 score. Every choice includes exact tech (AWS SQS FIFO, PostgreSQL 15, Redis/Upstash, NestJS, ECS Fargate) + specific queue name + migration details. Generic ADRs ('use relational DB') fail because downstream agents can't implement. Lesson: vendor, version, and tier specificity drives quality.",
+      "source": "s3.1-adr",
+      "agentId": "architect-agent",
+      "severity": "medium",
+      "tags": [
+        "adr",
+        "technology-specificity",
+        "concrete-choices",
+        "implementability"
+      ],
+      "createdAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "pipelineRunId": "pipeline-v3-test",
+      "version": 1
+    },
+    {
+      "id": "kb-su-008",
+      "title": "Cyber audit value comes from deep domain knowledge + exact code references",
+      "content": "S10 Cyber Audit: 9.4 score, 19 findings. Standout: exact file paths (src/auth/hmac.guard.ts), code evidence, working fix with corrected code. Finding 3 (Roles decorator bypass) is non-trivial NestJS internals — missed in manual review. Lesson: cyber value = deep domain + exact references, not generic OWASP checklists.",
+      "source": "s10-cyber-audit",
+      "agentId": "cyber-agent",
+      "severity": "medium",
+      "tags": [
+        "cyber",
+        "specificity",
+        "exact-paths",
+        "code-evidence",
+        "non-obvious-findings"
+      ],
+      "createdAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "pipelineRunId": "pipeline-v3-test",
+      "version": 1
+    },
+    {
+      "id": "kb-su-009",
+      "title": "Fileplan with numbered migrations + full file enumeration scores 9.4",
+      "content": "S3.4 Fileplan: 9.4 score. Success: migrations numbered sequentially (001, 002...) with exact table names, NestJS module lists every file (module/controller/service/repository/dto). Generic file plans score 7-8. Lesson: numbered sequences + exhaustive enumeration > high-level summaries.",
+      "source": "s3.4-fileplan",
+      "agentId": "architect-agent",
+      "severity": "medium",
+      "tags": [
+        "fileplan",
+        "numbered-sequences",
+        "concrete-paths",
+        "completeness"
+      ],
+      "createdAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "pipelineRunId": "pipeline-v3-test",
+      "version": 1
+    },
+    {
+      "id": "kb-su-010",
+      "title": "DevOps breadth across all infra layers = 9.4 score",
+      "content": "S12A DevOps: 9.4 score. Coverage: .env.example (40+ vars), multi-stage Dockerfiles, CI/CD pipelines, Terraform (SQS/RDS/ElastiCache/IAM), ECS task definition, JWT rotation script. Success = covering ALL infrastructure layers in one coherent output.",
+      "source": "s12a-devops",
+      "agentId": "devops-agent",
+      "severity": "medium",
+      "tags": [
+        "devops",
+        "infrastructure-completeness",
+        "multi-stage",
+        "terraform",
+        "cicd"
+      ],
+      "createdAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "pipelineRunId": "pipeline-v3-test",
+      "version": 1
+    },
+    {
+      "id": "kb-su-011",
+      "title": "Token/duration ratio reveals agent efficiency — monitor for anomalies",
+      "content": "Token efficiency: Frontend 0.64 tok/s (high), Backend 2.4 tok/s (cache hits), QA 0.15 tok/s (pathological — timeouts). High tokens + short duration = cache hit. Low throughput = stalled process. Monitor this ratio per agent; anomalies indicate issues.",
+      "source": "pipeline-analytics",
+      "severity": "medium",
+      "tags": [
+        "token-efficiency",
+        "duration-anomaly",
+        "throughput",
+        "performance"
+      ],
+      "createdAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "pipelineRunId": "analytics-review",
+      "version": 1
+    },
+    {
+      "title": "pm consistently scores 10.0/10",
+      "content": "Agent pm scored 9+ in 7 recent completed runs. Average: 10.0. This agent's prompt and configuration are working well.",
+      "source": "nightly-evolution",
+      "agentId": "pm",
+      "severity": "medium",
+      "tags": [
+        "auto-detected",
+        "consistent-success",
+        "pm"
+      ],
+      "pipelineRunId": "fe6bc195-9ab2-4591-8ead-db3b5233bc5c",
+      "id": "kb-mn5997dc-88f474e1",
+      "createdAt": "2026-03-24T23:38:00.720Z",
+      "updatedAt": "2026-03-24T23:38:00.720Z",
+      "version": 1
+    },
+    {
+      "title": "architect consistently scores 9.9/10",
+      "content": "Agent architect scored 9+ in 10 recent completed runs. Average: 9.9. This agent's prompt and configuration are working well.",
+      "source": "nightly-evolution",
+      "agentId": "architect",
+      "severity": "medium",
+      "tags": [
+        "auto-detected",
+        "consistent-success",
+        "architect"
+      ],
+      "pipelineRunId": "fe6bc195-9ab2-4591-8ead-db3b5233bc5c",
+      "id": "kb-mn5997en-78da3e43",
+      "createdAt": "2026-03-24T23:38:00.767Z",
+      "updatedAt": "2026-03-24T23:38:00.767Z",
+      "version": 1
+    },
+    {
+      "title": "frontend consistently scores 10.0/10",
+      "content": "Agent frontend scored 9+ in 11 recent completed runs. Average: 10.0. This agent's prompt and configuration are working well.",
+      "source": "nightly-evolution",
+      "agentId": "frontend",
+      "severity": "medium",
+      "tags": [
+        "auto-detected",
+        "consistent-success",
+        "frontend"
+      ],
+      "pipelineRunId": "fe6bc195-9ab2-4591-8ead-db3b5233bc5c",
+      "id": "kb-mn5997fu-b70b0913",
+      "createdAt": "2026-03-24T23:38:00.810Z",
+      "updatedAt": "2026-03-24T23:38:00.810Z",
+      "version": 1
+    },
+    {
+      "title": "designer consistently scores 10.0/10",
+      "content": "Agent designer scored 9+ in 2 recent completed runs. Average: 10.0. This agent's prompt and configuration are working well.",
+      "source": "nightly-evolution",
+      "agentId": "designer",
+      "severity": "medium",
+      "tags": [
+        "auto-detected",
+        "consistent-success",
+        "designer"
+      ],
+      "pipelineRunId": "fe6bc195-9ab2-4591-8ead-db3b5233bc5c",
+      "id": "kb-mn5997h5-f4d36d3f",
+      "createdAt": "2026-03-24T23:38:00.857Z",
+      "updatedAt": "2026-03-24T23:38:00.857Z",
+      "version": 1
+    },
+    {
+      "title": "orchestrator consistently scores 10.0/10",
+      "content": "Agent orchestrator scored 9+ in 2 recent completed runs. Average: 10.0. This agent's prompt and configuration are working well.",
+      "source": "nightly-evolution",
+      "agentId": "orchestrator",
+      "severity": "medium",
+      "tags": [
+        "auto-detected",
+        "consistent-success",
+        "orchestrator"
+      ],
+      "pipelineRunId": "823256db-52b3-4914-96fa-e78ca14c2497",
+      "id": "kb-mn5997hu-3be84016",
+      "createdAt": "2026-03-24T23:38:00.882Z",
+      "updatedAt": "2026-03-24T23:38:00.882Z",
+      "version": 1
+    },
+    {
+      "title": "consolidation consistently scores 10.0/10",
+      "content": "Agent consolidation scored 9+ in 2 recent completed runs. Average: 10.0. This agent's prompt and configuration are working well.",
+      "source": "nightly-evolution",
+      "agentId": "consolidation",
+      "severity": "medium",
+      "tags": [
+        "auto-detected",
+        "consistent-success",
+        "consolidation"
+      ],
+      "pipelineRunId": "823256db-52b3-4914-96fa-e78ca14c2497",
+      "id": "kb-mn5997j2-99aa97eb",
+      "createdAt": "2026-03-24T23:38:00.926Z",
+      "updatedAt": "2026-03-24T23:38:00.926Z",
+      "version": 1
+    },
+    {
+      "title": "backend consistently scores 9.9/10",
+      "content": "Agent backend scored 9+ in 7 recent completed runs. Average: 9.9. This agent's prompt and configuration are working well.",
+      "source": "nightly-evolution",
+      "agentId": "backend",
+      "severity": "medium",
+      "tags": [
+        "auto-detected",
+        "consistent-success",
+        "backend"
+      ],
+      "pipelineRunId": "19f70d95-d307-4d61-8d96-4e358e87b479",
+      "id": "kb-mn5997k2-4d6905b6",
+      "createdAt": "2026-03-24T23:38:00.962Z",
+      "updatedAt": "2026-03-24T23:38:00.962Z",
+      "version": 1
+    },
+    {
+      "title": "cyber consistently scores 10.0/10",
+      "content": "Agent cyber scored 9+ in 3 recent completed runs. Average: 10.0. This agent's prompt and configuration are working well.",
+      "source": "nightly-evolution",
+      "agentId": "cyber",
+      "severity": "medium",
+      "tags": [
+        "auto-detected",
+        "consistent-success",
+        "cyber"
+      ],
+      "pipelineRunId": "813ce0f0-67d2-42d8-b642-da32bd08974d",
+      "id": "kb-mn5997l2-fe05426e",
+      "createdAt": "2026-03-24T23:38:00.998Z",
+      "updatedAt": "2026-03-24T23:38:00.998Z",
+      "version": 1
+    },
+    {
+      "title": "cyber-audit consistently scores 10.0/10",
+      "content": "Agent cyber-audit scored 9+ in 3 recent completed runs. Average: 10.0. This agent's prompt and configuration are working well.",
+      "source": "nightly-evolution",
+      "agentId": "cyber-audit",
+      "severity": "medium",
+      "tags": [
+        "auto-detected",
+        "consistent-success",
+        "cyber-audit"
+      ],
+      "pipelineRunId": "813ce0f0-67d2-42d8-b642-da32bd08974d",
+      "id": "kb-mn5997m4-9fcc3772",
+      "createdAt": "2026-03-24T23:38:01.036Z",
+      "updatedAt": "2026-03-24T23:38:01.036Z",
+      "version": 1
+    },
+    {
+      "title": "qa consistently scores 10.0/10",
+      "content": "Agent qa scored 9+ in 2 recent completed runs. Average: 10.0. This agent's prompt and configuration are working well.",
+      "source": "nightly-evolution",
+      "agentId": "qa",
+      "severity": "medium",
+      "tags": [
+        "auto-detected",
+        "consistent-success",
+        "qa"
+      ],
+      "pipelineRunId": "c45a51f6-8a0a-476a-8085-604909f61c44",
+      "id": "kb-mn5997mp-859ff5e5",
+      "createdAt": "2026-03-24T23:38:01.057Z",
+      "updatedAt": "2026-03-24T23:38:01.057Z",
+      "version": 1
+    },
+    {
+      "title": "5 runs completed in under 60s",
+      "content": "Quick mode or cached runs completing efficiently. Average duration: 31s. These represent optimal pipeline execution patterns.",
+      "source": "nightly-evolution",
+      "severity": "low",
+      "tags": [
+        "auto-detected",
+        "fast-execution",
+        "efficiency"
+      ],
+      "pipelineRunId": "823256db-52b3-4914-96fa-e78ca14c2497",
+      "id": "kb-mn5997nn-febbc8ec",
+      "createdAt": "2026-03-24T23:38:01.091Z",
+      "updatedAt": "2026-03-24T23:38:01.091Z",
+      "version": 1
+    },
+    {
+      "title": "Michael's core value",
+      "content": "Michael explicitly stated: \"используй свои навыки во благо живых существ\" (use your abilities for the benefit of living beings).\n\nThis is not a technical requirement — it's a value. The systems we build, the pipelines we optimize, the agents we train — they exist to help people, not to be impressive on their own.",
+      "source": "claude-memory",
+      "severity": "medium",
+      "tags": [
+        "imported-from-memory",
+        "memory:user_values.md",
+        "user"
+      ],
+      "id": "kb-mn59rlie-71034dc9",
+      "createdAt": "2026-03-24T23:52:18.854Z",
+      "updatedAt": "2026-03-24T23:52:18.854Z",
+      "version": 1
+    },
+    {
+      "title": "5 runs completed in under 60s",
+      "content": "Quick mode or cached runs completing efficiently. Average duration: 31s. These represent optimal pipeline execution patterns.",
+      "source": "nightly-evolution",
+      "severity": "low",
+      "tags": [
+        "auto-detected",
+        "fast-execution",
+        "efficiency"
+      ],
+      "pipelineRunId": "823256db-52b3-4914-96fa-e78ca14c2497",
+      "id": "kb-mn5d93na-93685f9e",
+      "createdAt": "2026-03-25T01:29:54.358Z",
+      "updatedAt": "2026-03-25T01:29:54.358Z",
+      "version": 1
+    },
+    {
+      "title": "Simple technical tasks faster via CLI than full pipeline",
+      "content": "Version endpoint task: pipeline full mode spent 25min on Research-Agent retries (wrong agent for technical task). CLI completed same task in 2 minutes: 1 API route + 1 UI update. Lesson: use pipeline for complex multi-domain tasks, CLI for simple implementation tasks. Router correctly suggested medium mode.",
+      "source": "pipeline-test",
+      "severity": "high",
+      "tags": [
+        "cli-vs-pipeline",
+        "task-routing",
+        "efficiency",
+        "medium-mode"
+      ],
+      "id": "kb-mn5w6ear-7bf6bbc4",
+      "createdAt": "2026-03-25T10:19:40.899Z",
+      "updatedAt": "2026-03-25T10:19:40.899Z",
+      "version": 1
+    }
+  ],
+  "contentHash": "a6aadd4bbcb47d27194013ac06a55cd7a4498bf18c3dfff119a58f040baf372f",
+  "lastUpdated": "2026-03-25T10:19:40.899Z",
+  "schemaVersion": 1
+}
