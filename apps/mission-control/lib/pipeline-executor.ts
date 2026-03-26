@@ -8,6 +8,8 @@ import { isTruncationFailure, continueOutput } from "@/lib/output-continuation";
 import { getContractPromptBlock, validateStageOutput, fetchKBEntriesForContracts } from "@/lib/stage-contracts";
 import { buildAgentKBContext } from "@/lib/kb-agent-context";
 import { logActivity } from "@/lib/stores/activity-store";
+import { loadProjectContext } from "@/lib/project-context-loader";
+import { investigateFailure } from "@/lib/failure-investigator";
 import type { RoutingDecisionData } from "@/types";
 // Analytics storage accessed via API (can't import fs in client-side code)
 
@@ -76,6 +78,28 @@ export async function executePipeline(
         type: "system",
         content: `Warning: Failed to load project context for "${selectedProject}" — agents will run without project context`,
       }).catch(() => {});
+    }
+  }
+
+  // --- Load cross-project context (when pipeline targets another project) ---
+  let crossProjectContext: { promptBlock: string; projectPath: string } | null = null;
+  if (selectedProject && selectedProject !== "mission-control") {
+    try {
+      const ctx = await (await fetch(`/api/projects/context/load?projectId=${encodeURIComponent(selectedProject)}`)).json();
+      if (ctx?.data) {
+        crossProjectContext = ctx.data;
+        postLog({
+          type: "system",
+          content: `Cross-project context loaded: ${selectedProject} (${ctx.data.framework}, ${ctx.data.stack?.join(", ")})`,
+        }).catch(() => {});
+        logActivity("system", `Project context: ${selectedProject}`, ctx.data.framework);
+      }
+    } catch {
+      // Fallback: build path manually
+      crossProjectContext = {
+        promptBlock: `\n═══ PROJECT CONTEXT ═══\nPROJECT: ${selectedProject}\nAll file operations execute in this project's directory.\n═══ END ═══`,
+        projectPath: ``,
+      };
     }
   }
 
@@ -286,6 +310,11 @@ export async function executePipeline(
     let currentPrompt = buildPrompt(step, input, context, projectContext, routingDecision?.mode, kbEntries);
     const model = step.metadata?.model || "unknown";
 
+    // Inject cross-project context (when targeting another project)
+    if (crossProjectContext?.promptBlock) {
+      currentPrompt = crossProjectContext.promptBlock + "\n\n" + currentPrompt;
+    }
+
     // Inject agent learning context (past performance stats + recent runs)
     try {
       // Analytics stores short IDs (architect, backend) not full (architect-agent)
@@ -428,18 +457,41 @@ export async function executePipeline(
         if (implAgents.includes(step.agentId)) {
           const madeEdit = data.toolCalls?.some((tc: any) => tc.name === "edit_file" || tc.name === "create_file");
           if (!madeEdit) {
+            // ── Failure Investigation: analyze WHY before deciding to retry or escalate ──
+            const investigation = investigateFailure(
+              step.id, step.agentId,
+              { status: "failed", output: agentOutput, error: "no edits", toolCalls: data.toolCalls, toolCallCount: data.toolCallCount },
+              undefined,
+              crossProjectContext?.projectPath || selectedProject || undefined,
+              kbEntries,
+            );
+
+            logActivity("system", `Investigation: ${step.id} — ${investigation.category}`, investigation.diagnosis.substring(0, 80));
+            postLog({ type: "system", agentId: step.agentId, agentName: step.agentName,
+              content: `INVESTIGATION [${step.id}]: ${investigation.category} — ${investigation.diagnosis}`,
+            }).catch(() => {});
+
+            // If fixable and retries left → retry with corrective instructions
+            if (investigation.shouldRetry && retryCount < MAX_RETRIES) {
+              postLog({ type: "system", agentId: step.agentId, agentName: step.agentName,
+                content: `RETRY after investigation: ${investigation.correction.substring(0, 100)}`,
+              }).catch(() => {});
+              currentPrompt = investigation.correction + "\n\n" + currentPrompt;
+              retryCount++;
+              lastFeedback = investigation.diagnosis;
+              continue;
+            }
+
+            // Not fixable or max retries → escalate
             execution.stepResults[step.id] = {
               stepId: step.id, status: "failed",
               output: agentOutput.substring(0, 20000),
-              error: `Implementation agent did not call edit_file or create_file. TaskCompletion = 0. Escalated.`,
+              error: `Investigation: ${investigation.diagnosis}. Category: ${investigation.category}. Escalated after ${retryCount} retries.`,
               completedAt: new Date().toISOString(),
               retryCount, escalated: true, ...stepAnalytics,
             };
             execution.escalatedSteps = [...(execution.escalatedSteps || []), step.id];
             callbacks.onUpdate({ ...execution });
-            postLog({ type: "system", agentId: step.agentId, agentName: step.agentName,
-              content: `ESCALATION: ${step.agentName} did not make any edits after ${data.toolCallCount || 0} tool calls — stuck in read loop`,
-            }).catch(() => {});
             completed.add(step.id);
             return false;
           }
