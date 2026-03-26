@@ -2,8 +2,8 @@ module.exports = {
   apps: [
     {
       name: "mission-control",
-      script: "node_modules/next/dist/bin/next",
-      args: "dev -p 3077",
+      script: "node_modules/.bin/next",
+      args: "dev --turbopack -p 3077",
       cwd: __dirname,
       autorestart: true,
       watch: false,

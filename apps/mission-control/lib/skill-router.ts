@@ -281,6 +281,29 @@ function scoreSkill(
     }
   }
 
+  // 10. Narrow task detection — "fix X", "change Y", "update Z" = 1-2 skills max
+  // Check against ALL keywords + scope (scope = "implementation" for fix tasks)
+  const allKeywords = [...task.keywords, task.scope, task.complexity].join(" ");
+  const isNarrowFix = task.complexity === "low" && task.domains.length <= 2;
+  if (isNarrowFix) {
+    // Heavily penalize builder/scaffold/broad skills for narrow fixes
+    if (["form-builder", "table-builder", "dashboard-builder", "api-scaffold", "db-schema", "db-migration", "seed-data", "animation"].includes(skill.id)) {
+      score -= 20;
+      reasons.push("narrow fix — builder not needed");
+    }
+    // Penalize support skills that aren't directly keyword-matched
+    if (skill.defaultRole === "support" && !skillInInput) {
+      score -= 10;
+    }
+  }
+
+  // 11. Single-file task — if input mentions a specific file, only direct skills needed
+  const mentionsFile = /\.(tsx|ts|css|json|js)\b/.test(task.keywords.join(" ") || "");
+  if (mentionsFile && task.complexity === "low" && skill.defaultRole === "support" && !skillInInput) {
+    score -= 8;
+    reasons.push("single-file task");
+  }
+
   return { score, reasons };
 }
 
@@ -378,7 +401,8 @@ export function routeSkills(
   });
 
   // 3.5. Filter out low scores (noise reduction)
-  const MIN_SCORE = 20;
+  // Dynamic threshold: simple tasks need higher quality matches
+  const MIN_SCORE = task.complexity === "low" && task.domains.length <= 2 ? 35 : 20;
   const viable = scored.filter((s) => s.score >= MIN_SCORE);
   const belowThreshold = scored.filter((s) => s.score < MIN_SCORE);
 
