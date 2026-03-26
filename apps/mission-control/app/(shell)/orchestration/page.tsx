@@ -14,8 +14,18 @@ import { RoutingDecisionPanel } from "@/components/orchestration/routing-decisio
 import { SlotBar } from "@/components/orchestration/slot-bar";
 import { TemplateLibrary } from "@/components/orchestration/template-library";
 import { RecruitmentCenter } from "@/components/orchestration/recruitment-center";
+import { ContractsTab } from "@/components/orchestration/contracts-tab";
+import { AnalyticsTab } from "@/components/orchestration/analytics-tab";
 import type { Workflow, PipelineExecution, RoutingDecisionData, ExecutionMode, AgentCatalogEntry, WorkflowSlot } from "@/types";
 import { logActivity } from "@/lib/stores/activity-store";
+
+type OrchestrationTab = "pipeline" | "contracts" | "analytics";
+
+const ORCHESTRATION_TABS: { id: OrchestrationTab; label: string }[] = [
+  { id: "pipeline", label: "Pipeline" },
+  { id: "contracts", label: "Contracts" },
+  { id: "analytics", label: "Analytics" },
+];
 
 /** Model pricing per 1M tokens (USD) */
 const MODEL_PRICING: Record<string, { input: number; output: number }> = {
@@ -89,6 +99,7 @@ export default function OrchestrationPage() {
     // V2: Core pipelines
     corePipelines, setCorePipeline, clearCorePipeline,
   } = useOrchestrationStore();
+  const [activeTab, setActiveTab] = useState<OrchestrationTab>("pipeline");
   const [input, setInput] = useState("");
   const [routingDecision, setRoutingDecision] = useState<RoutingDecisionData | null>(null);
   const [isRouting, setIsRouting] = useState(false);
@@ -584,16 +595,43 @@ export default function OrchestrationPage() {
             </p>
           </div>
         </div>
-        <SlotBar
-          slots={slots ?? EMPTY_SLOTS}
-          activeSlotIndex={activeSlotIndex ?? 0}
-          onSelectSlot={setActiveSlot}
-          onClearSlot={clearSlot}
-          onAddToSlot={handleSlotAdd}
-        />
+        {activeTab === "pipeline" && (
+          <SlotBar
+            slots={slots ?? EMPTY_SLOTS}
+            activeSlotIndex={activeSlotIndex ?? 0}
+            onSelectSlot={setActiveSlot}
+            onClearSlot={clearSlot}
+            onAddToSlot={handleSlotAdd}
+          />
+        )}
       </div>
 
-      <div className="flex gap-3 h-[calc(100vh-11rem)]">
+      {/* Tab bar */}
+      <div className="flex items-center gap-1 border-b border-border">
+        {ORCHESTRATION_TABS.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`px-3 py-1.5 font-mono text-xs transition-colors border-b-2 -mb-px ${
+              activeTab === tab.id
+                ? "text-primary border-primary font-semibold"
+                : "text-muted-foreground border-transparent hover:text-foreground hover:border-muted-foreground/30"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Contracts tab */}
+      {activeTab === "contracts" && <ContractsTab />}
+
+      {/* Analytics tab */}
+      {activeTab === "analytics" && <AnalyticsTab />}
+
+      {/* Pipeline tab */}
+      {activeTab === "pipeline" && (<>
+      <div className="flex gap-3 h-[calc(100vh-14rem)]">
         {/* Template Library sidebar */}
         <TemplateLibrary
           workflows={workflows}
@@ -1157,6 +1195,7 @@ export default function OrchestrationPage() {
           </div>
         </div>
       )}
+      </>)}
 
       {/* Discard Feedback Dialog */}
       {discardTarget && (
