@@ -78,7 +78,7 @@ export default function KnowledgePage() {
   const categoryUrl = selectedCategory
     ? buildUrl("/api/knowledge-base", { category: selectedCategory, ...scopeParams })
     : null;
-  const { data: categoryData } = useSWR<{ data: KBFile }>(
+  const { data: categoryData } = useSWR<{ data: KBFile | { project: KBFile | null; global: KBFile | null }; scope?: string }>(
     categoryUrl,
     fetcher,
     { revalidateOnFocus: false },
@@ -94,10 +94,28 @@ export default function KnowledgePage() {
     { revalidateOnFocus: false },
   );
 
-  const index = indexData?.data;
+  // Handle project+global index shape vs plain global index
+  const rawIndex = indexData?.data;
+  const index = (rawIndex && "global" in rawIndex) ? (rawIndex as any).global as KBIndex : rawIndex as KBIndex | undefined;
+
+  // Handle project+global category shape: merge both entry arrays
   const entries = searchQuery.length >= 2
     ? searchData?.data || []
-    : categoryData?.data?.entries || [];
+    : (() => {
+        const cd = categoryData?.data;
+        if (!cd) return [];
+        if (cd && "project" in cd) {
+          // project+global shape
+          const projectEntries = ((cd as any).project as KBFile | null)?.entries || [];
+          const globalEntries = ((cd as any).global as KBFile | null)?.entries || [];
+          const seenIds = new Set(projectEntries.map((e: KBEntry) => e.id));
+          return [
+            ...projectEntries.map((e: KBEntry) => ({ ...e, _layer: "project" })),
+            ...globalEntries.filter((e: KBEntry) => !seenIds.has(e.id)).map((e: KBEntry) => ({ ...e, _layer: "global" })),
+          ];
+        }
+        return (cd as KBFile)?.entries || [];
+      })();
 
   const handleValidate = async () => {
     await fetch("/api/knowledge-base/validate");

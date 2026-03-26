@@ -87,6 +87,23 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ data: file, scope: "global" });
   }
 
+  // Project-scoped index: return project categories + global index
+  if (projectId && scope === "project") {
+    const globalIndex = await validateAll();
+    const { getProjectCategories, readProjectKBFile } = await import("@/lib/kb-multi-project");
+    const projectCats = await getProjectCategories(projectId);
+    let projectEntryCount = 0;
+    for (const cat of projectCats) {
+      const file = await readProjectKBFile(projectId, cat);
+      if (file) projectEntryCount += file.entries.length;
+    }
+    return NextResponse.json({
+      data: { project: { categories: projectCats, entries: projectEntryCount }, global: globalIndex },
+      scope: "project+global",
+      projectId,
+    });
+  }
+
   // Full index with validation
   const index = await validateAll();
   return NextResponse.json({ data: index, scope: "global" });

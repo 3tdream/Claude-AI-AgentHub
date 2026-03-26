@@ -9,12 +9,14 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get("startDate") || "";
     const endDate = searchParams.get("endDate") || "";
     const provider = searchParams.get("provider") || "";
+    const projectId = searchParams.get("projectId") || "";
 
     let url = "/costs/summary";
     const params = new URLSearchParams();
     if (startDate) params.set("startDate", startDate);
     if (endDate) params.set("endDate", endDate);
     if (provider) params.set("provider", provider);
+    if (projectId) params.set("projectId", projectId);
     const qs = params.toString();
     if (qs) url += `?${qs}`;
 

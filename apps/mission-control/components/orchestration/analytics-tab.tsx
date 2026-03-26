@@ -447,7 +447,7 @@ export function AnalyticsTab() {
                   </tr>
                 </thead>
                 <tbody>
-                  {executionHistory.slice(0, 15).map((exec) => {
+                  {executionHistory.slice(0, 15).map((exec, idx) => {
                     const scores = exec.qualityScores ? Object.values(exec.qualityScores) : [];
                     const avg = avgScore(scores);
                     const stageCount = Object.keys(exec.stepResults).length;
@@ -456,7 +456,7 @@ export function AnalyticsTab() {
                     ).length;
 
                     return (
-                      <tr key={exec.id} className="border-b border-border/50 last:border-0">
+                      <tr key={`${exec.id}-${idx}`} className="border-b border-border/50 last:border-0">
                         <td className="py-3 pr-4">
                           <span className="font-medium">{exec.workflowName}</span>
                           <br />
