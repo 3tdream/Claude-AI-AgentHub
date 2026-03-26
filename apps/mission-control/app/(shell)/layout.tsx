@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Sidebar } from "@/components/shell/sidebar";
 import { Topbar } from "@/components/shell/topbar";
 import { CommandPalette } from "@/components/shell/command-palette";
 import { ThemeProvider } from "@/components/shell/theme-provider";
 import { DynamicToaster } from "@/components/shell/dynamic-toaster";
 import { ActivitySidebar } from "@/components/shell/activity-sidebar";
+import { QuickEdit } from "@/components/shell/quick-edit";
 import { useAppStore } from "@/lib/stores/app-store";
 import { useActivityStore } from "@/lib/stores/activity-store";
 import { useOrchestrationStore } from "@/lib/stores/orchestration-store";
@@ -32,6 +33,19 @@ export default function ShellLayout({
 }) {
   const { sidebarCollapsed } = useAppStore();
   const activityVisible = useActivityStore((s) => s.visible);
+  const [quickEditOpen, setQuickEditOpen] = useState(false);
+
+  // Keyboard shortcut: Ctrl+Shift+E → Quick Edit
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "E") {
+        e.preventDefault();
+        setQuickEditOpen((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   return (
     <ThemeProvider>
@@ -40,6 +54,7 @@ export default function ShellLayout({
         <CommandPalette />
         <ActivitySidebar />
         <ProjectSync />
+        <QuickEdit open={quickEditOpen} onClose={() => setQuickEditOpen(false)} />
         <div
           className={cn(
             "transition-all duration-300",

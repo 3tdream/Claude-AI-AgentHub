@@ -203,8 +203,7 @@ export async function discoverProjects(): Promise<DiscoveredProject[]> {
   for (const dirName of entries) {
     const projectPath = path.join(APPS_DIR, dirName);
 
-    // Skip mission-control itself
-    if (dirName === "mission-control") continue;
+    // Include mission-control as a project (pipeline can target itself)
 
     // Try manifest first
     let manifest: ProjectManifest | null = null;

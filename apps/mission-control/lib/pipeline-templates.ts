@@ -1062,7 +1062,7 @@ MAX 4000 words. If you reach 3600 words (90%), stop and finalize.`,
 ];
 
 export const CRM_PIPELINE_TEMPLATE = {
-  name: "Beauty CRM Full Pipeline",
+  name: "MC Pipeline",
   description: "19-stage pipeline with 4 Orchestrator Gates: S0-S2 Planning → S2.5 PRD Gate → S3.1-3.4 Architecture → S4 Cyber → S4.5 Arch Gate → S5-S7 Implementation → S8 Tech QA → S8.5 Tech Gate → S9 Business QA → S10 Cyber Audit → S11 Final Verdict → S12 DevOps + Consolidation",
   steps: CRM_PIPELINE_STAGES,
 };

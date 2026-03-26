@@ -118,12 +118,15 @@ export default function OrchestrationPage() {
   const [showRecruitment, setShowRecruitment] = useState(false);
   const [insertPosition, setInsertPosition] = useState<number | null>(null);
 
-  // Available projects for context injection
+  // Available projects for context injection (from discovery API)
   const [availableProjects, setAvailableProjects] = useState<string[]>([]);
   useEffect(() => {
-    fetch("/api/projects/list")
+    fetch("/api/projects/discover")
       .then((r) => r.json())
-      .then((d) => setAvailableProjects(d.projects || []))
+      .then((d) => {
+        const ids = (d.data || []).map((p: { id: string }) => p.id);
+        setAvailableProjects(ids);
+      })
       .catch(() => {});
   }, []);
 
@@ -389,7 +392,13 @@ export default function OrchestrationPage() {
     checkpointStatusRef.current = { approved: false, rejected: false };
 
     // Filter steps based on routing decision
-    const steps = filterStepsForRouting(selectedWorkflow.steps, routingDecision);
+    let steps = filterStepsForRouting(selectedWorkflow.steps, routingDecision);
+
+    // Safety: if filtering removed all steps, fallback to full pipeline
+    if (steps.length === 0) {
+      console.warn("[orchestration] Router returned 0 steps — falling back to full pipeline");
+      steps = [...selectedWorkflow.steps];
+    }
 
     const result = await executePipeline(
       steps,
