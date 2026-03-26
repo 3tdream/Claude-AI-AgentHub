@@ -11,6 +11,68 @@ import { promisify } from "util";
 const execAsync = promisify(exec);
 const PROJECT_ROOT = process.cwd();
 
+/**
+ * Quick syntax check after edit/create.
+ * For .ts/.tsx: checks basic syntax (unterminated strings, unmatched braces).
+ * Returns null if OK, error string if broken.
+ */
+async function quickSyntaxCheck(filePath: string): Promise<string | null> {
+  const ext = path.extname(filePath);
+  if (![".ts", ".tsx", ".js", ".jsx"].includes(ext)) return null;
+
+  try {
+    const content = await fs.readFile(filePath, "utf-8");
+
+    // Check 1: Unterminated string literals (basic heuristic)
+    const lines = content.split("\n");
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      // Skip comment lines
+      if (line.trimStart().startsWith("//") || line.trimStart().startsWith("*")) continue;
+      // Count unescaped quotes
+      const singleQuotes = (line.match(/(?<!\\)'/g) || []).length;
+      const doubleQuotes = (line.match(/(?<!\\)"/g) || []).length;
+      const backticks = (line.match(/(?<!\\)`/g) || []).length;
+      // Odd number of quotes on a line (excluding template literals which can span lines)
+      if (singleQuotes % 2 !== 0 && !line.includes("`")) {
+        // Check it's not a line continuation
+        const nextLine = lines[i + 1] || "";
+        if (!nextLine.trimStart().startsWith("import") && !nextLine.trimStart().startsWith("export")) continue;
+        return `Line ${i + 1}: possible unterminated string (odd single quotes)`;
+      }
+    }
+
+    // Check 2: Import inside non-import block (agent inserted code between imports)
+    let pastImports = false;
+    for (let i = 0; i < lines.length; i++) {
+      const trimmed = lines[i].trimStart();
+      if (trimmed.startsWith("import ") && pastImports) {
+        // Import after non-import code — likely corrupted
+        // Allow: dynamic imports, type imports after code are OK in some patterns
+        if (!trimmed.includes("import(") && !trimmed.includes("import type")) {
+          return `Line ${i + 1}: import statement found after code block — file may be corrupted`;
+        }
+      }
+      if (trimmed && !trimmed.startsWith("import ") && !trimmed.startsWith("//") && !trimmed.startsWith("'use ") && !trimmed.startsWith('"use ') && trimmed !== "" && !trimmed.startsWith("*") && !trimmed.startsWith("/*")) {
+        pastImports = true;
+      }
+    }
+
+    // Check 3: Brace balance
+    let braces = 0;
+    for (const char of content) {
+      if (char === "{") braces++;
+      if (char === "}") braces--;
+      if (braces < 0) return "Unmatched closing brace }";
+    }
+    if (braces > 2) return `${braces} unclosed braces { — likely truncated or corrupted`;
+
+    return null; // OK
+  } catch {
+    return null; // Can't read file, skip check
+  }
+}
+
 // --- Tool definitions for Anthropic API ---
 
 export const AGENT_TOOLS = [
@@ -261,6 +323,13 @@ export async function executeTool(
         await fs.mkdir(path.dirname(writePath), { recursive: true });
         await fs.writeFile(writePath, newContent, "utf-8");
 
+        // Post-edit syntax check — auto-revert if broken
+        const syntaxError = await quickSyntaxCheck(writePath);
+        if (syntaxError) {
+          await fs.writeFile(writePath, content, "utf-8"); // Revert
+          return { success: false, output: "", error: `Edit reverted — syntax check failed: ${syntaxError}. Your edit broke the file. Try a smaller, more precise edit.` };
+        }
+
         return { success: true, output: `Edited ${relPath} (+${newLines - oldLines} lines, ${diffLines} lines touched)` };
       }
 
@@ -290,6 +359,14 @@ export async function executeTool(
 
         await fs.mkdir(path.dirname(writePath), { recursive: true });
         await fs.writeFile(writePath, input.content, "utf-8");
+
+        // Post-create syntax check
+        const createSyntaxError = await quickSyntaxCheck(writePath);
+        if (createSyntaxError) {
+          await fs.unlink(writePath).catch(() => {}); // Remove broken file
+          return { success: false, output: "", error: `File not created — syntax check failed: ${createSyntaxError}. Fix the content and try again.` };
+        }
+
         return { success: true, output: `Created ${relPath} (${fileLines} lines)` };
       }
 
