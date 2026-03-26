@@ -14,14 +14,14 @@ import type { WorkflowStep } from "@/types";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { input, steps } = body;
+    const { input, steps, projectId } = body;
 
     if (!input || typeof input !== "string") {
       return NextResponse.json({ error: "input is required (string)" }, { status: 400 });
     }
 
     const pipelineSteps: WorkflowStep[] = steps || CRM_PIPELINE_STAGES;
-    const report = await runPreflightSimulation(input, pipelineSteps);
+    const report = await runPreflightSimulation(input, pipelineSteps, projectId);
 
     return NextResponse.json({ data: report });
   } catch (e) {

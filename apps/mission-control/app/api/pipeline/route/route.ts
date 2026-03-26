@@ -4,6 +4,7 @@ import { runPreflightSimulation } from "@/lib/preflight-simulation";
 import { applySimulationAdjustments } from "@/lib/simulation-router";
 import { runStrategyArchitect } from "@/lib/strategy-architect";
 import { readKBFile } from "@/lib/kb-storage";
+import { routeSkills } from "@/lib/skill-router";
 import { CRM_PIPELINE_STAGES } from "@/lib/pipeline-templates";
 import type { KBEntry } from "@/types";
 
@@ -27,7 +28,7 @@ async function loadKBEntries(): Promise<KBEntry[]> {
  */
 export async function POST(request: NextRequest) {
   try {
-    const { input } = await request.json();
+    const { input, selectedProject } = await request.json();
 
     if (!input?.trim()) {
       return NextResponse.json(
@@ -39,14 +40,16 @@ export async function POST(request: NextRequest) {
     // Run routing + simulation in parallel
     const [decision, simulation] = await Promise.all([
       routeTask(input),
-      runPreflightSimulation(input, CRM_PIPELINE_STAGES),
+      runPreflightSimulation(input, CRM_PIPELINE_STAGES, selectedProject),
     ]);
+
+    // Load KB entries once for replan + skill routing
+    const kbEntries = await loadKBEntries();
 
     // S0.2: Auto-replan if simulation is below 50%
     let replanReport = null;
     if (simulation.overallProbability < 50) {
       try {
-        const kbEntries = await loadKBEntries();
         replanReport = await runStrategyArchitect(input, CRM_PIPELINE_STAGES, simulation, kbEntries);
       } catch {
         // Replan failed — continue without it
@@ -55,6 +58,9 @@ export async function POST(request: NextRequest) {
 
     // Apply simulation-based adjustments
     const adjusted = applySimulationAdjustments(decision, simulation);
+
+    // Run Skill Router as validation/enhancement layer
+    const skillPlan = routeSkills(input, kbEntries);
 
     return NextResponse.json({
       success: true,
@@ -76,6 +82,18 @@ export async function POST(request: NextRequest) {
             })),
           }
         : { needed: false },
+      skillPlan: {
+        plan: skillPlan.plan.map((s) => ({
+          skill: s.skill,
+          role: s.role,
+          order: s.order,
+          score: s.score,
+          why: s.why,
+        })),
+        confidence: skillPlan.confidence,
+        suggestedSkills: skillPlan.plan.map((s) => s.skill),
+        taskAnalysis: skillPlan.taskAnalysis,
+      },
       _meta: {
         originalMode: decision.mode,
         adjustedMode: adjusted.mode,

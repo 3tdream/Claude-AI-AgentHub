@@ -123,7 +123,7 @@ async function loadKBCategory(category: string): Promise<KBEntry[]> {
 
 // ── Input Complexity Analysis ────────────────────────────
 
-function analyzeInputComplexity(input: string, steps: WorkflowStep[]): SimulationReport["inputAnalysis"] {
+function analyzeInputComplexity(input: string, steps: WorkflowStep[], projectId?: string | null): SimulationReport["inputAnalysis"] {
   const wordCount = input.split(/\s+/).filter(Boolean).length;
   const factors: string[] = [];
 
@@ -145,6 +145,11 @@ function analyzeInputComplexity(input: string, steps: WorkflowStep[]): Simulatio
   if (/queue|worker|async|event/i.test(input)) factors.push("Async processing — SQS/worker complexity");
   if (steps.length > 15) factors.push(`Long pipeline (${steps.length} stages) — higher cumulative failure risk`);
 
+  // Cross-project detection
+  if (projectId && projectId !== "mission-control") {
+    factors.push(`Cross-project: targeting ${projectId}`);
+  }
+
   let complexityScore: SimulationReport["inputAnalysis"]["complexityScore"];
   if (factors.length <= 1) complexityScore = "simple";
   else if (factors.length <= 3) complexityScore = "moderate";
@@ -162,6 +167,7 @@ function simulateStage(
   failurePatterns: KBEntry[],
   successPatterns: KBEntry[],
   inputComplexity: SimulationReport["inputAnalysis"],
+  projectId?: string | null,
 ): StageSimulation {
   const contract = STAGE_CONTRACTS[step.id];
   const agentShort = step.agentId.replace("-agent", "");
@@ -252,6 +258,25 @@ function simulateStage(
     recommendations.push(`${dynamicConstraintCount} KB-derived constraints active — past failures are guarded`);
   }
 
+  // Cross-project: warn implementation stages about directory targeting
+  const isImplementationStage = ["s5-backend", "s6-designer", "s7-frontend"].includes(step.id);
+  if (isImplementationStage && projectId && projectId !== "mission-control") {
+    recommendations.push(`Verify project context is loaded for ${projectId}`);
+
+    // Boost probability if project context was injected (replanBonus or [PROJECT CONTEXT] in prompt)
+    const hasProjectContext =
+      typeof replanBonus === "number" ||
+      (typeof step.promptTemplate === "string" && step.promptTemplate.includes("[PROJECT CONTEXT]"));
+    if (hasProjectContext) {
+      probability = Math.round(Math.max(5, Math.min(98, probability + 5)));
+      // Recalculate risk level after boost
+      if (probability >= 80) riskLevel = "low";
+      else if (probability >= 60) riskLevel = "medium";
+      else if (probability >= 40) riskLevel = "high";
+      else riskLevel = "critical";
+    }
+  }
+
   return {
     stageId: step.id,
     stageName: contract?.stageName || step.agentName,
@@ -274,6 +299,7 @@ function simulateStage(
 export async function runPreflightSimulation(
   input: string,
   steps: WorkflowStep[],
+  projectId?: string | null,
 ): Promise<SimulationReport> {
   // Load all data sources in parallel
   const [analytics, failurePatterns, successPatterns] = await Promise.all([
@@ -282,11 +308,11 @@ export async function runPreflightSimulation(
     loadKBCategory("success-patterns"),
   ]);
 
-  const inputAnalysis = analyzeInputComplexity(input, steps);
+  const inputAnalysis = analyzeInputComplexity(input, steps, projectId);
 
   // Simulate each stage
   const stages = steps.map((step) =>
-    simulateStage(step, analytics, failurePatterns, successPatterns, inputAnalysis),
+    simulateStage(step, analytics, failurePatterns, successPatterns, inputAnalysis, projectId),
   );
 
   // Overall probability: weighted approach
