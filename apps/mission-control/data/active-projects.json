@@ -3,48 +3,46 @@
     "secretutka": {
       "active": true,
       "port": 3014,
-      "startedAt": "2026-03-25T21:06:37.054Z"
+      "startedAt": "2026-03-26T12:39:17.054Z",
+      "pid": 26276
     },
     "jira-integration": {
-      "active": true,
+      "active": false,
       "port": 3019,
       "startedAt": "2026-03-25T21:06:56.720Z"
     },
     "smart-shop": {
-      "active": true,
+      "active": false,
       "port": 3013,
-      "startedAt": "2026-03-25T21:07:20.158Z",
-      "pid": 42088
+      "startedAt": "2026-03-25T21:07:20.158Z"
     },
     "concierge-ai": {
-      "active": true,
+      "active": false,
       "port": 3020,
       "startedAt": "2026-03-25T21:08:04.853Z"
     },
     "snake-3d": {
-      "active": true,
+      "active": false,
       "port": 3015,
-      "startedAt": "2026-03-25T21:07:44.244Z",
-      "pid": 43976
+      "startedAt": "2026-03-25T21:07:44.244Z"
     },
     "3d-model-render": {
-      "active": true,
+      "active": false,
       "port": 3010,
-      "startedAt": "2026-03-25T21:13:36.054Z",
-      "pid": 3200
+      "startedAt": "2026-03-25T21:13:36.054Z"
     },
     "briefme-ai": {
-      "active": true,
+      "active": false,
       "port": 3021,
       "startedAt": "2026-03-25T21:08:21.121Z"
     },
     "cv-creator": {
-      "active": true,
+      "active": false,
       "port": 3012,
       "startedAt": "2026-03-25T21:08:48.424Z"
     },
     "echo": {
-      "active": true,
+      "active": false,
       "port": 3022,
       "startedAt": "2026-03-25T21:09:04.226Z"
     },
@@ -54,25 +52,29 @@
       "startedAt": "2026-03-25T19:11:32.512Z"
     },
     "tiltan": {
-      "active": true,
+      "active": false,
       "port": 3017,
       "startedAt": "2026-03-25T21:09:51.177Z"
     },
     "ai-slide": {
-      "active": true,
+      "active": false,
       "port": 3011,
       "startedAt": "2026-03-25T21:10:29.748Z"
     },
     "uxui-to-dev": {
-      "active": true,
+      "active": false,
       "port": 3018,
       "startedAt": "2026-03-25T21:10:09.271Z"
     },
     "zdorovdv": {
-      "active": true,
+      "active": false,
       "port": 3023,
       "startedAt": "2026-03-25T21:10:51.634Z"
+    },
+    "mission-control": {
+      "active": true,
+      "port": 3024
     }
   },
-  "lastUpdated": "2026-03-25T21:13:36.055Z"
+  "lastUpdated": "2026-03-26T16:28:16.297Z"
 }

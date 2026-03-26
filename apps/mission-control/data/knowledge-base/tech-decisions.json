@@ -279,9 +279,54 @@
       "createdAt": "2026-03-25T20:42:55.328Z",
       "updatedAt": "2026-03-25T20:42:55.328Z",
       "version": 1
+    },
+    {
+      "title": "MC product packaging plan",
+      "content": "## MC → Product Plan (parked, not active yet)\n\n8 blockers identified before MC can become a product:\n1. Auth (login/signup, roles)\n2. Storage (JSON files → DB)\n3. Multi-user (teams, permissions)\n4. API keys (user-managed, encrypted)\n5. Onboarding (setup wizard, demo pipeline)\n6. Deploy (Vercel/Docker/VPS)\n7. Landing page + docs\n8. Billing (usage-based or subscription)\n\n**Current priority:** NOT product packaging. First — make Projects page functional so real projects can be launched and managed ",
+      "source": "claude-memory",
+      "severity": "medium",
+      "tags": [
+        "imported-from-memory",
+        "memory:project_mc_product_plan.md",
+        "project"
+      ],
+      "id": "kb-mn6k12bz-83552495",
+      "createdAt": "2026-03-25T21:27:22.895Z",
+      "updatedAt": "2026-03-25T21:27:22.895Z",
+      "version": 1
+    },
+    {
+      "title": "MC unified product architecture",
+      "content": "## Vision (from Michael, 2026-03-25)\n\nProjects page is the **central hub** of MC. Everything flows from it:\n\n1. **Activate** project → it appears in Orchestrator, Chat, Analytics, etc.\n2. **Import** new project → scan apps/ directory or clone from git\n3. **Preview** project → local dev server on assigned port\n4. **Orchestrate** → pipeline runs are tied to project, not standalone\n5. **Sync across pages** → agents/teams/costs/analytics/KB all scoped by active project\n\n### Flow\n```\nProjects page → ",
+      "source": "claude-memory",
+      "severity": "medium",
+      "tags": [
+        "imported-from-memory",
+        "memory:project_mc_unified_product.md",
+        "project"
+      ],
+      "id": "kb-mn6k12ch-66eb1dab",
+      "createdAt": "2026-03-25T21:27:22.913Z",
+      "updatedAt": "2026-03-25T21:27:22.913Z",
+      "version": 1
+    },
+    {
+      "title": "Session 2026-03-25 — MC cognitive architecture + projects",
+      "content": "## What was built\n\n### Cognitive Architecture\n- KB: 100+ entries, 5 categories, SHA-256 hash validation\n- Stage Contracts: 8 deterministic I/O contracts + dynamic KB adaptation\n- Preflight Simulation: predicts pipeline from 114 runs + KB\n- S0.2 Strategy Architect: iterative replan (44% → 64%)\n- Agent KB Self-Awareness: agents read their own history\n- Simulation → Auto-routing: mode upgrades, guard agents\n- Smart stage filtering: skip irrelevant agents per task type\n\n### Infrastructure\n- Real-tim",
+      "source": "claude-memory",
+      "severity": "medium",
+      "tags": [
+        "imported-from-memory",
+        "memory:session_2026_03_25.md",
+        "project"
+      ],
+      "id": "kb-mn6k12d2-2ebc2736",
+      "createdAt": "2026-03-25T21:27:22.934Z",
+      "updatedAt": "2026-03-25T21:27:22.934Z",
+      "version": 1
     }
   ],
-  "contentHash": "ba73aa3bc87f547d3f01789f3584f0a25b498b357e051ff9cfcaa1440c6af047",
-  "lastUpdated": "2026-03-25T20:42:55.328Z",
+  "contentHash": "ab3d0fc0f60c7cf006aafcca4b30925f67202c5d7308adc3c78dd5b9a36f06d8",
+  "lastUpdated": "2026-03-25T21:27:22.934Z",
   "schemaVersion": 1
 }

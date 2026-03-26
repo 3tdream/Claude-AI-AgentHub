@@ -245,9 +245,44 @@
       "createdAt": "2026-03-25T15:48:59.066Z",
       "updatedAt": "2026-03-25T15:48:59.066Z",
       "version": 1
+    },
+    {
+      "title": "Skill Router � Adaptive Skill Orchestrator with ranking, roles, and execution plan",
+      "content": "Skill Router replaces flat skill list with intelligent orchestration: (1) Task classifier detects domains/scope/complexity, (2) Skill matcher finds candidates from 50+ manifest entries, (3) Scorer ranks by relevance + KB boost + weight - conflicts, (4) Conflict resolver drops lower-scored duplicates, (5) Role assigner: max 2 primary + support + guard, (6) Returns ordered execution plan with confidence. Max 6 skills per task. API: POST /api/skills/route. Every skill has domains, scope, complexity, defaultRole, conflictsWith, weight.",
+      "source": "skill-router",
+      "severity": "high",
+      "tags": [
+        "skill-router",
+        "orchestration",
+        "ranking",
+        "roles",
+        "execution-plan",
+        "adaptive"
+      ],
+      "id": "kb-mn7clni0-aba6e5ba",
+      "createdAt": "2026-03-26T10:47:12.696Z",
+      "updatedAt": "2026-03-26T10:47:12.696Z",
+      "version": 1
+    },
+    {
+      "title": "Skill Router v1 � tuned scoring with 9 factors",
+      "content": "Skill Router scoring factors: (1) domain relevance 0-40, (2) scope match +20/-10, (3) complexity fit +10/-5, (4) base weight 0-10, (5) KB boost 0-15 from failure/success patterns, (6) keyword match +10, (7) specificity penalty -8 for heavy skills on simple tasks, (8) support penalty -12 for narrow tasks, (9) design tool penalty -15 for non-design tasks. Min score threshold: 20. Max 6 skills, max 2 primary. Conflict resolution drops lower-scored duplicates. Tested on 6 task types: auth, css-fix, deploy, pipeline-fix, endpoint, design.",
+      "source": "skill-router",
+      "severity": "high",
+      "tags": [
+        "skill-router",
+        "scoring",
+        "tuning",
+        "9-factors",
+        "tested"
+      ],
+      "id": "kb-mn7cyt8d-dcc9f301",
+      "createdAt": "2026-03-26T10:57:26.653Z",
+      "updatedAt": "2026-03-26T10:57:26.653Z",
+      "version": 1
     }
   ],
-  "contentHash": "b915ab274dfefa1af9be37f1ae6621e25106f391f1a7f5cf5cb19eb500687cb1",
-  "lastUpdated": "2026-03-25T15:48:59.066Z",
+  "contentHash": "4b7037e0b9a8c11519000bf0e9162e705f1edf5ec0cdbc3e26bae6f687b63c81",
+  "lastUpdated": "2026-03-26T10:57:26.653Z",
   "schemaVersion": 1
 }

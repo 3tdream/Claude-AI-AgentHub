@@ -575,9 +575,60 @@
       "createdAt": "2026-03-25T18:48:00.801Z",
       "updatedAt": "2026-03-25T18:48:00.801Z",
       "version": 1
+    },
+    {
+      "title": "orchestrator failed 5x in recent runs",
+      "content": "Agent orchestrator failed in 5 recent pipeline runs. No error details captured.. Run IDs: 444160fb-6dfd-4d16-92e2-ac305e8b99d5, 29d1d8c5-fc4c-425d-86bc-530656300a5b, 16c0be7d-2e8c-4455-809a-3efc5f3efa0b",
+      "source": "nightly-evolution",
+      "agentId": "orchestrator",
+      "severity": "critical",
+      "tags": [
+        "auto-detected",
+        "recurring-failure",
+        "orchestrator"
+      ],
+      "pipelineRunId": "444160fb-6dfd-4d16-92e2-ac305e8b99d5",
+      "id": "kb-mn6k0q6t-2d4cf355",
+      "createdAt": "2026-03-25T21:27:07.157Z",
+      "updatedAt": "2026-03-25T21:27:07.157Z",
+      "version": 1
+    },
+    {
+      "title": "High pause rate: 31/44 runs paused",
+      "content": "70% of recent runs are in paused state. This may indicate checkpoint bottleneck or missing user approval. Consider auto-approve for low-risk stages.",
+      "source": "nightly-evolution",
+      "severity": "medium",
+      "tags": [
+        "auto-detected",
+        "pause-rate",
+        "checkpoint"
+      ],
+      "pipelineRunId": "6a18d908-5fe7-4ab1-966f-ab9556f58d87",
+      "id": "kb-mn6k0q75-6906fa9a",
+      "createdAt": "2026-03-25T21:27:07.169Z",
+      "updatedAt": "2026-03-25T21:27:07.169Z",
+      "version": 1
+    },
+    {
+      "title": "Pipeline agent corrupted file by inserting code inside import block",
+      "content": "Frontend agent tried to add CURRENCY_SYMBOLS object but edit_file old_string matched incorrectly � inserted new code between import line 4 and import line 5, splitting an import statement. Result: unterminated string constant. Root cause: agent tried to rewrite 1646 lines in one edit. Fix: (1) Speed Governor already limits to 250 diff lines but agent circumvented by using create_file pattern. (2) Need post-edit syntax validation. (3) Agent should make small targeted edits not full file rewrites.",
+      "source": "pipeline-run-6712c759",
+      "agentId": "frontend-agent",
+      "severity": "critical",
+      "tags": [
+        "file-corruption",
+        "edit-file",
+        "import-split",
+        "frontend",
+        "pipeline"
+      ],
+      "id": "kb-mn7nc7gl-0751af57",
+      "createdAt": "2026-03-26T15:47:47.781Z",
+      "updatedAt": "2026-03-26T15:47:47.781Z",
+      "version": 1
     }
   ],
-  "contentHash": "a79097c6bc668b404a8d1cd50558e68b4b1a97ec7a4c1439571f752a1868c2b4",
-  "lastUpdated": "2026-03-25T18:48:00.801Z",
+  "contentHash": "7d953e2db2b10a62ec6fa95195ff431bff74f464e6165f76cacafec4dcf87408",
+  "lastUpdated": "2026-03-26T15:47:47.781Z",
   "schemaVersion": 1
 }

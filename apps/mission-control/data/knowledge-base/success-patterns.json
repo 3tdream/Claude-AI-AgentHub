@@ -426,9 +426,26 @@
       "createdAt": "2026-03-25T10:19:40.899Z",
       "updatedAt": "2026-03-25T10:19:40.899Z",
       "version": 1
+    },
+    {
+      "title": "Session 2026-03-25: cognitive architecture + projects � 91 files, 10627 lines",
+      "content": "Biggest MC session: built KB (100+ entries), stage contracts, simulation, replan (S0.2), monitoring, evolution, cross-session sync, activity sidebar, project discovery + dev server manager, 3 new pages, 4 bug fixes. Key lessons: (1) pnpm on Windows = broken junctions, use npm install with root package.json moved, (2) direct binary path always works, (3) simple solution first, (4) trust the router, (5) dont fight the toolchain.",
+      "source": "session-summary",
+      "severity": "high",
+      "tags": [
+        "session",
+        "cognitive-architecture",
+        "projects",
+        "10627-lines",
+        "91-files"
+      ],
+      "id": "kb-mn6jnhun-8371489e",
+      "createdAt": "2026-03-25T21:16:49.823Z",
+      "updatedAt": "2026-03-25T21:16:49.823Z",
+      "version": 1
     }
   ],
-  "contentHash": "a6aadd4bbcb47d27194013ac06a55cd7a4498bf18c3dfff119a58f040baf372f",
-  "lastUpdated": "2026-03-25T10:19:40.899Z",
+  "contentHash": "2826acbd4adbfc4ac6535951541b1ce811d9d5dabbe623c7f39dd5b77a682d0c",
+  "lastUpdated": "2026-03-25T21:16:49.823Z",
   "schemaVersion": 1
 }

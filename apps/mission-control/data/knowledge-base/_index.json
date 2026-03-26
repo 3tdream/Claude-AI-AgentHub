@@ -3,17 +3,17 @@
     {
       "category": "architecture-patterns",
       "description": "Validated architecture decisions and patterns from successful pipeline runs",
-      "entryCount": 12,
-      "contentHash": "4669b5fbe4bb0409fafc179e93349ab6f2d95d302b310ca17c5bd0a228b3673b",
-      "lastUpdated": "2026-03-25T10:56:40.402Z",
+      "entryCount": 16,
+      "contentHash": "4b7037e0b9a8c11519000bf0e9162e705f1edf5ec0cdbc3e26bae6f687b63c81",
+      "lastUpdated": "2026-03-26T10:57:26.653Z",
       "stale": false
     },
     {
       "category": "failure-patterns",
       "description": "Recurring failure patterns from pipeline runs — prevent known bugs from returning",
-      "entryCount": 30,
-      "contentHash": "897c7a68c4f283b30198e03e5889264f1d99058bf79619b04d5a885dbca07c4f",
-      "lastUpdated": "2026-03-25T01:29:54.330Z",
+      "entryCount": 35,
+      "contentHash": "9476b64fd77b5e1963415f3a541435aaf3748de507fe3ac991cc65e4d7338b71",
+      "lastUpdated": "2026-03-25T21:27:07.169Z",
       "stale": false
     },
     {
@@ -27,21 +27,21 @@
     {
       "category": "success-patterns",
       "description": "Patterns from high-scoring pipeline stages — what works well",
-      "entryCount": 25,
-      "contentHash": "a6aadd4bbcb47d27194013ac06a55cd7a4498bf18c3dfff119a58f040baf372f",
-      "lastUpdated": "2026-03-25T10:19:40.899Z",
+      "entryCount": 26,
+      "contentHash": "2826acbd4adbfc4ac6535951541b1ce811d9d5dabbe623c7f39dd5b77a682d0c",
+      "lastUpdated": "2026-03-25T21:16:49.823Z",
       "stale": false
     },
     {
       "category": "tech-decisions",
       "description": "Technology choices, tradeoffs, and rationale from ADR stages",
-      "entryCount": 14,
-      "contentHash": "181caf1e73b9ad88ff311ec47e9032ebc9768f83cf7fcc6bcae4abfc54d7329d",
-      "lastUpdated": "2026-03-24T23:52:18.782Z",
+      "entryCount": 19,
+      "contentHash": "ab3d0fc0f60c7cf006aafcca4b30925f67202c5d7308adc3c78dd5b9a36f06d8",
+      "lastUpdated": "2026-03-25T21:27:22.934Z",
       "stale": false
     }
   ],
-  "totalEntries": 93,
-  "lastValidated": "2026-03-25T11:02:27.765Z",
+  "totalEntries": 108,
+  "lastValidated": "2026-03-26T12:30:00.607Z",
   "integrityOk": true
 }
