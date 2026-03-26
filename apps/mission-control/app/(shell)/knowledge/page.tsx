@@ -14,10 +14,16 @@ import {
   ChevronRight,
   Hash,
   RefreshCw,
+  Globe,
+  FolderOpen,
+  ArrowUp,
 } from "lucide-react";
 import type { KBFile, KBIndex, KBEntry, KBCategory } from "@/types";
+import { useAppStore } from "@/lib/stores/app-store";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
+
+type KBScope = "global" | "project";
 
 const CATEGORY_META: Record<string, { label: string; icon: typeof AlertTriangle; color: string; bg: string }> = {
   "failure-patterns": { label: "Failure Patterns", icon: AlertTriangle, color: "text-red-400", bg: "bg-red-500/10 border-red-500/20" },
@@ -34,28 +40,56 @@ const SEVERITY_COLORS: Record<string, string> = {
   low: "bg-slate-500/20 text-slate-300 border-slate-500/30",
 };
 
+const LAYER_BADGE: Record<string, string> = {
+  project: "bg-violet-500/20 text-violet-300 border-violet-500/30",
+  global: "bg-blue-500/20 text-blue-300 border-blue-500/30",
+};
+
+function buildUrl(base: string, params: Record<string, string | undefined>): string {
+  const url = new URL(base, "http://localhost");
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== undefined) url.searchParams.set(k, v);
+  }
+  return `${url.pathname}${url.search}`;
+}
+
 export default function KnowledgePage() {
+  const activeProjectId = useAppStore((s) => s.activeProjectId);
+  const [scope, setScope] = useState<KBScope>("global");
   const [selectedCategory, setSelectedCategory] = useState<KBCategory | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedEntry, setExpandedEntry] = useState<string | null>(null);
 
+  const isProjectMode = scope === "project" && !!activeProjectId;
+
+  const scopeParams = isProjectMode
+    ? { projectId: activeProjectId!, scope: "project" as const }
+    : {};
+
   // Fetch index
+  const indexUrl = buildUrl("/api/knowledge-base", scopeParams);
   const { data: indexData, mutate: revalidateIndex } = useSWR<{ data: KBIndex }>(
-    "/api/knowledge-base",
+    indexUrl,
     fetcher,
     { revalidateOnFocus: false },
   );
 
   // Fetch category
+  const categoryUrl = selectedCategory
+    ? buildUrl("/api/knowledge-base", { category: selectedCategory, ...scopeParams })
+    : null;
   const { data: categoryData } = useSWR<{ data: KBFile }>(
-    selectedCategory ? `/api/knowledge-base?category=${selectedCategory}` : null,
+    categoryUrl,
     fetcher,
     { revalidateOnFocus: false },
   );
 
   // Search
+  const searchUrl = searchQuery.length >= 2
+    ? buildUrl("/api/knowledge-base", { q: encodeURIComponent(searchQuery), ...scopeParams })
+    : null;
   const { data: searchData } = useSWR<{ data: KBEntry[]; total: number }>(
-    searchQuery.length >= 2 ? `/api/knowledge-base?q=${encodeURIComponent(searchQuery)}` : null,
+    searchUrl,
     fetcher,
     { revalidateOnFocus: false },
   );
@@ -68,6 +102,27 @@ export default function KnowledgePage() {
   const handleValidate = async () => {
     await fetch("/api/knowledge-base/validate");
     revalidateIndex();
+  };
+
+  const handlePromoteToGlobal = async (entry: KBEntry) => {
+    try {
+      const res = await fetch("/api/knowledge-base/projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          projectId: activeProjectId,
+          entryId: entry.id,
+          category: (entry as any).category || selectedCategory,
+        }),
+      });
+      if (res.ok) {
+        console.log(`[KB] Promoted entry "${entry.title}" to global scope`);
+      } else {
+        console.error(`[KB] Failed to promote entry: ${res.status}`);
+      }
+    } catch (err) {
+      console.error("[KB] Promote error:", err);
+    }
   };
 
   return (
@@ -90,6 +145,34 @@ export default function KnowledgePage() {
           <RefreshCw className="w-3.5 h-3.5" />
           Validate Hashes
         </button>
+      </div>
+
+      {/* Scope toggle */}
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => { setScope("global"); setSelectedCategory(null); setSearchQuery(""); }}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
+            scope === "global"
+              ? "bg-blue-500/10 border-blue-500/20 text-blue-400 ring-1 ring-primary/30"
+              : "border-border text-muted-foreground hover:text-foreground hover:border-primary/20"
+          }`}
+        >
+          <Globe className="w-3.5 h-3.5" />
+          Global
+        </button>
+        {activeProjectId && (
+          <button
+            onClick={() => { setScope("project"); setSelectedCategory(null); setSearchQuery(""); }}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
+              scope === "project"
+                ? "bg-violet-500/10 border-violet-500/20 text-violet-400 ring-1 ring-primary/30"
+                : "border-border text-muted-foreground hover:text-foreground hover:border-primary/20"
+            }`}
+          >
+            <FolderOpen className="w-3.5 h-3.5" />
+            Project: {activeProjectId}
+          </button>
+        )}
       </div>
 
       {/* Search */}
@@ -151,6 +234,7 @@ export default function KnowledgePage() {
           <div className="divide-y divide-border">
             {entries.map((entry) => {
               const isExpanded = expandedEntry === entry.id;
+              const layer = (entry as any)._layer as string | undefined;
               return (
                 <div key={entry.id} className="hover:bg-muted/30 transition-colors">
                   <button
@@ -167,6 +251,11 @@ export default function KnowledgePage() {
                         <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono border ${SEVERITY_COLORS[entry.severity]}`}>
                           {entry.severity}
                         </span>
+                        {isProjectMode && layer && (
+                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono border ${LAYER_BADGE[layer] || LAYER_BADGE.global}`}>
+                            {layer}
+                          </span>
+                        )}
                         <span className="text-[9px] font-mono text-muted-foreground">v{entry.version}</span>
                       </div>
                       {!isExpanded && (
@@ -196,6 +285,15 @@ export default function KnowledgePage() {
                         <span>Created: {new Date(entry.createdAt).toLocaleDateString()}</span>
                         <span>Updated: {new Date(entry.updatedAt).toLocaleDateString()}</span>
                       </div>
+                      {isProjectMode && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handlePromoteToGlobal(entry); }}
+                          className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                        >
+                          <ArrowUp className="w-3.5 h-3.5" />
+                          Promote to Global
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
