@@ -1,13 +1,19 @@
 "use client";
 
-import { DollarSign } from "lucide-react";
+import { useState } from "react";
+import { DollarSign, Filter, FolderOpen } from "lucide-react";
 import { useCostSummary, useDailyCosts } from "@/lib/hooks/use-costs";
+import { useAppStore } from "@/lib/stores/app-store";
 import { CostChart } from "@/components/costs/cost-chart";
 import { ProviderBreakdown } from "@/components/costs/provider-breakdown";
 
 export default function CostsPage() {
-  const { costs, isLoading: costsLoading } = useCostSummary();
-  const { dailyCosts, isLoading: dailyLoading } = useDailyCosts(30);
+  const activeProjectId = useAppStore((s) => s.activeProjectId);
+  const [filterByProject, setFilterByProject] = useState(false);
+
+  const effectiveProjectId = filterByProject ? activeProjectId : undefined;
+  const { costs, isLoading: costsLoading } = useCostSummary(undefined, effectiveProjectId);
+  const { dailyCosts, isLoading: dailyLoading } = useDailyCosts(30, effectiveProjectId);
 
   const totalTokens = costs
     ? (costs.totalInputTokens ?? 0) + (costs.totalOutputTokens ?? 0)
@@ -15,11 +21,31 @@ export default function CostsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-extrabold tracking-tight">Cost Analytics</h1>
-        <p className="font-mono text-xs text-muted-foreground mt-1 tracking-wider uppercase">
-          AI usage costs and metrics
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-extrabold tracking-tight">Cost Analytics</h1>
+          <p className="font-mono text-xs text-muted-foreground mt-1 tracking-wider uppercase">
+            AI usage costs and metrics
+          </p>
+        </div>
+
+        {activeProjectId && (
+          <button
+            onClick={() => setFilterByProject((v) => !v)}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border ${
+              filterByProject
+                ? "bg-violet-500/10 border-violet-500/20 text-violet-400"
+                : "bg-card border-border text-muted-foreground hover:bg-muted"
+            }`}
+          >
+            {filterByProject ? (
+              <FolderOpen className="w-3 h-3" />
+            ) : (
+              <Filter className="w-3 h-3" />
+            )}
+            {filterByProject ? `Showing: ${activeProjectId}` : "Showing: All Projects"}
+          </button>
+        )}
       </div>
 
       {/* Summary cards */}

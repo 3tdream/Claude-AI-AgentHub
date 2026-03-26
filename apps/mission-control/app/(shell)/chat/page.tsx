@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { MessageSquare, Send, Loader2, Trash2 } from "lucide-react";
+import { MessageSquare, Send, Loader2, Trash2, FolderOpen } from "lucide-react";
 import { useAgents } from "@/lib/hooks/use-agents";
+import { useAppStore } from "@/lib/stores/app-store";
 import type { Agent } from "@/types";
 
 const agentIcons: Record<string, string> = {
@@ -25,6 +26,7 @@ type ChatSource = "agent-hub" | "openai-fallback" | null;
 
 export default function ChatPage() {
   const { agents } = useAgents();
+  const activeProjectId = useAppStore((s) => s.activeProjectId);
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   // Per-agent chat history: agentId → messages
   const [chatsByAgent, setChatsByAgent] = useState<Record<string, ChatMessage[]>>({});
@@ -137,6 +139,7 @@ export default function ChatPage() {
             role: m.role,
             content: m.content,
           })),
+          ...(activeProjectId ? { projectContext: activeProjectId } : {}),
         }),
         signal: controller.signal,
       });
@@ -257,6 +260,14 @@ export default function ChatPage() {
 
       {/* Chat area */}
       <div className="flex-1 bg-card border border-border rounded-xl flex flex-col overflow-hidden">
+        {/* Project context indicator */}
+        {activeProjectId && (
+          <div className="flex items-center gap-1.5 px-4 py-1.5 bg-violet-500/10 border-b border-violet-500/20 text-xs font-medium text-violet-400">
+            <FolderOpen className="w-3 h-3" />
+            Context: {activeProjectId}
+          </div>
+        )}
+
         {/* Chat header */}
         {selectedAgent && (
           <div className="flex items-center justify-between px-6 py-3 border-b border-border">

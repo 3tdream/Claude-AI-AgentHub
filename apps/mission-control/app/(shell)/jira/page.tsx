@@ -10,9 +10,11 @@ import {
   TicketCheck,
   AlertCircle,
   Settings,
+  FolderOpen,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { useAppStore } from "@/lib/stores/app-store";
 import type {
   JiraProject,
   JiraIssue,
@@ -242,6 +244,7 @@ function CreateIssueModal({
 }
 
 export default function JiraPage() {
+  const activeProjectId = useAppStore((s) => s.activeProjectId);
   const [selectedProject, setSelectedProject] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -334,6 +337,13 @@ export default function JiraPage() {
             </option>
           ))}
         </select>
+
+        {activeProjectId && (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-violet-500/10 border border-violet-500/20 text-xs font-medium text-violet-400">
+            <FolderOpen className="w-3 h-3" />
+            MC Project: {activeProjectId}
+          </span>
+        )}
 
         {selectedProject && (
           <>
