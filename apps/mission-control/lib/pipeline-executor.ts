@@ -361,6 +361,10 @@ export async function executePipeline(
             toolMode,
             maxToolSteps,
             readBudget: agentCfg?.readBudget || 10,
+            // Cross-project: when pipeline targets another project, tools work in that project's directory
+            projectPath: selectedProject && selectedProject !== "mission-control"
+              ? selectedProject
+              : undefined,
           }),
           signal: controller?.signal,
         });

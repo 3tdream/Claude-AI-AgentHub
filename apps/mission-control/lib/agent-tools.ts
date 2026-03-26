@@ -186,11 +186,13 @@ export async function executeTool(
   input: Record<string, string>,
   stagingDir?: string,
 ): Promise<ToolResult> {
+  // Use project path when provided (for cross-project pipeline execution)
+  const ROOT = stagingDir || PROJECT_ROOT;
   try {
     switch (name) {
       case "list_files": {
         const relPath = validatePath(input.path || ".");
-        const fullPath = path.join(PROJECT_ROOT, relPath);
+        const fullPath = path.join(ROOT, relPath);
         const entries = await fs.readdir(fullPath, { withFileTypes: true });
         const listing = entries
           .map((e) => `${e.isDirectory() ? "[dir] " : "      "}${e.name}`)
@@ -200,7 +202,7 @@ export async function executeTool(
 
       case "read_file": {
         const relPath = validatePath(input.path);
-        const fullPath = path.join(PROJECT_ROOT, relPath);
+        const fullPath = path.join(ROOT, relPath);
         const content = await fs.readFile(fullPath, "utf-8");
         const lines = content.split("\n");
         const totalLines = lines.length;
@@ -233,7 +235,7 @@ export async function executeTool(
 
       case "edit_file": {
         const relPath = validatePath(input.path);
-        const readPath = path.join(PROJECT_ROOT, relPath);
+        const readPath = path.join(ROOT, relPath);
         const content = await fs.readFile(readPath, "utf-8");
 
         if (!content.includes(input.old_string)) {
@@ -255,9 +257,7 @@ export async function executeTool(
         }
 
         const newContent = content.replace(input.old_string, input.new_string);
-        const writePath = stagingDir
-          ? path.join(stagingDir, relPath)
-          : path.join(PROJECT_ROOT, relPath);
+        const writePath = path.join(ROOT, relPath);
         await fs.mkdir(path.dirname(writePath), { recursive: true });
         await fs.writeFile(writePath, newContent, "utf-8");
 
@@ -266,14 +266,12 @@ export async function executeTool(
 
       case "create_file": {
         const relPath = validatePath(input.path);
-        const writePath = stagingDir
-          ? path.join(stagingDir, relPath)
-          : path.join(PROJECT_ROOT, relPath);
+        const writePath = path.join(ROOT, relPath);
 
         // Check if file exists — guide agent to use edit_file instead
         try {
-          await fs.access(path.join(PROJECT_ROOT, relPath));
-          const existing = await fs.readFile(path.join(PROJECT_ROOT, relPath), "utf-8");
+          await fs.access(path.join(ROOT, relPath));
+          const existing = await fs.readFile(path.join(ROOT, relPath), "utf-8");
           const preview = existing.substring(0, 2000);
           return {
             success: false, output: preview,
@@ -304,7 +302,7 @@ export async function executeTool(
             cmd = cmd.replace("npx tsc", "node node_modules/typescript/bin/tsc");
           }
           const { stdout, stderr } = await execAsync(cmd, {
-            cwd: PROJECT_ROOT,
+            cwd: ROOT,
             timeout: 30000,
             shell: process.platform === "win32" ? "cmd.exe" : "/bin/sh",
           });

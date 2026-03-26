@@ -12,8 +12,14 @@ import { addLog } from "@/lib/logs-storage";
  */
 export async function POST(request: NextRequest) {
   try {
-    const { agentId, model, userInput, systemPromptOverride, useTools, toolMode, maxToolSteps, readBudget } =
+    const { agentId, model, userInput, systemPromptOverride, useTools, toolMode, maxToolSteps, readBudget, projectPath: projectId } =
       await request.json();
+
+    // Resolve project ID to absolute path
+    const path = await import("path");
+    const projectPath = projectId
+      ? path.resolve(process.cwd(), "..", projectId)
+      : undefined;
 
     if (!agentId || !userInput) {
       return NextResponse.json(
@@ -45,7 +51,7 @@ export async function POST(request: NextRequest) {
             agentName: agentId,
             content: `Tool call: ${name}(${JSON.stringify(input).substring(0, 200)})`,
           }).catch(() => {});
-          return executeTool(name, input);
+          return executeTool(name, input, projectPath || undefined);
         },
       });
 
