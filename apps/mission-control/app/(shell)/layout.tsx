@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { Sidebar } from "@/components/shell/sidebar";
 import { Topbar } from "@/components/shell/topbar";
 import { CommandPalette } from "@/components/shell/command-palette";
@@ -8,8 +9,21 @@ import { DynamicToaster } from "@/components/shell/dynamic-toaster";
 import { ActivitySidebar } from "@/components/shell/activity-sidebar";
 import { useAppStore } from "@/lib/stores/app-store";
 import { useActivityStore } from "@/lib/stores/activity-store";
+import { useOrchestrationStore } from "@/lib/stores/orchestration-store";
 import { cn } from "@/lib/utils";
 import { TimestampFooter } from "@/components/shell/timestamp-footer";
+
+/** Sync global project selector → orchestration store */
+function ProjectSync() {
+  const activeProjectId = useAppStore((s) => s.activeProjectId);
+  const setSelectedProject = useOrchestrationStore((s) => s.setSelectedProject);
+
+  useEffect(() => {
+    setSelectedProject(activeProjectId);
+  }, [activeProjectId, setSelectedProject]);
+
+  return null;
+}
 
 export default function ShellLayout({
   children,
@@ -25,6 +39,7 @@ export default function ShellLayout({
         <Sidebar />
         <CommandPalette />
         <ActivitySidebar />
+        <ProjectSync />
         <div
           className={cn(
             "transition-all duration-300",

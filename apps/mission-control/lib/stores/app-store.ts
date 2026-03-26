@@ -25,9 +25,12 @@ interface AppState {
   sidebarCollapsed: boolean;
   commandPaletteOpen: boolean;
   settings: AppSettings;
+  /** Global active project — single source of truth for all pages */
+  activeProjectId: string | null;
   toggleSidebar: () => void;
   setCommandPaletteOpen: (open: boolean) => void;
   updateSettings: (patch: Partial<AppSettings>) => void;
+  setActiveProject: (projectId: string | null) => void;
 }
 
 const defaultSettings: AppSettings = {
@@ -44,17 +47,20 @@ export const useAppStore = create<AppState>()(
       sidebarCollapsed: false,
       commandPaletteOpen: false,
       settings: defaultSettings,
+      activeProjectId: null,
       toggleSidebar: () =>
         set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
       setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
       updateSettings: (patch) =>
         set((s) => ({ settings: { ...s.settings, ...patch } })),
+      setActiveProject: (projectId) => set({ activeProjectId: projectId }),
     }),
     {
       name: "mission-control-app",
       partialize: (state) => ({
         sidebarCollapsed: state.sidebarCollapsed,
         settings: state.settings,
+        activeProjectId: state.activeProjectId,
       }),
     },
   ),
