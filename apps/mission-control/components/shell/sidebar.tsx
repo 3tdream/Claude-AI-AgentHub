@@ -29,7 +29,6 @@ import { useAppStore } from "@/lib/stores/app-store";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/command", label: "Command", icon: Terminal },
   { href: "/agents", label: "Agents", icon: Bot },
   { href: "/teams", label: "Teams", icon: Users },
   { href: "/orchestration", label: "Orchestration", icon: GitBranch },

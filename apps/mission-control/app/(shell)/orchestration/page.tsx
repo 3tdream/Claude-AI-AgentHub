@@ -103,6 +103,9 @@ export default function OrchestrationPage() {
   const [input, setInput] = useState("");
   const [routingDecision, setRoutingDecision] = useState<RoutingDecisionData | null>(null);
   const [isRouting, setIsRouting] = useState(false);
+  // Direct execution (Claude as tool)
+  const [directResult, setDirectResult] = useState<{ response: string; toolCalls: { name: string; path?: string; success: boolean }[]; tokensUsed?: { input: number; output: number } } | null>(null);
+  const [isDirectExecuting, setIsDirectExecuting] = useState(false);
   const [expandedExecId, setExpandedExecId] = useState<string | null>(null);
   const [expandedFileIdx, setExpandedFileIdx] = useState<Record<string, number | null>>({});
   const [applyingId, setApplyingId] = useState<string | null>(null);
@@ -321,11 +324,40 @@ export default function OrchestrationPage() {
     checkpointResolveRef.current = null;
   }, [activeExecution, rejectCheckpoint]);
 
-  // Step 1: Route the task (Smart Router)
+  // Step 1: Route the task — Intent classifier decides direct vs pipeline
   async function routeTask() {
-    if (!selectedWorkflow || !input.trim()) return;
+    if (!input.trim()) return;
     setIsRouting(true);
     setRoutingDecision(null);
+    setDirectResult(null);
+
+    // First: check intent (direct/pipeline/hybrid)
+    try {
+      const intentRes = await fetch("/api/command", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ input, projectId: selectedProject }),
+      });
+      const intentData = await intentRes.json();
+
+      // DIRECT: Claude executed it already
+      if (intentData.action === "executed") {
+        logActivity("agent", `Direct: ${input.substring(0, 40)}`, `${intentData.toolCalls?.length || 0} tool calls`);
+        setDirectResult({
+          response: intentData.response || "",
+          toolCalls: intentData.toolCalls || [],
+          tokensUsed: intentData.tokensUsed,
+        });
+        setIsRouting(false);
+        setInput("");
+        return;
+      }
+    } catch {
+      // Intent check failed — fall through to pipeline routing
+    }
+
+    // PIPELINE: route via Smart Router
+    if (!selectedWorkflow) { setIsRouting(false); return; }
 
     try {
       const res = await fetch("/api/pipeline/route", {
@@ -598,7 +630,7 @@ export default function OrchestrationPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Orchestration</h1>
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-blue-500">Orchestration</h1>
             <p className="font-mono text-[10px] text-muted-foreground mt-0.5 tracking-wider uppercase">
               Multi-agent workflow pipelines
             </p>
@@ -797,6 +829,38 @@ export default function OrchestrationPage() {
                   )}
                 </div>
               </div>
+
+              {/* Direct execution result (Claude as tool) */}
+              {directResult && (
+                <div className="px-6 py-4">
+                  <div className="bg-card border border-emerald-500/20 rounded-xl p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                      <span className="font-mono text-[10px] font-bold text-emerald-400 uppercase">Direct Execution</span>
+                      {directResult.tokensUsed && (
+                        <span className="font-mono text-[9px] text-muted-foreground ml-auto">
+                          {directResult.tokensUsed.input + directResult.tokensUsed.output} tokens
+                        </span>
+                      )}
+                    </div>
+                    {directResult.toolCalls.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {directResult.toolCalls.map((tc, i) => (
+                          <span key={i} className={`flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-mono ${tc.success ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"}`}>
+                            {tc.name}{tc.path && <span className="text-muted-foreground/60">{tc.path.split("/").pop()}</span>}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <div className="text-xs text-foreground/80 leading-relaxed whitespace-pre-wrap bg-muted/30 rounded-lg p-3 max-h-48 overflow-y-auto">
+                      {directResult.response}
+                    </div>
+                    <button onClick={() => setDirectResult(null)} className="text-[10px] text-muted-foreground hover:text-foreground font-mono">
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Routing decision panel */}
               {routingDecision && !activeExecution?.status?.match(/running|paused/) && (
