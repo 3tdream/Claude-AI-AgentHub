@@ -2,7 +2,7 @@
  * Utility functions for storage operations
  */
 
-import type { WorkEntry, WorkEntryInput } from './types.js';
+import type { WorkEntry, WorkEntryInput } from './types';
 
 /**
  * Generate unique ID for work entry

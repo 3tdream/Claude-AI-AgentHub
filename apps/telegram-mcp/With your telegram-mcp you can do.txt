@@ -1,0 +1,86 @@
+With your telegram-mcp you can do all of this:
+
+  Messaging
+  ┌──────────────────┬─────────────────────────────────────────┐
+  │     Command      │               Description               │
+  ├──────────────────┼─────────────────────────────────────────┤
+  │ send_message     │ Send messages to any user/group/channel │
+  ├──────────────────┼─────────────────────────────────────────┤
+  │ edit_message     │ Edit your sent messages                 │
+  ├──────────────────┼─────────────────────────────────────────┤
+  │ delete_messages  │ Delete messages                         │
+  ├──────────────────┼─────────────────────────────────────────┤
+  │ forward_messages │ Forward messages between chats          │
+  └──────────────────┴─────────────────────────────────────────┘
+  Read & Search
+  ┌─────────────────┬─────────────────────────────────────┐
+  │     Command     │             Description             │
+  ├─────────────────┼─────────────────────────────────────┤
+  │ get_history     │ Read message history from any chat  │
+  ├─────────────────┼─────────────────────────────────────┤
+  │ get_messages    │ Get specific messages by ID         │
+  ├─────────────────┼─────────────────────────────────────┤
+  │ search_messages │ Global search across all your chats │
+  ├─────────────────┼─────────────────────────────────────┤
+  │ get_dialogs     │ List all your conversations         │
+  └─────────────────┴─────────────────────────────────────┘
+  Contacts & Users
+  ┌──────────────────┬──────────────────────────────┐
+  │     Command      │         Description          │
+  ├──────────────────┼──────────────────────────────┤
+  │ get_contacts     │ List all your contacts       │
+  ├──────────────────┼──────────────────────────────┤
+  │ add_contact      │ Add new contacts             │
+  ├──────────────────┼──────────────────────────────┤
+  │ delete_contacts  │ Remove contacts              │
+  ├──────────────────┼──────────────────────────────┤
+  │ get_entity       │ Get info about any user/chat │
+  ├──────────────────┼──────────────────────────────┤
+  │ resolve_username │ Look up users by @username   │
+  └──────────────────┴──────────────────────────────┘
+  Groups & Channels
+  ┌───────────────────┬─────────────────────────────────┐
+  │      Command      │           Description           │
+  ├───────────────────┼─────────────────────────────────┤
+  │ join_channel      │ Join public channels/groups     │
+  ├───────────────────┼─────────────────────────────────┤
+  │ leave_channel     │ Leave channels/groups           │
+  ├───────────────────┼─────────────────────────────────┤
+  │ create_channel    │ Create new channels/supergroups │
+  ├───────────────────┼─────────────────────────────────┤
+  │ get_participants  │ Get member list (up to 10k)     │
+  ├───────────────────┼─────────────────────────────────┤
+  │ invite_to_channel │ Invite users to your groups     │
+  ├───────────────────┼─────────────────────────────────┤
+  │ kick_participant  │ Remove users from groups        │
+  ├───────────────────┼─────────────────────────────────┤
+  │ edit_chat         │ Change title/description        │
+  └───────────────────┴─────────────────────────────────┘
+  Media & Files
+  ┌───────────┬─────────────────────────────────────────────┐
+  │  Command  │                 Description                 │
+  ├───────────┼─────────────────────────────────────────────┤
+  │ send_file │ Send files up to 2GB (photos, videos, docs) │
+  └───────────┴─────────────────────────────────────────────┘
+  Actions
+  ┌─────────────────────────────┬─────────────────────────────────┐
+  │           Command           │           Description           │
+  ├─────────────────────────────┼─────────────────────────────────┤
+  │ pin_message / unpin_message │ Pin/unpin messages              │
+  ├─────────────────────────────┼─────────────────────────────────┤
+  │ send_reaction               │ React to messages (👍❤️🔥 etc.) │
+  ├─────────────────────────────┼─────────────────────────────────┤
+  │ mark_read                   │ Mark messages as read           │
+  ├─────────────────────────────┼─────────────────────────────────┤
+  │ get_me / update_profile     │ View/update your profile        │
+  └─────────────────────────────┴─────────────────────────────────┘
+  ---
+  Examples of what you can ask me:
+
+  - "Read my last 10 messages from @aviosi"
+  - "Search all my chats for 'invoice'"
+  - "List all members of [group name]"
+  - "Send a photo to [contact]"
+  - "Get my unread messages"
+  - "Join the channel @example"
+  - "Create a new group called 'Project X'"

@@ -1,0 +1,14 @@
+{
+  "id": "telegram-mcp",
+  "name": "telegram-mcp",
+  "port": 3016,
+  "stack": [
+    "anthropic"
+  ],
+  "entrypoint": "src/index.ts",
+  "devCommand": "npm run dev",
+  "kb_scope": [
+    "global",
+    "telegram-mcp"
+  ]
+}

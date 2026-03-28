@@ -16,10 +16,10 @@ import {
   calculateEarnings,
   formatCurrency,
   type WorkEntry,
-} from '../storage/index.js';
-import { handleUserText, isConfigured, getConfigInstructions } from '../nlp/index.js';
-import { executeAction, type AgentAction, type ActionPreview } from '../core/index.js';
-import { processVoiceCommand, isSpeechRecognitionAvailable, type MockAudioInput } from '../voice/index.js';
+} from '../storage/index';
+import { handleUserText, isConfigured, getConfigInstructions } from '../nlp/index';
+import { executeAction, type AgentAction, type ActionPreview } from '../core/index';
+import { processVoiceCommand, isSpeechRecognitionAvailable, type MockAudioInput } from '../voice/index';
 
 const program = new Command();
 

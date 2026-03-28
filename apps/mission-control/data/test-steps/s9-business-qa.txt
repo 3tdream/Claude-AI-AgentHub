@@ -1,0 +1,170 @@
+```json
+{"acceptance_results": [
+  {
+    "criteria_id": "AC-1",
+    "status": "PARTIAL",
+    "evidence": "LoyaltyConfigService.createConfig() saves earn_rate_per_dollar and applies it via CheckoutAwardHandler.calculatePoints(). However, Q2-DEFAULT is unresolved — points only fire from native CRM checkout, not external POS. The AC says 'applies to all subsequent checkout events for that location' but external POS transactions silently fail to trigger points, which is a known unvalidated assumption. Within the CRM-native scope the logic is correct.",
+    "severity": "P1"
+  },
+  {
+    "criteria_id": "AC-2",
+    "status": "FAIL",
+    "evidence": "Tier recalculation happens in TierRecalculationHandler.recalculate() inside the worker, which runs asynchronously after checkout. The AC requires tier update reflected in both staff CRM view and client PWA 'within 60 seconds'. The worker uses SQS polling (long-poll 20s), then processes the event, then updates loyalty_clients. No mechanism enforces or measures the 60-second SLA. Additionally, the InternalService.acknowledgeEventResult() that updates point_balance runs WITHOUT a row lock and outside a transaction (confirmed P1 bug in technical QA), creating a race condition where concurrent events could produce stale tier state. The PWA reads directly from loyalty_clients so stale balance = stale tier display.",
+    "severity": "P0"
+  },
+  {
+    "criteria_id": "AC-3",
+    "status": "PASS",
+    "evidence": "validateTiers() in tier-validator.ts checks: max_points must be >= min_points when not null (returns error 'Tier X: max_points must be >= min_points'), and TierConfigForm.validateTiers() on the frontend checks max_points >= next tier min_points. LoyaltyConfigService calls validateTiers() and throws BadRequestException with the inline error message, blocking save. Frontend TierConfigForm also sets tierErrors and blocks submission.",
+    "severity": "P2"
+  },
+  {
+    "criteria_id": "AC-4",
+    "status": "FAIL",
+    "evidence": "RewardsService.create() inserts the reward and returns it. However the AC requires the reward appears in the client-facing PWA 'within 5 minutes'. PwaRepository.getClientDashboard() queries rewards directly from DB with no cache layer, so new rewards should appear immediately on next PWA load. BUT the PWA link uses a JWT token with configurable expiry (LOYALTY_LINK_EXPIRY_HOURS, default 1h in docker-compose dev). If a client's link is cached by a browser or the PWA page is not reloaded, they won't see the new reward. More critically, no push/refresh mechanism exists — the PWA is a static page load, not a live-updating app. The '5 minutes' SLA has no enforcement mechanism. Partial credit: DB writes are immediate, but client visibility depends on page reload.",
+    "severity": "P1"
+  },
+  {
+    "criteria_id": "AC-5",
+    "status": "PASS",
+    "evidence": "RewardsService.patch() with active=false updates the reward. PwaRepository queries 'WHERE active = TRUE AND deleted_at IS NULL' so deactivated rewards are excluded from PWA. RedemptionsRepository.applyRedemption() uses 'WHERE code = $1 AND status = pending' — it does not check reward.active, so pending codes created before deactivation remain applicable. This matches the AC requirement that 'existing pending redemptions are not affected'.",
+    "severity": "P2"
+  },
+  {
+    "criteria_id": "AC-6",
+    "status": "FAIL",
+    "evidence": "RedemptionsService.requestRedemption() generates a code, deducts points atomically, and creates the redemption record. The code is returned to the client. HOWEVER: the redemptionsApi.request() in lib/loyalty-api.ts sends the PWA token as 'Authorization: Bearer <pwaToken>' header, but PwaJwtGuard only reads 'request.query.t' or 'request.params.token' — it does NOT read the Authorization header. This is a confirmed P0 bug from technical QA. All redemption requests from the PWA will return 401 UnauthorizedException. The AC cannot be satisfied as the endpoint is unreachable from the PWA.",
+    "severity": "P0"
+  },
+  {
+    "criteria_id": "AC-7",
+    "status": "PASS",
+    "evidence": "ClientsController.getById() returns point_balance, tier (id + name), and active_redemption_codes in a single response. ClientProfileCard renders all three without requiring separate navigation. The endpoint is accessible to staff (no @Roles restriction on GET /clients/:id). Active redemption codes show code, reward_name, point_cost, and expires_at inline.",
+    "severity": "P2"
+  },
+  {
+    "criteria_id": "AC-8",
+    "status": "PARTIAL",
+    "evidence": "CheckoutAwardHandler processes the event and awards points. The AC requires points awarded 'within 10 seconds' with no additional staff action. The flow is: staff confirms payment → POST /points/award (enqueues to SQS, returns 202) → worker polls SQS (up to 20s wait) → processes event. The SQS long-poll cycle alone can take up to 20 seconds, violating the 10-second SLA. No mechanism guarantees sub-10s processing. The 'no additional staff action' requirement is met as the award is automatic.",
+    "severity": "P1"
+  },
+  {
+    "criteria_id": "AC-9",
+    "status": "PARTIAL",
+    "evidence": "RedemptionsService.applyRedemption() marks the code as 'applied', logs crm_checkout_id and staff_id, and the point deduction already happened at redemption request time (not at apply time — points are deducted during requestRedemption). The AC says 'client's point balance reflects the deduction' — the balance was already deducted when the code was generated (AC-6 flow), so applying the code doesn't change the balance further. This is architecturally correct but the AC wording implies deduction at apply time. Also: the AC-6 P0 bug (PWA redemption 401) means codes may not be generated at all, making this AC moot in practice.",
+    "severity": "P1"
+  },
+  {
+    "criteria_id": "AC-10",
+    "status": "FAIL",
+    "evidence": "TwilioSmsService.sendPostVisitSms() sends the SMS after checkout processing. The message includes pointsEarned, newBalance, and a PWA link. HOWEVER: (1) The Twilio import uses 'import * as Twilio from twilio' without esModuleInterop:true in tsconfig.json — this is a confirmed P0 bug that causes 'TypeError: Twilio is not a function' at runtime, meaning NO SMS is ever sent. (2) The '2 minutes' SLA: SMS is sent after the worker processes the SQS event, which can take up to 20s for polling alone, plus processing time. No SLA enforcement exists. (3) The PWA link is constructed as '/pwa/client?t=<token>' which is correct per the security fix.",
+    "severity": "P0"
+  },
+  {
+    "criteria_id": "AC-11",
+    "status": "PASS",
+    "evidence": "TwilioSmsService.sendPostVisitSms() checks smsOptIn parameter before sending. If false, it calls logNotification() with status='suppressed' and returns without sending. NotificationsRepository.insert() records the suppression. The client's sms_opt_in field is stored in loyalty_clients and visible in ClientProfileCard (rendered in staff CRM view). Logic is correct assuming Twilio import bug is fixed.",
+    "severity": "P1"
+  },
+  {
+    "criteria_id": "AC-12",
+    "status": "FAIL",
+    "evidence": "TwilioSmsService sends SMS and on catch logs error_code. However: (1) The Twilio import P0 bug means SMS sending never works. (2) The AC requires 'does not retry more than once within 1 hour' — there is NO retry logic implemented. The worker's SQS consumer catches errors and sends to DLQ without retrying, so failed SMS attempts are never retried at all (0 retries, not 1). (3) 'Surfaces the failure in the owner's notification feed' — no such feed UI exists; failures are logged to notification_logs table but there is no owner alert/notification feed component or endpoint for surfacing failures proactively.",
+    "severity": "P1"
+  },
+  {
+    "criteria_id": "AC-13",
+    "status": "FAIL",
+    "evidence": "PwaClientPage loads data via pwaApi.getClientDashboard(token) which calls GET /pwa/client?t=<token>. The response includes point_balance, tier, next_tier, available_rewards, referral_code, referral_url, and branding. All required fields are present in PwaService.getClientDashboard(). HOWEVER: (1) The '3-second load time on 4G' SLA — the PWA makes 4 parallel DB queries (client, rewards, transactions, branding) plus a next-tier query. No performance testing or measurement exists. (2) styles/globals.css is confirmed truncated (P0 bug from technical QA), breaking all styling — the page will render unstyled, potentially failing legibility requirements. (3) pwa.css is imported but not provided in the implementation.",
+    "severity": "P0"
+  },
+  {
+    "criteria_id": "AC-14",
+    "status": "FAIL",
+    "evidence": "The PWA layout sets viewport meta correctly. Components use Tailwind responsive classes. HOWEVER: styles/globals.css is truncated mid-declaration (confirmed P0 bug) and styles/pwa.css is referenced in pwa/layout.tsx but never defined in the implementation. Without CSS, all PWA styling breaks — touch targets, text legibility, and no-horizontal-scroll requirements cannot be verified or guaranteed. The AC is untestable in current state.",
+    "severity": "P0"
+  },
+  {
+    "criteria_id": "AC-15",
+    "status": "PARTIAL",
+    "evidence": "BrandingHeader.tsx applies primaryColor as inline style on the header element and sets CSS custom properties via useEffect. PwaService returns branding.logo_url and branding.primary_color. BrandingEditor allows owner to configure these. PointsBalance also accepts primaryColor for gradient. HOWEVER: the CSS custom property approach depends on styles/globals.css being complete (it's truncated), and the 'CTA buttons' requirement — only the header and balance hero apply the brand color; RewardCard's redeem button uses 'bg-[var(--color-brand)]' which relies on the CSS variable being set. If globals.css is broken, CTA buttons fall back to undefined color.",
+    "severity": "P1"
+  },
+  {
+    "criteria_id": "AC-16",
+    "status": "PASS",
+    "evidence": "PwaService.getClientDashboard() returns referral_code and referral_url (constructed as PWA_BASE_URL + '/join?ref=' + code). ReferralShare component displays the referral URL with a one-tap copy button (navigator.clipboard.writeText) and a share button (navigator.share). The copy/share action is a single tap. The referral section is rendered in PwaClientPage when data.referral_code exists.",
+    "severity": "P2"
+  },
+  {
+    "criteria_id": "AC-17",
+    "status": "FAIL",
+    "evidence": "ReferralBonusHandler processes REFERRAL_BONUS events and awards points to both referrer and referee. HOWEVER: (1) The referral bonus is triggered by a REFERRAL_BONUS queue event, but nothing in the checkout flow triggers this event when a referred client completes their first visit. CheckoutAwardHandler does not check if the client was referred and does not enqueue a REFERRAL_BONUS event. There is no mechanism connecting 'first visit completion' to referral bonus triggering. (2) The confirmed P0 bug in ReferralBonusHandler: client IDs are sorted for deadlock prevention but then assigned as referrer=ids[0] and referee=ids[1] regardless of sort order — balances and descriptions will be swapped for ~50% of referral pairs. (3) The '10 minutes' SLA has no enforcement.",
+    "severity": "P0"
+  },
+  {
+    "criteria_id": "AC-18",
+    "status": "PARTIAL",
+    "evidence": "ClientsService.enroll() checks if a referral code is used and creates a referral record. The referrals table has 'UNIQUE constraint on referee_client_id' preventing duplicate referral records per client. If a client with an existing loyalty profile tries to use a referral code during enrollment, the ConflictException('Client already enrolled') fires first. However: the AC scenario is specifically 'a referral code is used by a client who already has an existing loyalty profile' — the enrollment endpoint checks findByLocationAndCrmId() and throws 409 before creating a referral. The event is not explicitly logged 'for owner review' in a dedicated way; it's just a 409 error. No owner-facing log entry is created for this specific rejection.",
+    "severity": "P1"
+  },
+  {
+    "criteria_id": "AC-19",
+    "status": "FAIL",
+    "evidence": "MilestoneAwardHandler handles BIRTHDAY milestone events. HOWEVER: no scheduler or cron job exists to trigger birthday checks daily. The only trigger path is via POST /internal/milestones/trigger (HMAC-protected internal endpoint). No automated birthday detection runs against loyalty_clients.birthday. The AC requires 'when a client's birthday date is reached' — this implies automated daily checking, which is completely absent. Additionally the Twilio P0 import bug means birthday SMS cannot be sent.",
+    "severity": "P0"
+  },
+  {
+    "criteria_id": "AC-20",
+    "status": "PASS",
+    "evidence": "MilestoneAwardHandler inserts a point_transactions record with type='MILESTONE_BONUS' and description set to milestone.label + ' Bonus' (e.g., 'Birthday Bonus Bonus' — minor label duplication). The transaction includes a timestamp (created_at). TransactionHistory component renders the type label using TX_TYPE_META['MILESTONE_BONUS'] = 'Milestone'. The point history log entry is created correctly assuming the trigger mechanism works (AC-19 fails on trigger, but if triggered manually, AC-20 would pass).",
+    "severity": "P1"
+  },
+  {
+    "criteria_id": "AC-21",
+    "status": "PASS",
+    "evidence": "LoyaltyConfigService.getTemplates() calculates two templates ('Steady Rewards' and 'Fast Track Rewards') based on avg_ticket_value and monthly_visit_count. Each template includes projected_silver_reach_pct (35% and 55%) with explanatory description text (e.g., 'At this setting, ~35% of regular clients reach Silver within 6 months' pattern). The wizard page displays both templates with their projections. Two pre-configured options are returned as required.",
+    "severity": "P2"
+  },
+  {
+    "criteria_id": "AC-22",
+    "status": "PASS",
+    "evidence": "SetupWizardPage step='confirm' shows the selected template's tier names, thresholds, and earn rate. When 'Apply Template' is clicked, it calls createConfig/patchConfig with the template values. The wizard step='templates' allows selecting a template and proceeding to 'confirm' where all fields are visible. However, individual editability before saving is not implemented — the confirm step shows values but provides no inline edit fields. The AC says 'individually editable before saving' which is not met; the user must go back and use the main config page to edit.",
+    "severity": "P1"
+  },
+  {
+    "criteria_id": "AC-23",
+    "status": "PARTIAL",
+    "evidence": "AnalyticsRepository.getSummary() returns total_enrolled, enrollment_rate (enrolled/total_clients), points_issued (rolling via date filter), points_redeemed, and tier_distribution as percentage breakdown. AnalyticsSummaryCards renders these as StatCards. HOWEVER: (1) The 'rolling 30 days' default is implemented in AnalyticsService.resolveDateRange() but enrollment_rate is computed as total enrolled in the date range / total clients (all time), which may not accurately represent the enrollment rate metric. (2) DATE_TRUNC is used with a parameterized $1 in analytics.repository.ts — confirmed P0 bug causing PostgreSQL runtime error 'function date_trunc(unknown, ...) does not exist'. This affects getPointsActivity but not getSummary directly. getSummary itself does not use DATE_TRUNC so the summary cards should work.",
+    "severity": "P1"
+  },
+  {
+    "criteria_id": "AC-24",
+    "status": "PARTIAL",
+    "evidence": "AnalyticsPage has date range inputs (dateFrom, dateTo) that trigger loadSummary() and loadActivity() via useEffect dependencies. The '3 seconds' SLA: AnalyticsRepository runs 4 parallel Promise.all queries for summary. No performance measurement exists. The DATE_TRUNC P0 bug in getPointsActivity means the points-activity chart will error on any date range filter change, breaking part of the dashboard update. Summary cards should update correctly.",
+    "severity": "P1"
+  }
+],
+"summary": {
+  "total": 24,
+  "pass": 6,
+  "fail": 11,
+  "partial": 7,
+  "p0_failures": 7
+},
+"verdict": "FAIL"}
+```
+
+**Critical failure summary:**
+
+| Root Cause | ACs Affected |
+|---|---|
+| Twilio `import * as Twilio` without `esModuleInterop` (P0) | AC-10, AC-12, AC-19 — all SMS delivery broken |
+| `PwaJwtGuard` ignores `Authorization` header (P0) | AC-6 — PWA redemption flow completely broken |
+| `styles/globals.css` truncated + `pwa.css` missing (P0) | AC-13, AC-14, AC-15 — PWA unstyled/untestable |
+| No birthday/anniversary scheduler exists (P0) | AC-19 — milestone automation absent |
+| Referral bonus never triggered by checkout (P0) | AC-17 — referral bonus never fires automatically |
+| `ReferralBonusHandler` swaps referrer/referee for ~50% of pairs (P0) | AC-17 — wrong clients receive bonuses |
+| `DATE_TRUNC($1, ...)` parameterization error (P0) | AC-24 — points activity chart crashes |
+| SQS polling latency up to 20s vs 10s SLA | AC-2, AC-8 — timing SLAs unenforceable |
+| `acknowledgeEventResult` race condition (no row lock) | AC-2 — tier updates can be stale |

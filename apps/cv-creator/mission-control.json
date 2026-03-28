@@ -1,0 +1,17 @@
+{
+  "id": "cv-creator",
+  "name": "cv_creator",
+  "port": 3012,
+  "stack": [
+    "nextjs",
+    "react",
+    "tailwind",
+    "anthropic"
+  ],
+  "entrypoint": "app/page.tsx",
+  "devCommand": "npm run dev",
+  "kb_scope": [
+    "global",
+    "cv-creator"
+  ]
+}

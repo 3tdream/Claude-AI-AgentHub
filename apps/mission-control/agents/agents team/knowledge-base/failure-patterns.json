@@ -1,6 +1,6 @@
 {
   "_description": "Known issues, root causes, and solutions — maintained by QA-Agent and all agents",
-  "_updated": "2026-03-22",
+  "_updated": "2026-03-26",
   "patterns": [
     {
       "id": "FAIL-001",
@@ -804,6 +804,116 @@
       "date_discovered": "2026-03-22",
       "recurrence": "Discovered during pipeline execution",
       "source_pipeline": "1a3f1cdb-53f9-45d7-92ea-0925506658db"
+    },
+    {
+      "id": "FAIL-061",
+      "category": "build",
+      "title": "Backend Agent Created Files Not Persisted to Disk — Silent Write Failure",
+      "symptoms": "s5-backend scored 10/10 and reported creating `app/api/costs/anthropic/route.ts` and supporting lib files, but s8-technical-qa discovered the primary route file was \"missing from disk\" (ENOENT). The backend agent's output was syntactically correct and complete, yet the artifact never materialized on the filesystem, requiring two fix cycles (s5-backend-fix-1, s5-backend-fix-2) before QA re-validation passed.",
+      "root_cause": "The scoring pipeline evaluated the *content quality* of the agent's output (code correctness, structure, completeness) independently of whether file write tool calls actually succeeded. A high quality score on generated code does not confirm successful disk persistence. The agent likely produced valid output but a tool-call failure or sandbox state issue silently swallowed the write without surfacing an error back to the scorer.",
+      "solution": "Quality gates for backend/frontend agents must include a mandatory post-write verification step: after all file operations, the agent should explicitly re-read each created file and assert its existence and non-empty content. The orchestrator should treat ENOENT on any declared output file as an automatic score cap (≤5/10) regardless of code quality, triggering immediate retry before downstream QA stages run.",
+      "date_discovered": "2026-03-25",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "4fe80099-98e7-4ed2-8391-1c0c932f16c4"
+    },
+    {
+      "id": "FAIL-062",
+      "category": "devops",
+      "title": "QA Stages Running Against Unverified Filesystem State Waste Cycles",
+      "symptoms": "s8-technical-qa and s9-business-qa (which required 3 retries) both consumed significant time (103s and 83s respectively) before discovering the core artifact was missing. Two full QA agents — plus retry overhead — executed against a broken state that a single post-write file-existence check in s5-backend would have caught in under a second.",
+      "root_cause": "The pipeline architecture assumes that a high-scoring implementation step produced valid on-disk artifacts and proceeds directly to QA. There is no lightweight \"artifact presence gate\" between implementation and QA stages. This means expensive QA compute runs against potentially empty or incomplete filesystem states.",
+      "solution": "Insert a cheap artifact-verification micro-step (≤5s) between any implementation step and its QA stage. This step does nothing except confirm that every file listed in the fileplan (s3.4-fileplan output) exists on disk with non-zero size. Only on full confirmation does the pipeline advance to s8/s9. On failure, loop back to the implementation agent immediately rather than burning QA agent time.",
+      "date_discovered": "2026-03-25",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "4fe80099-98e7-4ed2-8391-1c0c932f16c4"
+    },
+    {
+      "id": "FAIL-063",
+      "category": "build",
+      "title": "s9-business-qa Required 3 Retries Despite Upstream Technical QA Passing",
+      "symptoms": "s9-business-qa retried 3 times (final score 8/10, lowest in pipeline) even after s8-technical-qa completed. The business QA agent encountered ENOENT errors and BLOCKED verdicts on acceptance criteria, indicating it was still operating against a partially broken filesystem state from the original s5-backend failure — even after fix cycles had been initiated.",
+      "root_cause": "The fix loop (s5-backend-fix-1 → s5-qa-reval-1 → s5-backend-fix-2 → s5-qa-reval-2) ran in parallel or in an ordering that did not guarantee filesystem consistency before s9-business-qa re-attempted. Business QA retried against stale state rather than waiting for the fix loop to fully converge.",
+      "solution": "The orchestrator must enforce a hard synchronization barrier: s9-business-qa (and any downstream consumer) must not retry or re-run until the fix loop's final re-validation step (s5-qa-reval-N) has emitted a PASS signal. Retrying QA against unchanged filesystem state is pure waste and inflates retry counts without resolution probability.",
+      "date_discovered": "2026-03-25",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "4fe80099-98e7-4ed2-8391-1c0c932f16c4"
+    },
+    {
+      "id": "FAIL-064",
+      "category": "build",
+      "title": "Backend Agent Creates Files That Don't Land on Disk — Silent Write Failure",
+      "symptoms": "s5-backend scored 10/10 and reported creating `app/api/costs/anthropic/route.ts` and supporting lib files, but s8-technical-qa confirmed the primary route file was **missing from disk** (\"ENOENT errors\"). The agent produced syntactically correct output that passed its own self-evaluation, yet the actual filesystem state diverged from the reported state.",
+      "root_cause": "The backend agent operates in a tool-calling loop where \"write file\" tool calls can silently fail (network blip, path resolution error, sandbox reset) without causing the agent's final summary to reflect the failure. The agent scores its own output based on the *content it intended to write*, not on a post-write read-back verification.",
+      "solution": "Mandate a read-back verification step at the end of every backend agent execution: after all writes, re-read each created file and assert byte count > 0. If any file is missing, the agent must self-report FAIL before the QA gate sees it. This converts a silent failure into a loud, early failure — saving the two fix iterations (s5-backend-fix-1, s5-backend-fix-2) that were needed here.",
+      "date_discovered": "2026-03-25",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "4fe80099-98e7-4ed2-8391-1c0c932f16c4"
+    },
+    {
+      "id": "FAIL-065",
+      "category": "devops",
+      "title": "Self-Scoring 10/10 on Output That Fails the Next Gate — Score Inflation Masking Real Defects",
+      "symptoms": "s5-backend received a perfect 10/10 quality score despite producing an artifact that s8-technical-qa immediately flagged as broken (missing file on disk, ENOENT). The scoring system rewarded the *quality of the written plan/code content* rather than the *verified outcome*, creating a false confidence signal that propagated to downstream steps.",
+      "root_cause": "Quality scoring criteria are evaluated against the agent's textual output (structure, completeness, correctness of code shown) rather than against observable side-effects (files exist, endpoints respond, tests pass). This is a category error: confusing artifact quality with delivery quality.",
+      "solution": "Introduce a two-component score: `content_score` (current) + `delivery_score` (verified by the next gate). The final step score should be `min(content_score, delivery_score)`. A backend step that produces beautiful code but fails filesystem delivery should score no higher than 4/10 overall. This would have flagged s5-backend as a failure immediately and triggered the fix loop one step earlier.",
+      "date_discovered": "2026-03-25",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "4fe80099-98e7-4ed2-8391-1c0c932f16c4"
+    },
+    {
+      "id": "FAIL-066",
+      "category": "build",
+      "title": "s9-business-qa Required 3 Retries — QA Agent Blocked by Upstream Artifact Gap",
+      "symptoms": "s9-business-qa is the only step with `retryCount > 0` (3 retries, 83.1s total). The feedback notes \"BLOCKED\" verdicts alongside PASS/FAIL, with ENOENT errors as evidence. The QA agent was repeatedly attempting to validate a business flow against files that didn't exist yet, burning retries on a precondition failure rather than a logic failure.",
+      "root_cause": "The pipeline routed s9-business-qa immediately after s8-technical-qa without waiting for the fix loop (s5-backend-fix-1/2) to complete. Business QA was evaluating a broken state. Each retry re-encountered the same missing-file condition because the fix hadn't been applied yet.",
+      "solution": "Gate s9-business-qa on a hard precondition: all files listed in s3.4-fileplan must exist on disk with non-zero size before business QA is allowed to start. Add a lightweight \"artifact presence check\" micro-step between s8-technical-qa and s9-business-qa that either blocks or re-routes to the fix loop first. This prevents QA agents from consuming retry budget on infrastructure failures they cannot resolve.",
+      "date_discovered": "2026-03-25",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "4fe80099-98e7-4ed2-8391-1c0c932f16c4"
+    },
+    {
+      "id": "FAIL-067",
+      "category": "architecture",
+      "title": "Security Re-Evaluation Triggered Without Architect Redesign Input",
+      "symptoms": "Step s3.5-cyber-reeval-1 was executed as a re-evaluation pass, but the architect redesign artifact (from s3.2-api-redesign-1) was empty or not properly passed as input. The cyber re-evaluation had nothing to evaluate, making the step a no-op and wasting 16.7s of pipeline time.",
+      "root_cause": "Pipeline wiring between s3.2-api-redesign-1 and s3.5-cyber-reeval-1 did not enforce a non-empty output precondition before triggering the downstream re-evaluation step. The redesign step produced no artifact but was marked \"completed.\"",
+      "solution": "Add an output validation gate between redesign and re-evaluation steps: if the redesign artifact is empty or below a minimum token threshold, block the re-evaluation step and flag the redesign step for retry instead. Treat empty output as a soft failure, not a completion.",
+      "date_discovered": "2026-03-26",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "61eba063-6d1b-4aa5-8cd3-1a7695ea4b7f"
+    },
+    {
+      "id": "FAIL-068",
+      "category": "build",
+      "title": "Frontend Agent Required Retry Due to Incomplete Investigation Handoff",
+      "symptoms": "s7-frontend required 1 retry (15.0s total), suggesting the initial attempt failed or produced insufficient output. The agent referenced CostCounter.tsx investigation from a prior step, implying it depended on context that may not have been cleanly surfaced.",
+      "root_cause": "Cross-step context propagation was incomplete — the frontend agent had to re-anchor itself to the codebase investigation rather than receiving a structured, ready-to-consume spec from the upstream architecture/investigation step.",
+      "solution": "Upstream investigation steps (s3.2-api-redesign-1 style) should emit a structured handoff artifact (e.g., component name, affected props, icon resolution pattern) rather than raw prose. Frontend agents should consume typed specs, not infer from narrative outputs.",
+      "date_discovered": "2026-03-26",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "61eba063-6d1b-4aa5-8cd3-1a7695ea4b7f"
+    },
+    {
+      "id": "FAIL-069",
+      "category": "api",
+      "title": "API Redesign Step Delivered Empty Output to Security Re-Evaluation",
+      "symptoms": "Step s3.2-api-redesign-1 completed but produced no actionable redesign content. The downstream security re-evaluation step (s3.5-cyber-reeval-1) received an empty redesign section, making its evaluation impossible and forcing it to flag the absence rather than validate actual changes.",
+      "root_cause": "The redesign agent spent its execution budget analyzing existing architecture (\"need to examine current architecture\") but did not produce the required output artifact before completion. No output gate was enforced between s3.2 and s3.5.",
+      "solution": "Enforce a non-empty structured output contract between pipeline steps that have producer-consumer dependencies. s3.5 should gate on a schema-validated artifact from s3.2, not just step completion status. A step that produces no output should be marked failed, not completed.",
+      "date_discovered": "2026-03-26",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "6712c759-720a-4aa5-9a7b-f1e665c9c1a7"
+    },
+    {
+      "id": "FAIL-070",
+      "category": "build",
+      "title": "Frontend Step Required Retry Despite High Final Score",
+      "symptoms": "s7-frontend completed with 1 retry and achieved a perfect 10/10 score. This reveals a pattern where the first attempt was insufficient but the retry succeeded — the final score masks the initial failure and creates false confidence in pipeline reliability.",
+      "root_cause": "Likely insufficient context gathered on the first pass before attempting edits. The agent's own output confirms it needed to analyze existing currency implementation before making changes — suggesting the first attempt proceeded without adequate file examination.",
+      "solution": "For frontend steps touching existing component state (like currency icon rendering), mandate a read-before-write phase as a hard pre-condition, not an optional first action. Structure the step prompt to require explicit confirmation of current implementation understanding before any edit operations begin.",
+      "date_discovered": "2026-03-26",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "6712c759-720a-4aa5-9a7b-f1e665c9c1a7"
     }
   ]
 }

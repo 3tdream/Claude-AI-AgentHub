@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run dev:*)",
+      "Bash(test:*)",
+      "Bash(npm run build:*)",
+      "Bash(tasklist:*)",
+      "Bash(findstr:*)",
+      "Bash(npx tsx:*)",
+      "Bash(vercel ls:*)",
+      "Bash(curl -s \"https://api.telegram.org/bot8302179506:AAGt_Y45PU7P00CHDNG6PESN_7auPMBTvBU/getWebhookInfo\")",
+      "Bash(curl -X POST \"https://api.telegram.org/bot8302179506:AAGt_Y45PU7P00CHDNG6PESN_7auPMBTvBU/setWebhook\" -H \"Content-Type: application/json\" -d '{\"\"url\"\": \"\"https://telegram-bot-vercel-b2yuhdjso-michael-shigrin-sokols-projects.vercel.app/api/webhook\"\"}')",
+      "Bash(python3:*)",
+      "Bash(node scripts/set-webhook.js:*)",
+      "Bash(TELEGRAM_BOT_TOKEN=\"8302179506:AAGt_Y45PU7P00CHDNG6PESN_7auPMBTvBU\" node scripts/set-webhook.js https://telegram-bot-vercel-b2yuhdjso-michael-shigrin-sokols-projects.vercel.app)"
+    ]
+  }
+}

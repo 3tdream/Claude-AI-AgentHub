@@ -14,11 +14,11 @@ import type {
   WorkEntryFilter,
   WorklogData,
   StorageResult,
-} from './types.js';
+} from './types';
 import {
   createWorkEntry,
   validateWorkEntryInput,
-} from './utils.js';
+} from './utils';
 
 // Check if we're running on Vercel with KV configured
 const isVercelKV = !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
@@ -304,5 +304,5 @@ export async function clearAllEntries(): Promise<StorageResult<boolean>> {
 }
 
 // Export types
-export * from './types.js';
-export * from './utils.js';
+export * from './types';
+export * from './utils';

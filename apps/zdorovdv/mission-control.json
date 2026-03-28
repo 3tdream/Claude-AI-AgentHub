@@ -1,0 +1,16 @@
+{
+  "id": "zdorovdv",
+  "name": "zdorovdv",
+  "port": 3030,
+  "stack": [
+    "nextjs",
+    "react",
+    "tailwind"
+  ],
+  "entrypoint": "app/page.tsx",
+  "devCommand": "npm run dev",
+  "kb_scope": [
+    "global",
+    "zdorovdv"
+  ]
+}

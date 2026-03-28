@@ -3,10 +3,10 @@
  * Integrates speech-to-text with NLP pipeline
  */
 
-import { recognizeSpeech, isSpeechRecognitionAvailable, type MockAudioInput } from './speech-to-text.js';
-import { handleUserText } from '../nlp/index.js';
-import type { VoiceCommandResult, RecognitionOptions } from './types.js';
-import type { AgentAction } from '../core/types.js';
+import { recognizeSpeech, isSpeechRecognitionAvailable, type MockAudioInput } from './speech-to-text';
+import { handleUserText } from '../nlp/index';
+import type { VoiceCommandResult, RecognitionOptions } from './types';
+import type { AgentAction } from '../core/types';
 
 /**
  * Process voice command from audio input

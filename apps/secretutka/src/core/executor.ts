@@ -15,7 +15,7 @@ import type {
   ShowSummaryAction,
   ListEntriesAction,
   GetEntryAction,
-} from './types.js';
+} from './types';
 
 import {
   addEntry,
@@ -27,7 +27,7 @@ import {
   type WorkEntry,
   type WorkEntryFilter,
   type PaymentStatus,
-} from '../storage/index.js';
+} from '../storage/index';
 
 /**
  * Build preview information for affected entries
@@ -595,4 +595,4 @@ export async function executeActions(
 }
 
 // Export types
-export * from './types.js';
+export * from './types';

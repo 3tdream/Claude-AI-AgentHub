@@ -1,0 +1,305 @@
+# Product Requirements Document
+## Beauty CRM — Client Loyalty Program with Points System
+**Version:** 1.0 | **Status:** Draft — Pending Stakeholder Validation on Q1–Q3
+**Author:** PM-Agent | **Last Updated:** 2025
+
+---
+
+## 1. OVERVIEW
+
+We are building a loyalty and points module as an add-on to an existing Beauty CRM platform, targeting SMB salon owner-operators (1–3 locations, 1–10 staff) as the primary V1 buyer. The module enables salon owners to configure a tiered points program, define a redeemable rewards catalog, and automate client engagement via SMS and a branded Progressive Web App (PWA) — with zero requirement for clients to download a native app. Staff interactions are embedded directly into the CRM's existing checkout flow to minimize friction and maximize adoption. A native referral mechanic converts enrolled loyalty members into an acquisition channel by issuing unique shareable codes that award points to both referrer and referee upon first-visit completion. The business case is grounded in a ~$620M serviceable market, a clear competitive gap (no beauty-specific solution combines SMB pricing + emotional milestone triggers + no-app client UX), and the measurable retention impact of well-executed loyalty programs (40% better retention vs. transactional-only programs per Bond Loyalty Report 2023).
+
+---
+
+## 2. RISK ASSUMPTIONS
+
+### ⚠️ HIGH-RISK Defaults (Unconfirmed — Potential Rework Triggers)
+
+---
+
+**⚠️ [Q1-DEFAULT] Single-Location Architecture Only for V1**
+- **Assumed:** Multi-location/franchise support (shared point balances, cross-location reporting, role-based permissions) is deferred to Phase 2. V1 serves single-location businesses only.
+- **What could go wrong:** If any enterprise or franchise client must be supported at launch, the current data model will be insufficient. Retrofitting multi-tenancy into a single-location schema is a high-cost rework affecting database design, permissions, reporting, and billing.
+- **Mitigation:** The schema MUST include `organization_id` and `location_id` foreign keys from day one (non-negotiable architecture stub), even though multi-location UI will not be exposed. This is a Sprint 0 gate item. **Do not begin data model implementation without stakeholder sign-off on this assumption.**
+
+---
+
+**⚠️ [Q2-DEFAULT] Points Triggered by Native CRM Checkout Only**
+- **Assumed:** V1 fires point-earn events exclusively from transactions completed inside the Beauty CRM. External POS systems (Square, Lightspeed, Vagaro) are not integrated for point triggering. A manual staff override exists for edge cases.
+- **What could go wrong:** If a significant share of the target SMB segment processes payments via external POS terminals, points will silently fail to fire for real transactions — a critical trust-breaking gap. This would require at minimum a Square integration before launch.
+- **Mitigation:** During beta recruitment, explicitly qualify whether target businesses process payments natively in the CRM. If >30% use external POS exclusively, Square integration must be pulled into V1 scope before development begins.
+
+---
+
+**⚠️ [Q3-DEFAULT] Catalog-Based Redemption Only (No Monetary Credit)**
+- **Assumed:** Points have no direct cash/monetary equivalent. Salon owners define a rewards catalog (e.g., "Free blowout = 500 points"). No points-to-dollar conversion is supported in V1.
+- **What could go wrong:** If users expect or require monetary credit redemption (e.g., "$5 off any service"), points become a deferred financial liability, triggering accounting, tax, and potential regulatory review requirements. The data model and redemption engine would need significant rework.
+- **Mitigation:** Include a monetization preference question in the onboarding wizard and monitor support requests post-launch. Flag monetary credit as a Phase 2 evaluation item with a legal review gate.
+
+---
+
+### 🟡 MEDIUM-RISK Defaults
+
+| Assumption | Risk | Mitigation |
+|---|---|---|
+| **A3** — PWA + SMS only, no native app | Enterprise clients may demand native app at launch | Architect PWA for future web-to-native wrapper (React Native Web); document as explicit V1 exclusion |
+| **A8** — Twilio as SMS gateway | Poor delivery in non-US markets; cost blowout at scale | Model SMS unit economics into pricing tiers; validate Twilio delivery rates in target regions pre-launch |
+| **A4** — No external POS integration | Overlaps with Q2; manual override is a workaround, not a solution | Monitor override usage rate post-launch as a signal for POS integration prioritization |
+| **Q4-DEFAULT** — US-first with GDPR baseline | EU/CA launch blocked without region-specific legal review | Build TCPA opt-in consent flow at launch; flag GDPR right-to-erasure as a V1 requirement, not deferred |
+
+---
+
+## 3. USER STORIES
+
+| ID | Story | Persona | Priority |
+|---|---|---|---|
+| US-01 | As a **salon owner**, I want to configure a tiered points program with custom earn rates and tier thresholds, so that I can reward clients in a way that fits my service pricing and visit patterns. | Sofia | P0 |
+| US-02 | As a **salon owner**, I want to define a rewards catalog with named rewards and point costs, so that clients can redeem points for services meaningful to my business — not generic discounts. | Sofia | P0 |
+| US-03 | As a **front-desk staff member**, I want to see a client's current point balance and tier status at checkout with one tap, so that I can acknowledge their loyalty without interrupting the payment flow. | Staff | P0 |
+| US-04 | As a **client**, I want to receive an SMS after each visit showing my points earned and running total with a link to view my rewards, so that I stay engaged with the program without downloading an app. | Client | P0 |
+| US-05 | As a **client**, I want to access a branded PWA showing my balance, tier, available rewards, and referral link, so that I can track and share my loyalty status from any mobile browser. | Client | P0 |
+| US-06 | As a **client**, I want to share a unique referral link with friends, so that both of us earn bonus points when my friend completes their first visit. | Client | P1 |
+| US-07 | As a **salon owner**, I want to configure milestone bonus point events (e.g., birthday reward, 1-year anniversary, first visit), so that clients feel personally recognized beyond routine transactions. | Sofia | P1 |
+| US-08 | As a **salon owner**, I want a loyalty program setup wizard with pre-calibrated tier templates based on my average ticket and visit frequency, so that I can launch a program in under 30 minutes without guessing at thresholds. | Sofia | P1 |
+| US-09 | As a **salon owner**, I want to view a retention and engagement dashboard showing enrollment rate, active members, points issued vs. redeemed, and tier distribution, so that I can measure program ROI. | Sofia | P1 |
+| US-10 | As a **staff member**, I want to manually award bonus points to a client with a reason note, so that I can handle edge cases (e.g., external payment, service recovery) without breaking the client's loyalty record. | Staff | P2 |
+
+---
+
+## 4. ACCEPTANCE CRITERIA
+
+### US-01 — Loyalty Program Configuration (P0)
+
+**AC-1:** GIVEN a salon owner is in the loyalty setup wizard, WHEN they set a points-per-dollar (or points-per-service-category) earn rate, THEN the system saves the configuration and applies it to all subsequent checkout events for that location.
+
+**AC-2:** GIVEN a salon owner configures tier thresholds (e.g., Bronze: 0–499, Silver: 500–1,499, Gold: 1,500+), WHEN a client's cumulative point balance crosses a threshold, THEN the client's tier is automatically updated and reflected in both the staff CRM view and the client PWA within 60 seconds.
+
+**AC-3:** GIVEN a salon owner attempts to save a tier configuration where an upper threshold is lower than a lower threshold, WHEN they submit the form, THEN the system displays an inline validation error and blocks saving.
+
+---
+
+### US-02 — Rewards Catalog Management (P0)
+
+**AC-4:** GIVEN a salon owner is in the rewards catalog editor, WHEN they create a new reward with a name, point cost, and optional description/image, THEN the reward appears in the client-facing PWA within 5 minutes and is selectable for redemption.
+
+**AC-5:** GIVEN a reward exists in the catalog, WHEN the salon owner deactivates it, THEN the reward is hidden from new redemption requests but existing pending redemptions are not affected.
+
+**AC-6:** GIVEN a client has sufficient points for a reward, WHEN they request redemption via the PWA, THEN the system generates a unique single-use redemption code, deducts the points, and notifies the staff CRM view with the redemption request and code.
+
+---
+
+### US-03 — Staff Checkout Integration (P0)
+
+**AC-7:** GIVEN a staff member opens a client's checkout screen in the CRM, WHEN the screen loads, THEN the client's current point balance, tier status, and any active redemption codes are displayed without requiring a separate navigation action.
+
+**AC-8:** GIVEN a checkout is completed for an enrolled loyalty client, WHEN the payment is confirmed, THEN points are automatically calculated and awarded within 10 seconds, with no additional staff action required.
+
+**AC-9:** GIVEN a client has a pending redemption code, WHEN the staff member applies it at checkout, THEN the corresponding reward is logged, the code is marked as used, and the client's point balance reflects the deduction.
+
+---
+
+### US-04 — Post-Visit SMS Notification (P0)
+
+**AC-10:** GIVEN a loyalty-enrolled client completes a checkout, WHEN points are awarded, THEN an SMS is sent to the client's registered mobile number within 2 minutes containing: points earned in this visit, cumulative balance, and a personalized PWA link.
+
+**AC-11:** GIVEN a client has not provided SMS opt-in consent, WHEN a checkout is completed, THEN no SMS is sent and the system logs the suppression event. The opt-in status is visible in the client's CRM profile.
+
+**AC-12:** GIVEN an SMS delivery failure is returned by the gateway (Twilio), WHEN the failure event is received, THEN the system logs the failure with error code, does not retry more than once within 1 hour, and surfaces the failure in the owner's notification feed.
+
+---
+
+### US-05 — Client PWA (P0)
+
+**AC-13:** GIVEN a client clicks their personalized PWA link (from SMS or direct share), WHEN the page loads, THEN it displays: current point balance, tier name and progress to next tier, list of available rewards with point costs, and the client's unique referral link — all within a 3-second load time on a 4G connection.
+
+**AC-14:** GIVEN the PWA is accessed on a mobile browser, WHEN the page renders, THEN all interactive elements are touch-accessible, text is legible without zooming, and no horizontal scrolling is required on screens ≥320px wide.
+
+**AC-15:** GIVEN a salon owner has configured custom branding (logo, brand color), WHEN a client opens the PWA, THEN the salon's logo and primary brand color are applied to the PWA header and CTA buttons.
+
+---
+
+### US-06 — Referral Mechanic (P1)
+
+**AC-16:** GIVEN an enrolled client views their PWA, WHEN they access the referral section, THEN a unique referral URL is displayed with a one-tap copy/share action.
+
+**AC-17:** GIVEN a new client books using a referral code and completes their first paid visit, WHEN checkout is confirmed, THEN the referring client receives their configured referral bonus points and the new client receives their configured welcome bonus points, both within 10 minutes of checkout completion.
+
+**AC-18:** GIVEN a referral code is used by a client who already has an existing loyalty profile, WHEN the system detects the duplicate, THEN no referral bonus is awarded and the event is logged for owner review.
+
+---
+
+### US-07 — Milestone Bonus Events (P1)
+
+**AC-19:** GIVEN a salon owner has configured a birthday bonus (e.g., +100 points), WHEN a client's birthday date is reached (based on CRM profile data), THEN the bonus points are automatically awarded and an SMS notification is sent to the client.
+
+**AC-20:** GIVEN a milestone event fires, WHEN the points are awarded, THEN the transaction appears in the client's point history log with the event type label (e.g., "Birthday Bonus") and timestamp.
+
+---
+
+### US-08 — Setup Wizard with Tier Templates (P1)
+
+**AC-21:** GIVEN a salon owner begins the loyalty setup wizard, WHEN they input their average ticket value and estimated monthly visit count, THEN the wizard displays at least two pre-configured tier threshold options with explanatory text (e.g., "At this setting, ~35% of regular clients reach Silver within 6 months").
+
+**AC-22:** GIVEN a salon owner selects a pre-configured template, WHEN they proceed to the next wizard step, THEN all tier names, thresholds, and earn rates are pre-populated and individually editable before saving.
+
+---
+
+### US-09 — Owner Analytics Dashboard (P1)
+
+**AC-23:** GIVEN a salon owner opens the loyalty dashboard, WHEN the page loads, THEN it displays: total enrolled members, enrollment rate (enrolled / total clients), points issued (rolling 30 days), points redeemed (rolling 30 days), and tier distribution as a percentage breakdown.
+
+**AC-24:** GIVEN the dashboard is viewed, WHEN the owner selects a date range filter, THEN all metrics update to reflect the selected period within 3 seconds.
+
+---
+
+## 5. SCOPE BOUNDARIES
+
+### ✅ IN SCOPE — V1
+
+- Points earn engine triggered by native CRM checkout/payment completion events
+- Configurable earn rates (per dollar spent and/or per service category)
+- Three-tier loyalty program with customizable names and point thresholds
+- Pre-configured tier templates with a setup wizard and loyalty simulator
+- Catalog-based rewards (owner-defined, non-monetary, no cash equivalent)
+- Single-use redemption codes generated at client request, applied at staff checkout
+- Manual staff point award with reason note (override capability)
+- Post-visit SMS notification via Twilio (points earned + balance + PWA link)
+- Branded client-facing PWA (balance, tier, rewards catalog, referral link)
+- TCPA-compliant SMS opt-in consent flow at enrollment
+- GDPR baseline compliance: right to erasure for client loyalty records, data portability
+- Native referral mechanic: unique codes, dual-sided point award on first-visit completion
+- Milestone bonus events: birthday, first visit, program anniversary
+- Owner analytics dashboard: enrollment, points issued/redeemed, tier distribution
+- Staff checkout UI integration: embedded balance display, auto point calculation, redemption code application
+- Database schema with `organization_id` and `location_id` stubs (multi-tenancy extensibility, not exposed in UI)
+- Salon-level branding for PWA (logo, primary color)
+- WhatsApp as optional SMS alternative (via Twilio WhatsApp channel)
+
+### ❌ OUT OF SCOPE — V1
+
+- Native iOS or Android app (client-facing)
+- Multi-location UI, cross-location point sharing, or franchise-level reporting
+- External POS integrations (Square, Lightspeed, Vagaro, Fresha) for automatic point triggering
+- Monetary/cash-equivalent point redemption (points-to-dollar conversion)
+- Email marketing automation or CRM campaign builder
+- Social platform API integrations for referral attribution (Facebook, Instagram, Google)
+- Role-based staff permissions beyond owner vs. staff distinction
+- API access or webhooks for third-party integrations (Klaviyo, Mailchimp)
+- Paid promotion or "double points day" scheduling tools
+- White-label platform reselling
+- Separate staff-facing kiosk or loyalty app
+
+### 🔜 DEFERRED — Phase 2 Candidates
+
+| Feature | Trigger for Prioritization |
+|---|---|
+| Multi-location / franchise architecture | Stakeholder confirmation on Q1; enterprise pipeline signals |
+| Square / Lightspeed POS integration | >30% of beta users report external POS as primary payment method |
+| Monetary credit redemption | Post-launch demand signal + legal/accounting review completion |
+| Native iOS/Android app | Enterprise tier launch; app download conversion data from PWA |
+| Email notification channel | SMS delivery rate issues in target markets |
+| Advanced segmentation & targeted campaigns | Owner dashboard engagement data shows demand |
+| Loyalty program API / webhooks | Franchise/enterprise tier requirements |
+| Gamification (double-point events, challenges) | Engagement data from V1 milestone mechanics |
+
+---
+
+## 6. ENVIRONMENT VARIABLES
+
+```json
+{
+  "env_vars": [
+    {
+      "name": "TWILIO_ACCOUNT_SID",
+      "description": "Twilio account identifier for SMS and WhatsApp delivery",
+      "required": true,
+      "example": "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    },
+    {
+      "name": "TWILIO_AUTH_TOKEN",
+      "description": "Twilio authentication token for API requests",
+      "required": true,
+      "example": "your_twilio_auth_token"
+    },
+    {
+      "name": "TWILIO_FROM_NUMBER",
+      "description": "Twilio-provisioned phone number used as SMS sender",
+      "required": true,
+      "example": "+15551234567"
+    },
+    {
+      "name": "TWILIO_WHATSAPP_FROM",
+      "description": "Twilio WhatsApp-enabled sender number (optional channel)",
+      "required": false,
+      "example": "whatsapp:+14155238886"
+    },
+    {
+      "name": "PWA_BASE_URL",
+      "description": "Base URL for client-facing PWA; used to construct personalized loyalty links in SMS",
+      "required": true,
+      "example": "https://loyalty.beautycrm.app"
+    },
+    {
+      "name": "LOYALTY_JWT_SECRET",
+      "description": "Secret key for signing client PWA session tokens (stateless auth for PWA access via SMS link)",
+      "required": true,
+      "example": "a-long-random-secret-string-min-256-bits"
+    },
+    {
+      "name": "LOYALTY_LINK_EXPIRY_HOURS",
+      "description": "Number of hours before a personalized SMS loyalty link expires; balances security vs. convenience",
+      "required": true,
+      "example": "72"
+    },
+    {
+      "name": "POINTS_ENGINE_EVENT_QUEUE",
+      "description": "Message queue identifier (e.g., SQS queue URL or Redis stream key) for checkout-triggered point award events",
+      "required": true,
+      "example": "https://sqs.us-east-1.amazonaws.com/123456789/loyalty-points-events"
+    },
+    {
+      "name": "SMS_MONTHLY_LIMIT_PER_BUSINESS",
+      "description": "Maximum SMS messages allowed per business per billing month before overage pricing applies",
+      "required": true,
+      "example": "500"
+    },
+    {
+      "name": "REFERRAL_CODE_LENGTH",
+      "description": "Character length of generated referral codes (alphanumeric); affects collision probability at scale",
+      "required": true,
+      "example": "8"
+    },
+    {
+      "name": "GDPR_DATA_RETENTION_DAYS",
+      "description": "Number of days loyalty transaction records are retained after a client requests erasure (legal hold buffer)",
+      "required": true,
+      "example": "30"
+    },
+    {
+      "name": "FEATURE_FLAG_WHATSAPP_ENABLED",
+      "description": "Feature flag to enable/disable WhatsApp as an SMS alternative channel per deployment environment",
+      "required": false,
+      "example": "true"
+    }
+  ]
+}
+```
+
+---
+
+## 7. OPEN ITEMS & SPRINT 0 GATES
+
+The following must be resolved **before development begins on the data model or checkout integration**:
+
+| Gate | Owner | Blocking |
+|---|---|---|
+| ⚠️ Stakeholder sign-off on Q1 (single vs. multi-location) | Product / Engineering Lead | Database schema, permissions model |
+| ⚠️ Stakeholder sign-off on Q2 (native CRM checkout only vs. POS integration) | Product / Engineering Lead | Points engine architecture |
+| ⚠️ Stakeholder sign-off on Q3 (catalog-only vs. monetary redemption) | Product / Legal | Redemption engine, accounting review |
+| CRM checkout UI extensibility audit | Engineering | Staff embed UI design |
+| Twilio delivery rate validation for target US markets | Engineering / Ops | SMS infrastructure |
+| Legal review of TCPA opt-in consent flow copy | Legal / Product | Enrollment flow build |
+
+---
+
+*This PRD was generated with all HIGH_RISK critical question defaults active (Q1, Q2, Q3). Sections marked ⚠️ represent unvalidated architectural decisions. Stakeholder responses to Q1–Q3 prior to Sprint 1 kickoff may require scope, data model, or acceptance criteria revision.*

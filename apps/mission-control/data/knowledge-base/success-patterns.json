@@ -443,9 +443,43 @@
       "createdAt": "2026-03-25T21:16:49.823Z",
       "updatedAt": "2026-03-25T21:16:49.823Z",
       "version": 1
+    },
+    {
+      "title": "prd-gate consistently scores 10.0/10",
+      "content": "Agent prd-gate scored 9+ in 2 recent completed runs. Average: 10.0. This agent's prompt and configuration are working well.",
+      "source": "nightly-evolution",
+      "agentId": "prd-gate",
+      "severity": "medium",
+      "tags": [
+        "auto-detected",
+        "consistent-success",
+        "prd-gate"
+      ],
+      "pipelineRunId": "4d998ff1-d88b-4416-a98e-9ad7a13ce8fd",
+      "id": "kb-mn9wgxqc-3f4dd004",
+      "createdAt": "2026-03-28T05:38:57.348Z",
+      "updatedAt": "2026-03-28T05:38:57.348Z",
+      "version": 1
+    },
+    {
+      "title": "technical-qa consistently scores 10.0/10",
+      "content": "Agent technical-qa scored 9+ in 2 recent completed runs. Average: 10.0. This agent's prompt and configuration are working well.",
+      "source": "nightly-evolution",
+      "agentId": "technical-qa",
+      "severity": "medium",
+      "tags": [
+        "auto-detected",
+        "consistent-success",
+        "technical-qa"
+      ],
+      "pipelineRunId": "055248df-b1d7-4c7d-abe9-e9b2afcc333a",
+      "id": "kb-mn9wgxqq-7362608b",
+      "createdAt": "2026-03-28T05:38:57.362Z",
+      "updatedAt": "2026-03-28T05:38:57.362Z",
+      "version": 1
     }
   ],
-  "contentHash": "2826acbd4adbfc4ac6535951541b1ce811d9d5dabbe623c7f39dd5b77a682d0c",
-  "lastUpdated": "2026-03-25T21:16:49.823Z",
+  "contentHash": "b70fc0d9c81b1aae6e5fc1fe87ac645799d45ba22fbf120df8a44abc4afe55a1",
+  "lastUpdated": "2026-03-28T05:38:57.362Z",
   "schemaVersion": 1
 }

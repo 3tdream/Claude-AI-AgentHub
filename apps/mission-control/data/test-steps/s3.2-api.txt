@@ -1,0 +1,405 @@
+# Beauty CRM — Loyalty Module: Complete API Contract
+
+**Version:** 1.0 | **Base path:** `/api/v1` | **Auth:** Bearer JWT unless marked public
+
+---
+
+## DOMAIN 1 — LOYALTY PROGRAM CONFIGURATION
+
+---
+
+### `GET /api/v1/loyalty/config`
+Request: none
+Response 200: `{ organization_id: string, location_id: string, earn_rate_per_dollar: number, earn_rates_by_category: [{ category_id: string, category_name: string, points_per_dollar: number }], tiers: [{ id: string, name: string, min_points: number, max_points: number|null, order: number }], program_active: boolean, created_at: string, updated_at: string }`
+Errors: 404 (no loyalty config exists for this location)
+Auth: required (JWT — owner or staff)
+Rate limit: 60/min
+
+---
+
+### `POST /api/v1/loyalty/config`
+Request: `{ earn_rate_per_dollar: number, earn_rates_by_category: [{ category_id: string, points_per_dollar: number }], tiers: [{ name: string, min_points: number, max_points: number|null, order: number }], program_active: boolean }`
+Response 200: `{ config_id: string, location_id: string, organization_id: string, created_at: string }`
+Errors: 400 (tier threshold overlap or upper < lower), 400 (earn_rate_per_dollar <= 0), 409 (config already exists — use PATCH)
+Auth: required (JWT — owner only)
+Rate limit: 20/min
+Notes: Creates initial config. Validates tier ordering server-side before persist.
+
+---
+
+### `PATCH /api/v1/loyalty/config`
+Request: `{ earn_rate_per_dollar?: number, earn_rates_by_category?: [{ category_id: string, points_per_dollar: number }], tiers?: [{ id?: string, name: string, min_points: number, max_points: number|null, order: number }], program_active?: boolean }`
+Response 200: `{ config_id: string, updated_at: string, tiers: [{ id: string, name: string, min_points: number, max_points: number|null, order: number }] }`
+Errors: 400 (tier threshold validation failure), 404 (config not found)
+Auth: required (JWT — owner only)
+Rate limit: 20/min
+
+---
+
+### `GET /api/v1/loyalty/config/templates`
+Request: query params — `avg_ticket_value: number, monthly_visit_count: number`
+Response 200: `{ templates: [{ template_id: string, label: string, description: string, projected_silver_reach_pct: number, earn_rate_per_dollar: number, tiers: [{ name: string, min_points: number, max_points: number|null, order: number }] }] }`
+Errors: 400 (missing or invalid query params)
+Auth: required (JWT — owner only)
+Rate limit: 30/min
+Notes: Returns minimum 2 templates. Powers setup wizard AC-21, AC-22.
+
+---
+
+## DOMAIN 2 — REWARDS CATALOG
+
+---
+
+### `GET /api/v1/loyalty/rewards`
+Request: query params — `active_only?: boolean, page?: number, limit?: number`
+Response 200: `{ rewards: [{ id: string, name: string, point_cost: number, description: string|null, image_url: string|null, active: boolean, created_at: string }], total: number, page: number, limit: number }`
+Errors: none
+Auth: required (JWT — owner or staff)
+Rate limit: 60/min
+Notes: Default limit 20. Supports pagination.
+
+---
+
+### `POST /api/v1/loyalty/rewards`
+Request: `{ name: string, point_cost: number, description?: string, image_url?: string }`
+Response 201: `{ id: string, name: string, point_cost: number, active: boolean, created_at: string }`
+Errors: 400 (point_cost <= 0), 400 (name empty)
+Auth: required (JWT — owner only)
+Rate limit: 30/min
+Notes: New rewards default to `active: true`. Visible in PWA within 5 minutes (AC-4).
+
+---
+
+### `PATCH /api/v1/loyalty/rewards/:reward_id`
+Request: `{ name?: string, point_cost?: number, description?: string, image_url?: string, active?: boolean }`
+Response 200: `{ id: string, name: string, point_cost: number, active: boolean, updated_at: string }`
+Errors: 400 (point_cost <= 0), 404 (reward not found)
+Auth: required (JWT — owner only)
+Rate limit: 30/min
+Notes: Setting `active: false` hides reward from PWA without affecting pending redemptions (AC-5).
+
+---
+
+### `DELETE /api/v1/loyalty/rewards/:reward_id`
+Request: none
+Response 200: `{ id: string, deleted: true }`
+Errors: 404 (reward not found), 409 (reward has pending redemptions — use deactivate instead)
+Auth: required (JWT — owner only)
+Rate limit: 10/min
+
+---
+
+## DOMAIN 3 — CLIENT ENROLLMENT & PROFILES
+
+---
+
+### `POST /api/v1/loyalty/clients/enroll`
+Request: `{ crm_client_id: string, mobile_number: string, sms_opt_in: boolean, opt_in_timestamp: string, opt_in_ip: string, birthday?: string, referral_code?: string }`
+Response 201: `{ loyalty_client_id: string, crm_client_id: string, referral_code: string, enrolled_at: string, sms_opt_in: boolean }`
+Errors: 400 (mobile_number invalid), 400 (sms_opt_in missing — TCPA required), 409 (client already enrolled), 404 (referral_code not found if provided)
+Auth: required (JWT — owner or staff)
+Rate limit: 60/min
+Notes: Generates unique referral code of length `REFERRAL_CODE_LENGTH`. Logs opt-in consent record with timestamp and IP for TCPA compliance.
+
+---
+
+### `GET /api/v1/loyalty/clients/:loyalty_client_id`
+Request: none
+Response 200: `{ loyalty_client_id: string, crm_client_id: string, mobile_number: string, sms_opt_in: boolean, point_balance: number, tier: { id: string, name: string }, referral_code: string, enrolled_at: string, birthday: string|null, active_redemption_codes: [{ code: string, reward_name: string, point_cost: number, expires_at: string }] }`
+Errors: 404 (client not found)
+Auth: required (JWT — owner or staff)
+Rate limit: 120/min
+Notes: Primary endpoint for staff checkout display (AC-7).
+
+---
+
+### `GET /api/v1/loyalty/clients`
+Request: query params — `page?: number, limit?: number, tier_id?: string, search?: string, sort_by?: string, sort_dir?: asc|desc`
+Response 200: `{ clients: [{ loyalty_client_id: string, crm_client_id: string, point_balance: number, tier_name: string, enrolled_at: string, last_visit_at: string|null }], total: number, page: number, limit: number }`
+Errors: none
+Auth: required (JWT — owner only)
+Rate limit: 30/min
+Notes: Supports search by name/phone. Sort by balance, tier, enrolled_at.
+
+---
+
+### `PATCH /api/v1/loyalty/clients/:loyalty_client_id`
+Request: `{ sms_opt_in?: boolean, mobile_number?: string, birthday?: string }`
+Response 200: `{ loyalty_client_id: string, updated_at: string }`
+Errors: 400 (mobile_number invalid), 404 (client not found)
+Auth: required (JWT — owner or staff)
+Rate limit: 30/min
+
+---
+
+### `DELETE /api/v1/loyalty/clients/:loyalty_client_id`
+Request: none
+Response 200: `{ loyalty_client_id: string, erasure_scheduled_at: string, retention_until: string }`
+Errors: 404 (client not found)
+Auth: required (JWT — owner only)
+Rate limit: 5/min
+Notes: GDPR right-to-erasure. Schedules soft-delete; hard purge after `GDPR_DATA_RETENTION_DAYS`. Logs erasure request with timestamp.
+
+---
+
+## DOMAIN 4 — POINT TRANSACTIONS & LEDGER
+
+---
+
+### `POST /api/v1/loyalty/points/award`
+Request: `{ loyalty_client_id: string, crm_checkout_id: string, transaction_amount: number, service_category_id?: string, idempotency_key: string }`
+Response 202: `{ event_id: string, queued_at: string, estimated_completion_seconds: number }`
+Errors: 400 (missing required fields), 409 (idempotency_key already processed)
+Auth: required (JWT — CRM service account or owner)
+Rate limit: 120/min
+Notes: Enqueues event to `POINTS_ENGINE_EVENT_QUEUE`. Returns 202 Accepted — async. Idempotency key cached 15 min in Redis. Powers AC-8.
+
+---
+
+### `POST /api/v1/loyalty/points/award-manual`
+Request: `{ loyalty_client_id: string, points: number, reason: string, staff_id: string, idempotency_key: string }`
+Response 201: `{ transaction_id: string, loyalty_client_id: string, points_awarded: number, new_balance: number, created_at: string }`
+Errors: 400 (points <= 0), 400 (reason empty), 404 (client not found)
+Auth: required (JWT — owner or staff)
+Rate limit: 30/min
+Notes: Synchronous path for manual override (US-10). Bypasses queue. Records transaction type as `MANUAL_AWARD`.
+
+---
+
+### `GET /api/v1/loyalty/clients/:loyalty_client_id/transactions`
+Request: query params — `page?: number, limit?: number, type?: string, date_from?: string, date_to?: string, sort_dir?: asc|desc`
+Response 200: `{ transactions: [{ id: string, type: string, points: number, balance_after: number, description: string, reference_id: string|null, created_at: string }], total: number, page: number, limit: number }`
+Errors: 404 (client not found)
+Auth: required (JWT — owner or staff)
+Rate limit: 60/min
+Notes: `type` filter values: `CHECKOUT_AWARD`, `MANUAL_AWARD`, `REDEMPTION`, `REFERRAL_BONUS`, `MILESTONE_BONUS`. Supports date range. Powers point history log (AC-20).
+
+---
+
+## DOMAIN 5 — REDEMPTION CODES
+
+---
+
+### `POST /api/v1/loyalty/redemptions/request`
+Request: `{ loyalty_client_id: string, reward_id: string }`
+Response 201: `{ redemption_id: string, code: string, reward_name: string, point_cost: number, new_balance: number, expires_at: string }`
+Errors: 400 (insufficient points), 404 (reward not found or inactive), 404 (client not found), 409 (client already has active code for this reward)
+Auth: public (PWA JWT — signed client token)
+Rate limit: 10/min per client
+Notes: Atomic point deduction via PostgreSQL row-level lock. Single-use code. Powers AC-6.
+
+---
+
+### `POST /api/v1/loyalty/redemptions/:code/apply`
+Request: `{ crm_checkout_id: string, staff_id: string }`
+Response 200: `{ redemption_id: string, code: string, reward_name: string, status: "applied", applied_at: string, loyalty_client_id: string }`
+Errors: 404 (code not found), 409 (code already used), 410 (code expired)
+Auth: required (JWT — owner or staff)
+Rate limit: 60/min
+Notes: Marks code as used, logs to ledger, notifies staff CRM view. Powers AC-9.
+
+---
+
+### `GET /api/v1/loyalty/redemptions/:code`
+Request: none
+Response 200: `{ redemption_id: string, code: string, reward_name: string, point_cost: number, status: "pending"|"applied"|"expired", client_id: string, created_at: string, expires_at: string }`
+Errors: 404 (code not found)
+Auth: required (JWT — owner or staff)
+Rate limit: 60/min
+
+---
+
+## DOMAIN 6 — REFERRAL MECHANIC
+
+---
+
+### `GET /api/v1/loyalty/referrals/:referral_code/validate`
+Request: none
+Response 200: `{ valid: boolean, referral_code: string, referrer_client_id: string, referrer_bonus_points: number, referee_welcome_points: number }`
+Errors: 404 (referral code not found), 410 (referral code expired or already used by this referee)
+Auth: required (JWT — owner or staff)
+Rate limit: 60/min
+Notes: Called at enrollment to validate referral code before persisting.
+
+---
+
+### `GET /api/v1/loyalty/clients/:loyalty_client_id/referrals`
+Request: query params — `page?: number, limit?: number`
+Response 200: `{ referral_code: string, total_referrals: number, referrals: [{ referee_client_id: string, status: "pending"|"completed"|"rejected", bonus_awarded: boolean, created_at: string }], page: number, limit: number }`
+Errors: 404 (client not found)
+Auth: required (JWT — owner or staff)
+Rate limit: 30/min
+
+---
+
+## DOMAIN 7 — MILESTONE EVENTS
+
+---
+
+### `GET /api/v1/loyalty/milestones`
+Request: none
+Response 200: `{ milestones: [{ id: string, type: string, label: string, points: number, active: boolean, configured_at: string }] }`
+Errors: none
+Auth: required (JWT — owner only)
+Rate limit: 30/min
+Notes: `type` values: `BIRTHDAY`, `FIRST_VISIT`, `PROGRAM_ANNIVERSARY`.
+
+---
+
+### `PATCH /api/v1/loyalty/milestones/:milestone_id`
+Request: `{ points?: number, active?: boolean }`
+Response 200: `{ id: string, type: string, points: number, active: boolean, updated_at: string }`
+Errors: 400 (points <= 0), 404 (milestone not found)
+Auth: required (JWT — owner only)
+Rate limit: 20/min
+Notes: Milestone types are system-defined; owners configure points and toggle active state only.
+
+---
+
+## DOMAIN 8 — CLIENT PWA (Public / Token-Gated)
+
+---
+
+### `GET /api/v1/pwa/client/:token`
+Request: path param — `token: string` (signed JWT from SMS link)
+Response 200: `{ loyalty_client_id: string, point_balance: number, tier: { name: string, min_points: number, max_points: number|null }, next_tier: { name: string, points_needed: number }|null, available_rewards: [{ id: string, name: string, point_cost: number, description: string|null, image_url: string|null, affordable: boolean }], referral_code: string, referral_url: string, branding: { salon_name: string, logo_url: string|null, primary_color: string|null }, recent_transactions: [{ type: string, points: number, description: string, created_at: string }] }`
+Errors: 401 (token invalid or expired), 410 (link expired per `LOYALTY_LINK_EXPIRY_HOURS`)
+Auth: public (validated via `LOYALTY_JWT_SECRET`)
+Rate limit: 60/min
+Notes: Single endpoint powering full PWA load (AC-13). Includes branding (AC-15). Must respond within 3 seconds.
+
+---
+
+## DOMAIN 9 — BRANDING
+
+---
+
+### `GET /api/v1/loyalty/branding`
+Request: none
+Response 200: `{ salon_name: string, logo_url: string|null, primary_color: string|null, updated_at: string }`
+Errors: 404 (branding not configured)
+Auth: required (JWT — owner or staff)
+Rate limit: 30/min
+
+---
+
+### `PATCH /api/v1/loyalty/branding`
+Request: `{ salon_name?: string, logo_url?: string, primary_color?: string }`
+Response 200: `{ salon_name: string, logo_url: string|null, primary_color: string|null, updated_at: string }`
+Errors: 400 (primary_color invalid hex format), 400 (logo_url not a valid URL)
+Auth: required (JWT — owner only)
+Rate limit: 10/min
+
+---
+
+## DOMAIN 10 — SMS / NOTIFICATIONS
+
+---
+
+### `GET /api/v1/loyalty/notifications/log`
+Request: query params — `loyalty_client_id?: string, status?: string, page?: number, limit?: number, date_from?: string, date_to?: string`
+Response 200: `{ logs: [{ id: string, loyalty_client_id: string, type: string, channel: string, status: "sent"|"failed"|"suppressed", error_code: string|null, sent_at: string }], total: number, page: number, limit: number }`
+Errors: none
+Auth: required (JWT — owner only)
+Rate limit: 30/min
+Notes: Surfaces SMS delivery failures in owner feed (AC-12). `type` values: `POST_VISIT`, `BIRTHDAY`, `REFERRAL_BONUS`, `MILESTONE`.
+
+---
+
+### `GET /api/v1/loyalty/notifications/sms-usage`
+Request: query params — `month?: string` (YYYY-MM)
+Response 200: `{ month: string, sent_count: number, monthly_limit: number, remaining: number, overage: boolean }`
+Errors: none
+Auth: required (JWT — owner only)
+Rate limit: 30/min
+Notes: Reflects `SMS_MONTHLY_LIMIT_PER_BUSINESS` cap.
+
+---
+
+## DOMAIN 11 — ANALYTICS DASHBOARD
+
+---
+
+### `GET /api/v1/loyalty/analytics/summary`
+Request: query params — `date_from?: string, date_to?: string` (default: rolling 30 days)
+Response 200: `{ total_enrolled: number, enrollment_rate: number, total_clients: number, points_issued: number, points_redeemed: number, redemption_rate: number, tier_distribution: [{ tier_id: string, tier_name: string, client_count: number, percentage: number }], period: { from: string, to: string } }`
+Errors: 400 (date_from after date_to)
+Auth: required (JWT — owner only)
+Rate limit: 30/min
+Notes: All metrics scoped to `location_id` from JWT context. Responds within 3 seconds (AC-24).
+
+---
+
+### `GET /api/v1/loyalty/analytics/points-activity`
+Request: query params — `date_from?: string, date_to?: string, granularity?: day|week|month`
+Response 200: `{ series: [{ period: string, points_issued: number, points_redeemed: number }], total_issued: number, total_redeemed: number }`
+Errors: 400 (invalid granularity)
+Auth: required (JWT — owner only)
+Rate limit: 30/min
+
+---
+
+## DOMAIN 12 — INTERNAL / ENGINE CALLBACKS
+
+---
+
+### `POST /api/v1/internal/points-engine/event-result`
+Request: `{ event_id: string, loyalty_client_id: string, points_awarded: number, new_balance: number, tier_updated: boolean, new_tier_id: string|null, sms_queued: boolean, idempotency_key: string }`
+Response 200: `{ acknowledged: true }`
+Errors: 400 (missing fields), 409 (event_id already acknowledged)
+Auth: required (service-to-service HMAC header)
+Rate limit: 500/min
+Notes: Called by the NestJS SQS worker after successful async processing. Not exposed to frontend. Updates CRM balance cache and triggers tier recalculation display.
+
+---
+
+### `POST /api/v1/internal/milestones/trigger`
+Request: `{ loyalty_client_id: string, milestone_type: string, triggered_by: string, idempotency_key: string }`
+Response 202: `{ event_id: string, queued_at: string }`
+Errors: 400 (unknown milestone_type), 404 (client not found), 409 (idempotency_key already processed)
+Auth: required (service-to-service HMAC header)
+Rate limit: 120/min
+Notes: Called by scheduled job (birthday cron, anniversary cron). Enqueues to `POINTS_ENGINE_EVENT_QUEUE`.
+
+---
+
+## ENDPOINT INDEX SUMMARY
+
+| # | Method | Path | Auth | Domain |
+|---|---|---|---|---|
+| 1 | GET | /loyalty/config | JWT | Config |
+| 2 | POST | /loyalty/config | JWT owner | Config |
+| 3 | PATCH | /loyalty/config | JWT owner | Config |
+| 4 | GET | /loyalty/config/templates | JWT owner | Config |
+| 5 | GET | /loyalty/rewards | JWT | Catalog |
+| 6 | POST | /loyalty/rewards | JWT owner | Catalog |
+| 7 | PATCH | /loyalty/rewards/:id | JWT owner | Catalog |
+| 8 | DELETE | /loyalty/rewards/:id | JWT owner | Catalog |
+| 9 | POST | /loyalty/clients/enroll | JWT | Clients |
+| 10 | GET | /loyalty/clients/:id | JWT | Clients |
+| 11 | GET | /loyalty/clients | JWT owner | Clients |
+| 12 | PATCH | /loyalty/clients/:id | JWT | Clients |
+| 13 | DELETE | /loyalty/clients/:id | JWT owner | GDPR |
+| 14 | POST | /loyalty/points/award | JWT | Points |
+| 15 | POST | /loyalty/points/award-manual | JWT | Points |
+| 16 | GET | /loyalty/clients/:id/transactions | JWT | Ledger |
+| 17 | POST | /loyalty/redemptions/request | PWA JWT | Redemption |
+| 18 | POST | /loyalty/redemptions/:code/apply | JWT | Redemption |
+| 19 | GET | /loyalty/redemptions/:code | JWT | Redemption |
+| 20 | GET | /loyalty/referrals/:code/validate | JWT | Referral |
+| 21 | GET | /loyalty/clients/:id/referrals | JWT | Referral |
+| 22 | GET | /loyalty/milestones | JWT owner | Milestones |
+| 23 | PATCH | /loyalty/milestones/:id | JWT owner | Milestones |
+| 24 | GET | /pwa/client/:token | Public | PWA |
+| 25 | GET | /loyalty/branding | JWT | Branding |
+| 26 | PATCH | /loyalty/branding | JWT owner | Branding |
+| 27 | GET | /loyalty/notifications/log | JWT owner | SMS |
+| 28 | GET | /loyalty/notifications/sms-usage | JWT owner | SMS |
+| 29 | GET | /loyalty/analytics/summary | JWT owner | Analytics |
+| 30 | GET | /loyalty/analytics/points-activity | JWT owner | Analytics |
+| 31 | POST | /internal/points-engine/event-result | HMAC | Internal |
+| 32 | POST | /internal/milestones/trigger | HMAC | Internal |
+
+---
+
+**Total: 32 endpoints across 12 domains. All paths prefixed `/api/v1`.**

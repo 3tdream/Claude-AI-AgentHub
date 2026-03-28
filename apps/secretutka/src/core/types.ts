@@ -2,7 +2,7 @@
  * Agent action types and execution layer
  */
 
-import type { WorkEntryInput, WorkEntryUpdate, PaymentStatus } from '../storage/types.js';
+import type { WorkEntryInput, WorkEntryUpdate, PaymentStatus } from '../storage/types';
 
 /**
  * Action types that the agent can perform

@@ -1,0 +1,32 @@
+# ADR-001: Points Engine Architecture — Event-Driven Async Processing via Message Queue
+
+---
+
+**DECISION:** The loyalty points engine will process all point-award events asynchronously via a durable message queue (AWS SQS), decoupled from the CRM checkout transaction commit, with PostgreSQL as the system of record for point balances and ledger history.
+
+---
+
+**CONTEXT:** Point awards must complete within 10 seconds of checkout confirmation (AC-8) and trigger downstream side effects — SMS via Twilio, tier recalculation, referral bonus evaluation, milestone checks — without blocking the payment flow or introducing checkout latency. The data model must include `organization_id` and `location_id` on all ledger tables from Sprint 0 (Q1 mitigation). Redemption codes require atomic deduction to prevent double-spend. GDPR right-to-erasure applies to all client loyalty records.
+
+---
+
+**CHOSEN OPTION:** AWS SQS FIFO queue (`POINTS_ENGINE_EVENT_QUEUE`) consumed by a Node.js (NestJS) worker service. PostgreSQL 15 with row-level locking for atomic balance updates and an append-only `point_transactions` ledger. Redis (Upstash) for idempotency key caching (15-minute TTL) to prevent duplicate event processing. Deployed as a containerized ECS Fargate task, separate from the CRM API monolith.
+
+---
+
+**ALTERNATIVES CONSIDERED:**
+- **Synchronous in-checkout processing (rejected):** Couples payment flow to SMS/tier logic; any downstream failure risks checkout degradation.
+- **Kafka/Confluent (rejected):** Operationally over-engineered for SMB V1 scale; SQS FIFO provides sufficient ordering guarantees at lower ops cost.
+- **MongoDB for ledger (rejected):** Multi-document transactions lack the ACID guarantees required for atomic point deductions and redemption code invalidation.
+
+---
+
+**RATIONALE:** SQS FIFO guarantees ordered, exactly-once delivery per client group. PostgreSQL row-level locking ensures redemption codes are atomically consumed. NestJS worker is independently scalable without touching the checkout API surface.
+
+---
+
+**CONSEQUENCES:**
+- Eventual consistency accepted: tier status propagates within 60 seconds (AC-2), not instantly.
+- DevOps must configure SQS dead-letter queue (DLQ) with alerting for failed point events.
+- Backend must implement idempotency keys on all queue consumers before go-live.
+- Cyber: `LOYALTY_JWT_SECRET` rotation must not invalidate in-flight SQS messages referencing active PWA sessions.

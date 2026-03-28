@@ -11,9 +11,9 @@
     {
       "category": "failure-patterns",
       "description": "Recurring failure patterns from pipeline runs — prevent known bugs from returning",
-      "entryCount": 35,
-      "contentHash": "9476b64fd77b5e1963415f3a541435aaf3748de507fe3ac991cc65e4d7338b71",
-      "lastUpdated": "2026-03-25T21:27:07.169Z",
+      "entryCount": 41,
+      "contentHash": "cfc8cfb0b0fc56ee1aa362996195ec40dec35d3e0c48db8db4ae63ec79ded52f",
+      "lastUpdated": "2026-03-28T05:39:42.338Z",
       "stale": false
     },
     {
@@ -27,21 +27,21 @@
     {
       "category": "success-patterns",
       "description": "Patterns from high-scoring pipeline stages — what works well",
-      "entryCount": 26,
-      "contentHash": "2826acbd4adbfc4ac6535951541b1ce811d9d5dabbe623c7f39dd5b77a682d0c",
-      "lastUpdated": "2026-03-25T21:16:49.823Z",
+      "entryCount": 28,
+      "contentHash": "b70fc0d9c81b1aae6e5fc1fe87ac645799d45ba22fbf120df8a44abc4afe55a1",
+      "lastUpdated": "2026-03-28T05:38:57.362Z",
       "stale": false
     },
     {
       "category": "tech-decisions",
       "description": "Technology choices, tradeoffs, and rationale from ADR stages",
-      "entryCount": 19,
-      "contentHash": "ab3d0fc0f60c7cf006aafcca4b30925f67202c5d7308adc3c78dd5b9a36f06d8",
-      "lastUpdated": "2026-03-25T21:27:22.934Z",
+      "entryCount": 23,
+      "contentHash": "611963162be01c22d7cd52832dbfd857b135f2ac1639c29cbdb76f5cadeeabb1",
+      "lastUpdated": "2026-03-28T21:02:41.543Z",
       "stale": false
     }
   ],
-  "totalEntries": 108,
-  "lastValidated": "2026-03-26T12:30:00.607Z",
+  "totalEntries": 120,
+  "lastValidated": "2026-03-28T23:53:33.143Z",
   "integrityOk": true
 }

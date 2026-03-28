@@ -1,0 +1,409 @@
+# ARCHITECTURE GATE — Evaluation Report
+
+---
+
+## METHODOLOGY
+
+Systematic cross-reference of PRD (User Stories US-01–US-10, Acceptance Criteria AC-1–AC-24, Scope Boundaries) against API Contract (32 endpoints), ERD (13 entities), ADR-001, File Plan, and Cyber Findings. Each check evaluated independently before final verdict.
+
+---
+
+## CHECK 1 — P0 USER STORY API COVERAGE
+
+### US-01 — Loyalty Program Configuration (P0)
+| Requirement | Endpoint(s) | Status |
+|---|---|---|
+| Configure tiered points program with earn rates | POST `/loyalty/config`, PATCH `/loyalty/config` | ✅ |
+| Per-dollar and per-category earn rates | `earn_rate_per_dollar` + `earn_rates_by_category` in POST/PATCH bodies | ✅ |
+| Tier threshold configuration | `tiers[]` array in POST/PATCH, tier overlap validation documented | ✅ |
+| Setup wizard with templates | GET `/loyalty/config/templates` with `avg_ticket_value` + `monthly_visit_count` params | ✅ |
+| AC-1: Config saved and applied to checkout events | POST `/loyalty/config` → 200, downstream via `POINTS_ENGINE_EVENT_QUEUE` | ✅ |
+| AC-2: Tier auto-update within 60 seconds | ADR-001 eventual consistency, tier-recalculation.handler.ts, POST `/internal/points-engine/event-result` | ✅ |
+| AC-3: Tier overlap validation error | 400 response on POST/PATCH with "tier threshold overlap or upper < lower" | ✅ |
+
+**US-01 VERDICT: ✅ FULLY COVERED**
+
+---
+
+### US-02 — Rewards Catalog Management (P0)
+| Requirement | Endpoint(s) | Status |
+|---|---|---|
+| Create named rewards with point costs | POST `/loyalty/rewards` | ✅ |
+| Optional description and image | `description`, `image_url` fields in POST body | ✅ |
+| Deactivate rewards | PATCH `/loyalty/rewards/:id` with `active: false` | ✅ |
+| AC-4: Reward visible in PWA within 5 minutes | POST → 201, GET `/pwa/client/:token` includes `available_rewards` | ✅ |
+| AC-5: Deactivation hides from PWA, preserves pending redemptions | PATCH notes + DELETE 409 guard | ✅ |
+| AC-6: Redemption code generation with point deduction | POST `/loyalty/redemptions/request` → unique code, atomic deduction | ✅ |
+
+**US-02 VERDICT: ✅ FULLY COVERED**
+
+---
+
+### US-03 — Staff Checkout Integration (P0)
+| Requirement | Endpoint(s) | Status |
+|---|---|---|
+| One-tap balance and tier display at checkout | GET `/loyalty/clients/:id` → `point_balance`, `tier`, `active_redemption_codes` | ✅ |
+| No separate navigation required (AC-7) | Single endpoint returns all checkout-relevant data | ✅ |
+| Auto point calculation on payment confirm (AC-8) | POST `/loyalty/points/award` → 202 async via SQS, 10-second SLA per ADR-001 | ✅ |
+| Redemption code application (AC-9) | POST `/loyalty/redemptions/:code/apply` → marks used, logs to ledger | ✅ |
+
+**US-03 VERDICT: ✅ FULLY COVERED**
+
+---
+
+### US-04 — Post-Visit SMS Notification (P0)
+| Requirement | Endpoint(s) / Files | Status |
+|---|---|---|
+| SMS within 2 minutes of checkout (AC-10) | `worker/src/sms/twilio.service.ts`, triggered by `checkout-award.handler.ts` | ✅ |
+| Points earned, cumulative balance, PWA link in SMS | Twilio service constructs message from `PointTransaction` + `PWA_BASE_URL` | ✅ |
+| SMS suppressed if no opt-in (AC-11) | `sms_opt_in` guard in `sms.service.ts`, `suppressed` status in `NotificationLog` | ✅ |
+| Failure logging with error code (AC-12) | GET `/loyalty/notifications/log` → `status: failed`, `error_code` field | ✅ |
+| No retry > once per hour (AC-12) | ⚠️ **GAP — see Gaps section** | ❌ |
+
+**US-04 VERDICT: ⚠️ PARTIAL — Retry throttle logic not explicitly specified in worker handler or service contract**
+
+---
+
+### US-05 — Client PWA (P0)
+| Requirement | Endpoint(s) | Status |
+|---|---|---|
+| Balance, tier, tier progress, rewards, referral link | GET `/pwa/client/:token` single-endpoint response | ✅ |
+| 3-second load time on 4G (AC-13) | `pwa.repository.ts` optimized single-query join, noted in contract | ✅ |
+| Touch-accessible mobile layout (AC-14) | `pwa/app/page.tsx`, `styles/pwa.css`, responsive components | ✅ |
+| Custom branding applied (AC-15) | `branding` object in GET `/pwa/client/:token` response, `BrandingHeader.tsx` | ✅ |
+
+**US-05 VERDICT: ✅ FULLY COVERED**
+
+---
+
+### COVERAGE SUMMARY — P0 Stories
+| Story | Status |
+|---|---|
+| US-01 | ✅ |
+| US-02 | ✅ |
+| US-03 | ✅ |
+| US-04 | ⚠️ Partial |
+| US-05 | ✅ |
+
+**P0 RESULT: 4.5/5 — One partial gap (AC-12 retry throttle)**
+
+---
+
+## CHECK 1 CONTINUED — P1 USER STORY COVERAGE
+
+### US-06 — Referral Mechanic (P1)
+| Requirement | Endpoint(s) | Status |
+|---|---|---|
+| Unique referral URL in PWA (AC-16) | `referral_code` + `referral_url` in GET `/pwa/client/:token` | ✅ |
+| Copy/share action | `ReferralShare.tsx` component | ✅ |
+| Dual-sided bonus on first-visit completion (AC-17) | `referral-bonus.handler.ts`, POST `/internal/milestones/trigger` flow | ✅ |
+| 10-minute SLA for bonus award (AC-17) | SQS async worker within ADR-001 architecture | ✅ |
+| Duplicate referral detection (AC-18) | `Referral.referee_client_id` unique constraint, GET `/loyalty/referrals/:code/validate` 410 response | ✅ |
+
+**US-06 VERDICT: ✅ FULLY COVERED**
+
+---
+
+### US-07 — Milestone Bonus Events (P1)
+| Requirement | Endpoint(s) | Status |
+|---|---|---|
+| Birthday bonus auto-award (AC-19) | `scripts/birthday-cron.sh` → POST `/internal/milestones/trigger` | ✅ |
+| SMS notification on milestone (AC-19) | `milestone-award.handler.ts` triggers `twilio.service.ts` | ✅ |
+| Transaction log with event type label (AC-20) | `PointTransaction.type = MILESTONE_BONUS`, `description` field | ✅ |
+| GET `/loyalty/clients/:id/transactions` with type filter | `type` filter in transactions query DTO | ✅ |
+
+**US-07 VERDICT: ✅ FULLY COVERED**
+
+---
+
+### US-08 — Setup Wizard with Tier Templates (P1)
+| Requirement | Endpoint(s) | Status |
+|---|---|---|
+| Wizard with avg ticket + visit frequency input (AC-21) | GET `/loyalty/config/templates?avg_ticket_value=&monthly_visit_count=` | ✅ |
+| Minimum 2 templates returned (AC-21) | API contract notes "Returns minimum 2 templates" | ✅ |
+| Projected silver reach percentage (AC-21) | `projected_silver_reach_pct` field in template response | ✅ |
+| Pre-populated and individually editable (AC-22) | `app/(shell)/loyalty/config/wizard/page.tsx` + PATCH `/loyalty/config` | ✅ |
+
+**US-08 VERDICT: ✅ FULLY COVERED**
+
+---
+
+### US-09 — Owner Analytics Dashboard (P1)
+| Requirement | Endpoint(s) | Status |
+|---|---|---|
+| Total enrolled, enrollment rate (AC-23) | GET `/loyalty/analytics/summary` → `total_enrolled`, `enrollment_rate` | ✅ |
+| Points issued/redeemed rolling 30 days (AC-23) | `points_issued`, `points_redeemed`, default 30-day period | ✅ |
+| Tier distribution (AC-23) | `tier_distribution[]` array with percentages | ✅ |
+| Date range filter updates within 3 seconds (AC-24) | `date_from`/`date_to` params, 3-second response noted | ✅ |
+
+**US-09 VERDICT: ✅ FULLY COVERED**
+
+---
+
+### US-10 — Manual Staff Point Award (P2)
+| Requirement | Endpoint(s) | Status |
+|---|---|---|
+| Manual bonus points with reason note | POST `/loyalty/points/award-manual` → `reason` field required | ✅ |
+| Staff ID recorded | `staff_id` field in request and `PointTransaction` entity | ✅ |
+| Edge case handling without breaking loyalty record | Synchronous path, `MANUAL_AWARD` transaction type | ✅ |
+
+**US-10 VERDICT: ✅ FULLY COVERED**
+
+---
+
+## COVERAGE RESULT
+
+**COVERAGE: 10 of 10 user stories addressed in API contracts**
+*(US-04 partial — 1 acceptance criterion gap; all stories have functional endpoint coverage)*
+
+---
+
+## CHECK 2 — DATA MODEL SUPPORT FOR ACCEPTANCE CRITERIA
+
+### Full AC Matrix
+
+| AC | Requirement | ERD Support | Status |
+|---|---|---|---|
+| AC-1 | Config saved, applied to checkout | `LoyaltyConfig` + `CategoryEarnRate`, FK to `Location` | ✅ |
+| AC-2 | Tier auto-update within 60 seconds | `LoyaltyClient.current_tier_id` FK → `LoyaltyTier`, eventual consistency via worker | ✅ |
+| AC-3 | Tier overlap validation error | Server-side validation in `loyalty-config.service.ts`, `tier-validator.ts` | ✅ |
+| AC-4 | Reward in PWA within 5 minutes | `Reward.active` default true, `location_id` scoped, PWA join query | ✅ |
+| AC-5 | Deactivate hides from PWA, preserves pending | `Reward.active` boolean, `RedemptionCode.status` independent lifecycle | ✅ |
+| AC-6 | Unique single-use code, point deduction, staff notification | `RedemptionCode` entity, atomic lock on `LoyaltyClient.point_balance` | ✅ |
+| AC-7 | Balance, tier, active codes at checkout | `LoyaltyClient` + `active_redemption_codes` in GET `/loyalty/clients/:id` | ✅ |
+| AC-8 | Points awarded within 10 seconds | SQS async, ADR-001 10-second SLA commitment | ✅ |
+| AC-9 | Code marked used, balance deducted | `RedemptionCode.status = applied`, `PointTransaction` REDEMPTION entry | ✅ |
+| AC-10 | SMS within 2 minutes, correct content | `NotificationLog`, Twilio worker handler | ✅ |
+| AC-11 | No SMS without opt-in, suppression logged | `LoyaltyClient.sms_opt_in`, `NotificationLog.status = suppressed` | ✅ |
+| AC-12 | Failure logged, no retry > once/hour | `NotificationLog.error_code` ✅ — **retry throttle logic unspecified** ⚠️ | ⚠️ |
+| AC-13 | PWA loads within 3 seconds | Optimized single-query in `pwa.repository.ts` | ✅ |
+| AC-14 | Touch-accessible mobile layout | `pwa.css`, responsive components, ≥320px constraint | ✅ |
+| AC-15 | Salon branding in PWA | `Branding` entity, `branding` object in PWA response | ✅ |
+| AC-16 | Unique referral URL with copy/share | `LoyaltyClient.referral_code`, `referral_url` in PWA response, `ReferralShare.tsx` | ✅ |
+| AC-17 | Dual-sided bonus within 10 minutes | `Referral` entity with snapshot fields, `referral-bonus.handler.ts` | ✅ |
+| AC-18 | Duplicate referral detection | `Referral.referee_client_id` unique constraint, 410 on validate endpoint | ✅ |
+| AC-19 | Birthday bonus auto-award + SMS | `LoyaltyClient.birthday`, `birthday-cron.sh`, `Milestone` entity | ✅ |
+| AC-20 | Milestone in transaction log with label | `PointTransaction.type = MILESTONE_BONUS`, `description` field | ✅ |
+| AC-21 | Wizard with 2+ templates and projections | GET `/loyalty/config/templates`, `projected_silver_reach_pct` | ✅ |
+| AC-22 | Pre-populated and editable template | Wizard page + PATCH `/loyalty/config` | ✅ |
+| AC-23 | Dashboard metrics: enrolled, rate, issued, redeemed, tier dist | GET `/loyalty/analytics/summary` full response shape | ✅ |
+| AC-24 | Date range filter, 3-second response | `date_from`/`date_to` params, analytics.repository.ts aggregate queries | ✅ |
+
+**AC COVERAGE: 23/24 fully supported — 1 partial (AC-12 retry throttle)**
+
+---
+
+## CHECK 3 — CYBER FINDINGS RESOLUTION
+
+### Finding 1 — PWA JWT Token in URL Path (Critical)
+
+**Prescribed Fix:** Move token to query parameter as immediate mitigation; implement token-exchange flow (opaque short-lived code → session cookie); enforce short `LOYALTY_LINK_EXPIRY_HOURS`; add `Referrer-Policy: no-referrer`.
+
+**Architecture Review:**
+
+| Fix Component | Architecture Status | Assessment |
+|---|---|---|
+| Token in URL path vs. query param | GET `/pwa/client/:token` — token remains in **path parameter** across API contract, file plan, and ERD | ❌ Not addressed |
+| Token-exchange flow (opaque code → session cookie) | No token-exchange endpoint exists in the 32-endpoint contract; `pwa-jwt.guard.ts` validates long-lived JWT directly | ❌ Not addressed |
+| Short `LOYALTY_LINK_EXPIRY_HOURS` recommendation | Env var exists; no minimum value enforced in contract or guard | ⚠️ Partial |
+| `Referrer-Policy: no-referrer` header | Not present in any response header specification in API contract or file plan | ❌ Not addressed |
+
+**Finding 1 STATUS: ❌ UNRESOLVED** — The path-parameter token pattern is structurally unchanged in all architecture documents. The cyber recommendation was acknowledged but not incorporated into the API contract, guard implementation, or file plan.
+
+---
+
+### Finding 2 — Internal HMAC Endpoints Lack Network Isolation (Critical)
+
+**Prescribed Fix:** VPC-internal ALB or security group isolation for `/internal/*` endpoints; refactor `event-result` to discard `new_balance` and recompute from ledger.
+
+**Architecture Review:**
+
+| Fix Component | Architecture Status | Assessment |
+|---|---|---|
+| Network-layer isolation (private VPC ALB / security group) | `infra/ecs-task-definition.json` and `infra/iam-worker-role.tf` exist but contain no network isolation specification; no private ALB or security group rule defined in Terraform files | ❌ Not addressed |
+| Discard `new_balance` from event-result payload | `POST /internal/points-engine/event-result` request body still includes `new_balance: number` as a field; `internal.service.ts` description says "tier recalculation dispatch" but does not specify balance recomputation | ❌ Not addressed |
+| HMAC guard remains sole protection | `src/auth/hmac.guard.ts` is the only auth mechanism listed; no network boundary enforced | ❌ Not addressed |
+
+**Finding 2 STATUS: ❌ UNRESOLVED** — Both sub-findings (network isolation and balance source-of-trust) are unaddressed in the architecture. The `new_balance` field remains in the event-result contract as an attacker-controllable balance override.
+
+---
+
+### Finding 3 — Redemption Code Enumeration and Timing Oracle (Critical)
+
+**Prescribed Fix:** 128-bit cryptographic randomness for codes; normalize invalid-code responses to single 404; enforce `location_id` scoping on apply; reduce rate limit to 10/min per staff ID.
+
+**Architecture Review:**
+
+| Fix Component | Architecture Status | Assessment |
+|---|---|---|
+| 128-bit cryptographic randomness | `referral-code.generator.ts` exists for referral codes but **no equivalent secure generator** is specified for `RedemptionCode.code`; `max 20 chars` constraint with no entropy floor documented | ❌ Not addressed |
+| Normalize 404/409/410 to single 404 | API contract still documents distinct 404/409/410 responses for apply endpoint | ❌ Not addressed |
+| `location_id` validation on apply | API contract notes for apply endpoint do not mention location scoping; `redemptions.service.ts` description does not specify this check | ❌ Not addressed |
+| Rate limit 10/min per staff ID | API contract still shows 60/min for apply endpoint; no per-staff-id tracking specified | ❌ Not addressed |
+
+**Finding 3 STATUS: ❌ UNRESOLVED** — All four sub-findings remain unaddressed across API contract, ERD, and file plan.
+
+---
+
+### Cyber Summary Table
+
+| Finding | Severity | Status |
+|---|---|---|
+| Finding 1: JWT token in URL path | Critical | ❌ Unresolved |
+| Finding 2: Internal endpoints lack network isolation + balance trust | Critical | ❌ Unresolved |
+| Finding 3: Redemption code enumeration oracle | Critical | ❌ Unresolved |
+
+**CYBER STATUS: 3 of 3 Critical findings UNRESOLVED**
+
+---
+
+## CHECK 4 — FILE PLAN COMPLETENESS
+
+### Backend Files
+
+| Domain | Assessment |
+|---|---|
+| Migrations (001–014) | All 13 ERD entities covered + milestone seed migration | ✅ |
+| Types (13 type files) | All domain types including queue, internal, PWA | ✅ |
+| All 12 NestJS domain modules | Controller / Service / Repository / DTO pattern complete for each | ✅ |
+| Points Engine Worker (separate ECS) | 10 worker files covering SQS consumer, handlers, idempotency, SMS | ✅ |
+| Auth & Guards | JWT, PWA JWT, HMAC, Roles guards + auth module | ✅ |
+| Shared Infrastructure | Exception filter, interceptor, rate limit guard, utilities, DB module | ✅ |
+
+**Missing Backend Files Identified:**
+
+| Gap | Severity |
+|---|---|
+| No `src/modules/notifications/whatsapp.service.ts` — `TWILIO_WHATSAPP_FROM` and `FEATURE_FLAG_WHATSAPP_ENABLED` are in env vars and scope, but no WhatsApp channel handler exists in file plan | ⚠️ Minor |
+| No `src/common/utils/redemption-code.generator.ts` — referral code generator exists but redemption code generator is absent; critical given Cyber Finding 3 | ❌ Gap |
+| No GDPR consent log entity or migration — `LoyaltyClient.opt_in_timestamp` and `opt_in_ip` exist, but no dedicated `ConsentLog` table for TCPA audit trail immutability | ⚠️ Minor |
+| No `scripts/sms-monthly-reset.sh` — `SMS_MONTHLY_LIMIT_PER_BUSINESS` cap requires monthly counter reset; no job specified | ⚠️ Minor |
+
+---
+
+### Frontend Files
+
+| Area | Assessment |
+|---|---|
+| PWA components (10 files) | Balance, tier progress, rewards, referral, branding, transactions, layout | ✅ |
+| Owner/Staff CRM pages (10 pages) | Config, wizard, rewards, clients list, client profile, analytics, notifications, milestones, branding | ✅ |
+| Loyalty components (12 components) | Tier form, earn rate form, reward form, client card, transaction history, analytics cards and charts, SMS meter, referral table | ✅ |
+| API client | `lib/loyalty-api.ts` typed wrappers for all 32 endpoints | ✅ |
+
+**Missing Frontend Files Identified:**
+
+| Gap | Severity |
+|---|---|
+| No `pwa/lib/redemption-api.ts` or PWA redemption flow component — POST `/loyalty/redemptions/request` is in `pwa-api.ts` but no `RedemptionRequestModal.tsx` or equivalent client-side redemption UX component exists | ⚠️ Minor |
+| No enrollment form component — `POST /loyalty/clients/enroll` with TCPA opt-in consent UI is not represented in any frontend file | ⚠️ Minor |
+| No `components/loyalty/ManualAwardForm.tsx` — POST `/loyalty/points/award-manual` (US-10) has no corresponding UI component | ⚠️ Minor |
+
+---
+
+### Designer Files
+
+| Area | Assessment |
+|---|---|
+| Design tokens | `styles/globals.css` with tier color vars and loyalty tokens | ✅ |
+| PWA-specific styles | `styles/pwa.css` with dynamic brand color injection | ✅ |
+| Default icon | `public/icons/loyalty-icon.svg` | ✅ |
+
+**Missing Designer Files:**
+
+| Gap | Severity |
+|---|---|
+| No loading/skeleton states defined for PWA 3-second load requirement (AC-13) | ⚠️ Minor |
+| No error state designs for token expiry (401/410) on PWA — UX dead end not addressed | ⚠️ Minor |
+
+---
+
+### DevOps Files
+
+| Area | Assessment |
+|---|---|
+| Environment configuration | `.env.example` covers all 14 env vars from PRD Section 6 + `INTERNAL_HMAC_SECRET` | ✅ |
+| Docker / Compose | API + worker Dockerfiles, docker-compose with localstack | ✅ |
+| Terraform infrastructure | SQS FIFO + DLQ, IAM role, RDS PostgreSQL, ElastiCache | ✅ |
+| CI/CD pipelines | Separate deploy pipelines for API and worker | ✅ |
+| Operational scripts | Migrations, GDPR purge, birthday cron, anniversary cron, redemption expiry | ✅ |
+
+**Missing DevOps Files:**
+
+| Gap | Severity |
+|---|---|
+| No `infra/private-alb.tf` or security group Terraform — required by Cyber Finding 2 fix; currently unaddressed | ❌ Gap (Cyber-linked) |
+| No `infra/waf.tf` — rate limiting at infrastructure layer to back application-layer rate limits; no WAF or shield configuration | ⚠️ Minor |
+| No `scripts/referral-bonus-completion.sh` or equivalent — the trigger for referral bonus on first-visit completion (AC-17) relies on checkout flow detecting referral status, but no explicit job or event handler is documented for the "first visit completion" detection logic outside of the worker handler | ⚠️ Minor |
+
+---
+
+## GAPS SUMMARY
+
+### Critical Gaps (Pipeline-Blocking)
+
+| # | Gap | PRD Reference | Architecture Document Affected |
+|---|---|---|---|
+| G1 | AC-12 SMS retry throttle (≤ once/hour) not specified in worker handler or service contract | AC-12, US-04 | Worker handler, `sms.service.ts` |
+| G2 | Cyber Finding 1 fully unresolved: JWT token in URL path, no token-exchange flow, no `Referrer-Policy` header | Security | API contract (Domain 8), `pwa-jwt.guard.ts`, file plan |
+| G3 | Cyber Finding 2 fully unresolved: no network isolation for internal endpoints, `new_balance` field still attacker-controllable in event-result | Security | API contract (Domain 12), `infra/` Terraform, `internal.service.ts` |
+| G4 | Cyber Finding 3 fully unresolved: redemption code entropy unspecified, 404/409/410 oracle preserved, no location scoping on apply, 60/min rate limit unchanged | Security | API contract (Domain 5), `redemptions.service.ts`, file plan |
+| G5 | `redemption-code.generator.ts` file missing from file plan — no cryptographically secure code generation utility specified | US-02, AC-6, Cyber F3 | File plan (Backend) |
+| G6 | No network isolation Terraform (`infra/private-alb.tf`) — internal endpoints internet-reachable by architecture | Cyber F2 | File plan (DevOps) |
+
+### Minor Gaps (Should-Fix Before Implementation)
+
+| # | Gap | Severity |
+|---|---|---|
+| G7 | WhatsApp service handler missing from file plan despite being in V1 scope and env vars | Minor |
+| G8 | No TCPA consent log immutability mechanism (dedicated audit table or append-only log) | Minor |
+| G9 | No `RedemptionRequestModal.tsx` or equivalent PWA redemption UX component | Minor |
+| G10 | No enrollment form component with TCPA opt-in consent UI | Minor |
+| G11 | No `ManualAwardForm.tsx` for US-10 staff override | Minor |
+| G12 | SMS monthly counter reset job missing | Minor |
+| G13 | PWA loading skeleton and token-expiry error state not in designer file plan | Minor |
+| G14 | WAF/infrastructure-layer rate limiting not in Terraform plan | Minor |
+| G15 | First-visit referral completion detection logic not explicitly specified in worker or cron | Minor |
+
+---
+
+## FINAL VERDICT
+
+```
+╔══════════════════════════════════════════════════════════════════╗
+║  GATE VERDICT:  ❌  FAIL                                         ║
+╠══════════════════════════════════════════════════════════════════╣
+║  COVERAGE:      10 of 10 user stories addressed in API          ║
+║                 contracts (US-04 partial — AC-12 gap)           ║
+╠══════════════════════════════════════════════════════════════════╣
+║  AC COVERAGE:   23 of 24 acceptance criteria supported          ║
+╠══════════════════════════════════════════════════════════════════╣
+║  CYBER STATUS:  3 of 3 Critical findings UNRESOLVED             ║
+╠══════════════════════════════════════════════════════════════════╣
+║  CRITICAL GAPS: 6 pipeline-blocking gaps identified             ║
+║  MINOR GAPS:    9 should-fix items identified                   ║
+╚══════════════════════════════════════════════════════════════════╝
+```
+
+**PIPELINE ACTION: Return to Architect (S3.1) for targeted redesign.**
+
+---
+
+## ARCHITECT REDESIGN BRIEF
+
+The architecture is structurally sound and functionally comprehensive — 10/10 user stories are covered, the data model is well-designed, and the file plan is largely complete. The failure is isolated to **security architecture** (all 3 Critical cyber findings passed through without incorporation) and **2 minor functional gaps** (AC-12 retry throttle, missing redemption code generator). This is a focused remediation, not a full redesign.
+
+### Required Changes for Gate Re-submission
+
+**Priority 1 — API Contract Revisions (Domain 8 + Domain 12 + Domain 5):**
+1. Change GET `/pwa/client/:token` from path param to query param (`/pwa/client?t=<token>`) and add a token-exchange endpoint (`POST /pwa/auth/exchange`) that converts a single-use opaque SMS code to a short-lived session cookie
+2. Remove `new_balance` from `POST /internal/points-engine/event-result` request body; document server-side ledger recomputation as authoritative
+3. Normalize `POST /loyalty/redemptions/:code/apply` error responses to single `404` for all invalid-code states; reduce rate limit to 10/min with per-staff-id tracking; add explicit `location_id` validation note
+
+**Priority 2 — File Plan Additions:**
+1. Add `src/common/utils/redemption-code.generator.ts` using `crypto.randomBytes()` with minimum 128-bit entropy
+2. Add `infra/private-alb.tf` with security group rules restricting `/internal/*` to worker ECS task security group only
+3. Add `Referrer-Policy: no-referrer` to PWA response headers in `pwa.controller.ts`
+4. Add retry throttle specification to `worker/src/sms/twilio.service.ts` (max 1 retry per client per notification event within 1-hour window)
+
+**Priority 3 — Minor Gaps (Recommended for same revision pass):**
+- G7 through G15 as listed above

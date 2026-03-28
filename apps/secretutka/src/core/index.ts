@@ -2,5 +2,5 @@
  * Core module exports
  */
 
-export * from './types.js';
-export * from './executor.js';
+export * from './types';
+export * from './executor';

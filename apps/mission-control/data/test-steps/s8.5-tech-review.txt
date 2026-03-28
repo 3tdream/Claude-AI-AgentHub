@@ -1,0 +1,177 @@
+## TECHNICAL REVIEW GATE — ORCHESTRATOR EVALUATION
+
+---
+
+### ANALYSIS SUMMARY
+
+Reviewing the 20 issues flagged by Technical QA against the submitted backend and frontend code.
+
+---
+
+### P0 ISSUE AUDIT
+
+**P0-1: `src/auth/roles.guard.ts` — Roles decorator bypasses NestJS Reflector**
+Confirmed in code: `Reflect.defineMetadata(ROLES_KEY, roles, descriptor.value)` is used instead of NestJS `SetMetadata`. `this.reflector.get<string[]>(ROLES_KEY, context.getHandler())` will return `undefined` because `context.getHandler()` returns the method reference, not `descriptor.value` (they are the same object in most cases, but the NestJS Reflector pipeline uses its own metadata key namespace via `SetMetadata`). **Result: all role-protected routes pass through unguarded in production.** ✅ Confirmed P0.
+
+**P0-2: `src/modules/redemptions/redemptions.controller.ts` — PwaJwtGuard only reads query/path param, not Authorization header**
+Confirmed in `pwa-jwt.guard.ts`: `const token = request.query.t || request.params.token` — no Authorization header read. `redemptionsApi.request` in `lib/loyalty-api.ts` sends `Authorization: Bearer <pwaToken>` via the `token` field in `apiFetch`. The `POST /redemptions/request` body contains no `t` query param. **Result: 100% of PWA redemption requests return 401.** ✅ Confirmed P0.
+
+**P0-3: `worker/src/handlers/referral-bonus.handler.ts` — Referrer/referee identity swap**
+Confirmed: `ids.sort()` reorders UUIDs, then `referrerRow = query(ids[0])` and `refereeRow = query(ids[1])`. The code then uses `referrer_client_id` and `referee_client_id` from `payload` to update balances — but the `referrer` and `referee` variables are bound to `ids[0]` and `ids[1]` which may be in either order. The balance update queries use `referrer_client_id` and `referee_client_id` directly (correct), but the transaction descriptions and `referrerNewBalance`/`refereeNewBalance` are computed from the sorted-order rows. **For ~50% of pairs, bonus amounts are swapped.** ✅ Confirmed P0.
+
+**P0-4: `src/modules/notifications/sms.service.ts` — `import * as Twilio from 'twilio'` without esModuleInterop**
+Confirmed in `tsconfig.json`: `esModuleInterop` is **absent** (not set to true). `import * as Twilio from 'twilio'` then calling `Twilio(...)` will throw `TypeError: Twilio is not a function` at runtime. Same issue in `worker/src/sms/twilio.service.ts`. **Result: all SMS sending fails at startup/first call.** ✅ Confirmed P0.
+
+**P0-5: `src/modules/analytics/analytics.repository.ts` — `DATE_TRUNC($1, ...)` parameterized field**
+Confirmed: `DATE_TRUNC($1, created_at)` with `[truncFn, locationId, dateFrom, dateTo]`. PostgreSQL does not accept a parameter placeholder as the `date_trunc` field argument. **Result: all analytics points-activity queries throw PostgreSQL runtime error.** ✅ Confirmed P0.
+
+**P0-6: `styles/globals.css` — File truncated mid-declaration**
+Confirmed: the CSS file ends at `--font-size-` with no closing value, semicolon, or `}`. **Result: CSS parse error breaks all styling.** ✅ Confirmed P0.
+
+---
+
+### P1 ISSUE AUDIT (non-blocking for gate but must be tracked)
+
+| # | Issue | Confirmed? |
+|---|-------|-----------|
+| P1-A | `rewards.repository.ts` update() idx counter — analysis shows it is actually correct for the full-field case but latent for partial updates in `milestones.repository.ts` | Latent bug confirmed |
+| P1-B | `clients.service.ts` referral code loop — after 10 failed attempts, non-unique code used → DB constraint violation | Confirmed |
+| P1-C | `pwa.controller.ts` — path param route still exposed, leaks token in logs | Confirmed |
+| P1-D | `redemptions.service.ts` — 409/410 normalized to 404, violates contract | Confirmed (business decision conflict) |
+| P1-E | `internal.service.ts` — balance recompute outside transaction, race condition | Confirmed |
+| P1-F | `scripts/gdpr-purge-job.sh` — truncated heredoc, syntax error | Confirmed |
+| P1-G | `checkout-award.handler.ts` — `require('crypto')` inside method | Confirmed |
+
+### P2 ISSUE AUDIT
+
+All P2 issues confirmed as non-blocking (redundant index, minor code quality, informational route ordering). No P2 issue prevents deployment but should be addressed in next sprint.
+
+---
+
+### API CONTRACT COMPLIANCE CHECK
+
+| Endpoint | Contract | Implementation | Status |
+|----------|----------|---------------|--------|
+| `GET /pwa/client?t=<token>` | PWA JWT via query param | `pwaApi.getClientDashboard` calls `/pwa/client?t=...` ✓ | ✅ |
+| `POST /redemptions/request` | PWA JWT auth | Guard reads query/path only, frontend sends Bearer header | ❌ P0 |
+| `POST /redemptions/:code/apply` | 409/410 status codes | Normalized to 404 | ❌ P1 |
+| `GET /loyalty/config/templates` | Route ordering | Safe (no `:id` param route) | ✅ |
+| All staff endpoints | JWT + RolesGuard | Roles decorator broken | ❌ P0 |
+| Analytics points-activity | Granularity param | DATE_TRUNC parameterized | ❌ P0 |
+
+### CRITICAL MISSING FILES
+
+- `styles/globals.css` — **truncated, incomplete** (P0)
+- `styles/pwa.css` — **referenced in `app/pwa/layout.tsx` but not delivered** (P0 for PWA rendering)
+- `public/manifest.json` — referenced in PWA layout, not delivered (P1)
+- `scripts/gdpr-purge-job.sh` — truncated (P1)
+
+---
+
+## GATE VERDICT: ❌ FAIL
+
+**P0 ISSUES: 7**
+
+```
+P0-1  roles.guard.ts         — Roles decorator broken → all RBAC bypassed
+P0-2  redemptions.controller — PwaJwtGuard doesn't read Authorization header → 100% PWA redemptions fail
+P0-3  referral-bonus.handler — Referrer/referee identity swap → wrong balances ~50% of pairs
+P0-4  sms.service.ts (×2)    — Twilio import broken without esModuleInterop → SMS dead
+P0-5  analytics.repository   — DATE_TRUNC($1) invalid → analytics endpoint crashes
+P0-6  styles/globals.css     — Truncated → all styling broken
+P0-7  styles/pwa.css         — Missing file referenced in PWA layout → PWA render fails
+```
+
+---
+
+## ACTION: RETURN TO BACKEND-AGENT AND FRONTEND-AGENT FOR FIXES
+
+### Backend-Agent — Required fixes before re-gate:
+
+```
+FIX-B1 [P0] src/auth/roles.guard.ts
+  Replace custom Roles decorator with NestJS SetMetadata:
+  import { SetMetadata } from '@nestjs/common';
+  export const Roles = (...roles: string[]) => SetMetadata(ROLES_KEY, roles);
+  (Remove the PropertyDescriptor-based implementation entirely)
+
+FIX-B2 [P0] src/auth/pwa-jwt.guard.ts
+  Add Authorization header extraction:
+  const authHeader = request.headers['authorization'];
+  const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  const token = request.query.t || request.params.token || bearerToken;
+
+FIX-B3 [P0] worker/src/handlers/referral-bonus.handler.ts
+  After sorting ids[], map back to correct roles:
+  const referrerIdx = ids.indexOf(referrer_client_id);
+  const refereeIdx = ids.indexOf(referee_client_id);
+  const referrer = referrerIdx === 0 ? referrerRow.rows[0] : refereeRow.rows[0];
+  const referee = refereeIdx === 0 ? referrerRow.rows[0] : refereeRow.rows[0];
+
+FIX-B4 [P0] src/modules/notifications/sms.service.ts
+         worker/src/sms/twilio.service.ts
+  Change: import * as Twilio from 'twilio';
+  To:     import Twilio from 'twilio';
+  AND add to tsconfig.json: "esModuleInterop": true
+  (Both files, both tsconfig.json and tsconfig.worker.json)
+
+FIX-B5 [P0] src/modules/analytics/analytics.repository.ts
+  DATE_TRUNC field cannot be parameterized. Use validated interpolation:
+  const VALID = ['day','week','month'];
+  if (!VALID.includes(granularity)) throw new Error('Invalid granularity');
+  const sql = `DATE_TRUNC('${granularity}', created_at)`;
+  Remove $1 from values array, shift locationId to $1, dateFrom to $2, dateTo to $3
+
+FIX-B6 [P1] src/modules/clients/clients.service.ts
+  After do-while loop exhausts 10 attempts, throw ConflictException
+  instead of silently using a potentially non-unique code
+
+FIX-B7 [P1] src/modules/internal/internal.service.ts
+  Wrap ledger SUM + loyalty_clients UPDATE in a transaction with
+  SELECT ... FOR UPDATE on loyalty_clients row
+
+FIX-B8 [P1] worker/src/handlers/checkout-award.handler.ts
+         worker/src/sms/twilio.service.ts
+  Replace require('crypto') and require('jsonwebtoken') with
+  top-of-file ES imports: import * as crypto from 'crypto';
+                          import * as jwt from 'jsonwebtoken';
+
+FIX-B9 [P1] scripts/gdpr-purge-job.sh
+  Complete the truncated heredoc SQL
+
+FIX-B10 [P1] src/modules/redemptions/redemptions.service.ts
+  Restore 409 ConflictException for status='applied'
+  and 410 GoneException for status='expired'/past expires_at
+  per API contract specification
+```
+
+### Frontend-Agent — Required fixes before re-gate:
+
+```
+FIX-F1 [P0] styles/globals.css
+  Complete the truncated file — the declaration ends at '--font-size-'
+  Must include all remaining font-size tokens, pwa.css classes,
+  and all closing braces
+
+FIX-F2 [P0] styles/pwa.css  ← MISSING FILE
+  Create this file with all PWA-specific utility classes referenced
+  in components: .pwa-root, .pwa-header, .pwa-header__logo,
+  .pwa-header__salon-name, .pwa-content, .pwa-balance-hero,
+  .pwa-balance-hero__label, .pwa-balance-hero__points,
+  .pwa-balance-hero__tier, .pwa-rewards-grid, .pwa-reward-card,
+  .pwa-reward-card--affordable, .pwa-reward-card--locked,
+  .pwa-reward-card__image, .pwa-reward-card__name,
+  .pwa-reward-card__cost, .pwa-tx-list, .pwa-tx-item,
+  .pwa-tx-item__desc, .pwa-tx-item__date,
+  .pwa-tx-item__points--positive, .pwa-tx-item__points--negative,
+  .pwa-referral-box, .pwa-referral-box__code,
+  .pwa-btn-primary, .pwa-btn-secondary,
+  .pwa-section-heading, .pwa-skeleton
+
+FIX-F3 [P1] public/manifest.json
+  Create PWA web app manifest referenced in app/pwa/layout.tsx
+```
+
+---
+
+**Re-gate condition:** All P0 fixes (FIX-B1 through FIX-B5, FIX-F1, FIX-F2) must be delivered and verified before this gate passes. P1 fixes (FIX-B6 through FIX-B10, FIX-F3) must be included in the same patch delivery. Business QA cannot begin until gate passes.

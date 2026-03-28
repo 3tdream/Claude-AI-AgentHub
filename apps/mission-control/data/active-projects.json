@@ -1,10 +1,9 @@
 {
   "projects": {
     "secretutka": {
-      "active": true,
+      "active": false,
       "port": 3014,
-      "startedAt": "2026-03-26T12:39:17.054Z",
-      "pid": 26276
+      "startedAt": "2026-03-27T15:04:50.471Z"
     },
     "jira-integration": {
       "active": false,
@@ -69,12 +68,12 @@
     "zdorovdv": {
       "active": false,
       "port": 3023,
-      "startedAt": "2026-03-25T21:10:51.634Z"
+      "startedAt": "2026-03-27T16:20:39.044Z"
     },
     "mission-control": {
-      "active": true,
+      "active": false,
       "port": 3024
     }
   },
-  "lastUpdated": "2026-03-26T16:28:16.297Z"
+  "lastUpdated": "2026-03-28T23:04:08.684Z"
 }

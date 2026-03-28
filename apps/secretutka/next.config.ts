@@ -4,6 +4,7 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   typescript: {
     ignoreBuildErrors: false,
+    tsconfigPath: "./tsconfig.next.json",
   },
   eslint: {
     ignoreDuringBuilds: false,

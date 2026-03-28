@@ -6,7 +6,7 @@
 "use client";
 
 import { motion } from "motion/react";
-import { Star, User } from "lucide-react";
+import { Heart, User } from "lucide-react";
 import type { Master } from "../../types/booking";
 
 interface MasterCardProps {
@@ -92,7 +92,7 @@ export function MasterCard({
           <div className="mt-1.5 flex items-center gap-2">
             {/* Star rating */}
             <div className="flex items-center gap-0.5">
-              <Star
+              <Heart
                 className="h-3.5 w-3.5 fill-[#E8931A] text-[#E8931A]"
               />
               <span className="text-xs font-semibold text-[#282320]">

@@ -2,4 +2,4 @@
  * NLP module exports
  */
 
-export * from './agent.js';
+export * from './agent';

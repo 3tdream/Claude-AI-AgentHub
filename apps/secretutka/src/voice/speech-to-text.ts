@@ -7,7 +7,7 @@
  * - OpenAI Whisper
  */
 
-import type { SpeechToTextResult, AudioConfig, RecognitionOptions } from './types.js';
+import type { SpeechToTextResult, AudioConfig, RecognitionOptions } from './types';
 
 /**
  * Mock audio file for testing

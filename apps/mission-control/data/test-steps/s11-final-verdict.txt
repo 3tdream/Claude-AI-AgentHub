@@ -1,0 +1,153 @@
+# FINAL VERDICT: **REVISE**
+
+---
+
+## Gate-by-Gate Assessment
+
+### 1. Technical QA Verdict: **FAIL**
+
+The technical pipeline produced a hard FAIL with **5 P0 blockers** and **8 P1 issues** across compilation, API contract compliance, and data model integrity.
+
+| Severity | Count |
+|---|---|
+| P0 (ship-blocker) | 5 |
+| P1 (release-critical) | 8 |
+| P2 (quality/polish) | 7 |
+
+The P0s alone are disqualifying: the Twilio `import * as Twilio` crash means **zero SMS will ever be delivered** at runtime; the `PwaJwtGuard` Authorization-header blindspot means **all PWA redemption requests return 401**; the `ReferralBonusHandler` referrer/referee swap corrupts **~50% of referral bonus transactions**; the `DATE_TRUNC($1, ...)` parameterization error **crashes the analytics chart** on every query; and the truncated `styles/globals.css` **breaks all PWA styling**. Any one of these would individually block release.
+
+---
+
+### 2. Business QA Verdict: **FAIL**
+
+| Outcome | Count |
+|---|---|
+| PASS | 6 (25%) |
+| PARTIAL | 7 (29%) |
+| FAIL | 11 (46%) |
+| **P0 AC failures** | **7** |
+
+Only 6 of 24 acceptance criteria pass cleanly. The 7 P0 AC failures map directly to core product promises:
+
+- **AC-2** — Tier update SLA (60s) unenforceable; race condition on balance recompute
+- **AC-6** — PWA redemption completely unreachable (PwaJwtGuard bug)
+- **AC-10** — Post-visit SMS never sends (Twilio import crash)
+- **AC-13 / AC-14** — PWA unstyled and untestable (CSS truncated)
+- **AC-17** — Referral bonus never auto-triggers; when it does, swaps ~50% of recipients
+- **AC-19** — Birthday milestone has no scheduler; SMS broken regardless
+
+The product's three core value propositions — automated points, client PWA engagement, and SMS notifications — are all non-functional in their current state.
+
+---
+
+### 3. Security Audit: **FAIL — 4 Critical, 10 High unresolved**
+
+| Severity | Count |
+|---|---|
+| Critical | 4 |
+| High | 10 |
+| Medium | 4 |
+
+No critical or high findings have been remediated. The four critical findings are individually release-blocking:
+
+1. **A01 — No location scoping** on `GET/PATCH /clients/:id`: any authenticated staff JWT from any location can read or modify any client in the system — a multi-tenant data breach vector
+2. **A01 — No location scoping** on `GET /redemptions/:code`: cross-location redemption data exposure
+3. **A03 — DATE_TRUNC injection surface**: the fix requires safe interpolation with an allowlist; the current code both crashes at runtime and would be an injection vector if naively patched
+4. **A07 — PwaJwtGuard ignores Authorization header**: already a P0 functional bug, also a security gap — the guard's incomplete token extraction logic means the redemption endpoint is simultaneously broken and improperly guarded
+
+The `RolesGuard` bypass (Finding 3, High) is also near-critical: `Reflect.defineMetadata` on `descriptor.value` vs. `SetMetadata` means **all `@Roles()` decorators are silently no-ops**, allowing any authenticated staff member to reach owner-only endpoints. Combined with the missing location-scoping, the authorization model is effectively absent.
+
+The hardcoded secrets in `docker-compose.yml` (Finding 12) and the absent JWT secret validation (Finding 6) represent a credential hygiene failure that must be resolved before any staging or production deployment.
+
+---
+
+### 4. Overall: Does the product satisfy the original task?
+
+**No.** The original task is a Beauty CRM loyalty module with the following non-negotiable P0 pillars:
+
+| Pillar | Status |
+|---|---|
+| Points award at checkout (AC-8) | PARTIAL — SQS latency may exceed 10s SLA |
+| Client PWA accessible and styled (AC-13/14/15) | **FAIL** — CSS broken, redemption 401 |
+| Post-visit SMS delivery (AC-10) | **FAIL** — Twilio import crash |
+| Redemption flow end-to-end (AC-6/9) | **FAIL** — PwaJwtGuard blocks all requests |
+| Referral bonus (AC-17) | **FAIL** — no trigger, corrupted recipient data |
+| Authorization model (roles, location scoping) | **FAIL** — RolesGuard bypassed, no tenant isolation |
+
+The infrastructure scaffolding is substantive — the schema, worker architecture, SQS event pipeline, and repository layer are well-structured — but the integration layer connecting these components contains enough P0 breaks that the product cannot be demonstrated, let alone released.
+
+---
+
+## REASON
+
+The product cannot be released in its current state. Five P0 technical defects cause complete functional failures in the three core value-delivery mechanisms (SMS, PWA, redemption), four critical security findings expose multi-tenant client data and bypass the authorization model entirely, and 11 of 24 acceptance criteria fail outright — including all seven P0 ACs that define the product's primary user experience. The underlying architecture is sound and the majority of the codebase is well-constructed; the failures are concentrated in a specific set of integration-layer bugs (import semantics, guard logic, handler assignment order, missing scheduler, truncated static assets) that are individually tractable but collectively represent a release-blocking remediation sprint.
+
+---
+
+## UNRESOLVED ISSUES
+
+### P0 — Ship Blockers (must fix before any release)
+
+1. **`import * as Twilio`** without `esModuleInterop: true` → `TypeError: Twilio is not a function` at runtime; fix in `sms.service.ts` and `worker/src/sms/twilio.service.ts`
+2. **`PwaJwtGuard` ignores `Authorization` header** → all `POST /redemptions/request` calls return 401; guard must extract token from Bearer header for POST endpoints
+3. **`ReferralBonusHandler` referrer/referee swap** → sort-based deadlock prevention destroys assignment logic; fix by querying each ID explicitly rather than relying on sort position
+4. **`DATE_TRUNC($1, ...)` parameterization** → PostgreSQL runtime error on all analytics queries; fix with validated safe interpolation from closed enum allowlist
+5. **`styles/globals.css` truncated mid-declaration** → all PWA styling broken; file must be completed; `pwa.css` must be created
+6. **`RolesGuard` / `Roles` decorator broken** → `Reflect.defineMetadata(ROLES_KEY, roles, descriptor.value)` never matches `Reflector.get(ROLES_KEY, context.getHandler())`; replace with `SetMetadata`
+7. **No location scoping on `GET/PATCH /clients/:id`** → cross-tenant client data accessible to any authenticated user
+8. **No birthday/anniversary scheduler** → AC-19 milestone automation is entirely absent; a cron job or scheduled Lambda must be implemented
+9. **Referral bonus never triggered by checkout flow** → `CheckoutAwardHandler` does not detect referred clients or enqueue `REFERRAL_BONUS` events; trigger logic is missing
+10. **`acknowledgeEventResult` race condition** → balance recompute runs outside transaction without `FOR UPDATE` lock; concurrent events produce stale tier state
+
+### P1 — Release-Critical (must fix before GA)
+
+11. **`dynamic UPDATE idx` bug in `milestones.repository.ts`** → partial updates produce wrong WHERE clause parameters
+12. **Referral code exhaustion** → after 10 failed uniqueness attempts, non-unique code is used, causing DB constraint violation
+13. **`POST /redemptions/:code/apply` returns 404 for all invalid states** → contract requires 409 (used) and 410 (expired); violates API contract
+14. **`gdpr-purge-job.sh` truncated** → script fails with syntax error on execution; GDPR compliance mechanism is broken
+15. **`branding.repository.ts` upsert with empty body on existing record** → produces invalid SQL `DO UPDATE SET , updated_at = NOW()`
+16. **`const crypto = require('crypto')` and `const jwt = require('jsonwebtoken')`** inside ES module methods → replace with top-level `import` statements
+17. **`internal.service.ts` trusts worker-supplied `new_tier_id`** without validating tier belongs to client's location (security Finding 16)
+
+### P1 — Security (release-critical)
+
+18. **No location scoping on `GET /redemptions/:code`** → cross-tenant redemption data exposure
+19. **No location scoping on transaction history endpoint**
+20. **JWT secret not validated for presence/minimum length** → empty string secret allows token forgery
+21. **`selectForUpdate` table name not allowlisted** → future SQL injection surface
+22. **Missing CSP, HSTS, Permissions-Policy headers** → `helmet` not installed
+23. **Hardcoded secrets in `docker-compose.yml`** → must be externalized before any non-local deployment
+24. **`logo_url`/`image_url` accept non-HTTPS and private IP ranges** → stored SSRF/XSS vector
+25. **HMAC replay attack possible within 5-minute window** → no nonce tracking
+
+### P2 — Quality (should fix before GA, not blocking)
+
+26. Redundant unique index on `loyalty_configs.location_id`
+27. `updated_at` inconsistency in `points.repository.ts` dual-UPDATE pattern
+28. Modulo bias in `generateReferralCode`
+29. JWT tokens embedded in SMS body logged by Twilio (token rotation or opaque link tokens recommended)
+30. `rewardsApi.list` appends trailing `?` when no query params present
+31. AC-22: wizard confirm step shows pre-populated values but does not allow inline editing before save
+32. `DATE_TRUNC` safe-interpolation fix must be verified not to introduce injection if the service-layer enum check is ever bypassed
+
+---
+
+## RECOMMENDATION
+
+**Execute a focused remediation sprint (estimated 5–7 engineering days) before re-submitting for release review.** Do not deploy to staging or share with beta users in current state.
+
+**Sprint priorities in order:**
+
+1. **Day 1 — Critical functional fixes (backend-agent):** Fix Twilio import, PwaJwtGuard Authorization header extraction, RolesGuard/Roles decorator, ReferralBonusHandler ID assignment, DATE_TRUNC safe interpolation, and the referral bonus checkout trigger. These are the highest-leverage fixes — resolving them unblocks AC-6, AC-10, AC-17, AC-24 simultaneously.
+
+2. **Day 2 — Critical security fixes (backend-agent):** Add location scoping to `clients`, `redemptions`, and `transactions` endpoints. Validate JWT secret at startup. Externalize docker-compose secrets. Add `helmet`. Allowlist `selectForUpdate` table names.
+
+3. **Day 3 — Frontend/CSS restoration (frontend-agent):** Complete `styles/globals.css`, create `pwa.css`, verify all PWA components render correctly with brand color CSS variables applied.
+
+4. **Day 4 — P1 functional fixes (backend-agent):** Birthday scheduler implementation, `milestones.repository.ts` idx bug, referral code exhaustion guard, `gdpr-purge-job.sh` completion, branding upsert empty-body fix, redemption status codes (409/410).
+
+5. **Day 5 — P1 security + integration test pass:** HMAC nonce tracking, logo/image URL HTTPS-only validation, CommonJS require→import fixes, `acknowledgeEventResult` transaction + row lock.
+
+6. **Day 6–7 — Regression + AC re-validation:** Re-run all 24 ACs end-to-end against the patched build. Target: ≥20 PASS, 0 P0 FAIL, 0 Critical/High security findings open.
+
+**Do not re-submit for release review until the Technical QA compilation and P0 issue count reaches zero and the Security Audit Critical count reaches zero.** The architecture is viable and the remediation scope is well-defined — this is a fixable sprint, not a redesign.

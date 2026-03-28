@@ -1,0 +1,96 @@
+# PRD VALIDATION GATE — ORCHESTRATOR REVIEW
+
+## Evaluation Against All Four Criteria
+
+---
+
+### Criterion 1: Are ALL P0 User Stories specific enough for an Architect to design APIs?
+
+**Assessment: MOSTLY YES — with one actionable gap**
+
+| Story | API Designability | Notes |
+|---|---|---|
+| US-01 — Program Config | ✅ | Earn rates, tier thresholds, save/apply — sufficient for a `POST /loyalty/config` and `GET /loyalty/config/{locationId}` |
+| US-02 — Rewards Catalog | ✅ | CRUD on rewards catalog, deactivation flag, redemption code generation — all clear |
+| US-03 — Staff Checkout | ✅ | Read balance + tier at checkout load; auto-award on payment confirm; apply redemption code |
+| US-04 — Post-Visit SMS | ⚠️ **PARTIAL** | AC-10 specifies the 2-minute SLA and content. **However: the trigger event contract is undefined.** The Architect needs to know *what event* fires the SMS pipeline — is it a webhook from the checkout service? An internal queue message? A direct DB trigger? The PRD references `POINTS_ENGINE_EVENT_QUEUE` in env vars but never defines the event schema or the producer/consumer contract. An Architect cannot design the async pipeline without this. |
+| US-05 — Client PWA | ✅ | AC-13/14/15 are concrete; PWA_BASE_URL and JWT auth are defined in env vars |
+
+**Gap identified:** US-04 / US-08 (points engine) — the **checkout event contract** (payload schema, event type name, producer identity) is missing. The Architect will be forced to guess whether this is a synchronous call, an async queue event, or a DB trigger.
+
+---
+
+### Criterion 2: Do Acceptance Criteria have concrete GIVEN/WHEN/THEN?
+
+**Assessment: YES — quality is high, with two minor gaps**
+
+The AC structure is consistently well-formed. Specific observations:
+
+| AC | Quality | Issue |
+|---|---|---|
+| AC-1 through AC-24 | ✅ Strong | All use proper GIVEN/WHEN/THEN format with measurable outcomes |
+| AC-2 | ✅ | "within 60 seconds" — concrete SLA ✓ |
+| AC-8 | ✅ | "within 10 seconds" — concrete SLA ✓ |
+| AC-10 | ✅ | "within 2 minutes" — concrete SLA ✓ |
+| AC-17 | ⚠️ | "within 10 minutes of checkout completion" — acceptable, but the **referral attribution mechanism** (how does the system know which referral code was used at booking time?) is not covered by any AC. The code is shared via PWA, but the booking-time capture flow is unspecified. Architect will guess. |
+| AC-19 | ⚠️ | Birthday bonus: "when a client's birthday date is reached" — **no time-of-day specification**. Does this fire at midnight? At a scheduled daily job at 9 AM? This affects the scheduler design and SMS delivery timing (sending at 3 AM is a TCPA violation risk). |
+| AC-6 | ✅ | Redemption code generation is clear — single-use, deducts points, notifies staff |
+| AC-24 | ✅ | "within 3 seconds" on dashboard filter — concrete ✓ |
+
+---
+
+### Criterion 3: Are scope boundaries clear (IN/OUT)?
+
+**Assessment: YES — this is a strength of the PRD**
+
+The IN/OUT/DEFERRED table is exceptionally well-structured. Observations:
+
+- ✅ The three-table format (IN SCOPE / OUT OF SCOPE / DEFERRED with triggers) is unambiguous
+- ✅ Deferred items include explicit trigger conditions (e.g., ">30% of beta users report external POS") — this prevents scope creep debates
+- ✅ The HIGH-RISK defaults (Q1/Q2/Q3) are flagged with architectural implications, not just business ones
+- ⚠️ **One boundary gap:** WhatsApp is listed as IN SCOPE ("WhatsApp as optional SMS alternative via Twilio WhatsApp channel") but there are **zero acceptance criteria** for WhatsApp behavior. Is it a complete feature or a configuration flag? AC-10 through AC-12 only reference SMS. If WhatsApp is truly in scope, it needs at minimum one AC covering opt-in, delivery failure handling, and message format parity with SMS. If it's just a config flag, that should be stated explicitly.
+
+---
+
+### Criterion 4: Are there ambiguities that will cause the Architect to guess?
+
+**Assessment: 4 guesses identified — 2 blocking, 2 non-blocking**
+
+| # | Ambiguity | Severity | Detail |
+|---|---|---|---|
+| **G1** | Checkout event contract | 🔴 BLOCKING | No event schema defined for the checkout→points trigger. The Architect cannot design the points engine consumer without knowing: event name, payload fields (client_id, location_id, transaction_amount, service_categories, timestamp), and whether this is sync or async. The env var `POINTS_ENGINE_EVENT_QUEUE` exists but the producer side is undefined. |
+| **G2** | Referral code capture at booking | 🔴 BLOCKING | AC-17 assumes the system knows which referral code was used when a new client books. But there is no AC or scope item describing *how the referral code is passed at booking time* — URL parameter? Enrollment form field? Staff manual entry? This is a critical integration point between the booking flow and the referral engine. |
+| **G3** | Birthday SMS time-of-day | 🟡 NON-BLOCKING | AC-19 omits scheduling time. Architect will default to a reasonable choice (e.g., 10 AM local time) but this has TCPA compliance implications. Should be specified. |
+| **G4** | PWA authentication model for return visits | 🟡 NON-BLOCKING | The JWT/link-expiry model is defined for SMS-originated sessions (`LOYALTY_LINK_EXPIRY_HOURS`). But what happens when a client returns to the PWA after their link expires? Is there a re-authentication flow (e.g., "enter your phone number to get a new link")? AC-13 only covers the happy path. The Architect will need to design this anyway — better to specify it. |
+
+---
+
+## FINAL VERDICT
+
+```
+GATE VERDICT: FAIL
+```
+
+**REASON:** The PRD is exceptionally well-structured and passes on scope clarity, AC format rigor, and risk documentation — it is above average quality for a V1 draft. However, two blocking ambiguities prevent the Architect from proceeding without guessing on critical integration points: (1) the checkout event contract (payload schema, producer/consumer pattern) that drives the entire points engine is undefined, despite the env var referencing a queue; and (2) the referral code capture mechanism at booking time has no specified integration point, making it impossible to design the referral attribution flow. Additionally, WhatsApp is listed as IN SCOPE but has zero acceptance criteria, creating a scope boundary inconsistency. These gaps are surgical — the PRD does not need structural revision, only targeted additions to three specific areas.
+
+---
+
+## MISSING ITEMS (Required for PASS)
+
+**🔴 BLOCKING — Must be added before Architect proceeds:**
+
+1. **[EVENT CONTRACT]** Add a section or appendix defining the checkout event schema that the points engine consumes. Minimum required fields: `event_type`, `client_id`, `location_id`, `organization_id`, `transaction_amount`, `service_line_items[]`, `payment_confirmed_at`, `staff_id`. Specify whether this is synchronous (direct call) or asynchronous (queue message). This resolves G1 and unblocks the entire points engine design.
+
+2. **[REFERRAL CAPTURE AC]** Add AC-18b (or amend US-06 scope): specify *how* a referral code is associated with a new client's first booking — e.g., "GIVEN a new client arrives via a referral URL containing `?ref=CODE`, WHEN they complete enrollment, THEN the referral code is stored against their profile and evaluated at first-visit checkout completion." Without this, the booking→referral attribution integration point is undesigned.
+
+**🟡 NON-BLOCKING — Should be added before Sprint 1 kickoff:**
+
+3. **[WHATSAPP AC]** Either add at least one acceptance criterion for WhatsApp behavior (opt-in capture, delivery failure handling, message content parity with SMS) — or explicitly reclassify WhatsApp from IN SCOPE to DEFERRED with a feature flag note. The current state is a scope boundary inconsistency.
+
+4. **[BIRTHDAY SCHEDULER SPEC]** Amend AC-19 to specify time-of-day for birthday SMS delivery (e.g., "bonus points are awarded and SMS sent at 10:00 AM in the salon's configured timezone"). This has direct TCPA compliance implications and prevents an Architect from making an arbitrary scheduling decision.
+
+5. **[PWA RE-AUTH FLOW]** Add one AC or a note in US-05 scope covering the expired-link re-authentication path for returning PWA clients (e.g., phone number re-entry → new SMS link). This is a security boundary decision, not just a UX one.
+
+---
+
+**Pipeline status:** 🔴 Returning to PM-Agent for targeted revision on items 1–3 (blocking). Items 4–5 may be addressed in parallel. Re-submit for gate re-evaluation before routing to Architect.

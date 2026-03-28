@@ -1,0 +1,18 @@
+{
+  "id": "smart-shop",
+  "name": "@workspace/smart-shop",
+  "port": 3014,
+  "stack": [
+    "nextjs",
+    "react",
+    "tailwind",
+    "openai",
+    "anthropic"
+  ],
+  "entrypoint": "app/page.tsx",
+  "devCommand": "npm run dev",
+  "kb_scope": [
+    "global",
+    "smart-shop"
+  ]
+}

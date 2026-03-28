@@ -5,8 +5,8 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
-import type { AgentAction } from '../core/types.js';
-import { loadApiKeys, type ApiKeyManager } from './key-manager.js';
+import type { AgentAction } from '../core/types';
+import { loadApiKeys, type ApiKeyManager } from './key-manager';
 
 // Initialize API key manager
 let keyManager: ApiKeyManager | null = null;

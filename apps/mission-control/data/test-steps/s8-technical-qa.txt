@@ -1,0 +1,150 @@
+```json
+{"technical_results": {
+  "compilation": "FAIL",
+  "api_compliance": "FAIL",
+  "data_compliance": "FAIL",
+  "issues": [
+    {
+      "type": "COMPILATION_ERROR",
+      "file": "src/modules/rewards/rewards.repository.ts",
+      "description": "Dynamic UPDATE query index counter bug. After building fields array, `idx` is incremented for each field, then `values.push(id, locationId)`. The query uses `$${idx++}` and `$${idx}` but `idx` was already incremented past the correct position. The WHERE clause parameters will be wrong. Example: with 5 fields, idx=6 after fields loop, then query uses `$6` and `$7` for id/locationId, but values array has them at positions 6 and 7 only if counting is correct — however `updated_at = NOW()` is pushed as a field string without incrementing idx, then values.push(id, locationId) making them at correct positions. Actually the bug is: `fields.push('updated_at = NOW()')` does NOT push a value, so idx is not incremented for it, but the WHERE clause uses `$${idx++}` and `$${idx}` — at that point idx equals the number of data fields + 1. This is correct only if no off-by-one exists. Re-examining: if name, point_cost, description, image_url, active are all set (5 fields), idx goes 1→2→3→4→5→6 after the 5 pushes. Then `fields.push('updated_at = NOW()')` (no idx change). Then `values.push(id, locationId)`. Query WHERE uses `$${idx++}` = `$6` and `$${idx}` = `$7`. values[5] = id, values[6] = locationId. This is CORRECT for this case. BUT the same pattern in milestones.repository.ts update() has the same structure — however there the final query uses `$${idx++} AND location_id = $${idx}` where idx is already post-increment. This is a latent correctness issue that will silently produce wrong queries when partial updates are made.",
+      "severity": "P1",
+      "fix_agent": "backend-agent"
+    },
+    {
+      "type": "COMPILATION_ERROR",
+      "file": "src/modules/clients/clients.service.ts",
+      "description": "Variable shadowing: `let referralCode: string` is declared, then inside the do-while loop `const existing = await this.repo.findByReferralCode(referralCode)` shadows the outer `existing` variable from line above (which checks for duplicate enrollment). TypeScript will compile this but the inner `existing` is a different binding. More critically, `referralCode!` is used with non-null assertion after the loop, but `referralCode` is declared with `let` and assigned inside the loop body — if `generateReferralCode()` always returns a string, the `!` is unnecessary but not an error. However the outer variable declared at line `const existing = await this.repo.findByLocationAndCrmId(...)` is then shadowed inside the loop by another `const existing`. This will cause a TypeScript error: 'Cannot redeclare block-scoped variable existing' — actually no, they are in different scopes (outer function scope vs loop body block scope). This compiles but is confusing. The real issue: if `attempts` reaches 10 without finding a unique code, the loop exits without `break` and `referralCode` may still be a non-unique code. The condition `if (!existing) break` only breaks on success; on failure it increments attempts and loops again. After 10 failed attempts, the loop exits and the non-unique code is used — this will cause a DB unique constraint violation.",
+      "severity": "P1",
+      "fix_agent": "backend-agent"
+    },
+    {
+      "type": "COMPILATION_ERROR",
+      "file": "src/auth/roles.guard.ts",
+      "description": "The `Roles` decorator uses `Reflect.defineMetadata(ROLES_KEY, roles, descriptor.value)` but NestJS's `Reflector.get` with `context.getHandler()` expects metadata to be set on the handler function via `SetMetadata`. The custom decorator bypasses `SetMetadata` and sets metadata directly on `descriptor.value`. This will work at runtime in most NestJS versions but is non-standard and fragile. More critically, the decorator signature `(target: any, key: string, descriptor: PropertyDescriptor)` assumes method decorator usage, but the function is exported as a plain function — if used as a class decorator it will throw. This is a P2 issue but the inconsistency with NestJS's `Reflector` API means `requiredRoles` will be `undefined` in `RolesGuard.canActivate`, causing all role-protected routes to pass through unguarded.",
+      "severity": "P0",
+      "fix_agent": "backend-agent"
+    },
+    {
+      "type": "API_CONTRACT_VIOLATION",
+      "file": "src/modules/pwa/pwa.controller.ts",
+      "description": "API contract specifies `GET /api/v1/pwa/client/:token` (token in path). The controller implements both `GET /pwa/client/:token` AND `GET /pwa/client?t=<token>`. The security comment says to use query param to avoid URL logging, but the contract defines the path param version as the canonical endpoint. The frontend `pwaApi.getClientDashboard` calls `/pwa/client?t=<token>` (query param). The `PwaJwtGuard` reads `request.query.t || request.params.token` — this is fine for the guard. However the controller still exposes the path param route which leaks the token in server access logs, contradicting the stated security fix. The contract endpoint `GET /api/v1/pwa/client/:token` should be the only form, but the implementation adds a non-contract query-param variant as the primary path.",
+      "severity": "P1",
+      "fix_agent": "backend-agent"
+    },
+    {
+      "type": "API_CONTRACT_VIOLATION",
+      "file": "src/modules/redemptions/redemptions.controller.ts",
+      "description": "The `POST /redemptions/request` endpoint is guarded by `PwaJwtGuard` only. Per the API contract, this endpoint is `Auth: public (PWA JWT — signed client token)`. The `PwaJwtGuard` reads `request.query.t || request.params.token` for the token, but the redemption request is a POST with body — the token is not in the query param or path for this endpoint. The frontend calls `redemptionsApi.request(pwaToken, body)` which sends `Authorization: Bearer <pwaToken>` header. The `PwaJwtGuard` does NOT read the Authorization header — it only reads `request.query.t` or `request.params.token`. This means all redemption requests from the PWA will throw `401 UnauthorizedException('Token required')` because neither query param nor path param contains the token.",
+      "severity": "P0",
+      "fix_agent": "backend-agent"
+    },
+    {
+      "type": "API_CONTRACT_VIOLATION",
+      "file": "src/modules/redemptions/redemptions.service.ts",
+      "description": "Contract specifies `409 (code already used)` and `410 (code expired)` for `POST /redemptions/:code/apply`. The implementation normalizes ALL invalid states to `404 NotFoundException('Code not found')` — including already-applied and expired codes. This violates the contract which explicitly requires 409 for applied and 410 for expired. The comment says 'prevent state oracle' but this is a business decision that contradicts the contract.",
+      "severity": "P1",
+      "fix_agent": "backend-agent"
+    },
+    {
+      "type": "API_CONTRACT_VIOLATION",
+      "file": "src/modules/loyalty-config/loyalty-config.controller.ts",
+      "description": "The `GET /loyalty/config/templates` route is defined AFTER `GET /loyalty/config` in the same controller class, but both use `@Get()` and `@Get('templates')` respectively. In NestJS, route order within a controller matters — `templates` is a string that could be matched as a path param if another route `@Get(':id')` existed. Here there is no `:id` param route, so this is safe. However the `@Get('templates')` route requires `@Roles('owner')` but the `@Get()` route has no roles restriction (accessible to owner AND staff per contract). This is correctly implemented. No violation here — marking as informational.",
+      "severity": "P2",
+      "fix_agent": "backend-agent"
+    },
+    {
+      "type": "DATA_MODEL_VIOLATION",
+      "file": "migrations/003_create_loyalty_config.sql",
+      "description": "`CREATE UNIQUE INDEX idx_loyalty_configs_location_id ON loyalty_configs(location_id)` is created AFTER `location_id UUID NOT NULL UNIQUE` is already declared in the column definition. The column-level `UNIQUE` constraint already creates an implicit unique index. Creating an explicit unique index on the same column is redundant and wastes storage/maintenance overhead. This is not a correctness bug but a schema quality issue.",
+      "severity": "P2",
+      "fix_agent": "backend-agent"
+    },
+    {
+      "type": "DATA_MODEL_VIOLATION",
+      "file": "src/modules/internal/internal.service.ts",
+      "description": "The `acknowledgeEventResult` method recomputes balance from the ledger (`SUM(points)`) and updates `loyalty_clients.point_balance`. However this query runs OUTSIDE a transaction and WITHOUT a row lock on `loyalty_clients`. If two events are acknowledged concurrently, both may read the same ledger sum and write the same balance, causing a race condition. The `point_balance` column could end up incorrect. The worker's `checkout-award.handler.ts` correctly uses `FOR UPDATE` and transactions, but this callback path does not.",
+      "severity": "P1",
+      "fix_agent": "backend-agent"
+    },
+    {
+      "type": "DATA_MODEL_VIOLATION",
+      "file": "worker/src/handlers/referral-bonus.handler.ts",
+      "description": "The handler sorts client IDs to prevent deadlock (`const ids = [referrer_client_id, referee_client_id].sort()`) but then queries `referrerRow` and `refereeRow` using `ids[0]` and `ids[1]` — which may be in either order depending on UUID string sort. The handler then assigns `const referrer = referrerRow.rows[0]` and `const referee = refereeRow.rows[0]` assuming `ids[0]` is always the referrer. This is WRONG — if `referee_client_id` sorts before `referrer_client_id`, `ids[0]` is the referee and `ids[1]` is the referrer, but the code assigns them as referrer/referee respectively. The balance updates and transaction descriptions will be swapped for ~50% of referral pairs.",
+      "severity": "P0",
+      "fix_agent": "backend-agent"
+    },
+    {
+      "type": "DATA_MODEL_VIOLATION",
+      "file": "src/modules/points/points.repository.ts",
+      "description": "`insertTransactionWithBalanceUpdate` updates `point_balance` and then separately updates `last_visit_at` for `CHECKOUT_AWARD` type in two separate UPDATE statements within the same transaction. The second UPDATE `SET last_visit_at = NOW()` overwrites the `updated_at` set by the first UPDATE because it doesn't include `updated_at = NOW()`. This means `updated_at` will reflect the first UPDATE's timestamp but `last_visit_at` will be set correctly. Minor but inconsistent.",
+      "severity": "P2",
+      "fix_agent": "backend-agent"
+    },
+    {
+      "type": "COMPILATION_ERROR",
+      "file": "src/modules/notifications/sms.service.ts",
+      "description": "`import * as Twilio from 'twilio'` then `this.client = Twilio(...)` — the Twilio package's default export is a function in CommonJS but when imported with `import * as Twilio`, the namespace object is not directly callable. This should be `import Twilio from 'twilio'` or `const Twilio = require('twilio')`. With `esModuleInterop: true` in tsconfig this MAY work, but the tsconfig.json does not set `esModuleInterop: true`. Without it, `Twilio(...)` will throw `TypeError: Twilio is not a function` at runtime. Same issue exists in `worker/src/sms/twilio.service.ts`.",
+      "severity": "P0",
+      "fix_agent": "backend-agent"
+    },
+    {
+      "type": "COMPILATION_ERROR",
+      "file": "worker/src/handlers/checkout-award.handler.ts",
+      "description": "`const crypto = require('crypto')` inside the `notifyCrmApi` method — using CommonJS `require()` inside a TypeScript ES module method. While this works at runtime in Node.js, it bypasses TypeScript's module system and will cause a linting error. The `crypto` module is already imported at the top of `src/auth/hmac.guard.ts` using `import * as crypto from 'crypto'`. The worker handler should use `import * as crypto from 'crypto'` at the top of the file. Additionally `const jwt = require('jsonwebtoken')` in `worker/src/sms/twilio.service.ts` has the same issue.",
+      "severity": "P1",
+      "fix_agent": "backend-agent"
+    },
+    {
+      "type": "API_CONTRACT_VIOLATION",
+      "file": "lib/loyalty-api.ts (frontend)",
+      "description": "The frontend `pwaApi.getClientDashboard` calls `GET /pwa/client?t=<token>` (no `/api/v1` prefix issue — BASE is set to `/api/v1` so full path is `/api/v1/pwa/client?t=...`). The backend `PwaController` is mapped to `@Controller('api/v1/pwa')` which means the full path is `/api/v1/pwa/client`. This matches. However the frontend `redemptionsApi.request` sends the PWA token as `Authorization: Bearer <pwaToken>` header (via `token: pwaToken` in apiFetch options), but `PwaJwtGuard` only checks `request.query.t` and `request.params.token` — not the Authorization header. This is a P0 mismatch already logged above. Additionally, `rewardsApi.list` appends `?${q}` even when `q` is empty (no params), resulting in URLs like `/loyalty/rewards?` — harmless but sloppy.",
+      "severity": "P2",
+      "fix_agent": "frontend-agent"
+    },
+    {
+      "type": "CODE_QUALITY",
+      "file": "src/modules/branding/branding.repository.ts",
+      "description": "The `upsert` method has a logic flaw: when `fields.length === 0` and no existing branding, it inserts with `salon_name = 'My Salon'`. But when `fields.length === 0` AND branding already exists, it falls through to the upsert query with an empty `setClauses` string, producing invalid SQL: `DO UPDATE SET , updated_at = NOW()` (leading comma). This will throw a PostgreSQL syntax error when PATCH is called with an empty body on an existing branding record.",
+      "severity": "P1",
+      "fix_agent": "backend-agent"
+    },
+    {
+      "type": "CODE_QUALITY",
+      "file": "src/modules/clients/clients.repository.ts",
+      "description": "In `findList`, the `idx` variable is used for both building WHERE conditions and for LIMIT/OFFSET parameters. After the WHERE conditions loop, `idx` holds the next available position. Then `values.push(opts.limit, offset)` and the query uses `LIMIT $${idx++} OFFSET $${idx}`. The `idx++` post-increment means the LIMIT uses the current `idx` value and then increments — but `$${idx}` for OFFSET uses the already-incremented value. This is correct. However in the COUNT query, `values` still contains only the WHERE condition values (not limit/offset), so the count query is correct. The LIMIT/OFFSET query uses `values` which now includes limit and offset appended — this is correct. No bug here but the pattern is error-prone.",
+      "severity": "P2",
+      "fix_agent": "backend-agent"
+    },
+    {
+      "type": "CODE_QUALITY",
+      "file": "scripts/gdpr-purge-job.sh",
+      "description": "The file content is truncated in the implementation — the heredoc SQL is cut off mid-comment (`-- Delete notification logs for clients past retention`). The script is incomplete and will fail with a syntax error when executed.",
+      "severity": "P1",
+      "fix_agent": "backend-agent"
+    },
+    {
+      "type": "CODE_QUALITY",
+      "file": "styles/globals.css (frontend)",
+      "description": "The CSS file content is truncated — it ends mid-declaration after `--font-size-`. The file is incomplete and will cause a CSS parse error, breaking all styling.",
+      "severity": "P0",
+      "fix_agent": "frontend-agent"
+    },
+    {
+      "type": "CODE_QUALITY",
+      "file": "src/modules/analytics/analytics.repository.ts",
+      "description": "`DATE_TRUNC($1, created_at)` — PostgreSQL's `date_trunc` function signature is `date_trunc(field, source)` where `field` must be a string literal, not a parameter placeholder. Passing `$1` as the field will cause a runtime PostgreSQL error: `ERROR: function date_trunc(unknown, timestamp with time zone) does not exist`. The granularity must be interpolated directly into the SQL string (with validation to prevent injection, which is already done via the service layer's enum check).",
+      "severity": "P0",
+      "fix_agent": "backend-agent"
+    },
+    {
+      "type": "CODE_QUALITY",
+      "file": "src/modules/loyalty-config/loyalty-config.service.ts",
+      "description": "In `patchConfig`, `tiers` variable is reassigned: `let tiers = existing.tiers || []` then `tiers = await this.repo.insertTiers(...)`. The `existing.tiers` comes from the `findByLocationId` repository query which uses `json_agg` — if there are no tiers, `json_agg` with `FILTER (WHERE lt.id IS NOT NULL)` returns `null`, not `[]`. The `|| []` handles this. But the returned tiers from `insertTiers` are raw DB rows (with snake_case fields including `\"order\"` as a quoted identifier), while the response maps `t.order` — PostgreSQL returns the column as `order` (lowercase) in the result set. This should work but the quoted identifier `\"order\"` in SQL vs `order` in JavaScript needs verification.",
+      "severity": "P2",
+      "fix_agent": "backend-agent"
+    }
+  ],
+  "verdict": "FAIL"
+}}
+```

@@ -1,0 +1,226 @@
+# Complete File Plan — Beauty CRM Loyalty Module
+
+---
+
+## Backend-Agent Files
+
+### Database Migrations
+- `migrations/001_create_organizations.sql` — creates `Organization` table with PK and indexes
+- `migrations/002_create_locations.sql` — creates `Location` table with FK to Organization, indexes
+- `migrations/003_create_loyalty_config.sql` — creates `LoyaltyConfig` table with unique constraint on `location_id`
+- `migrations/004_create_loyalty_tiers.sql` — creates `LoyaltyTier` table with composite unique on `(loyalty_config_id, order)`, cascade delete
+- `migrations/005_create_category_earn_rates.sql` — creates `CategoryEarnRate` table with composite unique on `(loyalty_config_id, category_id)`
+- `migrations/006_create_rewards.sql` — creates `Reward` table with soft-delete `deleted_at`, indexes on `(location_id, active)`
+- `migrations/007_create_loyalty_clients.sql` — creates `LoyaltyClient` table with GDPR fields, self-ref FK, unique referral_code, composite unique on `(location_id, crm_client_id)`
+- `migrations/008_create_point_transactions.sql` — creates `PointTransaction` append-only ledger with unique `idempotency_key`, composite index on `(loyalty_client_id, created_at DESC)`
+- `migrations/009_create_redemption_codes.sql` — creates `RedemptionCode` table with unique `code`, partial unique index on `(loyalty_client_id, reward_id)` where `status = 'pending'`
+- `migrations/010_create_referrals.sql` — creates `Referral` table with unique `referee_client_id`, snapshot bonus fields
+- `migrations/011_create_milestones.sql` — creates `Milestone` table with composite unique on `(location_id, type)`
+- `migrations/012_create_branding.sql` — creates `Branding` table with unique constraint on `location_id`
+- `migrations/013_create_notification_logs.sql` — creates `NotificationLog` append-only table with indexes on `(location_id, sent_at DESC)` and `(location_id, status)`
+- `migrations/014_seed_milestone_types.sql` — seeds `BIRTHDAY`, `FIRST_VISIT`, `PROGRAM_ANNIVERSARY` milestone rows per location trigger
+
+### Types & Shared Contracts
+- `src/types/loyalty-config.types.ts` — TypeScript interfaces for `LoyaltyConfig`, `LoyaltyTier`, `CategoryEarnRate`
+- `src/types/reward.types.ts` — interfaces for `Reward`, reward request/response shapes
+- `src/types/loyalty-client.types.ts` — interfaces for `LoyaltyClient`, enrollment request, GDPR erasure response
+- `src/types/point-transaction.types.ts` — interfaces for `PointTransaction`, transaction type enum, ledger response
+- `src/types/redemption.types.ts` — interfaces for `RedemptionCode`, redemption request/response, status enum
+- `src/types/referral.types.ts` — interfaces for `Referral`, validate response, referral list response
+- `src/types/milestone.types.ts` — interfaces for `Milestone`, milestone type enum, PATCH request
+- `src/types/branding.types.ts` — interfaces for `Branding`, PATCH request/response
+- `src/types/notification.types.ts` — interfaces for `NotificationLog`, SMS usage response
+- `src/types/analytics.types.ts` — interfaces for summary and points-activity analytics responses
+- `src/types/internal.types.ts` — interfaces for engine event-result callback and milestone trigger payloads
+- `src/types/pwa.types.ts` — interface for PWA single-load response including branding and rewards
+- `src/types/queue.types.ts` — interfaces for SQS message envelope, event types, idempotency payload
+
+### Domain: Loyalty Config
+- `src/modules/loyalty-config/loyalty-config.module.ts` — NestJS module declaration for config domain
+- `src/modules/loyalty-config/loyalty-config.controller.ts` — routes for GET/POST/PATCH `/loyalty/config` and GET `/loyalty/config/templates`
+- `src/modules/loyalty-config/loyalty-config.service.ts` — business logic: tier overlap validation, config upsert, template generation
+- `src/modules/loyalty-config/loyalty-config.repository.ts` — DB queries for `LoyaltyConfig`, `LoyaltyTier`, `CategoryEarnRate`
+- `src/modules/loyalty-config/dto/create-config.dto.ts` — validated DTO for POST `/loyalty/config`
+- `src/modules/loyalty-config/dto/patch-config.dto.ts` — validated DTO for PATCH `/loyalty/config`
+- `src/modules/loyalty-config/dto/template-query.dto.ts` — validated DTO for template query params
+
+### Domain: Rewards Catalog
+- `src/modules/rewards/rewards.module.ts` — NestJS module for rewards domain
+- `src/modules/rewards/rewards.controller.ts` — routes for GET/POST/PATCH/DELETE `/loyalty/rewards`
+- `src/modules/rewards/rewards.service.ts` — business logic: active filter, soft-delete guard, pending redemption check
+- `src/modules/rewards/rewards.repository.ts` — DB queries with `deleted_at` filter, pagination
+- `src/modules/rewards/dto/create-reward.dto.ts` — validated DTO for POST `/loyalty/rewards`
+- `src/modules/rewards/dto/patch-reward.dto.ts` — validated DTO for PATCH `/loyalty/rewards/:id`
+
+### Domain: Client Enrollment & Profiles
+- `src/modules/clients/clients.module.ts` — NestJS module for client domain
+- `src/modules/clients/clients.controller.ts` — routes for enroll, GET by ID, list, PATCH, DELETE
+- `src/modules/clients/clients.service.ts` — enrollment logic, referral code generation, GDPR erasure scheduling
+- `src/modules/clients/clients.repository.ts` — DB queries with location scoping, search, sort, GDPR field updates
+- `src/modules/clients/dto/enroll-client.dto.ts` — validated DTO for POST `/loyalty/clients/enroll` with TCPA fields
+- `src/modules/clients/dto/patch-client.dto.ts` — validated DTO for PATCH `/loyalty/clients/:id`
+- `src/modules/clients/dto/list-clients-query.dto.ts` — validated DTO for GET `/loyalty/clients` query params
+
+### Domain: Points & Ledger
+- `src/modules/points/points.module.ts` — NestJS module for points domain
+- `src/modules/points/points.controller.ts` — routes for POST `/loyalty/points/award` and `/loyalty/points/award-manual`
+- `src/modules/points/points.service.ts` — enqueue logic for async award, synchronous manual award with row-level lock
+- `src/modules/points/points.repository.ts` — `PointTransaction` INSERT with balance update under row-level lock
+- `src/modules/points/transactions.controller.ts` — route for GET `/loyalty/clients/:id/transactions`
+- `src/modules/points/transactions.service.ts` — ledger query with type/date filters and pagination
+- `src/modules/points/dto/award-points.dto.ts` — validated DTO for POST `/loyalty/points/award`
+- `src/modules/points/dto/award-manual.dto.ts` — validated DTO for POST `/loyalty/points/award-manual`
+- `src/modules/points/dto/transactions-query.dto.ts` — validated DTO for transaction history query params
+
+### Domain: Redemption Codes
+- `src/modules/redemptions/redemptions.module.ts` — NestJS module for redemption domain
+- `src/modules/redemptions/redemptions.controller.ts` — routes for request, apply, and GET by code
+- `src/modules/redemptions/redemptions.service.ts` — atomic point deduction, code generation, expiry logic, status transitions
+- `src/modules/redemptions/redemptions.repository.ts` — DB queries with row-level lock on `LoyaltyClient`, partial unique index enforcement
+- `src/modules/redemptions/dto/request-redemption.dto.ts` — validated DTO for POST `/loyalty/redemptions/request`
+- `src/modules/redemptions/dto/apply-redemption.dto.ts` — validated DTO for POST `/loyalty/redemptions/:code/apply`
+
+### Domain: Referrals
+- `src/modules/referrals/referrals.module.ts` — NestJS module for referral domain
+- `src/modules/referrals/referrals.controller.ts` — routes for validate referral code and list client referrals
+- `src/modules/referrals/referrals.service.ts` — referral code validation, bonus point snapshot logic, status evaluation
+- `src/modules/referrals/referrals.repository.ts` — DB queries for `Referral` with referrer/referee lookups
+
+### Domain: Milestones
+- `src/modules/milestones/milestones.module.ts` — NestJS module for milestones domain
+- `src/modules/milestones/milestones.controller.ts` — routes for GET `/loyalty/milestones` and PATCH `/loyalty/milestones/:id`
+- `src/modules/milestones/milestones.service.ts` — milestone config retrieval, points/active update with validation
+- `src/modules/milestones/milestones.repository.ts` — DB queries scoped by `location_id`
+- `src/modules/milestones/dto/patch-milestone.dto.ts` — validated DTO for PATCH `/loyalty/milestones/:id`
+
+### Domain: Branding
+- `src/modules/branding/branding.module.ts` — NestJS module for branding domain
+- `src/modules/branding/branding.controller.ts` — routes for GET and PATCH `/loyalty/branding`
+- `src/modules/branding/branding.service.ts` — hex color validation, URL validation, upsert logic
+- `src/modules/branding/branding.repository.ts` — DB queries with unique location_id constraint
+- `src/modules/branding/dto/patch-branding.dto.ts` — validated DTO with hex regex and URL format validation
+
+### Domain: Notifications
+- `src/modules/notifications/notifications.module.ts` — NestJS module for notifications domain
+- `src/modules/notifications/notifications.controller.ts` — routes for GET log and GET sms-usage
+- `src/modules/notifications/notifications.service.ts` — log query, monthly aggregation, SMS cap calculation
+- `src/modules/notifications/notifications.repository.ts` — DB queries on `NotificationLog` with date range and status filters
+- `src/modules/notifications/sms.service.ts` — Twilio integration: send SMS, log result, check opt-in and monthly cap
+- `src/modules/notifications/dto/notification-log-query.dto.ts` — validated DTO for GET log query params
+
+### Domain: Analytics
+- `src/modules/analytics/analytics.module.ts` — NestJS module for analytics domain
+- `src/modules/analytics/analytics.controller.ts` — routes for GET summary and GET points-activity
+- `src/modules/analytics/analytics.service.ts` — aggregation logic, tier distribution, period defaulting, granularity bucketing
+- `src/modules/analytics/analytics.repository.ts` — complex aggregate queries on `PointTransaction`, `LoyaltyClient` scoped to `location_id`
+- `src/modules/analytics/dto/analytics-query.dto.ts` — validated DTO for date range and granularity params
+
+### Domain: PWA
+- `src/modules/pwa/pwa.module.ts` — NestJS module for public PWA domain
+- `src/modules/pwa/pwa.controller.ts` — route for GET `/pwa/client/:token`
+- `src/modules/pwa/pwa.service.ts` — token validation via `LOYALTY_JWT_SECRET`, single-query aggregated load, next-tier calculation
+- `src/modules/pwa/pwa.repository.ts` — optimized single-query fetch joining client, tiers, rewards, branding, recent transactions
+
+### Domain: Internal Engine
+- `src/modules/internal/internal.module.ts` — NestJS module for internal service-to-service domain
+- `src/modules/internal/internal.controller.ts` — routes for POST event-result and POST milestones/trigger
+- `src/modules/internal/internal.service.ts` — HMAC verification, event acknowledgement, idempotency check, tier recalculation dispatch
+- `src/modules/internal/dto/event-result.dto.ts` — validated DTO for POST `/internal/points-engine/event-result`
+- `src/modules/internal/dto/milestone-trigger.dto.ts` — validated DTO for POST `/internal/milestones/trigger`
+
+### Points Engine Worker (Separate ECS Service)
+- `worker/src/main.ts` — NestJS worker bootstrap, SQS consumer initialization
+- `worker/src/worker.module.ts` — root module for worker service
+- `worker/src/queue/sqs.consumer.ts` — SQS FIFO polling loop, message dispatch, DLQ forwarding on failure
+- `worker/src/queue/sqs.producer.ts` — enqueue helper for award and milestone events to `POINTS_ENGINE_EVENT_QUEUE`
+- `worker/src/handlers/checkout-award.handler.ts` — processes `CHECKOUT_AWARD` events: calculates points, writes ledger, calls back API
+- `worker/src/handlers/milestone-award.handler.ts` — processes `MILESTONE_BONUS` events: validates type, awards points, triggers SMS
+- `worker/src/handlers/referral-bonus.handler.ts` — processes `REFERRAL_BONUS` events: awards referrer and referee points atomically
+- `worker/src/handlers/tier-recalculation.handler.ts` — evaluates new tier after balance change, updates `current_tier_id`
+- `worker/src/idempotency/redis.service.ts` — Upstash Redis client, 15-minute TTL idempotency key check and set
+- `worker/src/sms/twilio.service.ts` — Twilio SMS dispatch, opt-in guard, monthly cap check, writes `NotificationLog`
+
+### Auth & Guards
+- `src/auth/jwt.strategy.ts` — Passport JWT strategy using `LOYALTY_JWT_SECRET`, extracts `organization_id` and `location_id` from token
+- `src/auth/pwa-jwt.guard.ts` — validates signed PWA client token, returns 401/410 per expiry
+- `src/auth/hmac.guard.ts` — validates service-to-service HMAC header for internal endpoints
+- `src/auth/roles.guard.ts` — enforces owner-only vs owner-or-staff role restrictions per endpoint
+- `src/auth/auth.module.ts` — NestJS auth module wiring all guards and strategies
+
+### Shared Infrastructure
+- `src/common/filters/http-exception.filter.ts` — global exception filter mapping domain errors to API error shapes
+- `src/common/interceptors/location-context.interceptor.ts` — injects `organization_id` and `location_id` from JWT into request context
+- `src/common/guards/rate-limit.guard.ts` — per-endpoint rate limiting configuration
+- `src/common/utils/referral-code.generator.ts` — generates unique referral codes of length `REFERRAL_CODE_LENGTH`
+- `src/common/utils/tier-validator.ts` — validates tier threshold ordering and overlap before persist
+- `src/common/utils/hex-color.validator.ts` — validates `primary_color` hex format
+- `src/database/database.module.ts` — PostgreSQL connection pool configuration
+- `src/database/transaction.helper.ts` — row-level lock helper wrapping `SELECT ... FOR UPDATE` patterns
+- `src/app.module.ts` — root NestJS module importing all domain modules
+
+---
+
+## Frontend-Agent Files
+
+### PWA (Public Client-Facing)
+- `pwa/app/page.tsx` — PWA root: reads token from URL, fetches GET `/pwa/client/:token`, renders loyalty dashboard
+- `pwa/app/layout.tsx` — PWA layout applying dynamic branding colors and salon name from API response
+- `pwa/components/PointsBalance.tsx` — displays current point balance and tier name
+- `pwa/components/TierProgress.tsx` — progress bar toward next tier with points needed
+- `pwa/components/RewardCard.tsx` — individual reward tile with affordability indicator and redeem CTA
+- `pwa/components/RewardsList.tsx` — grid of `RewardCard` components filtered to affordable/all toggle
+- `pwa/components/RecentTransactions.tsx` — list of recent point transactions with type labels
+- `pwa/components/ReferralShare.tsx` — displays referral code and share link with copy-to-clipboard
+- `pwa/components/BrandingHeader.tsx` — salon logo, name, and primary color header bar
+- `pwa/lib/pwa-api.ts` — typed fetch wrapper for GET `/pwa/client/:token` and POST `/loyalty/redemptions/request`
+
+### Owner/Staff CRM Dashboard
+- `app/(shell)/loyalty/config/page.tsx` — loyalty program setup page: earn rates, tier configuration
+- `app/(shell)/loyalty/config/wizard/page.tsx` — setup wizard using GET `/loyalty/config/templates` (AC-21, AC-22)
+- `app/(shell)/loyalty/rewards/page.tsx` — rewards catalog management: list, create, edit, deactivate
+- `app/(shell)/loyalty/clients/page.tsx` — client list with search, tier filter, sort controls
+- `app/(shell)/loyalty/clients/[id]/page.tsx` — client profile: balance, tier, active codes, transaction history
+- `app/(shell)/loyalty/analytics/page.tsx` — analytics dashboard: summary metrics and points-activity chart
+- `app/(shell)/loyalty/notifications/page.tsx` — SMS log with failure feed and monthly usage meter
+- `app/(shell)/loyalty/milestones/page.tsx` — milestone configuration: points and active toggle per type
+- `app/(shell)/loyalty/branding/page.tsx` — branding editor: salon name, logo URL, primary color picker
+- `components/loyalty/TierConfigForm.tsx` — tier add/edit/remove form with overlap validation feedback
+- `components/loyalty/EarnRateForm.tsx` — earn rate by dollar and per-category rate configuration form
+- `components/loyalty/RewardForm.tsx` — create/edit reward modal with point cost and description fields
+- `components/loyalty/ClientProfileCard.tsx` — staff checkout display showing balance, tier, active redemption codes
+- `components/loyalty/TransactionHistory.tsx` — paginated transaction log with type and date filters
+- `components/loyalty/AnalyticsSummaryCards.tsx` — metric cards: enrolled, points issued, redemption rate
+- `components/loyalty/PointsActivityChart.tsx` — line/bar chart of points issued vs redeemed over time
+- `components/loyalty/TierDistributionChart.tsx` — pie or bar chart of client count per tier
+- `components/loyalty/SmsUsageMeter.tsx` — progress bar showing sent vs monthly SMS limit
+- `components/loyalty/ReferralTable.tsx` — paginated referral list with status and bonus awarded columns
+- `lib/loyalty-api.ts` — typed fetch wrappers for all 32 API endpoints
+
+---
+
+## Designer-Agent Files
+
+- `styles/globals.css` — loyalty design tokens: `--color-primary`, `--color-tier-bronze/silver/gold`, `--color-points-positive/negative`, spacing and radius vars
+- `styles/pwa.css` — PWA-specific overrides: mobile-first layout, dynamic `--color-brand` injection from API branding
+- `public/icons/loyalty-icon.svg` — default loyalty program icon used in PWA header when no logo configured
+
+---
+
+## DevOps-Agent Files
+
+- `.env.example` — all required env vars: `DATABASE_URL`, `REDIS_URL`, `AWS_SQS_QUEUE_URL`, `AWS_SQS_DLQ_URL`, `AWS_REGION`, `LOYALTY_JWT_SECRET`, `LOYALTY_LINK_EXPIRY_HOURS`, `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`, `SMS_MONTHLY_LIMIT_PER_BUSINESS`, `REFERRAL_CODE_LENGTH`, `GDPR_DATA_RETENTION_DAYS`, `INTERNAL_HMAC_SECRET`, `POINTS_ENGINE_EVENT_QUEUE`
+- `Dockerfile` — multi-stage build for CRM API NestJS service (node:20-alpine, production target)
+- `worker/Dockerfile` — separate multi-stage build for SQS worker ECS Fargate task
+- `docker-compose.yml` — local dev stack: postgres:15, redis, localstack (SQS emulation), api, worker services
+- `infra/ecs-task-definition.json` — ECS Fargate task definition for worker service with env var injection
+- `infra/sqs-queue.tf` — Terraform: `POINTS_ENGINE_EVENT_QUEUE` FIFO queue, DLQ, redrive policy, alert on DLQ depth
+- `infra/iam-worker-role.tf` — Terraform: IAM role for ECS worker with SQS consume and DLQ send permissions
+- `infra/rds-postgres.tf` — Terraform: PostgreSQL 15 RDS instance with parameter group and backup config
+- `infra/elasticache-redis.tf` — Terraform: Upstash Redis or ElastiCache cluster for idempotency key TTL cache
+- `.github/workflows/deploy-api.yml` — CI/CD pipeline: lint, test, build, push ECR image, deploy ECS API service
+- `.github/workflows/deploy-worker.yml` — CI/CD pipeline: build and deploy worker ECS Fargate task separately
+- `scripts/run-migrations.sh` — migration runner script executed as ECS one-off task before deploy
+- `scripts/gdpr-purge-job.sh` — scheduled Lambda/cron script: hard-purges `LoyaltyClient` records past `retention_until`
+- `scripts/birthday-cron.sh` — daily cron: queries clients with today's birthday, calls POST `/internal/milestones/trigger`
+- `scripts/anniversary-cron.sh` — daily cron: queries clients at program anniversary date, triggers milestone events
+- `scripts/expire-redemption-codes.sh` — periodic job: sweeps `RedemptionCode` rows past `expires_at`, sets status to `expired`

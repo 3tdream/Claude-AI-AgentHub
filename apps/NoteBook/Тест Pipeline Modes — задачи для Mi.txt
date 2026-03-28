@@ -1,0 +1,234 @@
+Тест Pipeline Modes — задачи для Mission Control
+
+  Подготовка
+
+  1. Открой http://localhost:3077/orchestration
+  2. Если нет workflow — нажми "CRM Pipeline Template"
+  3. F12 → Console → очисти (Ctrl+L)
+
+  ---
+  Тест 1: Quick Mode
+
+  Задача:
+  Напиши React компонент PipelineStatusBadge для Mission Control — отображает статус pipeline execution (pending/running/completed/failed/paused) с цветовой индикацией и пульсирующей
+  анимацией для running. Используй Tailwind + Lucide icons.
+
+  Ожидание от роутера: Quick → frontend-agent (1 агент)
+
+  Чеклист:
+  - Только 1 агент, без Architect/PM/Research
+  - Quality eval не запускался
+  - Completed за ~30-60 сек
+  - Output содержит [ASSUMED] маркеры
+  - Консоль чистая
+
+ответ:
+Ниже — готовая реализация `PipelineStatusBadge` с TypeScript, Tailwind и Lucide icons.
+
+### Предположения `[ASSUMED]`
+
+- Компонент чисто фронтендовый, без запросов к API.
+- Используем Lucide React (`lucide-react`) уже установлен.
+- Tailwind настроен, можно использовать `animate-pulse` и кастомные утилиты.
+- Цвета подогнаны под Aura-палитру и привычные статусы:
+  - pending — серый
+  - running — фиолетовый (primary) + пульсация
+  - completed — зелёный
+  - failed — красный
+  - paused — жёлтый
+
+---
+
+### Типы и компонент
+
+```tsx
+// src/frontend/components/shared/PipelineStatusBadge.tsx
+
+"use client";
+
+import React from "react";
+import {
+  Clock,
+  PlayCircle,
+  CheckCircle2,
+  XCircle,
+  PauseCircle,
+} from "lucide-react";
+import clsx from "clsx";
+
+export type PipelineStatus =
+  | "pending"
+  | "running"
+  | "completed"
+  | "failed"
+  | "paused";
+
+export interface PipelineStatusBadgeProps {
+  status: PipelineStatus;
+  /** Показывать ли текст рядом с иконкой */
+  showLabel?: boolean;
+  /** Дополнительные классы Tailwind */
+  className?: string;
+  /** Размер иконки (по умолчанию 16) */
+  iconSize?: number;
+}
+
+const STATUS_CONFIG: Record<
+  PipelineStatus,
+  {
+    label: string;
+    icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+    // базовые цвета бейджа
+    badgeClass: string;
+    // цвета иконки/текста
+    contentClass: string;
+  }
+> = {
+  pending: {
+    label: "Pending",
+    icon: Clock,
+    badgeClass: "bg-slate-50 border border-slate-200",
+    contentClass: "text-slate-600",
+  },
+  running: {
+    label: "Running",
+    icon: PlayCircle,
+    badgeClass:
+      "bg-violet-50 border border-violet-200 shadow-[0_0_0_1px_rgba(124,58,237,0.15)]",
+    contentClass: "text-violet-600",
+  },
+  completed: {
+    label: "Completed",
+    icon: CheckCircle2,
+    badgeClass: "bg-emerald-50 border border-emerald-200",
+    contentClass: "text-emerald-600",
+  },
+  failed: {
+    label: "Failed",
+    icon: XCircle,
+    badgeClass: "bg-rose-50 border border-rose-200",
+    contentClass: "text-rose-600",
+  },
+  paused: {
+    label: "Paused",
+    icon: PauseCircle,
+    badgeClass: "bg-amber-50 border border-amber-200",
+    contentClass: "text-amber-600",
+  },
+};
+
+export const PipelineStatusBadge: React.FC<PipelineStatusBadgeProps> = ({
+  status,
+  showLabel = true,
+  className,
+  iconSize = 16,
+}) => {
+  const config = STATUS_CONFIG[status];
+  const Icon = config.icon;
+
+  return (
+    <span
+      className={clsx(
+        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1",
+        "text-xs font-medium",
+        "min-h-[24px]",
+        config.badgeClass,
+        status === "running" && "animate-pulse", // пульсация для running
+        className
+      )}
+      aria-label={`Pipeline status: ${config.label}`}
+    >
+      <Icon
+        className={clsx("shrink-0", config.contentClass)}
+        size={iconSize}
+        aria-hidden="true"
+      />
+      {showLabel && (
+        <span className={clsx("leading-none", config.contentClass)}>
+          {config.label}
+        </span>
+      )}
+    </span>
+  );
+};
+```
+
+---
+
+### Использование
+
+```tsx
+import { PipelineStatusBadge } from "@/frontend/components/shared/PipelineStatusBadge";
+
+export function Example() {
+  return (
+    <div className="flex flex-col gap-2">
+      <PipelineStatusBadge status="pending" />
+      <PipelineStatusBadge status="running" />
+      <PipelineStatusBadge status="completed" />
+      <PipelineStatusBadge status="failed" />
+      <PipelineStatusBadge status="paused" />
+      {/* Только иконка без текста */}
+      <PipelineStatusBadge status="running" showLabel={false} />
+    </div>
+  );
+}
+```
+
+Если нужно — могу добавить вариант с более “микроскопической” пульсацией (через кастомный keyframes, например лёгкий glow вокруг иконки вместо стандартного `animate-pulse`).
+
+  ---
+  Тест 2: Medium Mode
+
+  Задача:
+  Добавь в Mission Control экспорт pipeline execution history в JSON файл: серверный API endpoint GET /api/orchestration/export который читает execution history из Zustand store snapshot и
+   возвращает файл, плюс кнопка "Export History" в UI на странице /orchestration.
+
+  Ожидание от роутера: Medium → architect-agent + backend-agent + frontend-agent
+
+  Чеклист:
+  - Architect + PM + целевые агенты запустились
+  - Research и Cyber НЕ запускались
+  - Quality eval только на последнем шаге (≥7)
+  - Промежуточные шаги — auto-pass
+  - Completed за ~2-3 мин
+  - Checkpoint НЕ появился
+
+  ---
+  Тест 3: Full Mode
+
+  Задача:
+  Построй систему API Key Management для Mission Control: страница /integrations/keys с CRUD для API ключей (Anthropic, OpenAI, Jira), шифрование ключей при хранении в data/api-keys.json,
+  валидация ключей через тестовый запрос к провайдеру, audit log кто и когда менял ключи. Security review обязателен — ключи это sensitive data.
+
+  Ожидание от роутера: Full → все 10 стадий (security-critical задача)
+
+  Чеклист:
+  - Все 10 стадий запустились (0→1→2→3→3.5→4→4.5→5→5.5→6→7)
+  - Stage 4 (Backend + Frontend + Designer) — параллельно
+  - Checkpoint на 4.5 — pipeline на паузе → нажми Approve
+  - Quality eval на каждом шаге (≥8.5)
+  - Cyber-Agent обязательно участвует (sensitive data)
+  - Completed после Approve
+
+  ---
+  Тест 4: Knowledge Base Write
+
+  После завершения любого теста выше:
+  1. Скажи мне — проверю tech-decisions.json на новые записи (ADR-009+)
+  2. Также проверю architecture-patterns.json и failure-patterns.json
+  3. Если новая запись появилась — система самообучается
+
+  ---
+  Тест 5: Mode Override
+
+  Задача (любая, например):
+  Добавь dark/light theme toggle в sidebar Mission Control
+
+  1. Нажми Route
+  2. Переключайся Quick → Medium → Full через mode selector
+  3. Проверь при каждом переключении:
+    - Количество steps меняется (Quick: 1-2, Medium: 3-5, Full: 13)
+    - Список агентов обновляется
+    - Estimates (tokens, time, eval scope) отличаются
+    - Кнопка выбранного mode подсвечена

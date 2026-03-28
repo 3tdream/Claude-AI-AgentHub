@@ -4,7 +4,7 @@
  */
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import type { AgentAction } from '../core/types.js';
+import type { AgentAction } from '../core/types';
 
 // Initialize Gemini client
 function getGeminiClient() {

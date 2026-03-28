@@ -1,6 +1,6 @@
 {
   "_description": "Architecture Decision Records — maintained by Architect-Agent and DevOps-Agent",
-  "_updated": "2026-03-14",
+  "_updated": "2026-03-26",
   "decisions": [
     {
       "id": "ADR-001",
@@ -153,6 +153,28 @@
       "tradeoffs": "N/A — this is a positive emergent behavior.",
       "alternatives_rejected": [],
       "source_pipeline": "f8650362-296e-490c-863b-a011570e589c"
+    },
+    {
+      "id": "ADR-013",
+      "title": "Server-Side Proxy with In-Memory Cache Chosen Over Direct Client-Side Anthropic API Call",
+      "date": "2026-03",
+      "status": "accepted",
+      "context": "ADR-001 (s3.1-adr, 10/10) explicitly rejected exposing the Anthropic Admin API key to the browser and instead built a server-side `/api/costs/anthropic` proxy with in-memory caching. This decision correctly prevents API key leakage via client-side bundles, browser devtools network tabs, or JS source inspection.",
+      "decision": "Treat this as a required pattern for any endpoint that proxies a privileged third-party API key. The ADR should be referenced in the security checklist: \"Admin/secret API keys must never appear in client-side code or be forwarded raw to the browser. Always proxy through a server route.\" The in-memory cache also prevents per-render API hammering, which is a secondary cost-control benefit worth preserving in future iterations.",
+      "tradeoffs": "N/A — proactive correct decision.",
+      "alternatives_rejected": [],
+      "source_pipeline": "4fe80099-98e7-4ed2-8391-1c0c932f16c4"
+    },
+    {
+      "id": "ADR-014",
+      "title": "Time Picker Step Increment via Component Prop — Minimal-Surface UI Change",
+      "date": "2026-03",
+      "status": "accepted",
+      "context": "s7-frontend identified and patched a time picker's minute step value to 5-minute increments. The agent explicitly noted a prior failed attempt at the same task existed in recent runs, and used that context to navigate directly to the correct component and apply the fix without trial-and-error.",
+      "decision": "When a task has a known prior failure in run history, agents should surface that context early (as s7-frontend did) and use it to skip redundant exploration. Pattern: check recent run history before starting implementation on UI component tasks.",
+      "tradeoffs": "N/A — successful execution. Prior failure context was leveraged proactively.",
+      "alternatives_rejected": [],
+      "source_pipeline": "50f840fa-feec-4271-8da6-07af9874fa1a"
     }
   ]
 }

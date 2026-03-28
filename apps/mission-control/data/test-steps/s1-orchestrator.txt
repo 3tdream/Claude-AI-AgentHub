@@ -1,0 +1,154 @@
+# STRUCTURED REQUIREMENTS BRIEF
+## Beauty CRM — Client Loyalty Program with Points System
+
+---
+
+# SECTION 1 — ASSUMPTIONS
+
+---
+
+### A1 — The loyalty module is an add-on to an existing Beauty CRM product, not a greenfield standalone application
+
+**Statement:** We are building a loyalty/points feature that integrates into an already-functioning Beauty CRM platform (with existing client profiles, booking history, and payment/checkout flows). The CRM already holds client data that the loyalty engine will consume.
+
+**Confidence:** MEDIUM
+
+**Impact if wrong:** If this is a greenfield product (loyalty + CRM built simultaneously from scratch), scope expands by 3–5× — we'd need to design the entire client data model, booking integration layer, and POS connectivity from zero. Architecture decisions around data ownership, auth, and onboarding change fundamentally. Timeline and cost estimates become invalid.
+
+---
+
+### A2 — The primary delivery target for V1 is the SMB tier (Sofia persona: 1–3 location salon owners), with franchise/enterprise (Derek persona) as a Phase 2 scope
+
+**Statement:** Given the competitive gap analysis and the highest-volume buyer segment, V1 will be optimized for owner-operators with 1–3 locations and 1–10 staff. Multi-location franchise management (role-based access, cross-location reporting, API integrations with Klaviyo/Square/Lightspeed) will be scoped for a subsequent release.
+
+**Confidence:** MEDIUM
+
+**Impact if wrong:** If the franchise tier must ship simultaneously, the data model must support multi-tenancy and location hierarchies from day one. Retrofitting a single-location architecture for multi-location is a high-cost rework — affects database schema, permissions model, reporting layer, and billing structure. This is an architectural decision that cannot be deferred once dev starts.
+
+---
+
+### A3 — The client-facing loyalty experience will be delivered via SMS + Progressive Web App (PWA), not a native iOS/Android app in V1
+
+**Statement:** Based on Insight 5 (app download = 8–22% conversion vs. SMS/web = 45–65%), V1 client touchpoints will be: post-visit SMS notification with a branded web link, a mobile-optimized PWA showing balance/tier/rewards/referral link, and optional WhatsApp as an SMS alternative. A native app is explicitly deferred.
+
+**Confidence:** HIGH
+
+**Impact if wrong:** If stakeholders or enterprise clients require a native app at launch, this adds 3–5 months of development (iOS + Android), app store approval cycles, push notification infrastructure, and ongoing maintenance overhead. UX and frontend architecture decisions diverge significantly between PWA and native app approaches.
+
+---
+
+### A4 — Point earning is triggered by completed service transactions (checkout events) recorded in the CRM, not by external POS systems in V1
+
+**Statement:** The loyalty engine will listen to checkout/payment completion events natively within the Beauty CRM. External POS integrations (Square, Lightspeed) are not required for V1 point triggering — businesses using external POS will need to manually confirm transactions or use a basic webhook if available.
+
+**Confidence:** MEDIUM
+
+**Impact if wrong:** If a significant portion of the target SMB segment processes payments outside the CRM (e.g., Square terminal only), then V1 will have a critical gap — points won't fire for a large share of real transactions. This would require building at minimum a Square POS integration before launch, which is a non-trivial engineering effort and changes the integration architecture.
+
+---
+
+### A5 — The points-to-reward redemption model is reward-catalog based (predefined rewards set by the salon owner), not open-ended monetary credit
+
+**Statement:** Salon owners define a catalog of redeemable rewards (e.g., "Free blowout = 500 points", "10% off color service = 300 points"). Clients redeem points against this catalog. The system does not convert points to direct monetary/cash value or account credit in V1, as this introduces accounting, tax, and liability complexity.
+
+**Confidence:** MEDIUM
+
+**Impact if wrong:** If monetary credit redemption is required (e.g., "100 points = $5 off any service"), this triggers financial/accounting considerations — points become a deferred liability on the business's books, requiring different data modeling, potential regulatory compliance review, and integration with invoicing/accounting tools. Scope and legal review requirements increase.
+
+---
+
+### A6 — Referral tracking will use unique shareable links/codes generated from the client's loyalty profile, with no requirement for social platform API integration in V1
+
+**Statement:** The referral mechanic (Insight 2) will be implemented as: each enrolled client receives a unique referral URL/code via their PWA profile page. When a new client books using that code and completes their first visit, both parties receive points automatically. No Facebook, Instagram, or Google API integration is required for referral attribution in V1.
+
+**Confidence:** HIGH
+
+**Impact if wrong:** Low structural risk — if social sharing integrations are later requested, they layer on top of the existing referral code infrastructure without requiring rearchitecture. The main risk is lower referral virality if clients prefer sharing via social over direct links, but this is a growth/conversion concern, not an architectural one.
+
+---
+
+### A7 — Staff-facing loyalty interactions (awarding points, viewing client balance, applying redemptions) will be embedded in the existing CRM checkout/client view UI — no separate staff app is needed
+
+**Statement:** Following Insight 3 (staff adoption is the #1 failure mode), the staff experience will be integrated directly into the CRM's existing checkout flow as a non-intrusive overlay — one-tap point confirmation, automatic calculation, balance display. We are not building a separate staff-facing loyalty app or kiosk interface in V1.
+
+**Confidence:** HIGH
+
+**Impact if wrong:** If the CRM's existing checkout UI is not extensible (e.g., it's a legacy system with no plugin/widget architecture), embedding loyalty interactions may require significant frontend refactoring or a parallel UI layer. This is a technical discovery dependency that must be validated in Sprint 0.
+
+---
+
+### A8 — SMS delivery will be handled via a third-party gateway (Twilio as primary), with costs passed through to the business owner as usage-based pricing or bundled into a tier
+
+**Statement:** The platform will not build its own SMS infrastructure. Twilio (with MessageBird as fallback) will handle SMS delivery. Costs will either be absorbed into the subscription tier (e.g., up to 500 SMS/month included) or surfaced as transparent usage fees. GDPR/TCPA compliance for SMS opt-in is the responsibility of the salon owner, with the platform providing opt-in consent tooling.
+
+**Confidence:** MEDIUM
+
+**Impact if wrong:** If the product must operate in regions where Twilio has poor delivery rates or regulatory restrictions (e.g., certain EU markets, India), alternative gateway providers or WhatsApp Business API integration may be required, adding compliance overhead. If SMS costs are not clearly modeled into pricing, unit economics at scale could be negative for the platform.
+
+---
+
+# SECTION 2 — CRITICAL QUESTIONS
+
+```json
+{
+  "questions": [
+    {
+      "id": "Q1",
+      "question": "Does the loyalty module need to support multi-location / franchise architecture (shared points balance across locations, location-level vs. brand-level reporting, role-based staff permissions) at V1 launch, or is single-location the only requirement for the initial release?",
+      "default_answer": "Single-location only for V1. Multi-location (franchise) support is explicitly scoped to Phase 2. The data model will be designed with multi-tenancy extensibility in mind but will not expose multi-location UI or cross-location point sharing at launch.",
+      "user_answer": null,
+      "default_used": true,
+      "assumption_level": "HIGH_RISK",
+      "impacts": ["architecture", "scope", "security"]
+    },
+    {
+      "id": "Q2",
+      "question": "What is the integration requirement with external POS and booking systems (Square, Lightspeed, Vagaro, Fresha) for triggering point earn events at V1? Specifically: must points fire automatically from an external POS transaction, or is it acceptable for V1 to only trigger points from transactions completed natively within the Beauty CRM?",
+      "default_answer": "V1 triggers points only from native CRM checkout events. External POS integration is not required for launch. A manual 'award points' override will be available for staff to handle edge cases. POS integrations (Square at minimum) will be prioritized in the Phase 2 backlog.",
+      "user_answer": null,
+      "default_used": true,
+      "assumption_level": "HIGH_RISK",
+      "impacts": ["architecture", "scope", "ux"]
+    },
+    {
+      "id": "Q3",
+      "question": "Should points have a monetary/cash equivalent value that can be applied as a discount at checkout (creating a deferred liability on the business's books), or should redemption be strictly catalog-based (predefined non-monetary rewards defined by the salon owner)?",
+      "default_answer": "Catalog-based redemption only in V1. Points have no direct monetary conversion value. Salon owners define a rewards catalog (services, products, experiences). This avoids accounting liability complexity, regulatory review, and integration requirements with invoicing/accounting systems. Monetary credit redemption will be evaluated for Phase 2 based on user demand signals.",
+      "user_answer": null,
+      "default_used": true,
+      "assumption_level": "HIGH_RISK",
+      "impacts": ["architecture", "scope", "security"]
+    },
+    {
+      "id": "Q4",
+      "question": "What are the target geographic markets for V1 launch, and are there specific data privacy / SMS marketing compliance requirements that must be met at launch (e.g., GDPR for EU, TCPA for US, CASL for Canada, PDPA for Southeast Asia)?",
+      "default_answer": "V1 targets the US market primarily, with design patterns that do not block EU launch. TCPA-compliant SMS opt-in consent flow will be built into enrollment. GDPR data handling (right to erasure, data portability for client loyalty records) will be included as baseline requirements, not deferred. Region-specific legal review for EU/CA markets will be flagged as a pre-launch gate for those geographies.",
+      "user_answer": null,
+      "default_used": true,
+      "assumption_level": "MEDIUM_RISK",
+      "impacts": ["architecture", "security", "scope"]
+    },
+    {
+      "id": "Q5",
+      "question": "Is there an existing client-facing mobile app or web portal in the Beauty CRM product where loyalty features should be surfaced, or does the client-facing loyalty experience need to be built entirely from scratch as a standalone PWA/SMS experience?",
+      "default_answer": "No existing client-facing portal exists (or it is insufficient for loyalty feature embedding). The client-facing loyalty experience will be built as a standalone branded PWA accessible via SMS link — no native app required. If a client portal already exists, the PWA will be designed to embed or redirect into it with minimal rework, but this will be treated as an integration task, not a V1 dependency.",
+      "user_answer": null,
+      "default_used": true,
+      "assumption_level": "MEDIUM_RISK",
+      "impacts": ["scope", "ux", "architecture"]
+    }
+  ]
+}
+```
+
+---
+
+## ORCHESTRATOR NOTES FOR DOWNSTREAM AGENTS
+
+| Flag | Detail |
+|---|---|
+| 🔴 **PM-Agent: HIGH_RISK defaults Q1, Q2, Q3** | These three defaults must be prominently flagged in the PRD as unvalidated architectural decisions. Any sprint planning that touches the data model, checkout flow, or redemption engine should be blocked pending stakeholder confirmation. |
+| 🟡 **Arch-Agent: Multi-tenancy stub required** | Even under the single-location V1 default (Q1), the database schema must include `location_id` and `organization_id` foreign keys from day one. Retrofitting is prohibitively expensive. Design for extensibility, build for simplicity. |
+| 🟡 **UX-Agent: Two parallel design tracks** | Staff-facing flow (embedded in CRM checkout) and client-facing flow (SMS + PWA) are distinct UX surfaces with different users, devices, and trust levels. Treat as separate design workstreams with a shared design system. |
+| 🔵 **Legal/Compliance stub** | Q4 default assumes US-first with GDPR baseline. A compliance checklist artifact should be generated before any client data collection features are specced in detail. |
+| ⚪ **Checkpoint gate** | Pipeline will proceed with all defaults active. If stakeholder responses arrive before the PRD draft is finalized, Q1–Q3 answers should trigger a re-evaluation of the data model and scope boundary before architecture design begins. |

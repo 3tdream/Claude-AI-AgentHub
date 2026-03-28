@@ -1,0 +1,41 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run dev:web:*)",
+      "Bash(npm run dev:*)",
+      "Bash(npm install)",
+      "Bash(npx vercel:*)",
+      "Bash(cd \"C:\\\\Users\\\\Ro050\\\\Desktop\\\\ai-projects\\\\apps\\\\secretutka\" && npx next dev 2>&1 | head -20)",
+      "Bash(cd \"C:\\\\Users\\\\Ro050\\\\Desktop\\\\ai-projects\\\\apps\\\\secretutka\" && rm -rf node_modules && npm install 2>&1 | tail -10)",
+      "Bash(cd \"C:\\\\Users\\\\Ro050\\\\Desktop\\\\ai-projects\\\\apps\\\\secretutka\" && npm install --legacy-peer-deps 2>&1 | tail -10)",
+      "Read(//c/Users/Ro050/Desktop/ai-projects/**)",
+      "Bash(cd \"C:\\\\Users\\\\Ro050\\\\Desktop\\\\ai-projects\" && pnpm install --filter @workspace/secretutka 2>&1 | tail -20)",
+      "Bash(cd \"C:\\\\Users\\\\Ro050\\\\Desktop\\\\ai-projects\\\\apps\\\\secretutka\" && pnpm dev:web 2>&1 | head -30)",
+      "Bash(ls \"C:\\\\Users\\\\Ro050\\\\Desktop\\\\ai-projects\\\\node_modules\\\\.pnpm\\\\next@\"* 2>/dev/null | head -5 ; ls \"C:\\\\Users\\\\Ro050\\\\Desktop\\\\ai-projects\\\\node_modules\\\\next\" 2>/dev/null | head -3)",
+      "Bash(cd \"C:\\\\Users\\\\Ro050\\\\Desktop\\\\ai-projects\\\\apps\\\\secretutka\" && node ../../node_modules/next/dist/bin/next dev 2>&1 | head -20)",
+      "Bash(ls \"C:\\\\Users\\\\Ro050\\\\Desktop\\\\ai-projects\\\\node_modules\\\\next\\\\dist\\\\bin\\\\\" 2>/dev/null ; ls \"C:\\\\Users\\\\Ro050\\\\Desktop\\\\ai-projects\\\\node_modules\\\\.bin\\\\next\" 2>/dev/null)",
+      "Bash(node -e \"console.log\\(require.resolve\\('next/dist/bin/next', {paths: ['C:/Users/Ro050/Desktop/ai-projects/apps/secretutka']}\\)\\)\")",
+      "Bash(cd 'C:/Users/Ro050/Desktop/ai-projects' && pnpm install 2>&1 | tail -15)",
+      "Bash(cd 'C:/Users/Ro050/Desktop/ai-projects/apps/secretutka' && pnpm dev:web 2>&1 | head -20)",
+      "Bash(ls 'C:/Users/Ro050/Desktop/ai-projects/apps/secretutka/node_modules/.bin/' 2>/dev/null | grep next; ls 'C:/Users/Ro050/Desktop/ai-projects/node_modules/.pnpm/next@'* 2>/dev/null | head -3)",
+      "Bash(cd 'C:/Users/Ro050/Desktop/ai-projects/apps/secretutka' && node -e \"const p = require.resolve\\('next'\\); console.log\\(p\\)\")",
+      "Bash(cd 'C:/Users/Ro050/Desktop/ai-projects/apps/secretutka' && node 'C:/Users/Ro050/Desktop/ai-projects/node_modules/.pnpm/next@15.5.12_react-dom@18.3.1_react@18.3.1/node_modules/next/dist/bin/next' dev)",
+      "Bash(cd 'C:/Users/Ro050/Desktop/ai-projects' && pnpm install --force 2>&1 | tail -20)",
+      "Bash(ls 'C:/Users/Ro050/Desktop/ai-projects/node_modules/.pnpm/next@15.5.12_react-dom@18.3.1_react@18.3.1/node_modules/styled-jsx' 2>/dev/null; ls 'C:/Users/Ro050/Desktop/ai-projects/node_modules/.pnpm/styled-jsx@'* 2>/dev/null | head -5)",
+      "Bash(cd 'C:/Users/Ro050/Desktop/ai-projects/apps/secretutka' && NODE_PATH='C:/Users/Ro050/Desktop/ai-projects/node_modules/.pnpm/next@15.5.12_react-dom@18.3.1_react@18.3.1/node_modules' node 'C:/Users/Ro050/Desktop/ai-projects/node_modules/.pnpm/next@15.5.12_react-dom@18.3.1_react@18.3.1/node_modules/next/dist/bin/next' dev)",
+      "Bash(cd 'C:/Users/Ro050/Desktop/ai-projects' && rm -rf node_modules apps/secretutka/node_modules && pnpm install --filter @workspace/secretutka... 2>&1 | tail -20)",
+      "Bash(cd 'C:/Users/Ro050/Desktop/ai-projects/apps/secretutka' && pnpm dev:web)",
+      "Bash(node -e \"const fs=require\\('fs'\\); console.log\\(fs.realpathSync\\('C:/Users/Ro050/Desktop/ai-projects/apps/secretutka/node_modules/next'\\)\\)\")",
+      "Bash(cd 'C:/Users/Ro050/Desktop/ai-projects' && rm -rf node_modules apps/secretutka/node_modules && pnpm install --filter @workspace/secretutka... 2>&1 | tail -10)",
+      "Bash(cd 'C:/Users/Ro050/Desktop/ai-projects/apps/secretutka' && node -e \"console.log\\(require.resolve\\('next/package.json'\\)\\)\")",
+      "Bash(cd 'C:/Users/Ro050/Desktop/ai-projects' && rm -rf node_modules apps/secretutka/node_modules && pnpm install 2>&1 | tail -15)",
+      "Bash(cd 'C:/Users/Ro050/Desktop/ai-projects/apps/secretutka' && rm -rf node_modules package-lock.json && npm install --install-strategy=nested 2>&1 | tail -15)",
+      "Bash(npm --version && node --version)",
+      "Bash(cd 'C:/Users/Ro050/Desktop/ai-projects/apps/secretutka' && rm -rf node_modules package-lock.json && npm install --force 2>&1 | tail -15)",
+      "Bash(cd 'C:/Users/Ro050/Desktop/ai-projects/apps/secretutka' && rm -rf node_modules package-lock.json && npm install --no-workspaces 2>&1 | tail -15)",
+      "Bash(cd 'C:/Users/Ro050/Desktop/ai-projects/apps/secretutka' && npx next dev 2>&1)",
+      "Bash(cd 'C:/Users/Ro050/Desktop/ai-projects/apps/secretutka' && npx next dev -p 3010 2>&1)",
+      "Bash(npx next:*)"
+    ]
+  }
+}

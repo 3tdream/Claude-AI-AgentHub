@@ -1,0 +1,341 @@
+# Beauty CRM — Loyalty Module: Entity Relationship Diagram
+
+**Version:** 1.0 | **Derived from:** API Contract v1.0 + ADR-001
+
+---
+
+## ENTITY CATALOG (12 Entities)
+
+---
+
+### 1. `Organization`
+- `id`: UUID (primary key, not null)
+- `name`: string (not null, max 255 chars)
+- `created_at`: timestamp (not null, default: now)
+- `updated_at`: timestamp (not null, default: now)
+
+**Notes:** Top-level tenant boundary. All loyalty data scopes to `organization_id` per ADR-001.
+**Estimated row growth:** ~5–10/month (new salon businesses onboarding)
+**Indexes needed:**
+- PK on `id` (lookup by all child entities)
+
+---
+
+### 2. `Location`
+- `id`: UUID (primary key, not null)
+- `organization_id`: UUID (not null, foreign key → Organization.id)
+- `name`: string (not null, max 255 chars)
+- `created_at`: timestamp (not null, default: now)
+
+**Notes:** A single organization may operate multiple salon locations. All loyalty config, clients, and ledger rows are scoped to a location.
+**Estimated row growth:** ~10–20/month
+**Indexes needed:**
+- PK on `id`
+- Index on `organization_id` (frequent filter in all loyalty queries)
+
+---
+
+### 3. `LoyaltyConfig`
+- `id`: UUID (primary key, not null)
+- `organization_id`: UUID (not null, foreign key → Organization.id)
+- `location_id`: UUID (not null, unique, foreign key → Location.id)
+- `earn_rate_per_dollar`: decimal (not null, must be > 0)
+- `program_active`: boolean (not null, default: false)
+- `created_at`: timestamp (not null, default: now)
+- `updated_at`: timestamp (not null, default: now)
+
+**Notes:** Exactly one config per location (enforced by unique constraint on `location_id`). The 409 on `POST /loyalty/config` maps to this uniqueness. `earn_rates_by_category` is a child entity (see `CategoryEarnRate`). `tiers` are a child entity (see `LoyaltyTier`).
+**Estimated row growth:** ~10–20/month (mirrors Location growth)
+**Indexes needed:**
+- PK on `id`
+- Unique index on `location_id` (enforces one-config-per-location, powers 409 check)
+- Index on `organization_id`
+
+---
+
+### 4. `LoyaltyTier`
+- `id`: UUID (primary key, not null)
+- `loyalty_config_id`: UUID (not null, foreign key → LoyaltyConfig.id, cascade delete)
+- `name`: string (not null, max 100 chars)
+- `min_points`: integer (not null, must be >= 0)
+- `max_points`: integer (nullable — null means unbounded top tier)
+- `order`: integer (not null — determines tier sequence, no duplicates within a config)
+- `created_at`: timestamp (not null, default: now)
+- `updated_at`: timestamp (not null, default: now)
+
+**Notes:** Server-side validation must confirm no threshold overlap and that `max_points >= min_points` when not null. `order` must be unique within a `loyalty_config_id`. Cascade delete when parent config is removed.
+**Estimated row growth:** ~30–60/month (3–6 tiers per new location)
+**Indexes needed:**
+- PK on `id`
+- Index on `loyalty_config_id` (tier lookup during config GET and tier recalculation)
+- Composite unique index on `(loyalty_config_id, order)` (enforces no duplicate order within a config)
+
+---
+
+### 5. `CategoryEarnRate`
+- `id`: UUID (primary key, not null)
+- `loyalty_config_id`: UUID (not null, foreign key → LoyaltyConfig.id, cascade delete)
+- `category_id`: string (not null, max 100 chars — references external CRM category, not a FK)
+- `category_name`: string (not null, max 255 chars)
+- `points_per_dollar`: decimal (not null, must be > 0)
+- `created_at`: timestamp (not null, default: now)
+- `updated_at`: timestamp (not null, default: now)
+
+**Notes:** `category_id` references an external CRM service category — stored as a string, not a hard foreign key. Composite unique constraint on `(loyalty_config_id, category_id)` prevents duplicate category rates per config.
+**Estimated row growth:** ~50–100/month (5–10 categories per new location)
+**Indexes needed:**
+- PK on `id`
+- Composite unique index on `(loyalty_config_id, category_id)`
+- Index on `loyalty_config_id`
+
+---
+
+### 6. `Reward`
+- `id`: UUID (primary key, not null)
+- `location_id`: UUID (not null, foreign key → Location.id)
+- `organization_id`: UUID (not null, foreign key → Organization.id)
+- `name`: string (not null, max 255 chars)
+- `point_cost`: integer (not null, must be > 0)
+- `description`: string (nullable, max 1000 chars)
+- `image_url`: string (nullable, max 2048 chars, must be valid URL)
+- `active`: boolean (not null, default: true)
+- `deleted_at`: timestamp (nullable — soft delete marker)
+- `created_at`: timestamp (not null, default: now)
+- `updated_at`: timestamp (not null, default: now)
+
+**Notes:** Soft delete pattern — `DELETE /loyalty/rewards/:id` sets `deleted_at` only when no pending redemptions exist (409 otherwise). `active: false` hides from PWA without affecting pending redemptions (AC-5). `deleted_at` is null for active/inactive records.
+**Estimated row growth:** ~50–200/month
+**Indexes needed:**
+- PK on `id`
+- Index on `location_id` (all reward queries are location-scoped)
+- Index on `(location_id, active)` (PWA and staff reward listing filters)
+- Index on `deleted_at` (filter out soft-deleted records)
+
+---
+
+### 7. `LoyaltyClient`
+- `id`: UUID (primary key, not null) — this is `loyalty_client_id` in API responses
+- `crm_client_id`: string (not null, unique per location, max 100 chars — external CRM reference)
+- `location_id`: UUID (not null, foreign key → Location.id)
+- `organization_id`: UUID (not null, foreign key → Organization.id)
+- `mobile_number`: string (not null, max 20 chars, E.164 format)
+- `sms_opt_in`: boolean (not null — TCPA required)
+- `opt_in_timestamp`: timestamp (not null — TCPA audit)
+- `opt_in_ip`: string (not null, max 45 chars — supports IPv6)
+- `point_balance`: integer (not null, default: 0, must be >= 0)
+- `current_tier_id`: UUID (nullable, foreign key → LoyaltyTier.id)
+- `referral_code`: string (not null, unique, max 20 chars)
+- `referred_by_client_id`: UUID (nullable, self-referencing foreign key → LoyaltyClient.id)
+- `birthday`: date (nullable)
+- `enrolled_at`: timestamp (not null, default: now)
+- `last_visit_at`: timestamp (nullable — updated on each CHECKOUT_AWARD transaction)
+- `erasure_scheduled_at`: timestamp (nullable — GDPR soft delete)
+- `retention_until`: timestamp (nullable — GDPR hard purge date)
+- `deleted_at`: timestamp (nullable — hard purge marker)
+- `created_at`: timestamp (not null, default: now)
+- `updated_at`: timestamp (not null, default: now)
+
+**Notes:** `point_balance` is a denormalized cache of the ledger sum — updated atomically with each `PointTransaction` insert via row-level lock (ADR-001). `referral_code` is system-generated at enrollment. `referred_by_client_id` links to the referrer at enrollment time. GDPR erasure flow sets `erasure_scheduled_at` and `retention_until`; hard purge sets `deleted_at`.
+**Estimated row growth:** ~500–2000/month per location
+**Indexes needed:**
+- PK on `id`
+- Unique index on `referral_code` (validate referral codes globally)
+- Composite unique index on `(location_id, crm_client_id)` (prevent duplicate enrollment per location)
+- Index on `current_tier_id` (tier distribution analytics, tier filter in client list)
+- Index on `location_id` (all client queries are location-scoped)
+- Index on `mobile_number` (search by phone)
+- Index on `erasure_scheduled_at` (GDPR purge job)
+- Index on `last_visit_at` (sort in client listing)
+
+---
+
+### 8. `PointTransaction`
+- `id`: UUID (primary key, not null)
+- `loyalty_client_id`: UUID (not null, foreign key → LoyaltyClient.id)
+- `location_id`: UUID (not null, foreign key → Location.id)
+- `organization_id`: UUID (not null, foreign key → Organization.id)
+- `type`: enum (not null — values: `CHECKOUT_AWARD`, `MANUAL_AWARD`, `REDEMPTION`, `REFERRAL_BONUS`, `MILESTONE_BONUS`)
+- `points`: integer (not null — positive for awards, negative for redemptions)
+- `balance_after`: integer (not null — snapshot of balance post-transaction)
+- `description`: string (not null, max 500 chars)
+- `reference_id`: string (nullable, max 100 chars — `crm_checkout_id`, `redemption_id`, or `event_id` depending on type)
+- `staff_id`: string (nullable, max 100 chars — populated for MANUAL_AWARD)
+- `idempotency_key`: string (nullable, unique, max 255 chars — for CHECKOUT_AWARD and engine callbacks)
+- `created_at`: timestamp (not null, default: now)
+
+**Notes:** Append-only ledger — no updates or deletes (ADR-001). `balance_after` is a running snapshot for audit reconstruction without full replay. `idempotency_key` unique constraint prevents duplicate processing from SQS retries. Negative `points` values represent redemptions.
+**Estimated row growth:** ~5000–20,000/month per location (high-volume core table)
+**Indexes needed:**
+- PK on `id`
+- Index on `(loyalty_client_id, created_at DESC)` (transaction history pagination — most frequent query)
+- Index on `(location_id, created_at)` (analytics aggregations)
+- Unique index on `idempotency_key` (deduplication guard)
+- Index on `type` (filter by transaction type)
+- Index on `reference_id` (lookup by checkout or redemption ID)
+
+---
+
+### 9. `RedemptionCode`
+- `id`: UUID (primary key, not null) — this is `redemption_id` in API responses
+- `loyalty_client_id`: UUID (not null, foreign key → LoyaltyClient.id)
+- `reward_id`: UUID (not null, foreign key → Reward.id)
+- `location_id`: UUID (not null, foreign key → Location.id)
+- `organization_id`: UUID (not null, foreign key → Organization.id)
+- `code`: string (not null, unique, max 20 chars — single-use alphanumeric)
+- `point_cost`: integer (not null — snapshot of cost at time of redemption)
+- `status`: enum (not null, default: `pending` — values: `pending`, `applied`, `expired`)
+- `crm_checkout_id`: string (nullable, max 100 chars — populated on apply)
+- `staff_id`: string (nullable, max 100 chars — populated on apply)
+- `applied_at`: timestamp (nullable)
+- `expires_at`: timestamp (not null)
+- `created_at`: timestamp (not null, default: now)
+
+**Notes:** `point_cost` is snapshotted at request time — reward price changes do not retroactively affect issued codes. Atomic point deduction via PostgreSQL row-level lock on `LoyaltyClient` at code creation (ADR-001). Unique constraint on `code` globally. The 409 on duplicate active code maps to a partial unique index on `(loyalty_client_id, reward_id)` where `status = pending`.
+**Estimated row growth:** ~1000–5000/month per location
+**Indexes needed:**
+- PK on `id`
+- Unique index on `code` (lookup by code in apply and validate endpoints)
+- Index on `(loyalty_client_id, status)` (active_redemption_codes in client profile GET)
+- Partial unique index on `(loyalty_client_id, reward_id)` where `status = 'pending'` (enforces one active code per reward per client — 409 guard)
+- Index on `expires_at` (expiry job sweep)
+- Index on `location_id`
+
+---
+
+### 10. `Referral`
+- `id`: UUID (primary key, not null)
+- `referrer_client_id`: UUID (not null, foreign key → LoyaltyClient.id)
+- `referee_client_id`: UUID (not null, unique, foreign key → LoyaltyClient.id — each client can only be referred once)
+- `referral_code`: string (not null, max 20 chars — snapshot of code used)
+- `status`: enum (not null, default: `pending` — values: `pending`, `completed`, `rejected`)
+- `bonus_awarded`: boolean (not null, default: false)
+- `referrer_bonus_points`: integer (not null — snapshot of bonus at time of referral)
+- `referee_welcome_points`: integer (not null — snapshot of welcome points)
+- `location_id`: UUID (not null, foreign key → Location.id)
+- `organization_id`: UUID (not null, foreign key → Organization.id)
+- `created_at`: timestamp (not null, default: now)
+- `updated_at`: timestamp (not null, default: now)
+
+**Notes:** `referee_client_id` is unique — a client can only be referred once (enforced by unique constraint). `referral_code` is snapshotted at enrollment. Bonus point values are snapshotted at referral creation to survive future config changes.
+**Estimated row growth:** ~200–1000/month per location
+**Indexes needed:**
+- PK on `id`
+- Unique index on `referee_client_id` (one referral per new client)
+- Index on `referrer_client_id` (list referrals for a client)
+- Index on `referral_code` (validate endpoint lookup)
+- Index on `(location_id, status)` (analytics and filtering)
+
+---
+
+### 11. `Milestone`
+- `id`: UUID (primary key, not null)
+- `location_id`: UUID (not null, foreign key → Location.id)
+- `organization_id`: UUID (not null, foreign key → Organization.id)
+- `type`: enum (not null — values: `BIRTHDAY`, `FIRST_VISIT`, `PROGRAM_ANNIVERSARY`)
+- `label`: string (not null, max 100 chars — system-defined display label)
+- `points`: integer (not null, must be > 0)
+- `active`: boolean (not null, default: true)
+- `configured_at`: timestamp (not null, default: now)
+- `updated_at`: timestamp (not null, default: now)
+
+**Notes:** Milestone types are system-seeded per location at config creation — owners configure `points` and `active` only. Composite unique constraint on `(location_id, type)` — one record per type per location.
+**Estimated row growth:** ~30–60/month (3 milestones seeded per new location)
+**Indexes needed:**
+- PK on `id`
+- Composite unique index on `(location_id, type)` (prevents duplicate milestone types per location)
+- Index on `location_id`
+
+---
+
+### 12. `Branding`
+- `id`: UUID (primary key, not null)
+- `location_id`: UUID (not null, unique, foreign key → Location.id)
+- `organization_id`: UUID (not null, foreign key → Organization.id)
+- `salon_name`: string (not null, max 255 chars)
+- `logo_url`: string (nullable, max 2048 chars, must be valid URL)
+- `primary_color`: string (nullable, max 7 chars — hex format e.g. `#FF5A5F`)
+- `created_at`: timestamp (not null, default: now)
+- `updated_at`: timestamp (not null, default: now)
+
+**Notes:** One branding record per location (unique constraint on `location_id`). `primary_color` validated as hex on PATCH. Used by PWA single-load endpoint.
+**Estimated row growth:** ~10–20/month (mirrors Location growth)
+**Indexes needed:**
+- PK on `id`
+- Unique index on `location_id`
+
+---
+
+### 13. `NotificationLog`
+- `id`: UUID (primary key, not null)
+- `loyalty_client_id`: UUID (not null, foreign key → LoyaltyClient.id)
+- `location_id`: UUID (not null, foreign key → Location.id)
+- `organization_id`: UUID (not null, foreign key → Organization.id)
+- `type`: enum (not null — values: `POST_VISIT`, `BIRTHDAY`, `REFERRAL_BONUS`, `MILESTONE`)
+- `channel`: string (not null, max 20 chars — e.g. `SMS`)
+- `status`: enum (not null — values: `sent`, `failed`, `suppressed`)
+- `error_code`: string (nullable, max 50 chars — Twilio error code on failure)
+- `sent_at`: timestamp (not null, default: now)
+
+**Notes:** Append-only audit log. No updates. Powers AC-12 (SMS delivery failure feed) and SMS usage cap reporting. `suppressed` status applies when client has `sms_opt_in: false` or monthly limit reached.
+**Estimated row growth:** ~3000–15,000/month per location (one SMS per visit plus milestone events)
+**Indexes needed:**
+- PK on `id`
+- Index on `(location_id, sent_at DESC)` (notification log listing with date filter)
+- Index on `(loyalty_client_id, sent_at DESC)` (per-client notification history)
+- Index on `(location_id, status)` (failure feed filter)
+- Index on `(location_id, sent_at)` for monthly aggregation (SMS usage cap query)
+
+---
+
+## RELATIONSHIPS SUMMARY
+
+```
+Organization.id ←── Location.organization_id                    (1:N)
+Organization.id ←── LoyaltyConfig.organization_id               (1:N)
+Organization.id ←── LoyaltyClient.organization_id               (1:N)
+Organization.id ←── Reward.organization_id                      (1:N)
+Organization.id ←── RedemptionCode.organization_id              (1:N)
+Organization.id ←── PointTransaction.organization_id            (1:N)
+Organization.id ←── Referral.organization_id                    (1:N)
+Organization.id ←── Milestone.organization_id                   (1:N)
+Organization.id ←── Branding.organization_id                    (1:N)
+Organization.id ←── NotificationLog.organization_id             (1:N)
+
+Location.id ←── LoyaltyConfig.location_id                      (1:1, unique)
+Location.id ←── LoyaltyClient.location_id                      (1:N)
+Location.id ←── Reward.location_id                             (1:N)
+Location.id ←── RedemptionCode.location_id                     (1:N)
+Location.id ←── PointTransaction.location_id                   (1:N)
+Location.id ←── Referral.location_id                           (1:N)
+Location.id ←── Milestone.location_id                          (1:N)
+Location.id ←── Branding.location_id                           (1:1, unique)
+Location.id ←── NotificationLog.location_id                    (1:N)
+
+LoyaltyConfig.id ←── LoyaltyTier.loyalty_config_id             (1:N, cascade delete)
+LoyaltyConfig.id ←── CategoryEarnRate.loyalty_config_id        (1:N, cascade delete)
+
+LoyaltyTier.id ←── LoyaltyClient.current_tier_id               (N:1, nullable)
+
+LoyaltyClient.id ←── LoyaltyClient.referred_by_client_id       (self-ref, nullable, N:1)
+LoyaltyClient.id ←── PointTransaction.loyalty_client_id        (1:N)
+LoyaltyClient.id ←── RedemptionCode.loyalty_client_id          (1:N)
+LoyaltyClient.id ←── Referral.referrer_client_id               (1:N)
+LoyaltyClient.id ←── Referral.referee_client_id                (1:1, unique)
+LoyaltyClient.id ←── NotificationLog.loyalty_client_id         (1:N)
+
+Reward.id ←── RedemptionCode.reward_id                         (1:N)
+```
+
+---
+
+## CROSS-CUTTING DESIGN NOTES
+
+| Concern | Decision |
+|---|---|
+| Multi-tenancy | `organization_id` + `location_id` on every entity per ADR-001 Sprint 0 requirement |
+| Idempotency | Unique `idempotency_key` on `PointTransaction`; Redis TTL cache is the fast-path check; DB unique index is the safety net |
+| Atomic balance | `LoyaltyClient.point_balance` updated under row-level lock in same transaction as `PointTransaction` INSERT |
+| GDPR erasure | `erasure_scheduled_at`, `retention_until`, `deleted_at` on `LoyaltyClient`; `NotificationLog` purged on hard delete |
+| Snapshot fields | `RedemptionCode.point_cost`, `Referral.referrer_bonus_points`, `Referral.referee_welcome_points` — all snapshotted at creation time to survive config changes |
+| Append-only tables | `PointTransaction`, `NotificationLog` — no UPDATE or DELETE permitted at application layer |
+| Soft delete | `Reward.deleted_at` for catalog; `LoyaltyClient.deleted_at` for GDPR hard purge |

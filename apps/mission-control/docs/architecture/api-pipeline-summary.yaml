@@ -1,0 +1,89 @@
+openapi: "3.0.3"
+info:
+  title: Pipeline Summary API
+  version: "1.0.0"
+
+paths:
+  /api/pipeline/summary:
+    get:
+      summary: Get pipeline KPI metrics
+      description: Reads data/pipeline-analytics.json and returns 4 computed KPI metrics.
+      security:
+        - session: []
+      responses:
+        "200":
+          description: KPI metrics (or zero values if file not found)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      totalRuns:
+                        type: number
+                        description: Total pipeline runs from file
+                        example: 77
+                      successRate:
+                        type: number
+                        description: completed/(completed+failed)*100, rounded to 2 decimal places
+                        example: 59.62
+                      topAgent:
+                        type: string
+                        nullable: true
+                        description: Agent with max avgScore; tiebreak by max runs then alphabetical
+                        example: "cyber-audit"
+                      lastRunDate:
+                        type: string
+                        format: date-time
+                        nullable: true
+                        description: ISO 8601 — lastUpdated field from file, or file mtime as fallback
+                        example: "2026-03-18T23:55:53.405Z"
+              examples:
+                normal:
+                  summary: Normal response
+                  value:
+                    data:
+                      totalRuns: 77
+                      successRate: 59.62
+                      topAgent: "cyber-audit"
+                      lastRunDate: "2026-03-18T23:55:53.405Z"
+                empty:
+                  summary: Fresh install (file not found)
+                  value:
+                    data:
+                      totalRuns: 0
+                      successRate: 0
+                      topAgent: null
+                      lastRunDate: null
+        "401":
+          description: Unauthorized — session required
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Unauthorized"
+        "500":
+          description: File exists but contains invalid JSON or other fs error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Failed to parse pipeline-analytics.json"
+                  detail:
+                    type: string
+                    example: "Invalid JSON in analytics data file"
+
+components:
+  securitySchemes:
+    session:
+      type: apiKey
+      in: cookie
+      name: next-auth.session-token

@@ -1,0 +1,17 @@
+{
+  "id": "snake-3d",
+  "name": "@workspace/snake-game",
+  "port": 3015,
+  "stack": [
+    "vite",
+    "react",
+    "tailwind",
+    "threejs"
+  ],
+  "entrypoint": "src/App.tsx",
+  "devCommand": "npm run dev",
+  "kb_scope": [
+    "global",
+    "snake-3d"
+  ]
+}

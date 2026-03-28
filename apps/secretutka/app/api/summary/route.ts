@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { executeAction } from '../../../src/core/executor.js';
-import type { ShowSummaryAction } from '../../../src/core/types.js';
+import { executeAction } from '../../../src/core/executor';
+import type { ShowSummaryAction } from '../../../src/core/types';
 
 export async function GET(request: NextRequest) {
   try {

@@ -1,0 +1,16 @@
+{
+  "id": "jira-integration",
+  "name": "@workspace/jira-integration",
+  "port": 3006,
+  "stack": [
+    "nextjs",
+    "react",
+    "tailwind"
+  ],
+  "entrypoint": "app/page.tsx",
+  "devCommand": "npm run dev",
+  "kb_scope": [
+    "global",
+    "jira-integration"
+  ]
+}

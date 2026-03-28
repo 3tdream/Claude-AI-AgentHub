@@ -68,6 +68,7 @@
   --accent: #7c3aed;
   --accent-foreground: #ffffff;
   --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
   --border: #1e1e2e;
   --input: #1e1e2e;
   --ring: #7c3aed;
@@ -103,6 +104,7 @@
   --accent: #7c3aed;
   --accent-foreground: #ffffff;
   --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
   --border: #e2e8f0;
   --input: #e2e8f0;
   --ring: #7c3aed;
@@ -126,7 +128,7 @@
     @apply border-border outline-ring/50;
   }
   html {
-    font-size: 18px;
+    font-size: 14px;
   }
   body {
     @apply bg-background text-foreground;

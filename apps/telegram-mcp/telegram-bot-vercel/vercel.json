@@ -1,0 +1,10 @@
+{
+  "regions": ["fra1"],
+  "buildCommand": "npm run build",
+  "crons": [
+    {
+      "path": "/api/cron/summaries",
+      "schedule": "0 21 * * *"
+    }
+  ]
+}

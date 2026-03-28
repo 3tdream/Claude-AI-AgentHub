@@ -1,6 +1,6 @@
 {
   "_description": "Reusable patterns and anti-patterns — maintained by Architect-Agent and Backend-Agent",
-  "_updated": "2026-03-22",
+  "_updated": "2026-03-27",
   "patterns": [
     {
       "id": "PAT-001",
@@ -177,6 +177,60 @@
       "code_reference": "",
       "when_to_use": "N/A — this is a deliberate positive pattern.",
       "source_pipeline": "1a3f1cdb-53f9-45d7-92ea-0925506658db"
+    },
+    {
+      "id": "PAT-021",
+      "name": "Fileplan as Contract Enables Cross-Agent Artifact Accountability",
+      "context": "s3.4-fileplan produced an explicit enumeration of files to create/modify before any implementation began. This artifact served as the ground truth that allowed s8-technical-qa to immediately identify the missing route file by name — the QA agent didn't have to infer what *should* exist; it had a declared contract to validate against.",
+      "pattern": "Preserve and enforce the fileplan-as-contract pattern in all pipelines. The fileplan output should be passed explicitly as a structured input to QA agents (not just available in context) so they can perform systematic file-by-file existence and content checks as their first action, before any behavioral or business logic validation.",
+      "code_reference": "",
+      "when_to_use": "N/A — this is a positive pattern.",
+      "source_pipeline": "4fe80099-98e7-4ed2-8391-1c0c932f16c4"
+    },
+    {
+      "id": "PAT-022",
+      "name": "Fix-Loop Pattern: Inline Remediation Cycles (s5-backend-fix-N + s5-qa-reval-N) Contained Blast Radius",
+      "context": "When s8-technical-qa detected the missing file, the pipeline correctly spawned a targeted fix loop (fix-1 → reval-1 → fix-2 → reval-2) rather than restarting the full pipeline or escalating to a human. Each iteration was short (9.9–16.8s) and scoped exclusively to the broken backend artifact, leaving all upstream design artifacts (ADR, API contracts, ERD, fileplan) untouched.",
+      "pattern": "Formalize this as a reusable pipeline primitive: `fix-loop(agent, qa, max_iterations=3)`. The loop should: (1) pass the QA failure diff as explicit context to the fix agent, (2) run a lightweight re-validation after each fix, (3) hard-stop and escalate if max_iterations is reached without resolution. The current execution resolved in 2 iterations, which is within an acceptable budget. Codify the pattern so it applies consistently across backend, frontend, and infra agents.",
+      "code_reference": "",
+      "when_to_use": "N/A — this is a positive pattern.",
+      "source_pipeline": "4fe80099-98e7-4ed2-8391-1c0c932f16c4"
+    },
+    {
+      "id": "PAT-023",
+      "name": "Prior Failed Run as Implicit Test Oracle for Targeted Fixes",
+      "context": "The pipeline completed in 29s with perfect scores (10/10 across all dimensions) on a task that had previously failed. s7-frontend's output explicitly references the failed prior attempt, indicating the knowledge base / run history was consulted and acted as a negative example that guided the correct implementation path.",
+      "pattern": "Establish a convention: for any UI micro-task (step/increment/format changes), agents should query run history for same-component prior attempts before writing code. This reduces iteration cycles from N retries to 0.",
+      "code_reference": "",
+      "when_to_use": "N/A — this is a positive pattern, not a failure.",
+      "source_pipeline": "50f840fa-feec-4271-8da6-07af9874fa1a"
+    },
+    {
+      "id": "PAT-024",
+      "name": "Full Gate Pipeline Overhead for Trivial String Mutations",
+      "context": "A single-field string rename (\"Beauty CRM Full Pipeline\" → \"MC pipeline\") was routed through the full 7-step pipeline including PRD gate, Cyber agent, Arch gate, Tech Review, Final Verdict, and Consolidation — totaling 111s of execution time. The s4-cyber agent itself confirmed \"Risk Level: Low\" and the s2.5-prd-gate confirmed it as a \"single-field rename.\"",
+      "pattern": "Implement a complexity classifier at s1-orchestrator that can emit a `fast-track` signal for tasks matching patterns like: single-field rename, constant value change, label update. Fast-track should skip s4-cyber, s4.5-arch-gate, s8.5-tech-review, and s11-final-verdict, routing directly to s12b-consolidation. Estimated reduction: ~80s for this class of task.",
+      "code_reference": "",
+      "when_to_use": "No lightweight routing path exists for tasks that are provably trivial at the orchestrator level (s1). The pipeline lacks a fast-track lane that bypasses heavyweight gates when task complexity is demonstrably below a threshold.",
+      "source_pipeline": "4d998ff1-d88b-4416-a98e-9ad7a13ce8fd"
+    },
+    {
+      "id": "PAT-025",
+      "name": "Lightweight Cyber Pre-Screening Accelerates Safe UI-Only Tasks",
+      "context": "s4-cyber completed in 4.3s and correctly classified the title color change as \"Low\" risk with no auth, data, or logic concerns. This fast gate allowed the pipeline to proceed confidently without blocking the frontend agent on security overhead.",
+      "pattern": "Maintain a fast-path cyber pre-screen for cosmetic/frontend-only tasks. When s4-cyber returns Low risk in <5s, downstream agents (s7-frontend, s10-cyber-audit) can execute with reduced scrutiny overhead, potentially allowing pipeline optimization via parallelization or abbreviated audit scope.",
+      "code_reference": "",
+      "when_to_use": "N/A — positive pattern",
+      "source_pipeline": "b158e1d7-f699-4eb0-8578-8c50e81e6856"
+    },
+    {
+      "id": "PAT-026",
+      "name": "Full Audit on Trivial Changes Creates Disproportionate Pipeline Cost",
+      "context": "s10-cyber-audit spent 46.1s — over 59% of total pipeline duration (77.9s) — auditing a single CSS class change on an h1 element. s4-cyber had already confirmed Low risk in 4.3s. The audit read the full orchestration page file to audit \"real code,\" which is thorough but disproportionate for a cosmetic change pre-cleared by the risk screener.",
+      "pattern": "Introduce a risk-gated audit depth rule: when s4-cyber scores Low risk on a pure cosmetic change, s10-cyber-audit should execute a scoped audit (verify only the changed lines/component) rather than a full-file read. This could reduce audit time by an estimated 60–70% for this class of task, bringing total pipeline duration under 30s.",
+      "code_reference": "",
+      "when_to_use": "The pipeline does not currently differentiate audit depth based on s4-cyber's risk classification. A Low-risk pre-screen does not trigger a lightweight audit path — s10-cyber-audit runs full-depth regardless.",
+      "source_pipeline": "b158e1d7-f699-4eb0-8578-8c50e81e6856"
     }
   ],
   "anti_patterns": [

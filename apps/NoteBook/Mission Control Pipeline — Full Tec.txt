@@ -1,0 +1,320 @@
+Mission Control Pipeline — Full Technical Report
+
+  Architecture
+
+  User Input → Smart Router → [Route Decision] → Pipeline Executor → [13 Stages] → Result
+                                                        ↓
+                                                   Per-Stage:
+                                                   Cache Check → Execute Agent → Evaluate → Retry/Pass/Escalate
+                                                        ↓
+                                                   Learning DB ← save results
+
+  Execution Flow
+
+  1. User writes task in /orchestration input
+  2. Smart Router analyzes → picks mode (quick/medium/full) + agents
+  3. User can override mode before Execute
+  4. Pipeline Executor runs stages sequentially:
+
+     For each stage:
+     ├─ Check Task Cache → if cached output exists (score ≥ threshold) → SKIP (reuse)
+     ├─ Check Pause/Stop flags → if set → halt
+     ├─ Check if resumed → if completed in previousExecution → SKIP
+     ├─ Inject learning context (agent stats + recent runs)
+     ├─ Build prompt (template + upstream outputs + project context + tool instructions)
+     ├─ Call /api/ai/execute (with or without tools)
+     │   ├─ Without tools: single LLM call → text response
+     │   └─ With tools: multi-turn loop (stream mode):
+     │       ├─ LLM responds with tool_use blocks
+     │       ├─ Execute tools server-side (read_file, edit_file, etc.)
+     │       ├─ Truncate tool output (read: 12K, cmd: 10K, other: 8K)
+     │       ├─ Check read budget → inject warning if exceeded
+     │       ├─ Send results back to LLM
+     │       └─ Repeat until LLM stops or maxTurns reached
+     ├─ Evaluate output:
+     │   ├─ Auto-fail if < 100 chars
+     │   ├─ Send to Orchestrator LLM (sonnet) for 4-axis scoring
+     │   ├─ Parse: [SCORE] completeness, specificity, actionability, taskCompletion → PASS/FAIL
+     │   ├─ Calculate weighted overall (per-agent weights from AGENT_SCORING_WEIGHTS)
+     │   └─ Override PASS/FAIL based on math (overall ≥ threshold)
+     ├─ If PASS → save to context, move to next stage
+     ├─ If FAIL:
+     │   ├─ Smart retry: stop if score degraded (< lastScore - 0.1)
+     │   ├─ If worth retrying → surgical retry prompt (clean context, exact feedback)
+     │   ├─ If max retries (3) reached:
+     │   │   ├─ Score ≥ escalationThreshold → accept with warning
+     │   │   └─ Score < escalationThreshold → ESCALATE (halt pipeline)
+     │   └─ Update lastScore tracker
+     └─ Save to analytics (pipeline-runs/, pipeline-analytics.json)
+
+  5. After all stages: save full run to learning DB
+  6. Fire-and-forget: Jira sync, knowledge enrichment
+
+  Agents Configuration
+
+  ┌───────┬───────────────┬────────┬────────────────────────────────────────────────┬──────────┬─────────┬────────────┬───────────────────┐
+  │ Stage │     Agent     │ Model  │                     Tools                      │ MaxTurns │ Quality │ Escalation │ Weights (T/C/S/A) │
+  ├───────┼───────────────┼────────┼────────────────────────────────────────────────┼──────────┼─────────┼────────────┼───────────────────┤
+  │ s0    │ Research      │ sonnet │ None                                           │ 4        │ 7.0     │ 4          │ 40/30/20/10       │
+  ├───────┼───────────────┼────────┼────────────────────────────────────────────────┼──────────┼─────────┼────────────┼───────────────────┤
+  │ s1    │ Orchestrator  │ sonnet │ list_files, read_file                          │ 4        │ 7.0     │ 3          │ 40/20/10/30       │
+  ├───────┼───────────────┼────────┼────────────────────────────────────────────────┼──────────┼─────────┼────────────┼───────────────────┤
+  │ s2    │ PM            │ sonnet │ list_files, read_file                          │ 5        │ 7.5     │ 4          │ 50/30/10/10       │
+  ├───────┼───────────────┼────────┼────────────────────────────────────────────────┼──────────┼─────────┼────────────┼───────────────────┤
+  │ s3    │ Architect     │ opus   │ list_files, read_file, save_failure_pattern    │ 7        │ 8.3     │ 7          │ 50/10/15/25       │
+  ├───────┼───────────────┼────────┼────────────────────────────────────────────────┼──────────┼─────────┼────────────┼───────────────────┤
+  │ s3.5  │ Cyber         │ opus   │ list_files, read_file, save_failure_pattern    │ 6        │ 8.5     │ 6          │ 60/20/10/10       │
+  ├───────┼───────────────┼────────┼────────────────────────────────────────────────┼──────────┼─────────┼────────────┼───────────────────┤
+  │ s4    │ Backend       │ sonnet │ read_file, edit_file, create_file, run_command │ 3        │ 7.5     │ 5          │ 70/10/10/10       │
+  ├───────┼───────────────┼────────┼────────────────────────────────────────────────┼──────────┼─────────┼────────────┼───────────────────┤
+  │ s4    │ Frontend      │ sonnet │ read_file, edit_file, create_file, run_command │ 3        │ 7.5     │ 5          │ 70/10/10/10       │
+  ├───────┼───────────────┼────────┼────────────────────────────────────────────────┼──────────┼─────────┼────────────┼───────────────────┤
+  │ s4    │ Designer      │ sonnet │ None                                           │ 4        │ 7.5     │ 5          │ 50/20/20/10       │
+  ├───────┼───────────────┼────────┼────────────────────────────────────────────────┼──────────┼─────────┼────────────┼───────────────────┤
+  │ s4.5  │ Checkpoint    │ -      │ None                                           │ -        │ 0       │ -          │ -                 │
+  ├───────┼───────────────┼────────┼────────────────────────────────────────────────┼──────────┼─────────┼────────────┼───────────────────┤
+  │ s5    │ QA            │ sonnet │ read_file, run_command, save_failure_pattern   │ 10       │ 8.0     │ 8          │ 60/10/10/20       │
+  ├───────┼───────────────┼────────┼────────────────────────────────────────────────┼──────────┼─────────┼────────────┼───────────────────┤
+  │ s5.5  │ Cyber Audit   │ opus   │ read_file, run_command, save_failure_pattern   │ 6        │ 8.5     │ 6          │ 60/20/10/10       │
+  ├───────┼───────────────┼────────┼────────────────────────────────────────────────┼──────────┼─────────┼────────────┼───────────────────┤
+  │ s6    │ DevOps        │ sonnet │ read_file, edit_file, run_command              │ 7        │ 7.5     │ 5          │ 70/10/10/10       │
+  ├───────┼───────────────┼────────┼────────────────────────────────────────────────┼──────────┼─────────┼────────────┼───────────────────┤
+  │ s7    │ Consolidation │ sonnet │ None                                           │ 3        │ 7.5     │ 3          │ 40/40/10/10       │
+  └───────┴───────────────┴────────┴────────────────────────────────────────────────┴──────────┴─────────┴────────────┴───────────────────┘
+
+  Scoring System
+
+  4 axes, role-aware, per-agent weights:
+
+  overall = taskCompletion × W_task + completeness × W_comp + specificity × W_spec + actionability × W_act
+
+  ┌────────────────┬───────────────────────────┬────────────────────────────────────────────────────────────────────┐
+  │      Axis      │           What            │                           Role examples                            │
+  ├────────────────┼───────────────────────────┼────────────────────────────────────────────────────────────────────┤
+  │ TaskCompletion │ Did agent DELIVER?        │ Backend: edit_file succeeded. PM: PRD delivered. QA: VERDICT given │
+  ├────────────────┼───────────────────────────┼────────────────────────────────────────────────────────────────────┤
+  │ Completeness   │ All requirements covered? │ Architect: referenced all files. PM: all acceptance criteria       │
+  ├────────────────┼───────────────────────────┼────────────────────────────────────────────────────────────────────┤
+  │ Specificity    │ Concrete paths, names?    │ Backend: exact endpoints. Architect: exact FILES_TO_EDIT           │
+  ├────────────────┼───────────────────────────┼────────────────────────────────────────────────────────────────────┤
+  │ Actionability  │ Next agent can work?      │ Architect→Backend: detailed instructions. QA: repro steps          │
+  └────────────────┴───────────────────────────┴────────────────────────────────────────────────────────────────────┘
+
+  Evaluator: Orchestrator (sonnet) scores each output. Sees first 4000 chars of agent output.
+
+  Retry Protocol
+
+  Attempt 1 → score X → lastScore = X
+    If X ≥ threshold → PASS
+    If X < threshold → retry (always retry once)
+
+  Attempt 2 → score Y → lastScore = Y
+    If Y ≥ threshold → PASS
+    If Y < lastScore - 0.1 → DEGRADED → STOP (accept with warning or escalate)
+    If Y > lastScore + 0.5 → improving → retry again
+
+  Attempt 3 (max) →
+    If score ≥ escalationThreshold → accept with warning
+    If score < escalationThreshold → ESCALATE → pipeline paused
+
+  Retry prompt: clean context (no previous output), exact failure reason, score shown.
+
+  Tool System
+
+  5 tools available:
+
+  ┌──────────────────────┬────────────────────────────────────────────┬────────────────────────────────────────────────────────────────────────────────┐
+  │         Tool         │                  Who uses                  │                                     Limits                                     │
+  ├──────────────────────┼────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────┤
+  │ list_files           │ PM, Architect, Cyber, QA, DevOps           │ Output: 12K chars                                                              │
+  ├──────────────────────┼────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────┤
+  │ read_file            │ All tool agents                            │ Output: 12K chars. Line ranges supported. Large files: first 100 lines + count │
+  ├──────────────────────┼────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────┤
+  │ edit_file            │ Backend, Frontend, DevOps                  │ Hard limit: 250 lines diff. old_string must be unique                          │
+  ├──────────────────────┼────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────┤
+  │ create_file          │ Backend, Frontend, DevOps                  │ Hard limit: 120 lines. Fails if file exists                                    │
+  ├──────────────────────┼────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────┤
+  │ run_command          │ Backend, Frontend, QA, Cyber Audit, DevOps │ Timeout: 20s. Whitelist: tsc, eslint, grep                                     │
+  ├──────────────────────┼────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────┤
+  │ save_failure_pattern │ Architect, Cyber, QA, DevOps               │ Writes to failure-patterns.json                                                │
+  └──────────────────────┴────────────────────────────────────────────┴────────────────────────────────────────────────────────────────────────────────┘
+
+  Backend special rule: First tool call MUST be edit_file or create_file. read_file only if needed for exact old_string.
+
+  Read budget warning: After N reads (per-agent config), message injected: "STOP READING, ACT NOW".
+
+  Tool output truncation: Appended to last tool_result content (not separate message, avoids API error).
+
+  Caching & Resume
+
+  Task Cache:
+  Before each stage → GET /api/pipeline/cache?input=X&stepId=Y&minScore=Z
+  If match found → reuse output, mark as "cached", skip execution
+  Saves ~100K tokens on repeated tasks
+
+  Resume:
+  executePipeline(steps, input, ..., previousExecution)
+  → Completed stages from previousExecution → skip, reuse outputs
+  → Failed/pending stages → re-execute
+  → UI: "Resume" button on failed/paused/stopped executions
+
+  Pause/Stop:
+  Pause → pauseRequested flag → current stage finishes, next doesn't start
+  Stop → stopRequested flag → halt between stages
+  UI: Pause/Stop buttons during running execution
+
+  Learning System
+
+  ┌─────────────────────────┬──────────────────────────────────────┬────────────────────────────────┬─────────────────────────────────────────────┐
+  │         Source          │               Writers                │            Readers             │                    What                     │
+  ├─────────────────────────┼──────────────────────────────────────┼────────────────────────────────┼─────────────────────────────────────────────┤
+  │ pipeline-analytics.json │ Auto (every run)                     │ All agents (injected as stats) │ Avg scores, success rates per agent         │
+  ├─────────────────────────┼──────────────────────────────────────┼────────────────────────────────┼─────────────────────────────────────────────┤
+  │ pipeline-runs/{id}.json │ Auto (every run)                     │ Task Cache, Analytics          │ Full run data + step outputs (5K truncated) │
+  ├─────────────────────────┼──────────────────────────────────────┼────────────────────────────────┼─────────────────────────────────────────────┤
+  │ failure-patterns.json   │ QA, Architect, Cyber, User (Discard) │ All agents via tools           │ Past bugs with root cause + fix             │
+  ├─────────────────────────┼──────────────────────────────────────┼────────────────────────────────┼─────────────────────────────────────────────┤
+  │ Agent .md prompts       │ Human / Claude Code                  │ loadAgentPrompt()              │ Role, rules, format, known pitfalls         │
+  └─────────────────────────┴──────────────────────────────────────┴────────────────────────────────┴─────────────────────────────────────────────┘
+
+  Agent sees in prompt:
+  ### YOUR PERFORMANCE STATS (from 33 past runs)
+  - Avg score: 4.5/10
+  - Success rate (8+): 42%
+  - Fail rate (<7): 58%
+  ⚠️ Your fail rate is high. Focus on concise output and following the exact format.
+
+  ### YOUR RECENT RUNS
+    ✗ 1.3/10 (72K tokens) — "Implement Last Login Timestamp..."
+    ✓ 10/10 (19K tokens) — "add option edit name pipeline..."
+
+  User Discard feedback:
+  Discard button → dialog (category + reason) → saved to failure-patterns.json
+  Categories: wrong-files, bad-code, wrong-approach, broke-something, other
+
+  Pipeline Config
+
+  ┌────────────────────────┬───────────────────────────────────────┐
+  │        Setting         │                 Value                 │
+  ├────────────────────────┼───────────────────────────────────────┤
+  │ MAX_RETRIES            │ 3                                     │
+  ├────────────────────────┼───────────────────────────────────────┤
+  │ SMART_RETRY            │ Stop if score degrades by 0.1         │
+  ├────────────────────────┼───────────────────────────────────────┤
+  │ STEP_TIMEOUT_MS        │ 0 (disabled — tool agents need >120s) │
+  ├────────────────────────┼───────────────────────────────────────┤
+  │ MAX_OUTPUT_TOKENS      │ 65,536                                │
+  ├────────────────────────┼───────────────────────────────────────┤
+  │ STREAMING              │ Enabled (no 10-min timeout)           │
+  ├────────────────────────┼───────────────────────────────────────┤
+  │ SHORT_OUTPUT_AUTO_FAIL │ < 100 chars → score 0                 │
+  ├────────────────────────┼───────────────────────────────────────┤
+  │ Context truncation     │ Per-agent: 4K-12K chars               │
+  ├────────────────────────┼───────────────────────────────────────┤
+  │ Tool output            │ read: 12K, cmd: 10K, other: 8K        │
+  └────────────────────────┴───────────────────────────────────────┘
+
+  Execution Order
+
+  s0-research → s1-orchestrator → s2-pm → s3-architect → s3.5-cyber
+  → s4-backend → s4-frontend → s4-designer (sequential, not parallel)
+  → s4.5-checkpoint (human, full mode only)
+  → s5-qa → s5.5-cyber-audit → s6-devops → s7-consolidation
+
+  UI Features
+
+  ┌───────────────────────┬──────────────────────────────────────────────────────────────────────┐
+  │        Feature        │                                Where                                 │
+  ├───────────────────────┼──────────────────────────────────────────────────────────────────────┤
+  │ Pipeline graph        │ Main area — visual node graph                                        │
+  ├───────────────────────┼──────────────────────────────────────────────────────────────────────┤
+  │ Stage Detail Panel    │ Click node → scores, tool calls, output                              │
+  ├───────────────────────┼──────────────────────────────────────────────────────────────────────┤
+  │ Quality Score Badge   │ Click → 4 axes breakdown                                             │
+  ├───────────────────────┼──────────────────────────────────────────────────────────────────────┤
+  │ Agent Activity Log    │ Stage Detail → tool call timeline with icons                         │
+  ├───────────────────────┼──────────────────────────────────────────────────────────────────────┤
+  │ Execution History     │ Bottom — expandable rows, full input, detected files                 │
+  ├───────────────────────┼──────────────────────────────────────────────────────────────────────┤
+  │ Stage/Deploy          │ Two-step: Stage Files → Deploy to Source (with overwrite protection) │
+  ├───────────────────────┼──────────────────────────────────────────────────────────────────────┤
+  │ Resume/Pause/Stop     │ Buttons during execution + in History                                │
+  ├───────────────────────┼──────────────────────────────────────────────────────────────────────┤
+  │ Discard with Feedback │ Dialog → saves to failure-patterns.json                              │
+  ├───────────────────────┼──────────────────────────────────────────────────────────────────────┤
+  │ Inline Rename         │ Pencil icon on workflow name                                         │
+  ├───────────────────────┼──────────────────────────────────────────────────────────────────────┤
+  │ Export JSON           │ Per-execution download                                               │
+  └───────────────────────┴──────────────────────────────────────────────────────────────────────┘
+
+  Current Performance (from 44 runs)
+
+  ┌──────────────┬───────────┬──────────────┬──────────┬───────────────────────────────────────────────────────┐
+  │    Agent     │ Avg Score │ Success ≥7.5 │ Fail <7  │                      Main Issue                       │
+  ├──────────────┼───────────┼──────────────┼──────────┼───────────────────────────────────────────────────────┤
+  │ Orchestrator │ 10.0      │ 100%         │ 0%       │ None                                                  │
+  ├──────────────┼───────────┼──────────────┼──────────┼───────────────────────────────────────────────────────┤
+  │ Frontend     │ 9.2       │ 92%          │ 8%       │ None                                                  │
+  ├──────────────┼───────────┼──────────────┼──────────┼───────────────────────────────────────────────────────┤
+  │ Research     │ 8.4       │ 86%          │ 0%       │ None                                                  │
+  ├──────────────┼───────────┼──────────────┼──────────┼───────────────────────────────────────────────────────┤
+  │ Cyber        │ 8.0+      │ Rising       │ Dropping │ Was 0%, now stable                                    │
+  ├──────────────┼───────────┼──────────────┼──────────┼───────────────────────────────────────────────────────┤
+  │ Architect    │ 9.1+      │ Rising       │ Dropping │ Was 50% fail, now stable on opus                      │
+  ├──────────────┼───────────┼──────────────┼──────────┼───────────────────────────────────────────────────────┤
+  │ QA           │ 8.3       │ 63%          │ 0%       │ Expensive (72K avg tokens)                            │
+  ├──────────────┼───────────┼──────────────┼──────────┼───────────────────────────────────────────────────────┤
+  │ PM           │ 7.4       │ ~60%         │ 30%      │ Borderline, needs improvement                         │
+  ├──────────────┼───────────┼──────────────┼──────────┼───────────────────────────────────────────────────────┤
+  │ Backend      │ ~2        │ ~30%         │ ~60%     │ Stuck in read loop — new "edit first" prompt untested │
+  └──────────────┴───────────┴──────────────┴──────────┴───────────────────────────────────────────────────────┘
+
+  Known Issues
+
+  1. Backend stuck — reads files but never edits. "Edit first" prompt + 3 max turns is latest fix (untested)
+  2. PM borderline — scores 6.9-7.4, retries sometimes degrade
+  3. Full mode never completed — always fails at Backend (s4)
+  4. No full step outputs in older runs — only runs after stepOutputs feature have cached data
+  5. Agent Hub legacy code — unused but still in project, causes confusion
+
+  Files
+
+  ┌──────────────────────────────────────────┬────────────────────────────────────────────────────────────────────────────┐
+  │                   File                   │                                  Purpose                                   │
+  ├──────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────┤
+  │ lib/pipeline-executor.ts                 │ Main executor — runs stages, retries, cache, resume                        │
+  ├──────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────┤
+  │ lib/pipeline-templates.ts                │ 13-stage CRM pipeline template                                             │
+  ├──────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────┤
+  │ lib/config.ts                            │ AGENT_CONFIG, AGENT_SCORING_WEIGHTS, PIPELINE config                       │
+  ├──────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────┤
+  │ lib/quality-evaluator.ts                 │ 4-axis scoring, retry prompt, parse LLM evaluation                         │
+  ├──────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────┤
+  │ lib/direct-ai-client.ts                  │ Anthropic/OpenAI API calls, streaming, multi-turn tool loop                │
+  ├──────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────┤
+  │ lib/agent-tools.ts                       │ Tool definitions + server-side executor (read/edit/create/run/save)        │
+  ├──────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────┤
+  │ lib/pipeline-analytics-storage.ts        │ Save runs, calculate agent stats                                           │
+  ├──────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────┤
+  │ lib/task-cache.ts                        │ Search past runs by input match                                            │
+  ├──────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────┤
+  │ app/api/ai/execute/route.ts              │ API: execute agent (standard or tool-use mode)                             │
+  ├──────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────┤
+  │ app/api/pipeline/analytics/route.ts      │ API: save/read agent learning context                                      │
+  ├──────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────┤
+  │ app/api/pipeline/cache/route.ts          │ API: task cache lookup                                                     │
+  ├──────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────┤
+  │ app/api/orchestration/apply/route.ts     │ API: staging area                                                          │
+  ├──────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────┤
+  │ app/api/orchestration/deploy/route.ts    │ API: deploy staged files                                                   │
+  ├──────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────┤
+  │ app/api/knowledge/feedback/route.ts      │ API: user discard feedback                                                 │
+  ├──────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────┤
+  │ agents/agents team/.claude/agents/*.md   │ 10 agent system prompts                                                    │
+  ├──────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────┤
+  │ projects/mission-control/knowledge-base/ │ failure-patterns, tech-decisions, architecture-patterns, security-playbook │
+  ├──────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────┤
+  │ data/pipeline-runs/                      │ 44 saved runs with analytics + step outputs                                │
+  ├──────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────┤
+  │ data/pipeline-analytics.json             │ Aggregated agent performance stats                                         │
+  └──────────────────────────────────────────┴────────────────────────────────────────────────────────────────────────────┘

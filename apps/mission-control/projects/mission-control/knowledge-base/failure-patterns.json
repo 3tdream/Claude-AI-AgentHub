@@ -1,6 +1,6 @@
 {
   "_description": "Known issues, root causes, and solutions — maintained by QA-Agent and all agents",
-  "_updated": "2026-03-22",
+  "_updated": "2026-03-28",
   "patterns": [
     {
       "id": "FAIL-001",
@@ -768,6 +768,253 @@
       "source": "qa-agent",
       "affected_files": [
         "app/api/loyalty"
+      ]
+    },
+    {
+      "id": "FAIL-083",
+      "category": "missing_file",
+      "title": "Primary API route file not created — app/api/costs/anthropic/route.ts missing",
+      "symptoms": "The backend agent declared [CREATE] for app/api/costs/anthropic/route.ts in the file tree, but the file and its parent directory do not exist on disk. grep and list_files both confirm the path is absent. The GET /api/costs/anthropic endpoint is therefore completely unimplemented — any frontend call to it returns 404.",
+      "root_cause": "Backend agent created all supporting lib/costs/* files and types/costs.ts but failed to create the actual Next.js App Router route handler at app/api/costs/anthropic/route.ts. The file tree listed it as [CREATE] but the implementation step was skipped or lost.",
+      "solution": "Create app/api/costs/anthropic/route.ts as a Next.js App Router GET handler. It must: (1) call getServerSession() for auth → 401 if unauthenticated, (2) call validateDateRange() from lib/costs/date-utils.ts, (3) check getValidCacheEntry() from lib/costs/cache.ts, (4) call fetchAnthropicUsage() from lib/costs/anthropic-client.ts, (5) catch AnthropicTimeoutError → 504, AnthropicUpstreamError → 502, missing key → 503, (6) return CostResponse shape: { total_usd, period: { start, end }, cached }. Also add rate limiting (30 req/min per session) per KB-010-4.",
+      "date_discovered": "2026-03-25",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/api/costs/anthropic/route.ts"
+      ]
+    },
+    {
+      "id": "FAIL-084",
+      "category": "security",
+      "title": "Rate limiting documented in API contract but not implemented in any code file",
+      "symptoms": "API contract specifies 30 req/min per authenticated session. No rate limiting code exists in lib/costs/ or the (missing) route handler. KB-010-4 flags this as a critical security violation — documented rate limits that are not implemented create false security guarantees.",
+      "root_cause": "Backend agent implemented caching (5-min TTL) which throttles upstream calls, but did not implement client-facing rate limiting. These are separate concerns: caching protects the upstream API, rate limiting protects the service from abuse.",
+      "solution": "Add rate limiting in the route handler using @upstash/ratelimit with a sliding window of 30 requests/minute keyed by session ID or IP. Alternatively use a lightweight in-memory rate limiter if Upstash is not available in the project. Must be enforced before any business logic executes.",
+      "date_discovered": "2026-03-25",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/api/costs/anthropic/route.ts"
+      ]
+    },
+    {
+      "id": "FAIL-085",
+      "category": "broke-something",
+      "title": "Route file app/api/costs/anthropic/route.ts never created — feature entirely non-functional",
+      "symptoms": "GET /api/costs/anthropic returns 404. Topbar still calls /api/agent-hub/costs (old cached endpoint). Hardcoded $18.14 display is NOT replaced with real Anthropic data. All lib/costs/* support files exist but are dead code.",
+      "root_cause": "Backend agent created supporting library files (lib/costs/*.ts, types/costs.ts) but never created the Next.js App Router entry point app/api/costs/anthropic/route.ts. The directory app/api/costs/anthropic/ does not exist on disk. Additionally, the frontend hook use-costs.ts was not updated — it still fetches from /api/agent-hub/costs, not /api/costs/anthropic.",
+      "solution": "1. Create app/api/costs/anthropic/route.ts with a GET handler that: checks auth, validates date params, checks cache, calls fetchAnthropicUsage(), logs query, returns {total_usd, period, cached}. 2. Update lib/hooks/use-costs.ts or create a new hook that fetches from /api/costs/anthropic. 3. Update components/shell/topbar.tsx to use the new hook and display real Anthropic cost data.",
+      "date_discovered": "2026-03-25",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/api/costs/anthropic/route.ts",
+        "lib/hooks/use-costs.ts",
+        "components/shell/topbar.tsx"
+      ]
+    },
+    {
+      "id": "FAIL-086",
+      "category": "broke-something",
+      "title": "Primary API route file missing — GET /api/costs/anthropic returns 404",
+      "symptoms": "app/api/costs/anthropic/route.ts was never created. Directory app/api/costs/ does not exist. Every call to GET /api/costs/anthropic returns Next.js 404. Topbar still shows hardcoded $18.14 instead of real $114.04 usage data.",
+      "root_cause": "Backend agent created all supporting lib/costs/* utility files and types/costs.ts but never created the actual Next.js App Router route handler file. The directory app/api/costs/anthropic/ was never created on disk.",
+      "solution": "Create app/api/costs/anthropic/route.ts with: (1) export async function GET() handler, (2) session auth check returning 401, (3) date param parsing with validateDateRange() from lib/costs/date-utils.ts, (4) cache lookup via getValidCacheEntry(), (5) fetchAnthropicUsage() call with try/catch for AnthropicTimeoutError (504) and AnthropicUpstreamError (502), (6) setCacheEntry() on success, (7) logCostQuery() call, (8) JSON response with {total_usd, period, cached}.",
+      "date_discovered": "2026-03-25",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/api/costs/anthropic/route.ts",
+        "lib/costs/anthropic-client.ts",
+        "lib/costs/cache.ts",
+        "lib/costs/date-utils.ts",
+        "lib/costs/query-logger.ts"
+      ]
+    },
+    {
+      "id": "FAIL-087",
+      "category": "security",
+      "title": "Unauthenticated internal cost endpoint exposes financial data to any caller",
+      "symptoms": "GET /api/costs/anthropic requires no auth by default per ADR; any unauthenticated browser, bot, or cross-origin request can retrieve real billing figures and probe the Anthropic Admin API indirectly; rate-limiter is IP-based only, trivially bypassed via proxies or distributed clients",
+      "root_cause": "ADR marks auth as \"Internal (no external auth required)\" and defers session-gating to \"optional\" production hardening; this means the MVP ships with a publicly accessible financial telemetry endpoint that also reveals cost data and indirectly confirms API key validity",
+      "solution": "Gate /api/costs/anthropic behind an existing session/JWT middleware check before MVP ships — not post-launch hardening. Add a CSRF or same-origin check (verify Referer/Origin header matches app host) as a secondary layer. The IP rate-limiter alone is insufficient as a trust boundary.",
+      "date_discovered": "2026-03-25",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "pages/api/costs/anthropic.ts",
+        "lib/costs/rateLimiter.ts"
+      ]
+    },
+    {
+      "id": "FAIL-088",
+      "category": "broke-something",
+      "title": "API route /api/costs/anthropic missing — hook calls a non-existent endpoint",
+      "symptoms": "useCosts hook fetches /api/costs/anthropic but no route file exists at app/api/costs/anthropic/route.ts (Next.js App Router) or pages/api/costs/anthropic.ts. Every fetch returns 404, CostCounter always shows \"—\" (error state). The core PRD goal — replacing $18.14 cached value with real $114.04 — is never achieved.",
+      "root_cause": "Implementation described a file at pages/api/costs/anthropic.ts but the project uses Next.js App Router (app/api/). The route file was either never created or placed in the wrong directory. grep confirms no file under app/api matches \"costs/anthropic\".",
+      "solution": "Create app/api/costs/anthropic/route.ts as a Next.js App Router GET handler. It should: (1) read start/end query params, (2) call fetchAnthropicUsage from lib/costs/anthropic-client.ts, (3) return JSON matching the CostResponse type. Without this file the entire feature is broken.",
+      "date_discovered": "2026-03-25",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/api/costs/anthropic/route.ts (missing)",
+        "hooks/useCosts.ts",
+        "components/topbar/CostCounter.tsx"
+      ]
+    },
+    {
+      "id": "FAIL-089",
+      "category": "broke-something",
+      "title": "API route /api/costs/anthropic never created — endpoint is missing at runtime",
+      "symptoms": "Frontend (useCosts.ts, CostCounter.tsx) correctly calls /api/costs/anthropic but receives 404. Topbar displays '—' (error state) instead of real cost data. The $114.04 Anthropic usage figure is never shown. The old $18.14 cached value is also gone, leaving users with no cost information at all.",
+      "root_cause": "The implementation plan listed pages/api/costs/anthropic.ts in the file tree but the file was never created. Neither pages/api/costs/ nor app/api/costs/ directories exist. The frontend hook and component were built correctly but the backend route handler is entirely absent.",
+      "solution": "Create app/api/costs/anthropic/route.ts (Next.js App Router) or pages/api/costs/anthropic.ts (Pages Router) that: (1) reads ANTHROPIC_ADMIN_API_KEY from env, (2) calls Anthropic admin usage API for the requested date range, (3) returns JSON matching CostResponse type: { total_usd: number, period: { start, end }, cached: boolean }. Verify the endpoint returns total_usd: 114.04 for Mar 13–23 before deploying.",
+      "date_discovered": "2026-03-25",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "pages/api/costs/anthropic.ts",
+        "app/api/costs/anthropic/route.ts",
+        "hooks/useCosts.ts",
+        "components/topbar/CostCounter.tsx"
+      ]
+    },
+    {
+      "id": "FAIL-090",
+      "category": "bad-code",
+      "title": "New pipeline not visible after creation — slot not activated after loadWorkflowToSlot",
+      "symptoms": "After calling confirmCreateWorkflow(), the new workflow is added and loaded into a slot, but the UI may not switch to that slot if targetSlot !== activeSlotIndex. The user sees no change in the active view — the default pipeline (or empty state) remains visible instead of the newly created one.",
+      "root_cause": "In confirmCreateWorkflow() (page.tsx line 208-210), the code finds the first empty slot and calls loadWorkflowToSlot(targetSlot, wf). loadWorkflowToSlot() in the store (store line 185) does set activeSlotIndex: slotIndex, so the slot IS activated. However, the page-level useEffect that syncs input/project/execution from the active slot (lines 140-156) only fires when activeSlotIndex changes. If the store's activeSlotIndex was already 0 and targetSlot is also 0 (first empty slot), the effect fires correctly. BUT if all slots are occupied and targetSlot falls back to activeSlotIndex (line 209), the store call still sets activeSlotIndex to the same value — Zustand does NOT re-trigger the effect because the value didn't change. Additionally, the selectedWorkflow derivation (line 135-137) depends on activeSlot.workflowId which is read from the persisted slots array. On first render after persist rehydration, the default CRM template is seeded into workflows[] but NO slot is pre-loaded with it (all slots start as empty). So the user sees an empty slot with no pipeline visible, even though the default pipeline exists in the workflows list.",
+      "solution": "1. In the store's merge/rehydration function (store lines 367-393), after seeding the default CRM workflow, also pre-load slot[0] with the default workflow if all slots are empty. 2. In confirmCreateWorkflow(), after loadWorkflowToSlot(), explicitly call setActiveSlot(targetSlot) to guarantee the activeSlotIndex state updates and triggers the sync useEffect. 3. Alternatively, add a useEffect that watches workflows.length and auto-loads the default workflow into slot 0 when slot 0 is empty and the default workflow exists.",
+      "date_discovered": "2026-03-26",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "lib/stores/orchestration-store.ts",
+        "app/(shell)/orchestration/page.tsx"
+      ]
+    },
+    {
+      "id": "FAIL-091",
+      "category": "bad-code",
+      "title": "Default pipeline seeded in workflows[] but never auto-loaded into any slot — invisible on first load",
+      "symptoms": "User opens the Orchestration page for the first time (or after clearing localStorage). The default CRM pipeline exists in workflows[] but all 4 slots are empty. selectedWorkflow is always null. The user sees a blank/empty state instead of the default pipeline.",
+      "root_cause": "In orchestration-store.ts merge() (lines 367–393), the default CRM workflow is seeded into workflows[] when missing, but slots are always reset to 4 empty slots when no valid persisted slots exist. No code auto-loads the default workflow into slot 0 on first load. The selectedWorkflow derivation in page.tsx (line 135) reads activeSlot.workflowId which is null for an empty slot.",
+      "solution": "In the merge() function, after computing rawSlots, check if all slots are empty AND the default CRM workflow was just seeded. If so, pre-populate slot 0 with the default CRM workflow: rawSlots[0] = { id: 0, workflowId: DEFAULT_CRM_TEMPLATE_ID, workflowName: getDefaultCrmWorkflow().name, status: \"idle\", projectContext: null, lastInput: \"\", executionId: null, progress: 0 }. This ensures the default pipeline is visible immediately on first load.",
+      "date_discovered": "2026-03-26",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "lib/stores/orchestration-store.ts"
+      ]
+    },
+    {
+      "id": "FAIL-092",
+      "category": "bad-code",
+      "title": "New pipeline not visible after creation — handleSlotAdd never opens create dialog (workflows.length always ≥ 1)",
+      "symptoms": "User clicks an empty slot (+) button. Nothing happens — no dialog opens, no workflow loads. The condition `if (workflows.length === 0)` is always false because the default CRM template is always seeded, so the create dialog never opens from an empty slot click.",
+      "root_cause": "handleSlotAdd() in page.tsx (lines 232–237) only calls openCreateFromTemplate() when workflows.length === 0. Since the default CRM template is always seeded, workflows.length is always ≥ 1, making this branch dead code. There is no else branch, so clicking an empty slot only calls setActiveSlot(index) with no further action.",
+      "solution": "Change handleSlotAdd() to always open the template/create dialog when the user clicks an empty slot, regardless of workflows.length. Remove the dead condition or replace it with a check for whether the slot is actually empty (slot.status === \"empty\"), then always open the dialog.",
+      "date_discovered": "2026-03-26",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/(shell)/orchestration/page.tsx"
+      ]
+    },
+    {
+      "id": "FAIL-093",
+      "category": "security",
+      "title": "Three.js/R3F WebGL context exposes Zustand store data to XSS via unsanitized step metadata rendered into 3D scene",
+      "symptoms": "Agent node labels and tooltip overlays in the 3D canvas pull step.name, step.metadata.group, and step.metadata.description directly from the Zustand store and render them as HTML overlays (via @react-three/drei Html component) without sanitization — an attacker who can write a malicious workflow step name (e.g. via the insert/duplicate step actions) can inject script content that executes when the 3D preview renders the Html overlay.",
+      "root_cause": "The orchestration store persists workflows to localStorage (zustand/persist middleware). Workflow step names and metadata are user-controlled strings stored without sanitization. When @react-three/drei Html component renders these strings as innerHTML or dangerouslySetInnerHTML inside the Canvas overlay, XSS executes in the page context.",
+      "solution": "Never use dangerouslySetInnerHTML with store-sourced strings in drei Html overlays. Use React text nodes only (children as string, not HTML). Sanitize step.name and step.metadata.* with DOMPurify before rendering any overlay. Validate step names in insertStepAtPosition and duplicateStep store actions with a strict allowlist regex (e.g. /^[\\w\\s\\-]{1,128}$/) before persisting to localStorage.",
+      "date_discovered": "2026-03-28",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "components/orchestration/pipeline-3d-preview.tsx",
+        "lib/stores/orchestration-store.ts",
+        "components/orchestration/pipeline-graph.tsx"
+      ]
+    },
+    {
+      "id": "FAIL-094",
+      "category": "security",
+      "title": "XSS via unsanitized persisted Workflow fields rendered in @react-three/drei Html overlays",
+      "symptoms": "WorkflowStep.agentName, StepResult.output, StepResult.error, and StageMetadata.* are stored raw in localStorage via Zustand persist middleware and rendered directly inside drei Html overlays in the 3D canvas — any poisoned localStorage value executes as DOM HTML in the user's browser session.",
+      "root_cause": "The orchestration store uses `persist` middleware which serializes the full state tree (workflows, activeExecution, executionHistory) to localStorage without sanitization. Three.js/drei Html overlays inject content into real DOM nodes, not a sandboxed canvas context, so unsanitized strings become live HTML. FAIL-093 mandates DOMPurify at render time but the ADR only enforces it on step.name and step.metadata.description — leaving agentName, StepResult.output, StepResult.error, and all other StageMetadata string fields unguarded.",
+      "solution": "Apply DOMPurify.sanitize() to ALL string fields sourced from the store before passing to any drei Html child: agentName, metadata.leadAgent, metadata.model, metadata.conditional, StepResult.output, StepResult.error, StepResult.evaluationFeedback. Create a single sanitizeStep() helper used exclusively by the 3D component — never sanitize in the store. Additionally, scope DOMPurify with ALLOWED_TAGS:[] ALLOWED_ATTR:[] for plain-text labels (no HTML needed), which eliminates the attack surface entirely for those fields.",
+      "date_discovered": "2026-03-28",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "components/orchestration/pipeline-3d-preview.tsx",
+        "lib/stores/orchestration-store.ts",
+        "types/workflow.ts"
+      ]
+    },
+    {
+      "id": "FAIL-095",
+      "category": "missing_file",
+      "title": "Frontend implementation produced zero files — all specified components missing from disk",
+      "symptoms": "Frontend step reported successful implementation of 3D pipeline preview (pipeline-3d-preview.tsx, agent-node.tsx, connection-beam.tsx, agent-label.tsx, pipeline-legend.tsx, pipeline-canvas-layout.tsx, agent-icons.tsx, styles/globals.css, styles/theme.ts) but directory scan shows none of these files exist. components/domain/, components/layouts/, components/icons/, and styles/ directories are all absent.",
+      "root_cause": "The frontend implementation step described its work in natural language but did not actually write any files to disk. The router may have short-circuited the file-creation phase, or the agent produced output text without executing create_file/edit_file tool calls.",
+      "solution": "1. Re-run the frontend implementation step with explicit verification: after each create_file call, confirm the file exists via list_files. 2. Add a post-implementation file-existence check in the pipeline before QA runs. 3. Require the frontend agent to output a manifest of created files that QA can diff against the design spec file tree.",
+      "date_discovered": "2026-03-28",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "components/domain/pipeline-3d-preview.tsx",
+        "components/domain/agent-node.tsx",
+        "components/domain/connection-beam.tsx",
+        "components/domain/agent-label.tsx",
+        "components/domain/pipeline-legend.tsx",
+        "components/layouts/pipeline-canvas-layout.tsx",
+        "components/icons/agent-icons.tsx",
+        "styles/globals.css",
+        "styles/theme.ts"
+      ]
+    },
+    {
+      "id": "FAIL-096",
+      "category": "bad-code",
+      "title": "Three.js/R3F dependencies missing from package.json for 3D pipeline feature",
+      "symptoms": "Design spec requires Three.js + React Three Fiber (R3F) for 3D scene rendering, but package.json contains no entries for 'three', '@react-three/fiber', or '@react-three/drei'. Any import of these packages causes immediate TypeScript compilation failure: Cannot find module 'three'.",
+      "root_cause": "The frontend implementation step did not add required npm dependencies before writing component code. The package.json was never updated to include the 3D rendering stack.",
+      "solution": "Add to package.json dependencies: \"three\": \"^0.165.0\", \"@react-three/fiber\": \"^8.17.0\", \"@react-three/drei\": \"^9.109.0\". Add devDependencies: \"@types/three\": \"^0.165.0\". Also wrap all R3F canvas components with next/dynamic({ ssr: false }) to prevent SSR crashes since Three.js requires window/WebGL.",
+      "date_discovered": "2026-03-28",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "package.json",
+        "components/domain/pipeline-3d-preview.tsx",
+        "components/domain/agent-node.tsx",
+        "components/domain/connection-beam.tsx"
+      ]
+    },
+    {
+      "id": "FAIL-097",
+      "category": "broke-something",
+      "title": "Frontend implementation step produced zero deliverable files — 3D pipeline preview feature entirely absent",
+      "symptoms": "All 9 files specified in the design spec (components/domain/pipeline-3d-preview.tsx, agent-node.tsx, connection-beam.tsx, agent-label.tsx, pipeline-legend.tsx, components/layouts/pipeline-canvas-layout.tsx, components/icons/agent-icons.tsx, styles/globals.css, styles/theme.ts) are missing from disk. The components/domain/, components/layouts/, components/icons/, and styles/ directories do not exist. No integration point in app/(shell)/orchestration/. Three.js dependencies (three, @react-three/fiber, @react-three/drei) absent from package.json.",
+      "root_cause": "Frontend implementation step was invoked but wrote no files to disk. The step may have produced output text describing what it would implement without actually calling file-creation tools, or the tool calls failed silently. The router did not detect the no-op and passed the step as complete.",
+      "solution": "Frontend agent must verify file existence after creation (list_files on each target directory). Pipeline must gate on artifact presence check before marking implementation step DONE. Re-run frontend-agent with explicit instruction to create all files and confirm with list_files. Install three, @react-three/fiber, @react-three/drei, @types/three in package.json. Use next/dynamic({ ssr: false }) for all Three.js components to prevent SSR crash in Next.js 15.",
+      "date_discovered": "2026-03-28",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "components/domain/pipeline-3d-preview.tsx",
+        "components/domain/agent-node.tsx",
+        "components/domain/connection-beam.tsx",
+        "components/domain/agent-label.tsx",
+        "components/domain/pipeline-legend.tsx",
+        "components/layouts/pipeline-canvas-layout.tsx",
+        "components/icons/agent-icons.tsx",
+        "styles/globals.css",
+        "styles/theme.ts",
+        "package.json"
       ]
     }
   ]

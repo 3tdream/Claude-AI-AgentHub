@@ -13,10 +13,10 @@ const sizeClasses = {
 
 const variantClasses = {
   default: 'bg-primary text-primary-foreground hover:bg-primary/90',
-  outline: 'border border-border bg-transparent hover:bg-muted',
-  ghost: 'hover:bg-muted',
+  outline: 'border border-border bg-transparent text-foreground hover:bg-muted hover:text-foreground',
+  ghost: 'text-foreground hover:bg-muted hover:text-foreground',
   link: 'text-primary underline-offset-4 hover:underline p-0',
-  destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
+  destructive: 'bg-destructive text-white hover:bg-destructive/90',
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(

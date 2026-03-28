@@ -1,0 +1,17 @@
+{
+  "id": "secretutka",
+  "name": "@workspace/secretutka",
+  "port": 3013,
+  "stack": [
+    "nextjs",
+    "react",
+    "tailwind",
+    "anthropic"
+  ],
+  "entrypoint": "app/page.tsx",
+  "devCommand": "npm run dev:web",
+  "kb_scope": [
+    "global",
+    "secretutka"
+  ]
+}

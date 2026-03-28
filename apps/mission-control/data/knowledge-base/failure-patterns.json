@@ -626,9 +626,86 @@
       "createdAt": "2026-03-26T15:47:47.781Z",
       "updatedAt": "2026-03-26T15:47:47.781Z",
       "version": 1
+    },
+    {
+      "title": "High pause rate: 29/40 runs paused",
+      "content": "73% of recent runs are in paused state. This may indicate checkpoint bottleneck or missing user approval. Consider auto-approve for low-risk stages.",
+      "source": "nightly-evolution",
+      "severity": "medium",
+      "tags": [
+        "auto-detected",
+        "pause-rate",
+        "checkpoint"
+      ],
+      "pipelineRunId": "d79758f0-ccb9-4003-bd08-0c0261b786b0",
+      "id": "kb-mn9wgxpu-1380c1ac",
+      "createdAt": "2026-03-28T05:38:57.329Z",
+      "updatedAt": "2026-03-28T05:38:57.329Z",
+      "version": 1
+    },
+    {
+      "title": "Decision framework — think before doing",
+      "content": "## Before ANY action that changes files, installs packages, or modifies system state:\n\n### 30-Second Check (MANDATORY)\n1. **KB search** — `curl /api/knowledge-base?q={topic}` — is this problem already known?\n2. **Risk question** — \"what breaks if this fails?\" If answer includes \"other projects\" or \"MC itself\" → STOP, think more\n3. **Simplest solution** — what's the ONE LINE that might work? Try that FIRST\n4. **Reversibility** — can I undo this? If no → ask user before proceeding\n\n### Before pack",
+      "source": "claude-memory",
+      "severity": "high",
+      "tags": [
+        "imported-from-memory",
+        "memory:feedback_decision_framework.md",
+        "feedback"
+      ],
+      "id": "kb-mn9wgyfi-6213385f",
+      "createdAt": "2026-03-28T05:38:58.254Z",
+      "updatedAt": "2026-03-28T05:38:58.254Z",
+      "version": 1
+    },
+    {
+      "title": "Simple solution first — always",
+      "content": "Before any fix attempt, ask: \"what's the simplest thing that could work?\"\n\nExamples from session 2026-03-25:\n- Problem: dev servers don't start\n- Complex attempts: pnpm install, store prune, copy binaries, npm install --nested\n- Simple solution: `node_modules/.bin/next dev -p 3013`\n\n- Problem: npm install fails in workspace\n- Complex attempts: --ignore-scripts, --legacy-peer-deps, copy from other project\n- Simple solution: `mv root/package.json root/package.json.bak` → npm install → restore\n\nPat",
+      "source": "claude-memory",
+      "severity": "high",
+      "tags": [
+        "imported-from-memory",
+        "memory:feedback_simple_first.md",
+        "feedback"
+      ],
+      "id": "kb-mn9wgyg2-7c357580",
+      "createdAt": "2026-03-28T05:38:58.274Z",
+      "updatedAt": "2026-03-28T05:38:58.274Z",
+      "version": 1
+    },
+    {
+      "title": "Use agents for complex multi-step tasks",
+      "content": "When a task has more than 3 sequential steps or involves multiple projects/files:\n\n**DO:** Launch a general-purpose Agent with a clear, complete task description\n**DON'T:** Try to do it step-by-step manually\n\nEvidence from session 2026-03-25:\n- Manual: 20+ attempts, 3+ hours, broke working projects\n- Agent: 1 launch, 67 tool calls, 16 minutes, all 14 projects fixed\n\nAgent works better because:\n1. It doesn't get frustrated or rush\n2. It follows the same logic for each project (no shortcuts)\n3. It",
+      "source": "claude-memory",
+      "severity": "high",
+      "tags": [
+        "imported-from-memory",
+        "memory:feedback_use_agents.md",
+        "feedback"
+      ],
+      "id": "kb-mn9wgygi-32af8e51",
+      "createdAt": "2026-03-28T05:38:58.290Z",
+      "updatedAt": "2026-03-28T05:38:58.290Z",
+      "version": 1
+    },
+    {
+      "title": "High pause rate: 29/40 runs paused",
+      "content": "73% of recent runs are in paused state. This may indicate checkpoint bottleneck or missing user approval. Consider auto-approve for low-risk stages.",
+      "source": "nightly-evolution",
+      "severity": "medium",
+      "tags": [
+        "auto-detected",
+        "pause-rate",
+        "checkpoint"
+      ],
+      "pipelineRunId": "d79758f0-ccb9-4003-bd08-0c0261b786b0",
+      "id": "kb-mn9whwg2-54d65c20",
+      "createdAt": "2026-03-28T05:39:42.338Z",
+      "updatedAt": "2026-03-28T05:39:42.338Z",
+      "version": 1
     }
   ],
-  "contentHash": "7d953e2db2b10a62ec6fa95195ff431bff74f464e6165f76cacafec4dcf87408",
-  "lastUpdated": "2026-03-26T15:47:47.781Z",
+  "contentHash": "cfc8cfb0b0fc56ee1aa362996195ec40dec35d3e0c48db8db4ae63ec79ded52f",
+  "lastUpdated": "2026-03-28T05:39:42.338Z",
   "schemaVersion": 1
 }

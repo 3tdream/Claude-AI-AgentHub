@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { handleUserTextWithGemini } from '../../../src/nlp/gemini-agent.js';
+import { handleUserTextWithGemini } from '../../../src/nlp/gemini-agent';
 
 export async function POST(request: NextRequest) {
   try {

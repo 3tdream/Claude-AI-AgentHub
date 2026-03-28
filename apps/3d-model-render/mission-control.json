@@ -1,0 +1,16 @@
+{
+  "id": "3d-model-render",
+  "name": "3d-model-render",
+  "port": 3010,
+  "stack": [
+    "vite",
+    "react",
+    "threejs"
+  ],
+  "entrypoint": "src/App.tsx",
+  "devCommand": "npm run dev",
+  "kb_scope": [
+    "global",
+    "3d-model-render"
+  ]
+}

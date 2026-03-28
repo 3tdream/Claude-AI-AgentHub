@@ -14,7 +14,6 @@ import {
   Heart,
   Sun,
   Flower2,
-  Star,
   type LucideIcon,
 } from "lucide-react";
 import type { Service } from "../../types/booking";
@@ -28,7 +27,7 @@ const iconMap: Record<string, LucideIcon> = {
   heart: Heart,
   sun: Sun,
   flower: Flower2,
-  star: Star,
+  star: Heart,
 };
 
 interface ServiceCardProps {

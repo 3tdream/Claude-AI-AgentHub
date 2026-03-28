@@ -324,9 +324,72 @@
       "createdAt": "2026-03-25T21:27:22.934Z",
       "updatedAt": "2026-03-25T21:27:22.934Z",
       "version": 1
+    },
+    {
+      "title": "Intent classifier needs tuning � add/toggle/feature tasks should go to pipeline",
+      "content": "Current intent classifier sends \"add dark mode toggle\" to direct mode (0.9 confidence). This is too complex for direct � needs state management, localStorage, theme provider. Rule: \"add\" + \"toggle/switch/feature/module\" ? pipeline, not direct. Direct should only handle: rename, fix color, change text, swap values. Anything that creates new functionality ? pipeline.",
+      "source": "intent-classifier",
+      "severity": "high",
+      "tags": [
+        "intent-classifier",
+        "routing",
+        "direct-vs-pipeline",
+        "tuning-needed"
+      ],
+      "id": "kb-mn91sfpw-c0bf169b",
+      "createdAt": "2026-03-27T15:20:05.780Z",
+      "updatedAt": "2026-03-27T15:20:05.780Z",
+      "version": 1
+    },
+    {
+      "title": "Claude in MC UI — Command Bar architecture",
+      "content": "## Architecture: Claude as Tool in MC UI\n\n### Single entry point: Command Bar\nUser types anything → Intent classifier → execution mode:\n- **DIRECT**: simple edits (<3 files) → Claude API + tools\n- **PIPELINE**: multi-stage, security, architecture → triggers pipeline\n- **HYBRID**: Claude prepares context + quick fixes, pipeline does heavy lifting\n\n### Claude Layer constraints (CRITICAL)\nClaude MUST:\n- Read KB before acting\n- Respect project context (active project selector)\n- Log everything to or",
+      "source": "claude-memory",
+      "severity": "medium",
+      "tags": [
+        "imported-from-memory",
+        "memory:project_claude_in_ui.md",
+        "project"
+      ],
+      "id": "kb-mn9wgyh4-e6c467a4",
+      "createdAt": "2026-03-28T05:38:58.312Z",
+      "updatedAt": "2026-03-28T05:38:58.312Z",
+      "version": 1
+    },
+    {
+      "title": "Phase 2 plan — Global Project Selector + page unification",
+      "content": "## Phase 2 — Approved Plan (2026-03-26)\n\n### Core: Global Project Selector\n- Topbar dropdown — single source of truth for activeProjectId\n- app-store.ts owns activeProjectId, orchestration-store subscribes\n- All project-scoped pages react to changes\n\n### Page Classification\n\n**Project-scoped (sync with selector):**\n- /orchestration (tabs: Pipeline, Contracts, Analytics)\n- /jira (replace local selector)\n- /knowledge (project layer + global layer)\n- /chat (agent list global, but chat window shows ",
+      "source": "claude-memory",
+      "severity": "medium",
+      "tags": [
+        "imported-from-memory",
+        "memory:project_phase2_plan.md",
+        "project"
+      ],
+      "id": "kb-mn9wgyht-229ee8e8",
+      "createdAt": "2026-03-28T05:38:58.337Z",
+      "updatedAt": "2026-03-28T05:38:58.337Z",
+      "version": 1
+    },
+    {
+      "title": "UI design system: light theme with indigo/slate/emerald palette",
+      "content": "Home page redesigned for product-ready look. Colors: indigo-600 primary, slate-900 headings, slate-600 body, emerald/amber/rose for status. No cyan/purple glow on light theme. White cards with slate-200 borders. Font: system (no Rajdhani), mono for data. Spacing: gap-4, p-4 cards. Reference: Linear, Vercel dashboard, Notion sidebar. No bg-black, no animate-pulse, no radial gradients.",
+      "source": "home-redesign",
+      "severity": "high",
+      "tags": [
+        "design-system",
+        "light-theme",
+        "indigo",
+        "slate",
+        "product-ready"
+      ],
+      "id": "kb-mnatgvbb-d88965fd",
+      "createdAt": "2026-03-28T21:02:41.543Z",
+      "updatedAt": "2026-03-28T21:02:41.543Z",
+      "version": 1
     }
   ],
-  "contentHash": "ab3d0fc0f60c7cf006aafcca4b30925f67202c5d7308adc3c78dd5b9a36f06d8",
-  "lastUpdated": "2026-03-25T21:27:22.934Z",
+  "contentHash": "611963162be01c22d7cd52832dbfd857b135f2ac1639c29cbdb76f5cadeeabb1",
+  "lastUpdated": "2026-03-28T21:02:41.543Z",
   "schemaVersion": 1
 }

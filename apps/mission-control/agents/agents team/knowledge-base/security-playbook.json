@@ -1,6 +1,6 @@
 {
   "_description": "Threat responses and recurring vulnerabilities — maintained by Cyber-Agent and QA-Agent",
-  "_updated": "2026-03-22",
+  "_updated": "2026-03-26",
   "threat_model": {
     "framework": "STRIDE + OWASP Top 10",
     "mandatory_triggers": [
@@ -63,6 +63,26 @@
       "mitigation": "Add per-user rate limit rules on earn/redeem endpoints (e.g., max 10 earn calls per minute per salon_id+client_id pair, max 3 redemption calls per minute). Implement idempotency keys on POST /api/loyalty/redeem so duplicate requests within a time window return the cached result rather than executing twice. These controls should be specified in the API contract stage and enforced in middleware before business logic executes.",
       "date_found": "2026-03-22",
       "source_pipeline": "1a3f1cdb-53f9-45d7-92ea-0925506658db"
+    },
+    {
+      "id": "VULN-006",
+      "category": "security",
+      "title": "Client-Side Currency Icon Injection via Unvalidated Dropdown Values",
+      "severity": "medium",
+      "description": "The s4-cyber step identified that currency icon selection driven by dropdown values may be injected client-side without server-side validation, allowing potentially unvalidated values to reach the icon rendering layer in CostCounter.tsx.",
+      "mitigation": "Validate selected dropdown values against a strict server-side or compile-time allowlist of supported currency codes before resolving icons. Never trust client-supplied enum values for asset/icon lookup without sanitization.",
+      "date_found": "2026-03-26",
+      "source_pipeline": "61eba063-6d1b-4aa5-8cd3-1a7695ea4b7f"
+    },
+    {
+      "id": "VULN-007",
+      "category": "security",
+      "title": "Unvalidated Currency Value from Dropdown Passed to Storage",
+      "severity": "medium",
+      "description": "The Cyber-Agent (s4-cyber) identified that currency values selected from the dropdown UI were being passed to storage without server-side validation. The value flows from UI selection directly into persistence layer, trusting client input.",
+      "mitigation": "Validate currency value server-side against an explicit whitelist of supported ISO currency codes before any storage or state update. Reject and return 400 for any value not in the allowed set. Frontend constraints are UX, not security.",
+      "date_found": "2026-03-26",
+      "source_pipeline": "6712c759-720a-4aa5-9a7b-f1e665c9c1a7"
     }
   ],
   "security_checklist": {

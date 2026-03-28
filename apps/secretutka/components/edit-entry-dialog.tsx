@@ -32,6 +32,48 @@ interface EditEntryDialogProps {
   currency?: string;
 }
 
+const HOURS = Array.from({ length: 16 }, (_, i) => String(i + 7).padStart(2, '0'));
+const MINUTES = Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, '0'));
+
+function splitTime(time: string): [string, string] {
+  const [h, m] = time.split(':');
+  return [h || '09', m || '00'];
+}
+
+function joinTime(h: string, m: string): string {
+  return `${h}:${m}`;
+}
+
+function TimeSelect({ value, onChange, disabled, label }: {
+  value: string; onChange: (v: string) => void; disabled?: boolean; label: string;
+}) {
+  const [h, m] = splitTime(value);
+  return (
+    <div className="space-y-2">
+      <label className="text-sm font-medium text-gray-700">{label}</label>
+      <div className="flex gap-1.5">
+        <select
+          value={h}
+          onChange={(e) => onChange(joinTime(e.target.value, m))}
+          disabled={disabled}
+          className="flex-1 px-2 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center"
+        >
+          {HOURS.map((hr) => <option key={hr} value={hr}>{hr}</option>)}
+        </select>
+        <span className="flex items-center text-gray-400 font-bold">:</span>
+        <select
+          value={m}
+          onChange={(e) => onChange(joinTime(h, e.target.value))}
+          disabled={disabled}
+          className="flex-1 px-2 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center"
+        >
+          {MINUTES.map((mn) => <option key={mn} value={mn}>{mn}</option>)}
+        </select>
+      </div>
+    </div>
+  );
+}
+
 export function EditEntryDialog({ open, onOpenChange, onSuccess, entry, currency = 'USD' }: EditEntryDialogProps) {
   const [clientName, setClientName] = useState('');
   const [startTime, setStartTime] = useState('09:00');
@@ -207,33 +249,8 @@ export function EditEntryDialog({ open, onOpenChange, onSuccess, entry, currency
 
           {/* Time Range */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">
-                Start Time <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="time"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                disabled={processing}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">
-                End Time <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="time"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-                disabled={processing}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                required
-              />
-            </div>
+            <TimeSelect label="Start Time *" value={startTime} onChange={setStartTime} disabled={processing} />
+            <TimeSelect label="End Time *" value={endTime} onChange={setEndTime} disabled={processing} />
           </div>
 
           {/* Hourly Rate */}
