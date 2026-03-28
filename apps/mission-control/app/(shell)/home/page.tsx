@@ -5,8 +5,10 @@ import useSWR from "swr";
 import { useAppStore } from "@/lib/stores/app-store";
 import { useOrchestrationStore } from "@/lib/stores/orchestration-store";
 import { useActivityStore } from "@/lib/stores/activity-store";
-import { useAgents } from "@/lib/hooks/use-agents";
-import type { Agent } from "@/types";
+import { useAgents, useAgentPrompt, usePromptHistory } from "@/lib/hooks/use-agents";
+import { useSessions } from "@/lib/hooks/use-sessions";
+import type { Agent, Session } from "@/types";
+import { Settings, FileText, MessageSquare, X } from "lucide-react";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -56,9 +58,11 @@ const providerColors: Record<string, string> = {
 };
 
 // ── Agent card ──
-function AgentCard({ agent, stats }: {
+function AgentCard({ agent, stats, selected, onClick }: {
   agent: Agent;
   stats?: { runs: number; avgScore: number; successRate: number; failRate: number };
+  selected?: boolean;
+  onClick?: () => void;
 }) {
   const successRate = stats?.successRate ?? 0;
   const status = stats ? (successRate > 70 ? "active" : successRate > 40 ? "busy" : "idle") : "idle";
@@ -74,7 +78,13 @@ function AgentCard({ agent, stats }: {
   const prov = providerColors[agent.llmProvider] || providerColors.anthropic;
 
   return (
-    <div className="bg-cyan-500/[0.03] border border-cyan-500/10 rounded-lg p-2.5 hover:bg-cyan-500/[0.07] hover:border-cyan-400/20 hover:shadow-[0_0_18px_rgba(0,120,255,0.08)] transition-all cursor-pointer">
+    <div
+      onClick={onClick}
+      className={`border rounded-lg p-2.5 transition-all cursor-pointer ${
+        selected
+          ? "bg-purple-500/[0.08] border-purple-400/30 shadow-[0_0_20px_rgba(136,0,204,0.12)]"
+          : "bg-cyan-500/[0.03] border-cyan-500/10 hover:bg-cyan-500/[0.07] hover:border-cyan-400/20 hover:shadow-[0_0_18px_rgba(0,120,255,0.08)]"
+      }`}>
       <div className="flex items-center justify-between mb-1">
         <span className="font-['Rajdhani',sans-serif] text-[13px] font-semibold tracking-wide truncate">{agent.name}</span>
         <span className={`font-mono text-[9px] px-1.5 py-0.5 rounded ${sc.bg} ${sc.color} ${sc.border} border tracking-wider shrink-0`}>
@@ -118,6 +128,114 @@ function LogEntry({ type, text, time }: { type: string; text: string; time: stri
   );
 }
 
+// ── Agent Detail Panel ──
+type AgentTab = "config" | "prompt" | "sessions";
+
+function AgentPanel({ agent, onClose }: { agent: Agent; onClose: () => void }) {
+  const [tab, setTab] = useState<AgentTab>("config");
+  const { prompt, isLoading: promptLoading } = useAgentPrompt(agent.id);
+  const { history } = usePromptHistory(agent.id);
+  const { sessions } = useSessions(agent.id);
+
+  const tabs: { id: AgentTab; label: string; icon: typeof Settings }[] = [
+    { id: "config", label: "Config", icon: Settings },
+    { id: "prompt", label: "Prompt", icon: FileText },
+    { id: "sessions", label: "Sessions", icon: MessageSquare },
+  ];
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="flex items-center justify-between px-3 py-2 border-b border-cyan-500/15">
+        <span className="font-['Rajdhani',sans-serif] text-sm font-bold tracking-wide truncate">{agent.name}</span>
+        <button onClick={onClose} className="p-1 hover:bg-white/5 rounded transition-colors">
+          <X className="w-3.5 h-3.5 text-muted-foreground" />
+        </button>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex border-b border-white/5">
+        {tabs.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            className={`flex-1 flex items-center justify-center gap-1 py-2 font-mono text-[9px] tracking-wider transition-colors ${
+              tab === t.id ? "text-cyan-400 border-b border-cyan-400" : "text-muted-foreground/40 hover:text-muted-foreground/60"
+            }`}
+          >
+            <t.icon className="w-3 h-3" />
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto p-3">
+        {tab === "config" && (
+          <div className="space-y-2">
+            {[
+              ["ID", agent.id],
+              ["Provider", agent.llmProvider],
+              ["Model", agent.llmModel],
+              ["Max Tokens", String(agent.maxTokens)],
+              ["Max Output", String(agent.maxOutputTokens || "—")],
+              ["Tool Steps", String(agent.maxToolSteps)],
+              ["Teams", agent.teams.join(", ") || "—"],
+            ].map(([label, value]) => (
+              <div key={label} className="flex justify-between">
+                <span className="font-mono text-[9px] text-muted-foreground/50">{label}</span>
+                <span className="font-mono text-[9px] text-cyan-400/80 text-right truncate ml-2 max-w-[60%]">{value}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {tab === "prompt" && (
+          <div className="space-y-2">
+            {promptLoading ? (
+              <div className="text-center py-4 text-muted-foreground/30 text-xs animate-pulse">Loading...</div>
+            ) : (
+              <>
+                <div className="font-mono text-[9px] text-foreground/60 leading-relaxed whitespace-pre-wrap bg-black/20 rounded-lg p-2 max-h-60 overflow-y-auto">
+                  {prompt ? prompt.substring(0, 2000) : "No prompt configured"}
+                  {prompt && prompt.length > 2000 && <span className="text-muted-foreground/30">... ({prompt.length} chars total)</span>}
+                </div>
+                {history.length > 0 && (
+                  <div>
+                    <div className="font-mono text-[8px] text-muted-foreground/40 uppercase tracking-wider mb-1">History ({history.length})</div>
+                    {history.slice(0, 5).map((h, i) => (
+                      <div key={i} className="font-mono text-[8px] text-muted-foreground/30 py-0.5">
+                        v{h.version} · {h.changeType} · {h.description.substring(0, 40)}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {tab === "sessions" && (
+          <div className="space-y-1.5">
+            {(sessions as Session[]).length > 0 ? (
+              (sessions as Session[]).slice(0, 10).map((s: Session) => (
+                <div key={s.id} className="bg-black/20 rounded-md p-1.5">
+                  <div className="font-mono text-[8px] text-foreground/50 truncate">{s.id.substring(0, 20)}...</div>
+                  <div className="font-mono text-[8px] text-muted-foreground/30">
+                    {s.messageCount || 0} msgs · {s.createdAt ? new Date(s.createdAt).toLocaleDateString() : "—"}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-4 text-muted-foreground/30 text-xs">No sessions</div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ══════════════════════════════════════════════
 // MAIN HOME PAGE
 // ══════════════════════════════════════════════
@@ -127,6 +245,8 @@ export default function HomePage() {
   const executionHistory = useOrchestrationStore((s) => s.executionHistory);
   const activityEvents = useActivityStore((s) => s.events);
   const { agents, isLoading: agentsLoading } = useAgents();
+  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
+  const selectedAgent = agents.find((a) => a.id === selectedAgentId) || null;
 
   // Clock
   const [clock, setClock] = useState("");
@@ -171,7 +291,13 @@ export default function HomePage() {
         </div>
         {agentsLoading && <div className="text-center py-8 text-muted-foreground/30 text-xs animate-pulse">Loading agents...</div>}
         {agentsWithStats.map(({ agent, stats }) => (
-          <AgentCard key={agent.id} agent={agent} stats={stats || undefined} />
+          <AgentCard
+            key={agent.id}
+            agent={agent}
+            stats={stats || undefined}
+            selected={selectedAgentId === agent.id}
+            onClick={() => setSelectedAgentId(selectedAgentId === agent.id ? null : agent.id)}
+          />
         ))}
         {!agentsLoading && agents.length === 0 && (
           <div className="text-center py-8 text-muted-foreground/30 text-xs">No agents found</div>
@@ -207,22 +333,31 @@ export default function HomePage() {
           <MetricBox value={budget ? `$${Math.round(budget.remaining)}` : "—"} label="Remaining" color={budget && budget.remaining < 50 ? "red" : "green"} />
         </div>
 
-        {/* Center content — pipeline visualization placeholder */}
-        <div className="flex-1 bg-black/10 border border-white/5 rounded-lg flex items-center justify-center relative overflow-hidden">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_40%,rgba(0,120,255,0.04),transparent_70%)]" />
-          <div className="text-center z-10">
-            <div className="font-['Rajdhani',sans-serif] text-4xl font-bold tracking-tight text-foreground/20">
-              Mission Control
-            </div>
-            <div className="font-mono text-[10px] tracking-[4px] uppercase text-cyan-400/40 mt-1">
-              AI Software Factory · {versionData?.version || "v0.1.0"}
-            </div>
-            {activeProjectId && (
-              <div className="mt-3 font-mono text-[11px] text-purple-400/60 tracking-wider">
-                Active: {activeProjectId}
+        {/* Center content — agent panel or pipeline visualization */}
+        <div className="flex-1 bg-black/10 border border-white/5 rounded-lg relative overflow-hidden">
+          {selectedAgent ? (
+            <AgentPanel agent={selectedAgent} onClose={() => setSelectedAgentId(null)} />
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_40%,rgba(0,120,255,0.04),transparent_70%)]" />
+              <div className="text-center z-10">
+                <div className="font-['Rajdhani',sans-serif] text-4xl font-bold tracking-tight text-foreground/20">
+                  Mission Control
+                </div>
+                <div className="font-mono text-[10px] tracking-[4px] uppercase text-cyan-400/40 mt-1">
+                  AI Software Factory · {versionData?.version || "v0.1.0"}
+                </div>
+                {activeProjectId && (
+                  <div className="mt-3 font-mono text-[11px] text-purple-400/60 tracking-wider">
+                    Active: {activeProjectId}
+                  </div>
+                )}
+                <div className="mt-4 font-mono text-[9px] text-muted-foreground/25">
+                  Click an agent to view details
+                </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Bottom status bar */}
