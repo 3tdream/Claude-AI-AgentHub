@@ -205,14 +205,18 @@ function simulateStage(
     probability = stats.successRate;
   }
 
-  // Factor 2: KB failure pattern penalty (calibrated: was -8/-4, too aggressive)
-  const criticalFailures = matchingFailures.filter((f) => f.severity === "critical").length;
-  const highFailures = matchingFailures.filter((f) => f.severity === "high").length;
-  probability -= criticalFailures * 5;
-  probability -= highFailures * 3;
+  // Factor 2: KB failure pattern penalty (weighted by confidence)
+  for (const f of matchingFailures) {
+    const confidence = f.confidence ?? 1.0;
+    const penalty = f.severity === "critical" ? 5 : f.severity === "high" ? 3 : 1;
+    probability -= penalty * confidence;
+  }
 
-  // Factor 3: KB success pattern bonus (calibrated: was +3, too weak)
-  probability += matchingSuccesses.length * 5;
+  // Factor 3: KB success pattern bonus (weighted by confidence)
+  for (const s of matchingSuccesses) {
+    const confidence = s.confidence ?? 1.0;
+    probability += 5 * confidence;
+  }
 
   // Factor 4: Complexity penalty
   if (inputComplexity.complexityScore === "complex") probability -= 5;
@@ -245,8 +249,9 @@ function simulateStage(
   if (probability < 50) {
     recommendations.push(`Consider splitting ${step.agentName} work into smaller chunks`);
   }
-  if (criticalFailures > 0) {
-    recommendations.push(`${criticalFailures} critical KB patterns active — review before run`);
+  const criticalFailureCount = matchingFailures.filter((f) => f.severity === "critical").length;
+  if (criticalFailureCount > 0) {
+    recommendations.push(`${criticalFailureCount} critical KB patterns active — review before run`);
   }
   if (stats && stats.avgTokens > 50000) {
     recommendations.push(`High token usage (avg ${Math.round(stats.avgTokens / 1000)}K) — truncation risk`);

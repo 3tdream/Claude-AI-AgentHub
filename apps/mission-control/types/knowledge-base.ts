@@ -29,6 +29,12 @@ export interface KBEntry {
   pipelineRunId?: string;
   /** Version counter — incremented on each update */
   version: number;
+  /** Confidence weight 0-1 (1 = verified, decays over time if unconfirmed) */
+  confidence?: number;
+  /** ISO timestamp of last confirmation (pipeline pass that validated this pattern) */
+  lastConfirmedAt?: string;
+  /** How many times this pattern was confirmed by pipeline runs */
+  confirmCount?: number;
 }
 
 export interface KBFile {

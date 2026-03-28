@@ -383,6 +383,46 @@ export async function runNightlyEvolution(windowHours: number = 168): Promise<Ev
     } catch { /* skip write errors */ }
   }
 
+  // KB Confidence Decay — reduce weight of unconfirmed patterns
+  let decayedCount = 0;
+  try {
+    const { getAllCategories, readKBFile, writeKBFile } = await import("@/lib/kb-storage");
+    const categories = await getAllCategories();
+    const now = Date.now();
+    const DECAY_THRESHOLD_DAYS = 30; // Start decaying after 30 days unconfirmed
+    const DECAY_RATE = 0.05; // -5% per evolution cycle
+    const MIN_CONFIDENCE = 0.2; // Don't decay below 20%
+
+    for (const cat of categories) {
+      const file = await readKBFile(cat);
+      if (!file) continue;
+      let modified = false;
+
+      for (const entry of file.entries) {
+        // Initialize confidence if missing
+        if (entry.confidence === undefined) {
+          entry.confidence = 1.0;
+          entry.confirmCount = entry.confirmCount || 0;
+          modified = true;
+        }
+
+        // Decay if not confirmed recently
+        const lastConfirmed = entry.lastConfirmedAt ? new Date(entry.lastConfirmedAt).getTime() : new Date(entry.createdAt).getTime();
+        const daysSinceConfirm = (now - lastConfirmed) / (1000 * 60 * 60 * 24);
+
+        if (daysSinceConfirm > DECAY_THRESHOLD_DAYS && entry.confidence > MIN_CONFIDENCE) {
+          entry.confidence = Math.max(MIN_CONFIDENCE, entry.confidence - DECAY_RATE);
+          decayedCount++;
+          modified = true;
+        }
+      }
+
+      if (modified) {
+        await writeKBFile(cat, file.description, file.entries);
+      }
+    }
+  } catch { /* KB decay non-blocking */ }
+
   // Calibrate simulation
   const calibration = calibrateSimulation(recentRuns);
 
@@ -407,6 +447,7 @@ export async function runNightlyEvolution(windowHours: number = 168): Promise<Ev
   if (degradationAlerts.filter((a) => a.trend === "improving").length > 0) {
     summaryParts.push(`${degradationAlerts.filter((a) => a.trend === "improving").length} agents improving.`);
   }
+  if (decayedCount > 0) summaryParts.push(`${decayedCount} KB entries decayed.`);
   summaryParts.push(`Simulation calibration error: ${calibration.calibrationError}%.`);
   summaryParts.push(`System health: ${healthScore}/100.`);
 
