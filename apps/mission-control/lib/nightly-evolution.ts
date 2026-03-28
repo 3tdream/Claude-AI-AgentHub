@@ -308,16 +308,29 @@ function detectDegradation(allRuns: PipelineRun[]): DegradationAlert[] {
 // ── Simulation Calibration ───────────────────────────
 
 function calibrateSimulation(runs: PipelineRun[]): SimulationCalibration {
-  // We don't have stored simulation predictions per run yet,
-  // so calibrate based on overall accuracy
   const completed = runs.filter((r) => r.status === "completed").length;
   const failed = runs.filter((r) => r.status === "failed").length;
-  const total = completed + failed; // Exclude paused (no verdict yet)
+  const total = completed + failed;
 
   const actualSuccessRate = total > 0 ? Math.round((completed / total) * 100) : 0;
 
-  // The simulation predicts ~44% for complex CRM tasks — compare with actual
-  const avgPredicted = 44; // Current baseline from simulation
+  // Calculate predicted from agent stats (same formula as simulation)
+  const agentSuccessRates = Object.values(
+    runs.reduce((acc, r) => {
+      for (const a of r.agents || []) {
+        if (!acc[a.agentId]) acc[a.agentId] = { pass: 0, total: 0 };
+        acc[a.agentId].total++;
+        if (a.status === "completed") acc[a.agentId].pass++;
+      }
+      return acc;
+    }, {} as Record<string, { pass: number; total: number }>),
+  );
+
+  const avgAgentSuccess = agentSuccessRates.length > 0
+    ? Math.round(agentSuccessRates.reduce((s, a) => s + (a.total > 0 ? a.pass / a.total * 100 : 50), 0) / agentSuccessRates.length)
+    : 50;
+
+  const avgPredicted = avgAgentSuccess;
   const error = Math.abs(avgPredicted - actualSuccessRate);
 
   let recommendation: string;

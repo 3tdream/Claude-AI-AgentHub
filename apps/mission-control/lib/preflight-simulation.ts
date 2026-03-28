@@ -205,14 +205,14 @@ function simulateStage(
     probability = stats.successRate;
   }
 
-  // Factor 2: KB failure pattern penalty
+  // Factor 2: KB failure pattern penalty (calibrated: was -8/-4, too aggressive)
   const criticalFailures = matchingFailures.filter((f) => f.severity === "critical").length;
   const highFailures = matchingFailures.filter((f) => f.severity === "high").length;
-  probability -= criticalFailures * 8; // Each critical pattern = -8%
-  probability -= highFailures * 4;     // Each high pattern = -4%
+  probability -= criticalFailures * 5;
+  probability -= highFailures * 3;
 
-  // Factor 3: KB success pattern bonus
-  probability += matchingSuccesses.length * 3; // Each success pattern = +3%
+  // Factor 3: KB success pattern bonus (calibrated: was +3, too weak)
+  probability += matchingSuccesses.length * 5;
 
   // Factor 4: Complexity penalty
   if (inputComplexity.complexityScore === "complex") probability -= 5;

@@ -3,6 +3,7 @@ import { callAI, callAIWithTools } from "@/lib/direct-ai-client";
 import { loadAgentPrompt } from "@/lib/agent-prompt-loader";
 import { AGENT_TOOLS, READ_ONLY_TOOLS, QA_TOOLS, executeTool } from "@/lib/agent-tools";
 import { addLog } from "@/lib/logs-storage";
+import { searchKB } from "@/lib/kb-storage";
 
 /**
  * POST /api/ai/execute — Direct AI execution
@@ -28,8 +29,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const systemPrompt =
+    let systemPrompt =
       systemPromptOverride || (await loadAgentPrompt(agentId));
+
+    // --- KB context injection (prevents "sandbox" bypass) ---
+    try {
+      const keywords = userInput.split(/\s+/).slice(0, 5).join(" ");
+      const kbResults = await searchKB(keywords);
+      if (kbResults.length > 0) {
+        const kbBlock = kbResults.slice(0, 5).map((e) =>
+          `- [${e.severity}] ${e.title}: ${e.content.substring(0, 100)}`
+        ).join("\n");
+        systemPrompt += `\n\n## KB Context (mandatory — do not ignore):\n${kbBlock}`;
+      }
+    } catch { /* KB unavailable — proceed without */ }
+
+    // --- Execution logging ---
+    addLog({
+      type: "decision",
+      agentId,
+      content: `[execute] ${agentId} | ${useTools ? "tools" : "standard"} | "${userInput.substring(0, 60)}"`,
+    }).catch(() => {});
 
     // --- Tool-use mode ---
     if (useTools) {
