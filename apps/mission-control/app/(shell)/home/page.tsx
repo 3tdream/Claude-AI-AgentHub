@@ -29,10 +29,16 @@ const agentIcons: Record<string, string> = {
   "research-agent": "\u{1F52C}",
   "michael-personal-bot": "\u{1F4AC}",
   assistant: "\u{1F916}",
+  "email": "\u{1F4E7}",
+  "calendar": "\u{1F4E7}",
+  "tech-support": "\u{1F527}",
+  "herald": "\u{1F5BC}\uFE0F",
+  "profile": "\u{1F4DD}",
+  "avatar": "\u{1F5BC}\uFE0F",
 };
 
-function getAgentIcon(agentId: string): string {
-  const key = agentId.toLowerCase().replace(/\s+/g, "-");
+function getAgentIcon(name: string): string {
+  const key = name.toLowerCase().replace(/\s+/g, "-");
   if (agentIcons[key]) return agentIcons[key];
   for (const [k, v] of Object.entries(agentIcons)) {
     if (key.includes(k) || k.includes(key)) return v;
@@ -106,7 +112,7 @@ function AgentCard({ agent, stats, selected, onClick }: {
   const sc = statusConfig[status];
   const barColor = successRate >= 70 ? "bg-emerald-500" : successRate >= 40 ? "bg-amber-500" : "bg-red-500";
   const prov = providerColors[agent.llmProvider] || providerColors.anthropic;
-  const icon = getAgentIcon(agent.id);
+  const icon = getAgentIcon(agent.name);
   const teamName = agent.teams[0] || "\u2014";
 
   return (
@@ -487,7 +493,7 @@ type AgentTab = "config" | "prompt" | "sessions";
 
 function AgentPanel({ agent, onClose, onAgentUpdated }: { agent: Agent; onClose: () => void; onAgentUpdated: () => void }) {
   const [tab, setTab] = useState<AgentTab>("config");
-  const icon = getAgentIcon(agent.id);
+  const icon = getAgentIcon(agent.name);
 
   const tabs: { id: AgentTab; label: string; icon: typeof Settings }[] = [
     { id: "config", label: "Config", icon: Settings },
@@ -564,9 +570,9 @@ export default function HomePage() {
   const { data: versionData } = useSWR("/api/system/version", fetcher, { revalidateOnFocus: false });
 
   const health = healthData;
-  const agentStats = agentsData?.data || {};
+  const agentStats = agentsData?.data || agentsData?.agentStats || {};
   const kbIndex = kbData;
-  const stats = statsData?.data;
+  const stats = statsData?.data || statsData;
   const budget = costsData?.data?.budget;
 
   // Merge real agent data with performance stats
