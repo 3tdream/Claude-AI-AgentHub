@@ -11,7 +11,7 @@ import { useModels } from "@/lib/hooks/use-models";
 import { useSessions } from "@/lib/hooks/use-sessions";
 import { toast } from "sonner";
 import type { Agent, Session, LLMProvider } from "@/types";
-import { Settings, FileText, MessageSquare, X, Save, RotateCcw, ExternalLink, Plus, GripVertical, Pencil, ChevronUp, ChevronDown, PanelLeftClose, PanelLeft } from "lucide-react";
+import { Settings, FileText, MessageSquare, X, Save, RotateCcw, ExternalLink, Plus, GripVertical, Pencil, ChevronUp, ChevronDown, PanelLeftClose, PanelLeft, Activity, Layers } from "lucide-react";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -51,16 +51,17 @@ const PROVIDERS: LLMProvider[] = ["anthropic", "openai", "google", "openrouter"]
 // ── Status pill component ──
 function StatusPill({ color, label }: { color: string; label: string }) {
   const dotColors: Record<string, string> = {
-    green: "bg-emerald-500 shadow-[0_0_8px_rgba(0,255,136,0.6)]",
-    cyan: "bg-cyan-400 shadow-[0_0_8px_rgba(0,245,255,0.6)]",
-    amber: "bg-amber-500 shadow-[0_0_8px_rgba(255,170,0,0.6)]",
-    red: "bg-red-500 shadow-[0_0_8px_rgba(255,51,85,0.6)]",
+    green: "bg-emerald-500",
+    blue: "bg-indigo-500",
+    amber: "bg-amber-500",
+    red: "bg-rose-500",
+    gray: "bg-slate-400",
   };
 
   return (
     <div className="flex items-center gap-1.5">
-      <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${dotColors[color] || dotColors.cyan}`} />
-      <span className="font-mono text-[9px] tracking-[2px] uppercase text-muted-foreground">{label}</span>
+      <div className={`w-1.5 h-1.5 rounded-full ${dotColors[color] || dotColors.gray}`} />
+      <span className="font-mono text-[10px] tracking-wide text-slate-500">{label}</span>
     </div>
   );
 }
@@ -68,29 +69,30 @@ function StatusPill({ color, label }: { color: string; label: string }) {
 // ── Metric box ──
 function MetricBox({ value, label, color = "" }: { value: string; label: string; color?: string }) {
   const colorClasses: Record<string, string> = {
-    cyan: "text-cyan-400",
-    purple: "text-purple-400",
-    amber: "text-amber-400",
-    green: "text-emerald-400",
-    red: "text-red-400",
+    indigo: "text-indigo-600",
+    purple: "text-violet-600",
+    amber: "text-amber-600",
+    green: "text-emerald-600",
+    red: "text-rose-600",
+    blue: "text-blue-600",
   };
 
   return (
-    <div className="bg-black/30 border border-white/5 rounded-lg p-3 text-center">
-      <div className={`font-['Rajdhani',sans-serif] text-2xl font-bold leading-none ${colorClasses[color] || "text-foreground"}`}>
+    <div className="bg-white border border-slate-200 rounded-xl p-4 text-center hover:shadow-sm transition-shadow">
+      <div className={`font-mono text-2xl font-bold leading-none ${colorClasses[color] || "text-slate-900"}`}>
         {value}
       </div>
-      <div className="font-mono text-[8px] tracking-[2px] uppercase text-muted-foreground/60 mt-1">{label}</div>
+      <div className="font-mono text-[10px] tracking-wide uppercase text-slate-400 mt-1.5">{label}</div>
     </div>
   );
 }
 
 // ── Provider badge colors ──
 const providerColors: Record<string, string> = {
-  anthropic: "text-orange-400 bg-orange-500/10 border-orange-500/20",
-  openai: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
-  google: "text-blue-400 bg-blue-500/10 border-blue-500/20",
-  openrouter: "text-purple-400 bg-purple-500/10 border-purple-500/20",
+  anthropic: "text-orange-700 bg-orange-50 border-orange-200",
+  openai: "text-emerald-700 bg-emerald-50 border-emerald-200",
+  google: "text-blue-700 bg-blue-50 border-blue-200",
+  openrouter: "text-violet-700 bg-violet-50 border-violet-200",
 };
 
 // ── Agent card ──
@@ -103,14 +105,14 @@ function AgentCard({ agent, stats, selected, onClick }: {
   const successRate = stats?.successRate ?? 0;
   const status = stats ? (successRate > 70 ? "active" : successRate > 40 ? "busy" : "idle") : "idle";
 
-  const statusConfig: Record<string, { color: string; bg: string; border: string }> = {
-    active: { color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/30" },
-    busy: { color: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/30" },
-    idle: { color: "text-muted-foreground", bg: "bg-muted/30", border: "border-border" },
+  const statusConfig: Record<string, { color: string; bg: string }> = {
+    active: { color: "text-emerald-700", bg: "bg-emerald-50" },
+    busy: { color: "text-amber-700", bg: "bg-amber-50" },
+    idle: { color: "text-slate-500", bg: "bg-slate-100" },
   };
 
   const sc = statusConfig[status];
-  const barColor = successRate >= 70 ? "bg-emerald-500" : successRate >= 40 ? "bg-amber-500" : "bg-red-500";
+  const barColor = successRate >= 70 ? "bg-emerald-500" : successRate >= 40 ? "bg-amber-500" : "bg-rose-400";
   const prov = providerColors[agent.llmProvider] || providerColors.anthropic;
   const icon = getAgentIcon(agent.name);
   const teamName = agent.teams[0] || "\u2014";
@@ -118,33 +120,33 @@ function AgentCard({ agent, stats, selected, onClick }: {
   return (
     <div
       onClick={onClick}
-      className={`border rounded-lg p-2.5 transition-all cursor-pointer overflow-hidden min-w-0 ${
+      className={`border rounded-lg p-3 transition-all cursor-pointer overflow-hidden min-w-0 ${
         selected
-          ? "bg-purple-500/[0.08] border-purple-400/30 shadow-[0_0_20px_rgba(136,0,204,0.12)]"
-          : "bg-cyan-500/[0.03] border-cyan-500/10 hover:bg-cyan-500/[0.07] hover:border-cyan-400/20 hover:shadow-[0_0_18px_rgba(0,120,255,0.08)]"
+          ? "bg-indigo-50 border-indigo-300 shadow-sm"
+          : "bg-white border-slate-200 hover:bg-slate-50 hover:border-slate-300 hover:shadow-sm"
       }`}>
-      <div className="flex items-center justify-between mb-1">
-        <div className="flex items-center gap-1.5 min-w-0">
+      <div className="flex items-center justify-between mb-1.5">
+        <div className="flex items-center gap-2 min-w-0">
           <span className="text-sm shrink-0" title={agent.id}>{icon}</span>
-          <span className="font-['Rajdhani',sans-serif] text-[13px] font-semibold tracking-wide truncate">{agent.name}</span>
+          <span className="text-[13px] font-semibold text-slate-900 tracking-tight truncate">{agent.name}</span>
         </div>
-        <span className={`font-mono text-[9px] px-1.5 py-0.5 rounded ${sc.bg} ${sc.color} ${sc.border} border tracking-wider shrink-0`}>
-          {status.toUpperCase()}
+        <span className={`font-mono text-[9px] px-1.5 py-0.5 rounded-full ${sc.bg} ${sc.color} font-medium tracking-wide uppercase shrink-0`}>
+          {status}
         </span>
       </div>
-      <div className="flex items-center gap-1.5 mb-1.5">
-        <span className={`font-mono text-[8px] px-1 py-0.5 rounded border ${prov}`}>{agent.llmProvider}</span>
-        <span className="font-mono text-[8px] text-muted-foreground/40 truncate">{agent.llmModel}</span>
-        <span className="font-mono text-[8px] text-purple-400/50 ml-auto shrink-0">{teamName}</span>
+      <div className="flex items-center gap-1.5 mb-2">
+        <span className={`font-mono text-[9px] px-1.5 py-0.5 rounded-full border ${prov}`}>{agent.llmProvider}</span>
+        <span className="font-mono text-[9px] text-slate-400 truncate">{agent.llmModel}</span>
+        <span className="font-mono text-[9px] text-violet-500 ml-auto shrink-0">{teamName}</span>
       </div>
-      <div className="h-[3px] bg-white/[0.06] rounded-full overflow-hidden">
-        <div className={`h-full rounded-full ${barColor} animate-pulse`} style={{ width: `${successRate}%` }} />
+      <div className="h-1 bg-slate-100 rounded-full overflow-hidden">
+        <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${successRate}%` }} />
       </div>
-      <div className="flex items-center justify-between mt-1">
-        <span className="font-mono text-[9px] text-muted-foreground/50">
+      <div className="flex items-center justify-between mt-1.5">
+        <span className="font-mono text-[10px] text-slate-500">
           {stats ? `${stats.runs} runs \u00B7 ${stats.avgScore.toFixed(1)} avg` : "No runs yet"}
         </span>
-        <span className="font-mono text-[9px] text-muted-foreground/40">
+        <span className="font-mono text-[10px] font-medium text-slate-600">
           {stats ? `${Math.round(successRate)}%` : "\u2014"}
         </span>
       </div>
@@ -155,17 +157,17 @@ function AgentCard({ agent, stats, selected, onClick }: {
 // ── Activity entry ──
 function LogEntry({ type, text, time }: { type: string; text: string; time: string }) {
   const colors: Record<string, string> = {
-    kb_read: "border-l-purple-400 text-purple-400/80",
-    contract_validate: "border-l-emerald-400 text-emerald-400/80",
-    simulation: "border-l-amber-400 text-amber-400/80",
-    routing: "border-l-cyan-400 text-cyan-400/80",
-    agent: "border-l-blue-400 text-blue-400/80",
-    system: "border-l-muted-foreground text-muted-foreground/60",
+    kb_read: "border-l-violet-400",
+    contract_validate: "border-l-emerald-400",
+    simulation: "border-l-amber-400",
+    routing: "border-l-indigo-400",
+    agent: "border-l-blue-400",
+    system: "border-l-slate-300",
   };
 
   return (
-    <div className={`font-mono text-[9px] py-1 px-2 border-l-2 leading-relaxed animate-in fade-in slide-in-from-top-1 ${colors[type] || colors.system}`}>
-      <span className="text-muted-foreground/40 mr-1.5">{time}</span>{text}
+    <div className={`font-mono text-[10px] py-1.5 px-2.5 border-l-2 leading-relaxed text-slate-600 ${colors[type] || colors.system}`}>
+      <span className="text-slate-400 mr-1.5">{time}</span>{text}
     </div>
   );
 }
@@ -219,15 +221,15 @@ function ConfigTab({ agent, onSaved }: { agent: Agent; onSaved: () => void }) {
     }
   };
 
-  const inputCls = "w-full bg-black/30 border border-cyan-500/20 rounded px-2 py-1 font-mono text-xs text-cyan-400 focus:outline-none focus:border-cyan-400/50 transition-colors";
-  const labelCls = "font-mono text-[9px] text-muted-foreground/50 uppercase tracking-wider";
+  const inputCls = "w-full bg-white border border-slate-200 rounded-lg px-3 py-2 font-mono text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition-colors";
+  const labelCls = "text-xs text-slate-500 uppercase tracking-wide font-medium mb-1";
 
   return (
-    <div className="space-y-2.5">
+    <div className="space-y-4">
       {/* ID — read-only */}
       <div>
         <div className={labelCls}>ID</div>
-        <div className="font-mono text-[9px] text-cyan-400/50 mt-0.5">{agent.id}</div>
+        <div className="font-mono text-xs text-slate-400 mt-0.5">{agent.id}</div>
       </div>
 
       {/* Name */}
@@ -240,7 +242,7 @@ function ConfigTab({ agent, onSaved }: { agent: Agent; onSaved: () => void }) {
       <div>
         <div className={labelCls}>Description</div>
         <textarea
-          className={`${inputCls} resize-none h-14`}
+          className={`${inputCls} resize-none h-16`}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Agent description..."
@@ -256,7 +258,7 @@ function ConfigTab({ agent, onSaved }: { agent: Agent; onSaved: () => void }) {
           onChange={(e) => { setProvider(e.target.value as LLMProvider); setModel(""); }}
         >
           {PROVIDERS.map((p) => (
-            <option key={p} value={p} className="bg-black text-cyan-400">{p}</option>
+            <option key={p} value={p}>{p}</option>
           ))}
         </select>
       </div>
@@ -270,10 +272,10 @@ function ConfigTab({ agent, onSaved }: { agent: Agent; onSaved: () => void }) {
           onChange={(e) => setModel(e.target.value)}
         >
           {model && !models.find((m) => m.id === model) && (
-            <option value={model} className="bg-black text-cyan-400">{model}</option>
+            <option value={model}>{model}</option>
           )}
           {models.map((m) => (
-            <option key={m.id} value={m.id} className="bg-black text-cyan-400">{m.name || m.id}</option>
+            <option key={m.id} value={m.id}>{m.name || m.id}</option>
           ))}
         </select>
       </div>
@@ -314,16 +316,16 @@ function ConfigTab({ agent, onSaved }: { agent: Agent; onSaved: () => void }) {
       {/* Teams — read-only */}
       <div>
         <div className={labelCls}>Teams</div>
-        <div className="font-mono text-[9px] text-purple-400/60 mt-0.5">{agent.teams.join(", ") || "\u2014"}</div>
+        <div className="font-mono text-xs text-violet-600 mt-0.5">{agent.teams.join(", ") || "\u2014"}</div>
       </div>
 
       {/* Save */}
       <button
         onClick={handleSave}
         disabled={saving}
-        className="w-full flex items-center justify-center gap-1.5 py-1.5 border border-emerald-500/30 rounded text-emerald-400 font-mono text-[10px] tracking-wider uppercase hover:bg-emerald-500/10 hover:border-emerald-400/50 transition-all disabled:opacity-40"
+        className="w-full flex items-center justify-center gap-2 py-2.5 bg-indigo-600 text-white rounded-lg font-medium text-sm hover:bg-indigo-700 transition-colors disabled:opacity-40"
       >
-        <Save className="w-3 h-3" />
+        <Save className="w-4 h-4" />
         {saving ? "Saving..." : "Save Config"}
       </button>
     </div>
@@ -370,7 +372,6 @@ function PromptTab({ agent }: { agent: Agent }) {
   };
 
   const handleRestore = async (version: { preview: string }) => {
-    // Restore by setting the prompt to that version's content
     setSaving(true);
     try {
       const res = await updateAgentPrompt(agent.id, version.preview);
@@ -391,48 +392,48 @@ function PromptTab({ agent }: { agent: Agent }) {
   const isDirty = editedPrompt !== (prompt || "");
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {promptLoading ? (
-        <div className="text-center py-4 text-muted-foreground/30 text-xs animate-pulse">Loading...</div>
+        <div className="text-center py-6 text-slate-400 text-sm">Loading...</div>
       ) : (
         <>
           <textarea
-            className="w-full bg-black/30 border border-cyan-500/20 rounded p-2 font-mono text-[10px] text-foreground/60 leading-relaxed focus:outline-none focus:border-cyan-400/50 transition-colors resize-none"
+            className="w-full bg-white border border-slate-200 rounded-lg p-3 font-mono text-xs text-slate-700 leading-relaxed focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition-colors resize-none"
             style={{ minHeight: "200px" }}
             value={editedPrompt}
             onChange={(e) => setEditedPrompt(e.target.value)}
             placeholder="Agent system prompt..."
           />
           <div className="flex items-center justify-between">
-            <span className="font-mono text-[8px] text-muted-foreground/30">
+            <span className="font-mono text-xs text-slate-400">
               {editedPrompt.length} chars{isDirty ? " \u00B7 unsaved" : ""}
             </span>
             <button
               onClick={handleSave}
               disabled={saving || !isDirty}
-              className="flex items-center gap-1 px-2 py-1 border border-emerald-500/30 rounded text-emerald-400 font-mono text-[9px] tracking-wider uppercase hover:bg-emerald-500/10 hover:border-emerald-400/50 transition-all disabled:opacity-30"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-medium hover:bg-indigo-700 transition-colors disabled:opacity-30"
             >
-              <Save className="w-3 h-3" />
+              <Save className="w-3.5 h-3.5" />
               {saving ? "Saving..." : "Save Prompt"}
             </button>
           </div>
 
           {/* Version history */}
           {history.length > 0 && (
-            <div>
-              <div className="font-mono text-[8px] text-muted-foreground/40 uppercase tracking-wider mb-1">History ({history.length})</div>
+            <div className="pt-2 border-t border-slate-100">
+              <div className="text-xs text-slate-500 uppercase tracking-wide font-medium mb-2">History ({history.length})</div>
               {history.slice(0, 5).map((h, i) => (
-                <div key={i} className="flex items-center justify-between py-0.5 group">
-                  <div className="font-mono text-[8px] text-muted-foreground/30">
+                <div key={i} className="flex items-center justify-between py-1 group">
+                  <div className="font-mono text-xs text-slate-400">
                     v{h.version} \u00B7 {h.changeType} \u00B7 {h.description.substring(0, 30)}
                   </div>
                   <button
                     onClick={() => handleRestore(h)}
                     disabled={saving}
-                    className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 px-1 py-0.5 text-amber-400/60 hover:text-amber-400 font-mono text-[7px] uppercase tracking-wider transition-all"
+                    className="opacity-0 group-hover:opacity-100 flex items-center gap-1 px-2 py-0.5 text-amber-600 hover:text-amber-700 hover:bg-amber-50 rounded text-xs font-medium transition-all"
                     title="Restore this version"
                   >
-                    <RotateCcw className="w-2.5 h-2.5" />
+                    <RotateCcw className="w-3 h-3" />
                     Restore
                   </button>
                 </div>
@@ -450,31 +451,31 @@ function SessionsTab({ agent }: { agent: Agent }) {
   const { sessions } = useSessions(agent.id);
 
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-2">
       {(sessions as Session[]).length > 0 ? (
         (sessions as Session[]).slice(0, 10).map((s: Session) => {
           const lastDate = s.updatedAt || s.createdAt;
           return (
-            <div key={s.id} className="bg-black/20 rounded-md p-2 group hover:bg-black/30 transition-colors">
+            <div key={s.id} className="bg-slate-50 rounded-lg p-3 group hover:bg-slate-100 transition-colors">
               <div className="flex items-center justify-between">
-                <div className="font-mono text-[9px] text-foreground/50 truncate">{s.id.substring(0, 20)}...</div>
-                <span className={`font-mono text-[7px] px-1 py-0.5 rounded tracking-wider uppercase ${
-                  s.status === "active" ? "text-emerald-400 bg-emerald-500/10" : "text-muted-foreground/40 bg-white/5"
+                <div className="font-mono text-xs text-slate-600 truncate">{s.id.substring(0, 20)}...</div>
+                <span className={`font-mono text-[10px] px-2 py-0.5 rounded-full font-medium tracking-wide uppercase ${
+                  s.status === "active" ? "text-emerald-700 bg-emerald-50" : "text-slate-500 bg-slate-100"
                 }`}>
                   {s.status}
                 </span>
               </div>
-              <div className="flex items-center justify-between mt-1">
-                <div className="font-mono text-[8px] text-muted-foreground/30">
+              <div className="flex items-center justify-between mt-1.5">
+                <div className="font-mono text-[11px] text-slate-400">
                   {s.messageCount || 0} msgs
                   {s.channel && <> \u00B7 {s.channel}</>}
                   {lastDate && <> \u00B7 {new Date(lastDate).toLocaleDateString()}</>}
                 </div>
                 <Link
                   href={`/chat?agent=${agent.id}`}
-                  className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 text-cyan-400/60 hover:text-cyan-400 font-mono text-[7px] uppercase tracking-wider transition-all"
+                  className="opacity-0 group-hover:opacity-100 flex items-center gap-1 text-indigo-600 hover:text-indigo-700 text-xs font-medium transition-all"
                 >
-                  <ExternalLink className="w-2.5 h-2.5" />
+                  <ExternalLink className="w-3 h-3" />
                   Chat
                 </Link>
               </div>
@@ -482,7 +483,7 @@ function SessionsTab({ agent }: { agent: Agent }) {
           );
         })
       ) : (
-        <div className="text-center py-4 text-muted-foreground/30 text-xs">No sessions</div>
+        <div className="text-center py-6 text-slate-400 text-sm">No sessions</div>
       )}
     </div>
   );
@@ -504,34 +505,36 @@ function AgentPanel({ agent, onClose, onAgentUpdated }: { agent: Agent; onClose:
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-cyan-500/15">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-base">{icon}</span>
-          <span className="font-['Rajdhani',sans-serif] text-sm font-bold tracking-wide truncate">{agent.name}</span>
+          <span className="text-sm font-semibold text-slate-900 tracking-tight truncate">{agent.name}</span>
         </div>
-        <button onClick={onClose} className="p-1 hover:bg-white/5 rounded transition-colors">
-          <X className="w-3.5 h-3.5 text-muted-foreground" />
+        <button onClick={onClose} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
+          <X className="w-4 h-4 text-slate-400" />
         </button>
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-white/5">
+      <div className="flex border-b border-slate-200">
         {tabs.map((t) => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
-            className={`flex-1 flex items-center justify-center gap-1 py-2 font-mono text-[9px] tracking-wider transition-colors ${
-              tab === t.id ? "text-cyan-400 border-b border-cyan-400" : "text-muted-foreground/40 hover:text-muted-foreground/60"
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium tracking-wide transition-colors ${
+              tab === t.id
+                ? "text-indigo-600 border-b-2 border-indigo-600"
+                : "text-slate-400 hover:text-slate-600"
             }`}
           >
-            <t.icon className="w-3 h-3" />
+            <t.icon className="w-3.5 h-3.5" />
             {t.label}
           </button>
         ))}
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-3">
+      <div className="flex-1 overflow-y-auto p-4">
         {tab === "config" && <ConfigTab agent={agent} onSaved={onAgentUpdated} />}
         {tab === "prompt" && <PromptTab agent={agent} />}
         {tab === "sessions" && <SessionsTab agent={agent} />}
@@ -569,49 +572,52 @@ function NewAgentPanel({ onClose, onCreated }: { onClose: () => void; onCreated:
     setSaving(false);
   };
 
+  const inputCls = "w-full bg-white border border-slate-200 rounded-lg px-3 py-2 font-mono text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition-colors";
+  const labelCls = "text-xs text-slate-500 uppercase tracking-wide font-medium mb-1";
+
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-3 py-2 border-b border-cyan-500/15">
-        <span className="font-['Rajdhani',sans-serif] text-sm font-bold tracking-wide text-emerald-400">+ New Agent</span>
-        <button onClick={onClose} className="p-1 hover:bg-white/5 rounded transition-colors">
-          <X className="w-3.5 h-3.5 text-muted-foreground" />
+      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
+        <span className="text-sm font-semibold text-indigo-600">+ New Agent</span>
+        <button onClick={onClose} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
+          <X className="w-4 h-4 text-slate-400" />
         </button>
       </div>
-      <div className="flex-1 overflow-y-auto p-3 space-y-3">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
         <div>
-          <div className="font-mono text-[9px] text-muted-foreground/50 uppercase tracking-wider mb-1">Name *</div>
+          <div className={labelCls}>Name *</div>
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. My-Custom-Agent"
-            className="w-full bg-black/30 border border-cyan-500/20 rounded px-2 py-1.5 font-mono text-xs text-cyan-400 focus:border-cyan-400 focus:outline-none" />
+            className={inputCls} />
         </div>
         <div>
-          <div className="font-mono text-[9px] text-muted-foreground/50 uppercase tracking-wider mb-1">Description</div>
+          <div className={labelCls}>Description</div>
           <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} placeholder="What does this agent do?"
-            className="w-full bg-black/30 border border-cyan-500/20 rounded px-2 py-1.5 font-mono text-xs text-cyan-400 focus:border-cyan-400 focus:outline-none resize-none" />
+            className={`${inputCls} resize-none`} />
         </div>
         <div>
-          <div className="font-mono text-[9px] text-muted-foreground/50 uppercase tracking-wider mb-1">Provider</div>
+          <div className={labelCls}>Provider</div>
           <select value={provider} onChange={(e) => { setProvider(e.target.value as LLMProvider); setModel(""); }}
-            className="w-full bg-black/30 border border-cyan-500/20 rounded px-2 py-1.5 font-mono text-xs text-cyan-400 focus:border-cyan-400 focus:outline-none">
+            className={inputCls}>
             {PROVIDERS.map((p) => <option key={p} value={p}>{p}</option>)}
           </select>
         </div>
         <div>
-          <div className="font-mono text-[9px] text-muted-foreground/50 uppercase tracking-wider mb-1">Model</div>
+          <div className={labelCls}>Model</div>
           <select value={model} onChange={(e) => setModel(e.target.value)}
-            className="w-full bg-black/30 border border-cyan-500/20 rounded px-2 py-1.5 font-mono text-xs text-cyan-400 focus:border-cyan-400 focus:outline-none">
+            className={inputCls}>
             {filteredModels.length > 0
               ? filteredModels.map((m: any) => <option key={m.id} value={m.id}>{m.name || m.id}</option>)
               : <option value={model}>{model}</option>}
           </select>
         </div>
         <div>
-          <div className="font-mono text-[9px] text-muted-foreground/50 uppercase tracking-wider mb-1">Max Tokens</div>
+          <div className={labelCls}>Max Tokens</div>
           <input type="number" value={maxTokens} onChange={(e) => setMaxTokens(Number(e.target.value))}
-            className="w-full bg-black/30 border border-cyan-500/20 rounded px-2 py-1.5 font-mono text-xs text-cyan-400 focus:border-cyan-400 focus:outline-none" />
+            className={inputCls} />
         </div>
         <button onClick={handleCreate} disabled={saving || !name.trim()}
-          className="w-full py-2 border border-emerald-500/30 rounded-lg text-emerald-400 font-mono text-[10px] tracking-wider hover:bg-emerald-500/10 transition-all disabled:opacity-30">
-          {saving ? "CREATING..." : "CREATE AGENT"}
+          className="w-full py-2.5 bg-indigo-600 text-white rounded-lg font-medium text-sm hover:bg-indigo-700 transition-colors disabled:opacity-30">
+          {saving ? "Creating..." : "Create Agent"}
         </button>
       </div>
     </div>
@@ -673,7 +679,6 @@ export default function HomePage() {
         const saved = localStorage.getItem("mc-agent-order");
         if (saved) {
           const parsed = JSON.parse(saved) as string[];
-          // Keep saved order, append any new agents at end
           const existing = new Set(parsed);
           const newIds = agents.map((a) => a.id).filter((id) => !existing.has(id));
           setAgentOrder([...parsed.filter((id) => agents.some((a) => a.id === id)), ...newIds]);
@@ -707,17 +712,17 @@ export default function HomePage() {
         {/* ── COLLAPSED: icons only ── */}
         {fleetCollapsed ? (
           <>
-            <div className="flex flex-col items-center gap-1 pb-2 border-b border-cyan-500/15">
-              <button onClick={() => setFleetCollapsed(false)} className="p-1.5 rounded-lg hover:bg-cyan-500/10 transition-colors" title="Expand fleet">
-                <PanelLeft className="w-4 h-4 text-muted-foreground/50" />
+            <div className="flex flex-col items-center gap-1 pb-2 border-b border-slate-200">
+              <button onClick={() => setFleetCollapsed(false)} className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors" title="Expand fleet">
+                <PanelLeft className="w-4 h-4 text-slate-400" />
               </button>
-              <button onClick={() => setSelectedAgentId("__new__")} className="p-1 rounded text-cyan-400/40 hover:text-cyan-400 transition-colors" title="New agent">
+              <button onClick={() => setSelectedAgentId("__new__")} className="p-1 rounded text-indigo-400 hover:text-indigo-600 transition-colors" title="New agent">
                 <Plus className="w-3.5 h-3.5" />
               </button>
             </div>
             {orderedAgents.map(({ agent, stats }) => {
               const successRate = stats?.successRate ?? 0;
-              const statusColor = successRate > 70 ? "bg-emerald-500" : successRate > 40 ? "bg-amber-500" : successRate > 0 ? "bg-red-500" : "bg-muted-foreground/30";
+              const statusColor = successRate > 70 ? "bg-emerald-500" : successRate > 40 ? "bg-amber-500" : successRate > 0 ? "bg-rose-400" : "bg-slate-300";
               const icon = getAgentIcon(agent.name);
               return (
                 <button
@@ -726,8 +731,8 @@ export default function HomePage() {
                   title={`${agent.name} — ${stats ? Math.round(successRate) + "%" : "idle"}`}
                   className={`flex flex-col items-center py-1.5 rounded-lg transition-all ${
                     selectedAgentId === agent.id
-                      ? "bg-purple-500/10 border border-purple-400/30"
-                      : "hover:bg-cyan-500/[0.05] border border-transparent"
+                      ? "bg-indigo-50 border border-indigo-300"
+                      : "hover:bg-slate-50 border border-transparent"
                   }`}
                 >
                   <span className="text-sm">{icon}</span>
@@ -739,45 +744,45 @@ export default function HomePage() {
         ) : (
           <>
             {/* ── EXPANDED: full cards ── */}
-            <div className="flex items-center justify-between border-b border-cyan-500/15 pb-2">
-              <span className="font-mono text-[10px] tracking-[3px] text-cyan-400 uppercase">Agent Fleet</span>
+            <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+              <span className="text-xs font-semibold text-slate-900 uppercase tracking-wide">Agent Fleet</span>
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => setEditMode(!editMode)}
-                  className={`p-1 rounded transition-colors ${editMode ? "bg-purple-500/10 text-purple-400" : "text-muted-foreground/40 hover:text-muted-foreground"}`}
+                  className={`p-1 rounded transition-colors ${editMode ? "bg-indigo-50 text-indigo-600" : "text-slate-400 hover:text-slate-600"}`}
                   title={editMode ? "Done reordering" : "Reorder agents"}
                 >
                   <Pencil className="w-3 h-3" />
                 </button>
                 <button
                   onClick={() => setSelectedAgentId("__new__")}
-                  className="p-1 rounded text-cyan-400/60 hover:text-cyan-400 hover:bg-cyan-500/10 transition-colors"
+                  className="p-1 rounded text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50 transition-colors"
                   title="New agent"
                 >
                   <Plus className="w-3.5 h-3.5" />
                 </button>
                 <button
                   onClick={() => setFleetCollapsed(true)}
-                  className="p-1 rounded text-muted-foreground/40 hover:text-muted-foreground transition-colors"
+                  className="p-1 rounded text-slate-400 hover:text-slate-600 transition-colors"
                   title="Collapse fleet"
                 >
                   <PanelLeftClose className="w-3 h-3" />
                 </button>
-                <span className="font-mono text-[9px] text-muted-foreground/40 ml-0.5">{activeAgentCount}</span>
+                <span className="font-mono text-[10px] text-slate-400 ml-0.5">{activeAgentCount}</span>
               </div>
             </div>
 
-            {agentsLoading && <div className="text-center py-8 text-muted-foreground/30 text-xs animate-pulse">Loading agents...</div>}
+            {agentsLoading && <div className="text-center py-8 text-slate-400 text-sm">Loading agents...</div>}
 
             {orderedAgents.map(({ agent, stats }, idx) => (
               <div key={agent.id} className="flex items-stretch gap-1">
                 {editMode && (
                   <div className="flex flex-col justify-center gap-0.5 shrink-0">
-                    <button onClick={() => moveAgent(idx, -1)} disabled={idx === 0} className="p-0.5 text-muted-foreground/30 hover:text-cyan-400 disabled:opacity-20 transition-colors">
+                    <button onClick={() => moveAgent(idx, -1)} disabled={idx === 0} className="p-0.5 text-slate-300 hover:text-indigo-600 disabled:opacity-20 transition-colors">
                       <ChevronUp className="w-3 h-3" />
                     </button>
-                    <GripVertical className="w-3 h-3 text-muted-foreground/20 mx-auto" />
-                    <button onClick={() => moveAgent(idx, 1)} disabled={idx === orderedAgents.length - 1} className="p-0.5 text-muted-foreground/30 hover:text-cyan-400 disabled:opacity-20 transition-colors">
+                    <GripVertical className="w-3 h-3 text-slate-300 mx-auto" />
+                    <button onClick={() => moveAgent(idx, 1)} disabled={idx === orderedAgents.length - 1} className="p-0.5 text-slate-300 hover:text-indigo-600 disabled:opacity-20 transition-colors">
                       <ChevronDown className="w-3 h-3" />
                     </button>
                   </div>
@@ -794,7 +799,7 @@ export default function HomePage() {
             ))}
 
             {!agentsLoading && agents.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground/30 text-xs">No agents found</div>
+              <div className="text-center py-8 text-slate-400 text-sm">No agents found</div>
             )}
           </>
         )}
@@ -804,79 +809,73 @@ export default function HomePage() {
       <div className="flex-1 flex flex-col gap-4 min-w-0">
 
         {/* Status bar */}
-        <div className="flex items-center justify-between px-4 py-2.5 bg-black/20 border border-white/5 rounded-lg">
+        <div className="flex items-center justify-between px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl">
           <div className="flex items-center gap-6">
             <StatusPill
               color={health?.overall === "healthy" ? "green" : health?.overall === "degraded" ? "amber" : "red"}
               label={health ? `System ${health.overall}` : "Loading..."}
             />
-            <StatusPill color="cyan" label={`${activeAgentCount} agents`} />
+            <StatusPill color="blue" label={`${activeAgentCount} agents`} />
             <StatusPill
               color={stats?.completed > 0 ? "green" : "amber"}
               label={stats ? `${stats.completed}/${stats.totalRuns} runs passed` : "\u2014"}
             />
           </div>
-          <span className="font-mono text-[12px] tracking-[2px] text-cyan-400">{clock}</span>
+          <span className="font-mono text-xs text-slate-500">{clock}</span>
         </div>
 
         {/* Metrics grid */}
-        <div className="grid grid-cols-6 gap-2">
+        <div className="grid grid-cols-6 gap-3">
           <MetricBox value={String(health?.overallScore || "\u2014")} label="Health" color="green" />
           <MetricBox value={String(kbIndex?.totalEntries || "\u2014")} label="KB Entries" color="purple" />
-          <MetricBox value={String(stats?.totalRuns || "\u2014")} label="Total Runs" color="cyan" />
+          <MetricBox value={String(stats?.totalRuns || "\u2014")} label="Total Runs" color="indigo" />
           <MetricBox value={stats ? `${Math.round((stats.completed / (stats.totalRuns || 1)) * 100)}%` : "\u2014"} label="Success Rate" color={stats && stats.completed / stats.totalRuns > 0.5 ? "green" : "amber"} />
           <MetricBox value={budget ? `$${budget.spent?.toFixed(0)}` : "\u2014"} label="Spent" color="amber" />
           <MetricBox value={budget ? `$${Math.round(budget.remaining)}` : "\u2014"} label="Remaining" color={budget && budget.remaining < 50 ? "red" : "green"} />
         </div>
 
-        {/* Center content — agent panel or pipeline visualization */}
-        <div className="flex-1 bg-black/10 border border-white/5 rounded-lg relative overflow-hidden">
+        {/* Center content — agent panel or empty state */}
+        <div className="flex-1 bg-white border border-slate-200 rounded-xl relative overflow-hidden">
           {selectedAgentId === "__new__" ? (
             <NewAgentPanel onClose={() => setSelectedAgentId(null)} onCreated={(id) => { mutateAgents(); setSelectedAgentId(id); }} />
           ) : selectedAgent ? (
             <AgentPanel agent={selectedAgent} onClose={() => setSelectedAgentId(null)} onAgentUpdated={() => mutateAgents()} />
           ) : (
-            <div className="flex items-center justify-center h-full">
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_40%,rgba(0,120,255,0.04),transparent_70%)]" />
-              <div className="text-center z-10">
-                <div className="font-['Rajdhani',sans-serif] text-4xl font-bold tracking-tight text-foreground/20">
-                  Mission Control
-                </div>
-                <div className="font-mono text-[10px] tracking-[4px] uppercase text-cyan-400/40 mt-1">
-                  AI Software Factory \u00B7 {versionData?.version || "v0.1.0"}
+            <div className="flex items-center justify-center h-full bg-slate-50/50">
+              <div className="text-center">
+                <Layers className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+                <div className="text-sm font-medium text-slate-400">
+                  Select an agent or run a pipeline
                 </div>
                 {activeProjectId && (
-                  <div className="mt-3 font-mono text-[11px] text-purple-400/60 tracking-wider">
+                  <div className="mt-2 font-mono text-xs text-indigo-500">
                     Active: {activeProjectId}
                   </div>
                 )}
-                <div className="mt-4 font-mono text-[9px] text-muted-foreground/25">
-                  Click an agent to view details
-                </div>
               </div>
             </div>
           )}
         </div>
 
         {/* Bottom status bar */}
-        <div className="flex items-center justify-between px-3 py-1.5 bg-black/20 border border-white/5 rounded-lg">
-          <div className="flex items-center gap-4 font-mono text-[9px] tracking-wider text-muted-foreground/40">
+        <div className="flex items-center justify-between px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl">
+          <div className="flex items-center gap-4 font-mono text-[11px] text-slate-500">
             <span>KB: {kbIndex?.integrityOk ? "OK" : "FAIL"}</span>
             <span>Contracts: 8</span>
             <span>Skills: 82</span>
             <span>Projects: 15</span>
           </div>
-          <div className="flex items-center gap-3 font-mono text-[9px] text-muted-foreground/40">
-            <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-4 font-mono text-[11px] text-slate-500">
+            <div className="flex items-center gap-2">
               <span>HEALTH</span>
-              <div className="w-14 h-[3px] bg-white/[0.06] rounded-full overflow-hidden">
+              <div className="w-16 h-1.5 bg-slate-200 rounded-full overflow-hidden">
                 <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${health?.overallScore || 0}%` }} />
               </div>
             </div>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2">
               <span>BUDGET</span>
-              <div className="w-14 h-[3px] bg-white/[0.06] rounded-full overflow-hidden">
-                <div className={`h-full rounded-full ${budget && budget.usedPercent > 80 ? "bg-red-500" : "bg-cyan-400"}`} style={{ width: `${budget?.usedPercent || 0}%` }} />
+              <div className="w-16 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                <div className={`h-full rounded-full ${budget && budget.usedPercent > 80 ? "bg-rose-500" : "bg-indigo-500"}`} style={{ width: `${budget?.usedPercent || 0}%` }} />
               </div>
             </div>
           </div>
@@ -885,10 +884,11 @@ export default function HomePage() {
 
       {/* ── RIGHT: Activity + Metrics ── */}
       <div className="w-56 flex-shrink-0 flex flex-col gap-4 overflow-y-auto pl-1">
-        <div className="font-mono text-[10px] tracking-[3px] text-cyan-400 uppercase border-b border-cyan-500/15 pb-2">
-          Live Activity
+        <div className="flex items-center gap-1.5 border-b border-slate-200 pb-2">
+          <Activity className="w-3.5 h-3.5 text-slate-400" />
+          <span className="text-xs font-semibold text-slate-900 uppercase tracking-wide">Live Activity</span>
         </div>
-        <div className="flex flex-col gap-1 max-h-[50vh] overflow-y-auto">
+        <div className="flex flex-col gap-0.5 max-h-[50vh] overflow-y-auto">
           {activityEvents.slice(0, 20).map((e) => (
             <LogEntry
               key={e.id}
@@ -898,25 +898,26 @@ export default function HomePage() {
             />
           ))}
           {activityEvents.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground/30 text-xs">No activity yet</div>
+            <div className="text-center py-8 text-slate-400 text-sm">No activity yet</div>
           )}
         </div>
 
         {/* Recent runs */}
-        <div className="font-mono text-[10px] tracking-[3px] text-cyan-400 uppercase border-b border-cyan-500/15 pb-2 mt-2">
-          Recent Runs
+        <div className="flex items-center gap-1.5 border-b border-slate-200 pb-2 mt-2">
+          <Layers className="w-3.5 h-3.5 text-slate-400" />
+          <span className="text-xs font-semibold text-slate-900 uppercase tracking-wide">Recent Runs</span>
         </div>
-        <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-2">
           {executionHistory.slice(0, 5).map((exec, i) => (
-            <div key={`${exec.id}-${i}`} className="bg-black/20 border border-white/5 rounded-md p-2">
-              <div className="font-mono text-[9px] text-foreground/60 truncate">{exec.input?.substring(0, 40)}</div>
-              <div className="flex items-center justify-between mt-1">
-                <span className={`font-mono text-[8px] uppercase tracking-wider ${
-                  exec.status === "completed" ? "text-emerald-400" : exec.status === "failed" ? "text-red-400" : "text-amber-400"
+            <div key={`${exec.id}-${i}`} className="bg-white border border-slate-200 rounded-lg p-3 hover:shadow-sm transition-shadow">
+              <div className="font-mono text-xs text-slate-600 truncate">{exec.input?.substring(0, 40)}</div>
+              <div className="flex items-center justify-between mt-1.5">
+                <span className={`font-mono text-[10px] uppercase tracking-wide font-medium ${
+                  exec.status === "completed" ? "text-emerald-600" : exec.status === "failed" ? "text-rose-600" : "text-amber-600"
                 }`}>
                   {exec.status}
                 </span>
-                <span className="font-mono text-[8px] text-muted-foreground/30">
+                <span className="font-mono text-[10px] text-slate-400">
                   {exec.totalDuration ? `${Math.round(exec.totalDuration / 1000)}s` : "\u2014"}
                 </span>
               </div>
