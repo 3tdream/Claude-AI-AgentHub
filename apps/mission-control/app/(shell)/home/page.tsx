@@ -11,7 +11,7 @@ import { useModels } from "@/lib/hooks/use-models";
 import { useSessions } from "@/lib/hooks/use-sessions";
 import { toast } from "sonner";
 import type { Agent, Session, LLMProvider } from "@/types";
-import { Settings, FileText, MessageSquare, X, Save, RotateCcw, ExternalLink, Plus, GripVertical, Pencil, ChevronUp, ChevronDown, PanelLeftClose, PanelLeft, Activity, Layers, Send } from "lucide-react";
+import { Settings, FileText, MessageSquare, X, Save, RotateCcw, ExternalLink, Plus, GripVertical, Pencil, ChevronUp, ChevronDown, PanelLeftClose, PanelLeft, Activity, Layers, Send, GitBranch } from "lucide-react";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -778,6 +778,159 @@ function NewAgentPanel({ onClose, onCreated }: { onClose: () => void; onCreated:
   );
 }
 
+// ── Pipeline Panel (when no agent selected) ──
+function PipelinePanel({ activeProjectId }: { activeProjectId: string | null }) {
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<{
+    type: "direct" | "pipeline" | "error";
+    response?: string;
+    toolCalls?: { name: string; path?: string; success: boolean }[];
+    message?: string;
+    intent?: { intent: string; confidence: number; reason: string };
+  } | null>(null);
+
+  const execute = async () => {
+    if (!input.trim() || loading) return;
+    setLoading(true);
+    setResult(null);
+
+    try {
+      const res = await fetch("/api/command", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ input, projectId: activeProjectId }),
+      });
+      const data = await res.json();
+
+      if (data.error) {
+        setResult({ type: "error", message: data.error });
+      } else if (data.action === "executed") {
+        setResult({
+          type: "direct",
+          response: data.response,
+          toolCalls: data.toolCalls,
+          intent: data.intent,
+        });
+      } else if (data.action === "redirect_to_pipeline") {
+        setResult({
+          type: "pipeline",
+          message: data.message,
+          intent: data.intent,
+        });
+      }
+    } catch (e) {
+      setResult({ type: "error", message: String(e) });
+    }
+
+    setLoading(false);
+    setInput("");
+  };
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="px-4 py-3 border-b border-slate-200 flex items-center gap-2">
+        <GitBranch className="w-4 h-4 text-indigo-500" />
+        <span className="text-sm font-semibold text-slate-900">Pipeline</span>
+        {activeProjectId && (
+          <span className="font-mono text-[10px] text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-full">{activeProjectId}</span>
+        )}
+      </div>
+
+      {/* Result area */}
+      <div className="flex-1 overflow-y-auto p-4">
+        {result ? (
+          <div className="space-y-3">
+            {/* Intent badge */}
+            {result.intent && (
+              <div className="flex items-center gap-2">
+                <span className={`font-mono text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                  result.type === "direct" ? "bg-emerald-50 text-emerald-600" : result.type === "pipeline" ? "bg-indigo-50 text-indigo-600" : "bg-rose-50 text-rose-600"
+                }`}>
+                  {result.intent.intent.toUpperCase()}
+                </span>
+                <span className="text-xs text-slate-400">{result.intent.reason}</span>
+              </div>
+            )}
+
+            {/* Tool calls */}
+            {result.toolCalls && result.toolCalls.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {result.toolCalls.map((tc, i) => (
+                  <span key={i} className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono ${
+                    tc.success ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
+                  }`}>
+                    {tc.name}{tc.path && <span className="text-slate-400">{tc.path.split("/").pop()}</span>}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Direct response */}
+            {result.response && (
+              <div className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap bg-slate-50 rounded-lg p-4 max-h-80 overflow-y-auto">
+                {result.response}
+              </div>
+            )}
+
+            {/* Pipeline redirect */}
+            {result.type === "pipeline" && (
+              <div className="flex items-center gap-3 p-4 bg-indigo-50 rounded-lg border border-indigo-100">
+                <GitBranch className="w-5 h-5 text-indigo-500 shrink-0" />
+                <div>
+                  <div className="text-sm font-medium text-indigo-700">{result.message}</div>
+                  <a href="/orchestration" className="text-xs text-indigo-500 hover:text-indigo-700 mt-1 inline-block">
+                    Open Orchestration →
+                  </a>
+                </div>
+              </div>
+            )}
+
+            {/* Error */}
+            {result.type === "error" && (
+              <div className="text-sm text-rose-600 bg-rose-50 rounded-lg p-3">{result.message}</div>
+            )}
+
+            <button onClick={() => setResult(null)} className="text-xs text-slate-400 hover:text-slate-600">
+              Clear
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+              <GitBranch className="w-10 h-10 text-slate-200 mx-auto mb-3" />
+              <div className="text-sm text-slate-400 mb-1">Enter a task below</div>
+              <div className="text-xs text-slate-300">Simple edits → direct execution · Complex tasks → pipeline</div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Input */}
+      <div className="px-4 py-3 border-t border-slate-200">
+        <div className="flex gap-2">
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") execute(); }}
+            placeholder="Describe your task..."
+            disabled={loading}
+            className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-300 disabled:opacity-50"
+          />
+          <button
+            onClick={execute}
+            disabled={loading || !input.trim()}
+            className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-30 transition-colors"
+          >
+            {loading ? "..." : "Run"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ══════════════════════════════════════════════
 // MAIN HOME PAGE
 // ══════════════════════════════════════════════
@@ -995,19 +1148,7 @@ export default function HomePage() {
           ) : selectedAgent ? (
             <AgentPanel agent={selectedAgent} onClose={() => setSelectedAgentId(null)} onAgentUpdated={() => mutateAgents()} />
           ) : (
-            <div className="flex items-center justify-center h-full bg-slate-50/50">
-              <div className="text-center">
-                <Layers className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-                <div className="text-sm font-medium text-slate-400">
-                  Select an agent or run a pipeline
-                </div>
-                {activeProjectId && (
-                  <div className="mt-2 font-mono text-xs text-indigo-500">
-                    Active: {activeProjectId}
-                  </div>
-                )}
-              </div>
-            </div>
+            <PipelinePanel activeProjectId={activeProjectId} />
           )}
         </div>
 
