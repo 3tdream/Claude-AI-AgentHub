@@ -11,7 +11,7 @@ import { useModels } from "@/lib/hooks/use-models";
 import { useSessions } from "@/lib/hooks/use-sessions";
 import { toast } from "sonner";
 import type { Agent, Session, LLMProvider } from "@/types";
-import { Settings, FileText, MessageSquare, X, Save, RotateCcw, ExternalLink } from "lucide-react";
+import { Settings, FileText, MessageSquare, X, Save, RotateCcw, ExternalLink, Plus, GripVertical, Pencil, ChevronUp, ChevronDown } from "lucide-react";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -629,6 +629,9 @@ export default function HomePage() {
   const { agents, isLoading: agentsLoading, mutate: mutateAgents } = useAgents();
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   const selectedAgent = agents.find((a) => a.id === selectedAgentId) || null;
+  const [editMode, setEditMode] = useState(false);
+  const [agentOrder, setAgentOrder] = useState<string[]>([]);
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
 
   // Clock
   const [clock, setClock] = useState("");
@@ -662,35 +665,103 @@ export default function HomePage() {
     return { agent, stats };
   });
 
+  // Init agent order from localStorage or default
+  useEffect(() => {
+    if (agents.length > 0 && agentOrder.length === 0) {
+      try {
+        const saved = localStorage.getItem("mc-agent-order");
+        if (saved) {
+          const parsed = JSON.parse(saved) as string[];
+          // Keep saved order, append any new agents at end
+          const existing = new Set(parsed);
+          const newIds = agents.map((a) => a.id).filter((id) => !existing.has(id));
+          setAgentOrder([...parsed.filter((id) => agents.some((a) => a.id === id)), ...newIds]);
+          return;
+        }
+      } catch {}
+      setAgentOrder(agents.map((a) => a.id));
+    }
+  }, [agents, agentOrder.length]);
+
+  // Sort agentsWithStats by order
+  const orderedAgents = agentOrder.length > 0
+    ? agentOrder.map((id) => agentsWithStats.find((a) => a.agent.id === id)).filter(Boolean) as typeof agentsWithStats
+    : agentsWithStats;
+
+  const moveAgent = (fromIdx: number, dir: -1 | 1) => {
+    const toIdx = fromIdx + dir;
+    if (toIdx < 0 || toIdx >= agentOrder.length) return;
+    const newOrder = [...agentOrder];
+    [newOrder[fromIdx], newOrder[toIdx]] = [newOrder[toIdx], newOrder[fromIdx]];
+    setAgentOrder(newOrder);
+    localStorage.setItem("mc-agent-order", JSON.stringify(newOrder));
+  };
+
   return (
     <div className="flex gap-4 h-[calc(100vh-8rem)]">
 
       {/* ── LEFT: Agent Fleet ── */}
       <div className="w-64 flex-shrink-0 flex flex-col gap-2 overflow-y-auto pr-1">
+        {/* Header with + and edit buttons */}
         <div className="flex items-center justify-between border-b border-cyan-500/15 pb-2">
           <span className="font-mono text-[10px] tracking-[3px] text-cyan-400 uppercase">Agent Fleet</span>
-          <span className="font-mono text-[9px] text-muted-foreground/40">{activeAgentCount}</span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setEditMode(!editMode)}
+              className={`p-1 rounded transition-colors ${editMode ? "bg-purple-500/10 text-purple-400" : "text-muted-foreground/40 hover:text-muted-foreground"}`}
+              title={editMode ? "Done reordering" : "Reorder agents"}
+            >
+              <Pencil className="w-3 h-3" />
+            </button>
+            <button
+              onClick={() => setSelectedAgentId("__new__")}
+              className="p-1 rounded text-cyan-400/60 hover:text-cyan-400 hover:bg-cyan-500/10 transition-colors"
+              title="New agent"
+            >
+              <Plus className="w-3.5 h-3.5" />
+            </button>
+            <span className="font-mono text-[9px] text-muted-foreground/40 ml-1">{activeAgentCount}</span>
+          </div>
         </div>
+
         {agentsLoading && <div className="text-center py-8 text-muted-foreground/30 text-xs animate-pulse">Loading agents...</div>}
-        {agentsWithStats.map(({ agent, stats }) => (
-          <AgentCard
-            key={agent.id}
-            agent={agent}
-            stats={stats || undefined}
-            selected={selectedAgentId === agent.id}
-            onClick={() => setSelectedAgentId(selectedAgentId === agent.id ? null : agent.id)}
-          />
+
+        {orderedAgents.map(({ agent, stats }, idx) => (
+          <div key={agent.id} className="flex items-stretch gap-1">
+            {/* Reorder controls in edit mode */}
+            {editMode && (
+              <div className="flex flex-col justify-center gap-0.5 shrink-0">
+                <button
+                  onClick={() => moveAgent(idx, -1)}
+                  disabled={idx === 0}
+                  className="p-0.5 text-muted-foreground/30 hover:text-cyan-400 disabled:opacity-20 transition-colors"
+                >
+                  <ChevronUp className="w-3 h-3" />
+                </button>
+                <GripVertical className="w-3 h-3 text-muted-foreground/20 mx-auto" />
+                <button
+                  onClick={() => moveAgent(idx, 1)}
+                  disabled={idx === orderedAgents.length - 1}
+                  className="p-0.5 text-muted-foreground/30 hover:text-cyan-400 disabled:opacity-20 transition-colors"
+                >
+                  <ChevronDown className="w-3 h-3" />
+                </button>
+              </div>
+            )}
+            <div className="flex-1">
+              <AgentCard
+                agent={agent}
+                stats={stats || undefined}
+                selected={selectedAgentId === agent.id}
+                onClick={() => !editMode && setSelectedAgentId(selectedAgentId === agent.id ? null : agent.id)}
+              />
+            </div>
+          </div>
         ))}
+
         {!agentsLoading && agents.length === 0 && (
           <div className="text-center py-8 text-muted-foreground/30 text-xs">No agents found</div>
         )}
-        {/* New Agent button */}
-        <button
-          onClick={() => setSelectedAgentId("__new__")}
-          className="w-full py-2 border border-dashed border-cyan-500/20 rounded-lg text-cyan-400/50 hover:text-cyan-400 hover:border-cyan-400/40 hover:bg-cyan-500/[0.03] transition-all font-mono text-[10px] tracking-wider"
-        >
-          + NEW AGENT
-        </button>
       </div>
 
       {/* ── CENTER: Main Area ── */}
