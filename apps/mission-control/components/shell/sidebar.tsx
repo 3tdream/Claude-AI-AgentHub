@@ -23,11 +23,13 @@ import {
   ShieldCheck,
   HeartPulse,
   Terminal,
+  Home,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/lib/stores/app-store";
 
 const navItems = [
+  { href: "/home", label: "Home", icon: Home },
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/agents", label: "Agents", icon: Bot },
   { href: "/teams", label: "Teams", icon: Users },
