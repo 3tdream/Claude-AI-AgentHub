@@ -11,7 +11,7 @@ import { useModels } from "@/lib/hooks/use-models";
 import { useSessions } from "@/lib/hooks/use-sessions";
 import { toast } from "sonner";
 import type { Agent, Session, LLMProvider } from "@/types";
-import { Settings, FileText, MessageSquare, X, Save, RotateCcw, ExternalLink, Plus, GripVertical, Pencil, ChevronUp, ChevronDown } from "lucide-react";
+import { Settings, FileText, MessageSquare, X, Save, RotateCcw, ExternalLink, Plus, GripVertical, Pencil, ChevronUp, ChevronDown, PanelLeftClose, PanelLeft } from "lucide-react";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -118,7 +118,7 @@ function AgentCard({ agent, stats, selected, onClick }: {
   return (
     <div
       onClick={onClick}
-      className={`border rounded-lg p-2.5 transition-all cursor-pointer ${
+      className={`border rounded-lg p-2.5 transition-all cursor-pointer overflow-hidden min-w-0 ${
         selected
           ? "bg-purple-500/[0.08] border-purple-400/30 shadow-[0_0_20px_rgba(136,0,204,0.12)]"
           : "bg-cyan-500/[0.03] border-cyan-500/10 hover:bg-cyan-500/[0.07] hover:border-cyan-400/20 hover:shadow-[0_0_18px_rgba(0,120,255,0.08)]"
@@ -632,6 +632,7 @@ export default function HomePage() {
   const [editMode, setEditMode] = useState(false);
   const [agentOrder, setAgentOrder] = useState<string[]>([]);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [fleetCollapsed, setFleetCollapsed] = useState(false);
 
   // Clock
   const [clock, setClock] = useState("");
@@ -701,66 +702,101 @@ export default function HomePage() {
     <div className="flex gap-4 h-[calc(100vh-8rem)]">
 
       {/* ── LEFT: Agent Fleet ── */}
-      <div className="w-64 flex-shrink-0 flex flex-col gap-2 overflow-y-auto pr-1">
-        {/* Header with + and edit buttons */}
-        <div className="flex items-center justify-between border-b border-cyan-500/15 pb-2">
-          <span className="font-mono text-[10px] tracking-[3px] text-cyan-400 uppercase">Agent Fleet</span>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setEditMode(!editMode)}
-              className={`p-1 rounded transition-colors ${editMode ? "bg-purple-500/10 text-purple-400" : "text-muted-foreground/40 hover:text-muted-foreground"}`}
-              title={editMode ? "Done reordering" : "Reorder agents"}
-            >
-              <Pencil className="w-3 h-3" />
-            </button>
-            <button
-              onClick={() => setSelectedAgentId("__new__")}
-              className="p-1 rounded text-cyan-400/60 hover:text-cyan-400 hover:bg-cyan-500/10 transition-colors"
-              title="New agent"
-            >
-              <Plus className="w-3.5 h-3.5" />
-            </button>
-            <span className="font-mono text-[9px] text-muted-foreground/40 ml-1">{activeAgentCount}</span>
-          </div>
-        </div>
+      <div className={`flex-shrink-0 flex flex-col gap-2 overflow-y-auto transition-all duration-300 ${fleetCollapsed ? "w-14" : "w-64"}`}>
 
-        {agentsLoading && <div className="text-center py-8 text-muted-foreground/30 text-xs animate-pulse">Loading agents...</div>}
-
-        {orderedAgents.map(({ agent, stats }, idx) => (
-          <div key={agent.id} className="flex items-stretch gap-1">
-            {/* Reorder controls in edit mode */}
-            {editMode && (
-              <div className="flex flex-col justify-center gap-0.5 shrink-0">
-                <button
-                  onClick={() => moveAgent(idx, -1)}
-                  disabled={idx === 0}
-                  className="p-0.5 text-muted-foreground/30 hover:text-cyan-400 disabled:opacity-20 transition-colors"
-                >
-                  <ChevronUp className="w-3 h-3" />
-                </button>
-                <GripVertical className="w-3 h-3 text-muted-foreground/20 mx-auto" />
-                <button
-                  onClick={() => moveAgent(idx, 1)}
-                  disabled={idx === orderedAgents.length - 1}
-                  className="p-0.5 text-muted-foreground/30 hover:text-cyan-400 disabled:opacity-20 transition-colors"
-                >
-                  <ChevronDown className="w-3 h-3" />
-                </button>
-              </div>
-            )}
-            <div className="flex-1">
-              <AgentCard
-                agent={agent}
-                stats={stats || undefined}
-                selected={selectedAgentId === agent.id}
-                onClick={() => !editMode && setSelectedAgentId(selectedAgentId === agent.id ? null : agent.id)}
-              />
+        {/* ── COLLAPSED: icons only ── */}
+        {fleetCollapsed ? (
+          <>
+            <div className="flex flex-col items-center gap-1 pb-2 border-b border-cyan-500/15">
+              <button onClick={() => setFleetCollapsed(false)} className="p-1.5 rounded-lg hover:bg-cyan-500/10 transition-colors" title="Expand fleet">
+                <PanelLeft className="w-4 h-4 text-muted-foreground/50" />
+              </button>
+              <button onClick={() => setSelectedAgentId("__new__")} className="p-1 rounded text-cyan-400/40 hover:text-cyan-400 transition-colors" title="New agent">
+                <Plus className="w-3.5 h-3.5" />
+              </button>
             </div>
-          </div>
-        ))}
+            {orderedAgents.map(({ agent, stats }) => {
+              const successRate = stats?.successRate ?? 0;
+              const statusColor = successRate > 70 ? "bg-emerald-500" : successRate > 40 ? "bg-amber-500" : successRate > 0 ? "bg-red-500" : "bg-muted-foreground/30";
+              const icon = getAgentIcon(agent.name);
+              return (
+                <button
+                  key={agent.id}
+                  onClick={() => setSelectedAgentId(selectedAgentId === agent.id ? null : agent.id)}
+                  title={`${agent.name} — ${stats ? Math.round(successRate) + "%" : "idle"}`}
+                  className={`flex flex-col items-center py-1.5 rounded-lg transition-all ${
+                    selectedAgentId === agent.id
+                      ? "bg-purple-500/10 border border-purple-400/30"
+                      : "hover:bg-cyan-500/[0.05] border border-transparent"
+                  }`}
+                >
+                  <span className="text-sm">{icon}</span>
+                  <div className={`w-1.5 h-1.5 rounded-full mt-1 ${statusColor}`} />
+                </button>
+              );
+            })}
+          </>
+        ) : (
+          <>
+            {/* ── EXPANDED: full cards ── */}
+            <div className="flex items-center justify-between border-b border-cyan-500/15 pb-2">
+              <span className="font-mono text-[10px] tracking-[3px] text-cyan-400 uppercase">Agent Fleet</span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setEditMode(!editMode)}
+                  className={`p-1 rounded transition-colors ${editMode ? "bg-purple-500/10 text-purple-400" : "text-muted-foreground/40 hover:text-muted-foreground"}`}
+                  title={editMode ? "Done reordering" : "Reorder agents"}
+                >
+                  <Pencil className="w-3 h-3" />
+                </button>
+                <button
+                  onClick={() => setSelectedAgentId("__new__")}
+                  className="p-1 rounded text-cyan-400/60 hover:text-cyan-400 hover:bg-cyan-500/10 transition-colors"
+                  title="New agent"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => setFleetCollapsed(true)}
+                  className="p-1 rounded text-muted-foreground/40 hover:text-muted-foreground transition-colors"
+                  title="Collapse fleet"
+                >
+                  <PanelLeftClose className="w-3 h-3" />
+                </button>
+                <span className="font-mono text-[9px] text-muted-foreground/40 ml-0.5">{activeAgentCount}</span>
+              </div>
+            </div>
 
-        {!agentsLoading && agents.length === 0 && (
-          <div className="text-center py-8 text-muted-foreground/30 text-xs">No agents found</div>
+            {agentsLoading && <div className="text-center py-8 text-muted-foreground/30 text-xs animate-pulse">Loading agents...</div>}
+
+            {orderedAgents.map(({ agent, stats }, idx) => (
+              <div key={agent.id} className="flex items-stretch gap-1">
+                {editMode && (
+                  <div className="flex flex-col justify-center gap-0.5 shrink-0">
+                    <button onClick={() => moveAgent(idx, -1)} disabled={idx === 0} className="p-0.5 text-muted-foreground/30 hover:text-cyan-400 disabled:opacity-20 transition-colors">
+                      <ChevronUp className="w-3 h-3" />
+                    </button>
+                    <GripVertical className="w-3 h-3 text-muted-foreground/20 mx-auto" />
+                    <button onClick={() => moveAgent(idx, 1)} disabled={idx === orderedAgents.length - 1} className="p-0.5 text-muted-foreground/30 hover:text-cyan-400 disabled:opacity-20 transition-colors">
+                      <ChevronDown className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <AgentCard
+                    agent={agent}
+                    stats={stats || undefined}
+                    selected={selectedAgentId === agent.id}
+                    onClick={() => !editMode && setSelectedAgentId(selectedAgentId === agent.id ? null : agent.id)}
+                  />
+                </div>
+              </div>
+            ))}
+
+            {!agentsLoading && agents.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground/30 text-xs">No agents found</div>
+            )}
+          </>
         )}
       </div>
 
