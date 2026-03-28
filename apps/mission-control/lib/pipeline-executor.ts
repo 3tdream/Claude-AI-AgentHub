@@ -522,6 +522,14 @@ export async function executePipeline(
               error: `Investigation: ${investigation.diagnosis}. Category: ${investigation.category}. Escalated after ${retryCount} retries.`,
               completedAt: new Date().toISOString(),
               retryCount, escalated: true, ...stepAnalytics,
+              investigation: {
+                diagnosis: investigation.diagnosis,
+                category: investigation.category,
+                severity: investigation.severity,
+                correction: investigation.correction,
+                shouldRetry: investigation.shouldRetry,
+                matchedKBPatterns: investigation.matchedKBPatterns,
+              },
             };
             execution.escalatedSteps = [...(execution.escalatedSteps || []), step.id];
             callbacks.onUpdate({ ...execution });

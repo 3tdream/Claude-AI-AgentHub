@@ -16,6 +16,8 @@ import { TemplateLibrary } from "@/components/orchestration/template-library";
 import { RecruitmentCenter } from "@/components/orchestration/recruitment-center";
 import { ContractsTab } from "@/components/orchestration/contracts-tab";
 import { AnalyticsTab } from "@/components/orchestration/analytics-tab";
+import { InvestigationCard } from "@/components/orchestration/investigation-card";
+import type { InvestigationData } from "@/components/orchestration/investigation-card";
 import type { Workflow, PipelineExecution, RoutingDecisionData, ExecutionMode, AgentCatalogEntry, WorkflowSlot } from "@/types";
 import { logActivity } from "@/lib/stores/activity-store";
 
@@ -1119,6 +1121,9 @@ export default function OrchestrationPage() {
                                     <p className="font-mono text-[10px] text-amber-400/80 mb-2 whitespace-pre-wrap break-words">Feedback: {step.evaluationFeedback}</p>
                                   )}
                                   <pre className="font-mono text-[10px] text-foreground/80 whitespace-pre-wrap break-words">{step.output || step.error || "(no output)"}</pre>
+                                  {(step as any).investigation && (
+                                    <InvestigationCard investigation={(step as any).investigation as InvestigationData} />
+                                  )}
                                 </div>
                               </details>
                                 );

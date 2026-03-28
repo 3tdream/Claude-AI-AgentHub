@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { DollarSign, Filter, FolderOpen } from "lucide-react";
+import { useState, useEffect } from "react";
+import { DollarSign, Filter, FolderOpen, TrendingUp, CheckCircle2, BarChart3 } from "lucide-react";
 import { useCostSummary, useDailyCosts } from "@/lib/hooks/use-costs";
 import { useAppStore } from "@/lib/stores/app-store";
 import { CostChart } from "@/components/costs/cost-chart";
@@ -18,6 +18,24 @@ export default function CostsPage() {
   const totalTokens = costs
     ? (costs.totalInputTokens ?? 0) + (costs.totalOutputTokens ?? 0)
     : 0;
+
+  // Pipeline stats for cost efficiency
+  const [pipelineStats, setPipelineStats] = useState<{
+    totalRuns: number; completed: number; failed: number;
+  } | null>(null);
+
+  useEffect(() => {
+    fetch("/api/pipeline/stats")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.totalRuns) setPipelineStats({ totalRuns: d.totalRuns, completed: d.completed, failed: d.failed });
+      })
+      .catch(() => {});
+  }, []);
+
+  const costPerRun = pipelineStats && costs ? costs.totalCost / (pipelineStats.totalRuns || 1) : 0;
+  const costPerSuccess = pipelineStats && costs ? costs.totalCost / (pipelineStats.completed || 1) : 0;
+  const pipelineSuccessRate = pipelineStats ? (pipelineStats.completed / (pipelineStats.totalRuns || 1)) * 100 : 0;
 
   return (
     <div className="space-y-6">
@@ -110,6 +128,47 @@ export default function CostsPage() {
           )}
         </div>
       </div>
+
+      {/* Cost Efficiency */}
+      {pipelineStats && costs && (
+        <div className="space-y-3">
+          <h2 className="font-bold text-sm">Cost Efficiency</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-card border border-border rounded-xl p-6">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-xl bg-chart-4/10 border border-chart-4/20 flex items-center justify-center">
+                  <BarChart3 className="w-5 h-5 text-chart-4" />
+                </div>
+                <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">$ per Pipeline Run</span>
+              </div>
+              <p className="text-3xl font-extrabold">${costPerRun.toFixed(2)}</p>
+              <p className="font-mono text-[10px] text-muted-foreground mt-1">{pipelineStats.totalRuns} total runs</p>
+            </div>
+            <div className="bg-card border border-border rounded-xl p-6">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                </div>
+                <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">$ per Successful Run</span>
+              </div>
+              <p className="text-3xl font-extrabold">${costPerSuccess.toFixed(2)}</p>
+              <p className="font-mono text-[10px] text-muted-foreground mt-1">{pipelineStats.completed} completed</p>
+            </div>
+            <div className="bg-card border border-border rounded-xl p-6">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+                  <TrendingUp className="w-5 h-5 text-primary" />
+                </div>
+                <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">Pipeline Success Rate</span>
+              </div>
+              <p className={`text-3xl font-extrabold ${pipelineSuccessRate > 70 ? "text-emerald-400" : pipelineSuccessRate >= 40 ? "text-amber-400" : "text-red-400"}`}>
+                {pipelineSuccessRate.toFixed(1)}%
+              </p>
+              <p className="font-mono text-[10px] text-muted-foreground mt-1">{pipelineStats.failed} failed</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Daily costs table */}
       <div className="bg-card border border-border rounded-xl overflow-hidden">

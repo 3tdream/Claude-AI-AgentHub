@@ -31,8 +31,8 @@ interface MemoryFile {
 
 export interface SyncReport {
   direction: "kb-to-memory" | "memory-to-kb" | "bidirectional";
-  kbToMemory: { exported: number; skipped: number; files: string[] };
-  memoryToKb: { imported: number; skipped: number; entries: string[] };
+  kbToMemory: { exported: number; skipped: number; unchanged: number; files: string[] };
+  memoryToKb: { imported: number; skipped: number; duplicates: number; entries: string[] };
   syncedAt: string;
 }
 
@@ -67,6 +67,7 @@ async function readMemoryFiles(): Promise<MemoryFile[]> {
 export async function exportKBToMemory(): Promise<SyncReport["kbToMemory"]> {
   const exported: string[] = [];
   let skipped = 0;
+  let unchanged = 0;
 
   const categories = await getAllCategories();
 
@@ -112,11 +113,20 @@ Last synced: ${new Date().toISOString().slice(0, 10)}
 Source: data/knowledge-base/${category}.json
 `;
 
+    // Content dedup: compare first 200 chars of existing file to avoid unnecessary rewrites
+    try {
+      const existing = await fs.readFile(filePath, "utf-8");
+      if (existing.slice(0, 200) === content.slice(0, 200)) {
+        unchanged++;
+        continue; // Content hasn't materially changed — skip rewrite
+      }
+    } catch { /* file doesn't exist — proceed to write */ }
+
     await fs.writeFile(filePath, content, "utf-8");
     exported.push(filename);
   }
 
-  return { exported: exported.length, skipped, files: exported };
+  return { exported: exported.length, skipped, unchanged, files: exported };
 }
 
 // ── Memory → KB Import ───────────────────────────────
@@ -124,6 +134,7 @@ Source: data/knowledge-base/${category}.json
 export async function importMemoryToKB(): Promise<SyncReport["memoryToKb"]> {
   const imported: string[] = [];
   let skipped = 0;
+  let duplicates = 0;
 
   const memoryFiles = await readMemoryFiles();
 
@@ -155,6 +166,19 @@ export async function importMemoryToKB(): Promise<SyncReport["memoryToKb"]> {
       continue;
     }
 
+    // Content dedup: check for entries with similar title (first 5 words match)
+    if (file) {
+      const titleWords = mem.name.toLowerCase().split(/\s+/).slice(0, 5).join(" ");
+      const hasSimilar = file.entries.some((e) => {
+        const existingWords = e.title.toLowerCase().split(/\s+/).slice(0, 5).join(" ");
+        return titleWords.length > 3 && existingWords === titleWords;
+      });
+      if (hasSimilar) {
+        duplicates++;
+        continue; // duplicate skipped — similar title already exists in KB
+      }
+    }
+
     // Import as KB entry
     try {
       const entry = await addEntry(category, {
@@ -168,7 +192,7 @@ export async function importMemoryToKB(): Promise<SyncReport["memoryToKb"]> {
     } catch { /* skip write errors */ }
   }
 
-  return { imported: imported.length, skipped, entries: imported };
+  return { imported: imported.length, skipped, duplicates, entries: imported };
 }
 
 // ── Bidirectional Sync ───────────────────────────────

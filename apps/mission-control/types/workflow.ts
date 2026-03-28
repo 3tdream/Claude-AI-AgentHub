@@ -108,6 +108,15 @@ export interface StepResult {
   // Source tracking for resume/cache
   source?: "live" | "cached" | "resumed";
   cachedFromRun?: string; // pipeline run ID if cached
+  // Failure investigation (from lib/failure-investigator.ts)
+  investigation?: {
+    diagnosis: string;
+    category: string;
+    severity: string;
+    correction: string;
+    shouldRetry: boolean;
+    matchedKBPatterns: string[];
+  };
 }
 
 export type PipelineStatus = "pending" | "running" | "completed" | "failed" | "paused" | "stopped" | "escalated";
