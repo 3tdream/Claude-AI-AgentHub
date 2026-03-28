@@ -5,6 +5,8 @@ import useSWR from "swr";
 import { useAppStore } from "@/lib/stores/app-store";
 import { useOrchestrationStore } from "@/lib/stores/orchestration-store";
 import { useActivityStore } from "@/lib/stores/activity-store";
+import { useAgents } from "@/lib/hooks/use-agents";
+import type { Agent } from "@/types";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -45,33 +47,54 @@ function MetricBox({ value, label, color = "" }: { value: string; label: string;
   );
 }
 
+// ── Provider badge colors ──
+const providerColors: Record<string, string> = {
+  anthropic: "text-orange-400 bg-orange-500/10 border-orange-500/20",
+  openai: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
+  google: "text-blue-400 bg-blue-500/10 border-blue-500/20",
+  openrouter: "text-purple-400 bg-purple-500/10 border-purple-500/20",
+};
+
 // ── Agent card ──
-function AgentCard({ name, status, score, progress, model }: {
-  name: string; status: string; score: number; progress: number; model?: string;
+function AgentCard({ agent, stats }: {
+  agent: Agent;
+  stats?: { runs: number; avgScore: number; successRate: number; failRate: number };
 }) {
+  const successRate = stats?.successRate ?? 0;
+  const status = stats ? (successRate > 70 ? "active" : successRate > 40 ? "busy" : "idle") : "idle";
+
   const statusConfig: Record<string, { color: string; bg: string; border: string }> = {
     active: { color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/30" },
     busy: { color: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/30" },
     idle: { color: "text-muted-foreground", bg: "bg-muted/30", border: "border-border" },
-    error: { color: "text-red-400", bg: "bg-red-500/10", border: "border-red-500/30" },
   };
 
-  const sc = statusConfig[status] || statusConfig.idle;
-  const barColor = score >= 8 ? "bg-emerald-500" : score >= 5 ? "bg-amber-500" : "bg-red-500";
+  const sc = statusConfig[status];
+  const barColor = successRate >= 70 ? "bg-emerald-500" : successRate >= 40 ? "bg-amber-500" : "bg-red-500";
+  const prov = providerColors[agent.llmProvider] || providerColors.anthropic;
 
   return (
     <div className="bg-cyan-500/[0.03] border border-cyan-500/10 rounded-lg p-2.5 hover:bg-cyan-500/[0.07] hover:border-cyan-400/20 hover:shadow-[0_0_18px_rgba(0,120,255,0.08)] transition-all cursor-pointer">
       <div className="flex items-center justify-between mb-1">
-        <span className="font-['Rajdhani',sans-serif] text-[13px] font-semibold tracking-wide">{name}</span>
-        <span className={`font-mono text-[9px] px-1.5 py-0.5 rounded ${sc.bg} ${sc.color} ${sc.border} border tracking-wider`}>
+        <span className="font-['Rajdhani',sans-serif] text-[13px] font-semibold tracking-wide truncate">{agent.name}</span>
+        <span className={`font-mono text-[9px] px-1.5 py-0.5 rounded ${sc.bg} ${sc.color} ${sc.border} border tracking-wider shrink-0`}>
           {status.toUpperCase()}
         </span>
       </div>
-      <div className="h-[3px] bg-white/[0.06] rounded-full overflow-hidden mt-1.5">
-        <div className={`h-full rounded-full ${barColor} animate-pulse`} style={{ width: `${progress}%` }} />
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <span className={`font-mono text-[8px] px-1 py-0.5 rounded border ${prov}`}>{agent.llmProvider}</span>
+        <span className="font-mono text-[8px] text-muted-foreground/40 truncate">{agent.llmModel}</span>
       </div>
-      <div className="font-mono text-[9px] text-muted-foreground/50 mt-1">
-        {model || "sonnet-4-6"} · score {score.toFixed(1)}
+      <div className="h-[3px] bg-white/[0.06] rounded-full overflow-hidden">
+        <div className={`h-full rounded-full ${barColor} animate-pulse`} style={{ width: `${successRate}%` }} />
+      </div>
+      <div className="flex items-center justify-between mt-1">
+        <span className="font-mono text-[9px] text-muted-foreground/50">
+          {stats ? `${stats.runs} runs · ${stats.avgScore.toFixed(1)} avg` : "No runs yet"}
+        </span>
+        <span className="font-mono text-[9px] text-muted-foreground/40">
+          {stats ? `${Math.round(successRate)}%` : "—"}
+        </span>
       </div>
     </div>
   );
@@ -103,6 +126,7 @@ export default function HomePage() {
   const { activeProjectId } = useAppStore();
   const executionHistory = useOrchestrationStore((s) => s.executionHistory);
   const activityEvents = useActivityStore((s) => s.events);
+  const { agents, isLoading: agentsLoading } = useAgents();
 
   // Clock
   const [clock, setClock] = useState("");
@@ -127,28 +151,30 @@ export default function HomePage() {
   const stats = statsData?.data;
   const budget = costsData?.data?.budget;
 
-  const agentList = Object.entries(agentStats as Record<string, { runs: number; avgScore: number; successRate: number; failRate: number }>)
-    .map(([id, s]) => ({
-      name: id,
-      status: s.successRate > 70 ? "active" : s.successRate > 40 ? "busy" : "error",
-      score: s.avgScore,
-      progress: s.successRate,
-    }))
-    .sort((a, b) => b.progress - a.progress);
+  // Merge real agent data with performance stats
+  const agentStatsMap = agentStats as Record<string, { runs: number; avgScore: number; successRate: number; failRate: number }>;
+  const activeAgentCount = agents.length;
+  const agentsWithStats = agents.map((agent) => {
+    const shortId = agent.name.toLowerCase().replace(/[-_\s]agent$/i, "").replace(/\s+/g, "-");
+    const stats = agentStatsMap[shortId] || agentStatsMap[agent.id] || null;
+    return { agent, stats };
+  });
 
   return (
     <div className="flex gap-4 h-[calc(100vh-8rem)]">
 
-      {/* ── LEFT: Agent Cards ── */}
-      <div className="w-60 flex-shrink-0 flex flex-col gap-3 overflow-y-auto pr-1">
-        <div className="font-mono text-[10px] tracking-[3px] text-cyan-400 uppercase border-b border-cyan-500/15 pb-2">
-          Agent Fleet
+      {/* ── LEFT: Agent Fleet ── */}
+      <div className="w-64 flex-shrink-0 flex flex-col gap-2 overflow-y-auto pr-1">
+        <div className="flex items-center justify-between border-b border-cyan-500/15 pb-2">
+          <span className="font-mono text-[10px] tracking-[3px] text-cyan-400 uppercase">Agent Fleet</span>
+          <span className="font-mono text-[9px] text-muted-foreground/40">{activeAgentCount}</span>
         </div>
-        {agentList.map((a) => (
-          <AgentCard key={a.name} {...a} />
+        {agentsLoading && <div className="text-center py-8 text-muted-foreground/30 text-xs animate-pulse">Loading agents...</div>}
+        {agentsWithStats.map(({ agent, stats }) => (
+          <AgentCard key={agent.id} agent={agent} stats={stats || undefined} />
         ))}
-        {agentList.length === 0 && (
-          <div className="text-center py-8 text-muted-foreground/30 text-xs">No agent data</div>
+        {!agentsLoading && agents.length === 0 && (
+          <div className="text-center py-8 text-muted-foreground/30 text-xs">No agents found</div>
         )}
       </div>
 
@@ -162,7 +188,7 @@ export default function HomePage() {
               color={health?.overall === "healthy" ? "green" : health?.overall === "degraded" ? "amber" : "red"}
               label={health ? `System ${health.overall}` : "Loading..."}
             />
-            <StatusPill color="cyan" label={`${agentList.length} agents tracked`} />
+            <StatusPill color="cyan" label={`${activeAgentCount} agents`} />
             <StatusPill
               color={stats?.completed > 0 ? "green" : "amber"}
               label={stats ? `${stats.completed}/${stats.totalRuns} runs passed` : "—"}
