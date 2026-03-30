@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import useSWR from "swr";
 import Link from "next/link";
 import { useAppStore } from "@/lib/stores/app-store";
@@ -11,7 +11,7 @@ import { useModels } from "@/lib/hooks/use-models";
 import { useSessions } from "@/lib/hooks/use-sessions";
 import { toast } from "sonner";
 import type { Agent, Session, LLMProvider } from "@/types";
-import { Settings, FileText, MessageSquare, X, Save, RotateCcw, ExternalLink, Plus, GripVertical, Pencil, ChevronUp, ChevronDown, PanelLeftClose, PanelLeft, Activity, Layers, Send, GitBranch, FileDown, ShieldCheck, BarChart3, Link2, Pause, Square, Play, CheckCircle2, XCircle, Clock, History, BookTemplate, FolderOpen } from "lucide-react";
+import { Settings, FileText, MessageSquare, X, Save, RotateCcw, ExternalLink, Plus, GripVertical, Pencil, ChevronUp, ChevronDown, PanelLeftClose, PanelLeft, Activity, Layers, Send, GitBranch, FileDown, ShieldCheck, BarChart3, Link2, Pause, Square, Play, CheckCircle2, XCircle, History, BookTemplate, FolderOpen } from "lucide-react";
 import { ContractsTab } from "@/components/orchestration/contracts-tab";
 import { AnalyticsTab } from "@/components/orchestration/analytics-tab";
 import { InvestigationCard } from "@/components/orchestration/investigation-card";
@@ -1004,13 +1004,17 @@ function PipelinePanel({ activeProjectId, projects, onSelectProject }: {
     a.href = url;
     a.download = `mc-result-${Date.now()}.json`;
     a.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 200);
     toast.success("Exported result JSON");
   };
 
   const handleResume = () => {
     clearControlFlags();
-    toast.success("Pipeline resumed");
+    if (activeExecution) {
+      confirmAndExecute(activeExecution);
+    } else {
+      toast.success("Control flags cleared");
+    }
   };
 
   const TABS: { id: PipelineTab; label: string; icon: typeof GitBranch }[] = [
@@ -1425,7 +1429,7 @@ function PipelinePanel({ activeProjectId, projects, onSelectProject }: {
                           a.href = url;
                           a.download = `pipeline-${exec.id.substring(0, 8)}.json`;
                           a.click();
-                          URL.revokeObjectURL(url);
+                          setTimeout(() => URL.revokeObjectURL(url), 200);
                           toast.success("Exported pipeline JSON");
                         }}
                         className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium text-slate-500 hover:bg-slate-100 transition-colors ml-auto"
@@ -1678,7 +1682,6 @@ export default function HomePage() {
   const selectedAgent = agents.find((a) => a.id === selectedAgentId) || null;
   const [editMode, setEditMode] = useState(false);
   const [agentOrder, setAgentOrder] = useState<string[]>([]);
-  const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [fleetCollapsed, setFleetCollapsed] = useState(false);
 
   // Clock
@@ -1700,6 +1703,16 @@ export default function HomePage() {
   const { data: projectsData } = useSWR("/api/projects/discover", fetcher, { revalidateOnFocus: false });
   const discoveredProjects = projectsData?.data || [];
 
+  // Deduplicated execution history (memoized, used in History view + Recent Runs)
+  const dedupedHistory = useMemo(() => {
+    const seen = new Set<string>();
+    return executionHistory.filter((exec) => {
+      if (seen.has(exec.id)) return false;
+      seen.add(exec.id);
+      return true;
+    });
+  }, [executionHistory]);
+
   const health = healthData;
   const agentStats = agentsData?.data || agentsData?.agentStats || {};
   const kbIndex = kbData;
@@ -1709,11 +1722,11 @@ export default function HomePage() {
   // Merge real agent data with performance stats
   const agentStatsMap = agentStats as Record<string, { runs: number; avgScore: number; successRate: number; failRate: number }>;
   const activeAgentCount = agents.length;
-  const agentsWithStats = agents.map((agent) => {
+  const agentsWithStats = useMemo(() => agents.map((agent) => {
     const shortId = agent.name.toLowerCase().replace(/[-_\s]agent$/i, "").replace(/\s+/g, "-");
     const stats = agentStatsMap[shortId] || agentStatsMap[agent.id] || null;
     return { agent, stats };
-  });
+  }), [agents, agentStatsMap]);
 
   // Init agent order from localStorage or default
   useEffect(() => {
@@ -1939,7 +1952,7 @@ export default function HomePage() {
           <span className="text-xs font-semibold text-slate-900 uppercase tracking-wide">Recent Runs</span>
         </div>
         <div className="flex flex-col gap-2">
-          {executionHistory.filter((exec, idx, arr) => arr.findIndex((e) => e.id === exec.id) === idx).slice(0, 5).map((exec) => {
+          {dedupedHistory.slice(0, 5).map((exec) => {
             const isStale = (exec.status === "paused" || exec.status === "running") && activeExecution?.id !== exec.id;
             const displayStatus = isStale ? "interrupted" : exec.status;
             return (

@@ -137,6 +137,7 @@ export function StageDetailPanel({ step, result, qualityScore, onClose }: StageD
         <button
           onClick={onClose}
           className="p-1 rounded-lg hover:bg-muted transition-colors"
+          aria-label="Close stage detail"
         >
           <X className="w-4 h-4 text-muted-foreground" />
         </button>
