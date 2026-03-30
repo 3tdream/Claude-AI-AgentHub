@@ -587,6 +587,14 @@ function ChatTab({ agent }: { agent: Agent }) {
 
   return (
     <div className="flex flex-col h-full -m-4">
+      {/* Project context indicator */}
+      {activeProjectId && (
+        <div className="px-4 py-1.5 border-b border-slate-100 flex items-center gap-1.5 bg-slate-50/50">
+          <FolderOpen className="w-3 h-3 text-indigo-400" />
+          <span className="font-mono text-[10px] text-slate-500">Context:</span>
+          <span className="font-mono text-[10px] text-indigo-600 font-medium">{activeProjectId}</span>
+        </div>
+      )}
       {/* Messages area */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3" style={{ maxHeight: "calc(100vh - 280px)" }}>
         {messages.length === 0 && !loading && (

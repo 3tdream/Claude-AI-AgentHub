@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import useSWR from "swr";
 import {
   Search,
@@ -244,7 +244,7 @@ function CreateIssueModal({
 }
 
 export default function JiraPage() {
-  const activeProjectId = useAppStore((s) => s.activeProjectId);
+  const { activeProjectId, setActiveProject } = useAppStore();
   const [selectedProject, setSelectedProject] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -262,6 +262,15 @@ export default function JiraPage() {
   );
 
   const projects: JiraProject[] = projectsData?.data ?? [];
+
+  // Sync global project selector → local Jira project
+  useEffect(() => {
+    if (activeProjectId && activeProjectId !== selectedProject && projects.length > 0) {
+      const jiraKey = activeProjectId.toUpperCase().replace(/[^A-Z0-9]/g, "").substring(0, 10);
+      const match = projects.find((p) => p.key === jiraKey || p.key === activeProjectId.toUpperCase());
+      if (match) setSelectedProject(match.key);
+    }
+  }, [activeProjectId, projects]);
 
   const issuesUrl = selectedProject
     ? `/api/jira/issues?project=${selectedProject}${statusFilter ? `&status=${encodeURIComponent(statusFilter)}` : ""}${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ""}`
