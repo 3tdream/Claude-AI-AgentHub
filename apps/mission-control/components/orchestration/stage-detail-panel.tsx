@@ -26,10 +26,13 @@ interface StageDetailPanelProps {
 
 export function StageDetailPanel({ step, result, qualityScore, onClose }: StageDetailPanelProps) {
   const [applyStatus, setApplyStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
-  const [applyResult, setApplyResult] = useState<{ created: number; updated: number; errors: number } | null>(null);
+  const [applyResult, setApplyResult] = useState<{ staged: number; errors: number; total: number } | null>(null);
+  const [deployStatus, setDeployStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [deployResult, setDeployResult] = useState<{ created: number; updated: number; errors: number } | null>(null);
   const [expandedBlocks, setExpandedBlocks] = useState<Set<number>>(new Set());
 
   const codeBlocks: ParsedCodeBlock[] = result?.output ? parseCodeBlocks(result.output) : [];
+  const pipelineId = result?.stepId || step.id;
 
   async function handleApply() {
     if (codeBlocks.length === 0) return;
@@ -44,7 +47,7 @@ export function StageDetailPanel({ step, result, qualityScore, onClose }: StageD
             content: b.content,
             language: b.language,
           })),
-          pipelineId: result?.stepId,
+          pipelineId,
         }),
       });
       const data = await res.json();
@@ -57,6 +60,38 @@ export function StageDetailPanel({ step, result, qualityScore, onClose }: StageD
       }
     } catch {
       setApplyStatus("error");
+    }
+  }
+
+  const [skippedFiles, setSkippedFiles] = useState<string[]>([]);
+
+  async function handleDeploy(overwrite?: string[]) {
+    setDeployStatus("loading");
+    setSkippedFiles([]);
+    try {
+      const res = await fetch("/api/orchestration/deploy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pipelineId, allowOverwrite: overwrite }),
+      });
+      const data = await res.json();
+      const summary = data.summary || { created: 0, updated: 0, skipped: 0, errors: 0 };
+      const skipped = (data.results || []).filter((r: { status: string; filePath: string }) => r.status === "skipped").map((r: { filePath: string }) => r.filePath);
+
+      if (summary.created > 0 || summary.updated > 0) {
+        setDeployStatus("success");
+        setDeployResult(summary);
+      } else if (skipped.length > 0) {
+        setDeployStatus("idle");
+        setSkippedFiles(skipped);
+      } else if (data.success) {
+        setDeployStatus("success");
+        setDeployResult(summary);
+      } else {
+        setDeployStatus("error");
+      }
+    } catch {
+      setDeployStatus("error");
     }
   }
 
@@ -296,27 +331,63 @@ export function StageDetailPanel({ step, result, qualityScore, onClose }: StageD
               <FileCode2 className="w-3 h-3" />
               {codeBlocks.length} file{codeBlocks.length > 1 ? "s" : ""} detected
             </p>
-            <button
-              onClick={handleApply}
-              disabled={applyStatus === "loading" || applyStatus === "success"}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-mono text-[10px] uppercase tracking-wider transition-all ${
-                applyStatus === "success"
-                  ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleApply}
+                disabled={applyStatus === "loading" || applyStatus === "success"}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-mono text-[10px] uppercase tracking-wider transition-all ${
+                  applyStatus === "success"
+                    ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
+                    : applyStatus === "error"
+                    ? "bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500/20"
+                    : "bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20"
+                }`}
+              >
+                {applyStatus === "loading" && <Loader2 className="w-3 h-3 animate-spin" />}
+                {applyStatus === "success" && <Check className="w-3 h-3" />}
+                {applyStatus === "error" && <XCircle className="w-3 h-3" />}
+                {applyStatus === "idle" && <FileCode2 className="w-3 h-3" />}
+                {applyStatus === "success"
+                  ? `Staged (${applyResult?.staged} files)`
                   : applyStatus === "error"
-                  ? "bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500/20"
-                  : "bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20"
-              }`}
-            >
-              {applyStatus === "loading" && <Loader2 className="w-3 h-3 animate-spin" />}
-              {applyStatus === "success" && <Check className="w-3 h-3" />}
-              {applyStatus === "error" && <XCircle className="w-3 h-3" />}
-              {applyStatus === "idle" && <FileCode2 className="w-3 h-3" />}
-              {applyStatus === "success"
-                ? `Applied (${applyResult?.created}+${applyResult?.updated})`
-                : applyStatus === "error"
-                ? "Retry Apply"
-                : "Apply to Project"}
-            </button>
+                  ? "Retry Stage"
+                  : "Stage Files"}
+              </button>
+              {applyStatus === "success" && (
+                <>
+                  <button
+                    onClick={() => handleDeploy()}
+                    disabled={deployStatus === "loading" || deployStatus === "success"}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-mono text-[10px] uppercase tracking-wider transition-all ${
+                      deployStatus === "success"
+                        ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
+                        : deployStatus === "error"
+                        ? "bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500/20"
+                        : "bg-emerald-600 text-white hover:bg-emerald-700"
+                    }`}
+                  >
+                    {deployStatus === "loading" && <Loader2 className="w-3 h-3 animate-spin" />}
+                    {deployStatus === "success" && <Check className="w-3 h-3" />}
+                    {deployStatus === "error" && <XCircle className="w-3 h-3" />}
+                    {deployStatus === "idle" && <Terminal className="w-3 h-3" />}
+                    {deployStatus === "success"
+                      ? `Deployed (${deployResult?.created} new, ${deployResult?.updated} updated)`
+                      : deployStatus === "error"
+                      ? "Retry Deploy"
+                      : "Deploy to Source"}
+                  </button>
+                  {skippedFiles.length > 0 && (
+                    <button
+                      onClick={() => handleDeploy(skippedFiles)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-mono text-[10px] uppercase tracking-wider bg-amber-500/10 text-amber-600 border border-amber-500/20 hover:bg-amber-500/20 transition-all"
+                    >
+                      <AlertTriangle className="w-3 h-3" />
+                      Overwrite {skippedFiles.length} existing
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
           </div>
 
           <div className="space-y-1.5">

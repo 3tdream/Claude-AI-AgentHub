@@ -844,13 +844,20 @@ function PipelinePanel({ activeProjectId, projects, onSelectProject }: {
   const [rejectReason, setRejectReason] = useState("");
   const [showRejectInput, setShowRejectInput] = useState(false);
   const [selectedStageId, setSelectedStageId] = useState<string | null>(null);
+  // Local viewing state — for browsing history WITHOUT polluting store's activeExecution
+  const [viewingExecution, setViewingExecution] = useState<PipelineExecution | null>(null);
 
-  // Get active workflow steps for pipeline graph
-  const activeWorkflow = activeExecution ? workflows.find((w) => w.id === activeExecution.workflowId) : null;
-  const activeSteps: WorkflowStep[] = activeWorkflow?.steps || [];
-  const selectedStep = activeSteps.find((s) => s.id === selectedStageId) || null;
-  const selectedStepResult = selectedStep && activeExecution ? activeExecution.stepResults[selectedStep.id] : undefined;
-  const selectedQualityScore = selectedStep && activeExecution?.qualityScores ? activeExecution.qualityScores[selectedStep.id] : undefined;
+  // Display execution = viewing history OR live execution
+  const displayExecution = viewingExecution || activeExecution;
+  const displayWorkflow = displayExecution ? workflows.find((w) => w.id === displayExecution.workflowId) : null;
+  const displaySteps: WorkflowStep[] = displayWorkflow?.steps || [];
+  // Fallback: build step from stepResult if workflow not found (for viewing history)
+  const selectedStep = displaySteps.find((s) => s.id === selectedStageId)
+    || (selectedStageId && displayExecution?.stepResults[selectedStageId]
+      ? { id: selectedStageId, agentId: selectedStageId, agentName: selectedStageId.replace(/^s\d+-/, "").replace(/-/g, " "), prompt: "", dependsOn: [], metadata: {} } as unknown as WorkflowStep
+      : null);
+  const selectedStepResult = selectedStep && displayExecution ? displayExecution.stepResults[selectedStep.id] : undefined;
+  const selectedQualityScore = selectedStep && displayExecution?.qualityScores ? displayExecution.qualityScores[selectedStep.id] : undefined;
 
   // Resolve checkpoint from store changes
   useEffect(() => {
@@ -919,11 +926,15 @@ function PipelinePanel({ activeProjectId, projects, onSelectProject }: {
     setInput("");
   };
 
-  // Confirm & Execute pipeline
-  const confirmAndExecute = async () => {
-    if (!routingDecision || !pipelineInput || executing) return;
-    // Find first workflow with steps (prefer non-template)
-    const wf = workflows.find((w) => !w.isTemplate && w.steps.length > 0) || workflows.find((w) => w.steps.length > 0);
+  // Confirm & Execute pipeline (or resume from previous)
+  const confirmAndExecute = async (resumeFrom?: PipelineExecution) => {
+    const taskInput = resumeFrom?.input || pipelineInput;
+    if (!taskInput || executing) return;
+
+    // Find workflow — prefer matching workflowId from previous execution
+    const wf = resumeFrom
+      ? (workflows.find((w) => w.id === resumeFrom.workflowId) || workflows.find((w) => w.steps.length > 0))
+      : (workflows.find((w) => !w.isTemplate && w.steps.length > 0) || workflows.find((w) => w.steps.length > 0));
     if (!wf) {
       toast.error("No workflow found with steps");
       return;
@@ -931,13 +942,21 @@ function PipelinePanel({ activeProjectId, projects, onSelectProject }: {
 
     setExecuting(true);
     setResult(null);
+    setViewingExecution(null);
+    setSelectedStageId(null);
     clearControlFlags();
+    setPipelineView("input");
+
+    const completedCount = resumeFrom ? Object.values(resumeFrom.stepResults).filter((r) => r.status === "completed").length : 0;
+    if (resumeFrom && completedCount > 0) {
+      toast(`Resuming — reusing ${completedCount} completed stages`, { duration: 3000 });
+    }
 
     try {
-      const steps = filterStepsForRouting(wf.steps, routingDecision);
+      const steps = routingDecision ? filterStepsForRouting(wf.steps, routingDecision) : wf.steps;
       const result = await executePipeline(
         steps,
-        pipelineInput,
+        taskInput,
         wf.id,
         wf.name,
         {
@@ -960,8 +979,9 @@ function PipelinePanel({ activeProjectId, projects, onSelectProject }: {
           isPauseRequested: () => useOrchestrationStore.getState().pauseRequested,
           isStopRequested: () => useOrchestrationStore.getState().stopRequested,
         },
-        routingDecision,
+        routingDecision || undefined,
         activeProjectId,
+        resumeFrom || undefined,
       );
 
       addToHistory(result);
@@ -1226,28 +1246,30 @@ function PipelinePanel({ activeProjectId, projects, onSelectProject }: {
       )}
 
       {/* ── Sprint 3 #13: Pipeline Graph ── */}
-      {activeTab === "pipeline" && activeExecution && activeSteps.length > 0 && (
+      {activeTab === "pipeline" && displayExecution && displaySteps.length > 0 && (
         <div className="border-b border-slate-200 overflow-x-auto">
           <PipelineGraph
-            steps={activeSteps}
-            execution={activeExecution}
+            steps={displaySteps}
+            execution={displayExecution}
             executionHistory={executionHistory}
             selectedStageId={selectedStageId}
             onSelectStage={setSelectedStageId}
-            onApproveCheckpoint={() => approveCheckpoint(activeExecution.id)}
-            onRejectCheckpoint={(reason) => rejectCheckpoint(activeExecution.id, reason)}
+            onApproveCheckpoint={() => activeExecution && approveCheckpoint(activeExecution.id)}
+            onRejectCheckpoint={(reason) => activeExecution && rejectCheckpoint(activeExecution.id, reason)}
           />
         </div>
       )}
 
       {/* ── Sprint 3 #14: Stage Detail Panel + #15: Stage Files & Deploy ── */}
       {activeTab === "pipeline" && selectedStep && (
-        <StageDetailPanel
-          step={selectedStep}
-          result={selectedStepResult}
-          qualityScore={selectedQualityScore}
-          onClose={() => setSelectedStageId(null)}
-        />
+        <div className="max-h-[50vh] overflow-y-auto border-b border-slate-200">
+          <StageDetailPanel
+            step={selectedStep}
+            result={selectedStepResult}
+            qualityScore={selectedQualityScore}
+            onClose={() => { setSelectedStageId(null); setViewingExecution(null); }}
+          />
+        </div>
       )}
 
       {/* Tab content */}
@@ -1271,85 +1293,146 @@ function PipelinePanel({ activeProjectId, projects, onSelectProject }: {
             </div>
           ) : (
             <div className="space-y-2">
-              {executionHistory.map((exec, idx) => {
+              {/* Deduplicate by ID */}
+              {executionHistory.filter((exec, idx, arr) => arr.findIndex((e) => e.id === exec.id) === idx).map((exec) => {
                 const steps = Object.values(exec.stepResults);
                 const done = steps.filter((s) => s.status === "completed").length;
                 const failed = steps.filter((s) => s.status === "failed").length;
                 const elapsed = exec.totalDuration ? `${Math.round(exec.totalDuration / 1000)}s` : "\u2014";
+                const isStale = (exec.status === "paused" || exec.status === "running") && activeExecution?.id !== exec.id;
+                const displayStatus = isStale ? "interrupted" : exec.status;
+                const stepsWithOutput = steps.filter((s) => s.output);
+                const hasFiles = stepsWithOutput.some((s) => s.output && (s.output.includes('```') || s.output.includes('"files"')));
+                const isViewing = viewingExecution?.id === exec.id;
                 return (
-                  <div key={`${exec.id}-${idx}`} className="bg-white border border-slate-200 rounded-lg p-3 hover:shadow-sm transition-shadow">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0">
-                        <div className="font-mono text-xs text-slate-700 truncate">{exec.input?.substring(0, 60)}</div>
-                        <div className="flex items-center gap-2 mt-1.5">
-                          <span className={`font-mono text-[10px] uppercase tracking-wide font-medium ${
-                            exec.status === "completed" ? "text-emerald-600" : exec.status === "failed" ? "text-rose-600" : exec.status === "paused" || exec.status === "stopped" ? "text-amber-600" : "text-indigo-600"
-                          }`}>
-                            {exec.status}
-                          </span>
-                          <span className="font-mono text-[10px] text-slate-400">{done}/{steps.length} steps</span>
-                          {failed > 0 && <span className="font-mono text-[10px] text-rose-400">{failed} failed</span>}
-                          <span className="font-mono text-[10px] text-slate-400">{elapsed}</span>
-                          {exec.jiraKey && (
-                            <span className="font-mono text-[10px] text-blue-500 bg-blue-50 px-1.5 rounded">{exec.jiraKey}</span>
-                          )}
+                  <div key={exec.id} className={`bg-white border rounded-lg p-3 transition-all cursor-pointer ${isViewing ? "border-indigo-300 shadow-md ring-1 ring-indigo-200" : "border-slate-200 hover:shadow-sm hover:border-slate-300"}`}>
+                    {/* Clickable card body */}
+                    <div
+                      onClick={() => {
+                        if (isViewing) {
+                          setViewingExecution(null);
+                          setSelectedStageId(null);
+                        } else {
+                          setViewingExecution(exec);
+                          setSelectedStageId(null);
+                          setPipelineView("input");
+                        }
+                      }}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="font-mono text-xs text-slate-700 truncate">{exec.input?.substring(0, 60)}</div>
+                          <div className="flex items-center gap-2 mt-1.5">
+                            <span className={`font-mono text-[10px] uppercase tracking-wide font-medium ${
+                              displayStatus === "completed" ? "text-emerald-600" : displayStatus === "failed" ? "text-rose-600" : displayStatus === "interrupted" || displayStatus === "paused" || displayStatus === "stopped" ? "text-amber-600" : "text-indigo-600"
+                            }`}>
+                              {displayStatus}
+                            </span>
+                            <span className="font-mono text-[10px] text-slate-400">{done}/{steps.length} steps</span>
+                            {failed > 0 && <span className="font-mono text-[10px] text-rose-400">{failed} failed</span>}
+                            <span className="font-mono text-[10px] text-slate-400">{elapsed}</span>
+                            {exec.jiraKey && (
+                              <span className="font-mono text-[10px] text-blue-500 bg-blue-50 px-1.5 rounded">{exec.jiraKey}</span>
+                            )}
+                            {hasFiles && (
+                              <span className="font-mono text-[10px] text-violet-500 bg-violet-50 px-1.5 rounded flex items-center gap-0.5">
+                                <FileText className="w-2.5 h-2.5" />
+                                files
+                              </span>
+                            )}
+                            {stepsWithOutput.length > 0 && (
+                              <span className="font-mono text-[10px] text-slate-400">{stepsWithOutput.length} outputs</span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                      {/* Actions */}
-                      <div className="flex items-center gap-1 shrink-0 ml-2">
-                        <button
-                          onClick={() => {
-                            const blob = new Blob([JSON.stringify(exec, null, 2)], { type: "application/json" });
-                            const url = URL.createObjectURL(blob);
-                            const a = document.createElement("a");
-                            a.href = url;
-                            a.download = `pipeline-${exec.id.substring(0, 8)}.json`;
-                            a.click();
-                            URL.revokeObjectURL(url);
-                            toast.success("Exported pipeline JSON");
-                          }}
-                          className="p-1 rounded text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
-                          title="Export JSON"
-                        >
-                          <FileDown className="w-3 h-3" />
-                        </button>
-                        {exec.status === "completed" && Object.values(exec.stepResults).some((r) => r.output) && (
-                          <button
-                            onClick={() => {
-                              // Open stage detail for the last completed step with output
-                              const lastWithOutput = Object.values(exec.stepResults).filter((r) => r.output).pop();
-                              if (lastWithOutput) {
-                                // Set this execution as active to view its stages
-                                setActiveExecution(exec);
-                                setSelectedStageId(lastWithOutput.stepId);
-                                setPipelineView("input");
-                              }
-                            }}
-                            className="p-1 rounded text-slate-300 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
-                            title="View output & deploy"
-                          >
-                            <ExternalLink className="w-3 h-3" />
-                          </button>
-                        )}
-                        <span className="font-mono text-[9px] text-slate-300">
+                        <span className="font-mono text-[9px] text-slate-300 shrink-0 ml-2">
                           {new Date(exec.startedAt).toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit" })}
                         </span>
                       </div>
-                    </div>
-                    {/* Step results mini bar */}
-                    <div className="flex gap-0.5 mt-2">
-                      {steps.map((step) => (
-                        <div
-                          key={step.stepId}
-                          className={`h-1 flex-1 rounded-full ${
-                            step.status === "completed" ? "bg-emerald-400" :
-                            step.status === "failed" ? "bg-rose-400" :
-                            step.status === "running" ? "bg-indigo-400 animate-pulse" :
-                            "bg-slate-200"
+                      {/* Step results mini bar */}
+                      <div className="flex gap-0.5 mt-2">
+                        {steps.map((step) => (
+                          <div
+                            key={step.stepId}
+                            className={`h-1 flex-1 rounded-full ${
+                              step.status === "completed" ? "bg-emerald-400" :
+                              step.status === "failed" ? "bg-rose-400" :
+                              step.status === "running" ? "bg-indigo-400 animate-pulse" :
+                              "bg-slate-200"
                           }`}
                           title={`${step.stepId}: ${step.status}`}
                         />
                       ))}
+                    </div>
+                    </div>{/* end clickable body */}
+
+                    {/* Action buttons row */}
+                    <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-slate-100">
+                      {/* View stages */}
+                      {stepsWithOutput.length > 0 && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setViewingExecution(exec);
+                            setSelectedStageId(null);
+                            setPipelineView("input");
+                          }}
+                          className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors"
+                        >
+                          <Layers className="w-3 h-3" />
+                          View Stages
+                        </button>
+                      )}
+                      {/* Deploy */}
+                      {hasFiles && exec.status === "completed" && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const stepWithFiles = stepsWithOutput.find((s) => s.output && (s.output.includes('```') || s.output.includes('"files"')));
+                            if (stepWithFiles) {
+                              setViewingExecution(exec);
+                              setSelectedStageId(stepWithFiles.stepId);
+                              setPipelineView("input");
+                            }
+                          }}
+                          className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 transition-colors"
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                          Deploy Files
+                        </button>
+                      )}
+                      {/* Resume — reuses completed stages, reruns failed/pending */}
+                      {(isStale || exec.status === "stopped" || exec.status === "failed") && exec.input && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            confirmAndExecute(exec);
+                          }}
+                          disabled={executing}
+                          className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium text-amber-600 bg-amber-50 hover:bg-amber-100 transition-colors disabled:opacity-50"
+                        >
+                          <Play className="w-3 h-3" />
+                          {done > 0 ? `Resume (skip ${done} done)` : "Re-run"}
+                        </button>
+                      )}
+                      {/* Export */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const blob = new Blob([JSON.stringify(exec, null, 2)], { type: "application/json" });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement("a");
+                          a.href = url;
+                          a.download = `pipeline-${exec.id.substring(0, 8)}.json`;
+                          a.click();
+                          URL.revokeObjectURL(url);
+                          toast.success("Exported pipeline JSON");
+                        }}
+                        className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium text-slate-500 hover:bg-slate-100 transition-colors ml-auto"
+                      >
+                        <FileDown className="w-3 h-3" />
+                        Export
+                      </button>
                     </div>
                   </div>
                 );
@@ -1484,7 +1567,7 @@ function PipelinePanel({ activeProjectId, projects, onSelectProject }: {
                     {/* Confirm & Execute */}
                     <div className="flex items-center gap-2 pt-1">
                       <button
-                        onClick={confirmAndExecute}
+                        onClick={() => confirmAndExecute()}
                         disabled={executing}
                         className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 text-white text-xs font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
                       >
@@ -1588,6 +1671,7 @@ function PipelinePanel({ activeProjectId, projects, onSelectProject }: {
 export default function HomePage() {
   const { activeProjectId, setActiveProject } = useAppStore();
   const executionHistory = useOrchestrationStore((s) => s.executionHistory);
+  const activeExecution = useOrchestrationStore((s) => s.activeExecution);
   const activityEvents = useActivityStore((s) => s.events);
   const { agents, isLoading: agentsLoading, mutate: mutateAgents } = useAgents();
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
@@ -1855,21 +1939,25 @@ export default function HomePage() {
           <span className="text-xs font-semibold text-slate-900 uppercase tracking-wide">Recent Runs</span>
         </div>
         <div className="flex flex-col gap-2">
-          {executionHistory.slice(0, 5).map((exec, i) => (
-            <div key={`${exec.id}-${i}`} className="bg-white border border-slate-200 rounded-lg p-3 hover:shadow-sm transition-shadow">
-              <div className="font-mono text-xs text-slate-600 truncate">{exec.input?.substring(0, 40)}</div>
-              <div className="flex items-center justify-between mt-1.5">
-                <span className={`font-mono text-[10px] uppercase tracking-wide font-medium ${
-                  exec.status === "completed" ? "text-emerald-600" : exec.status === "failed" ? "text-rose-600" : "text-amber-600"
-                }`}>
-                  {exec.status}
-                </span>
-                <span className="font-mono text-[10px] text-slate-400">
-                  {exec.totalDuration ? `${Math.round(exec.totalDuration / 1000)}s` : "\u2014"}
-                </span>
+          {executionHistory.filter((exec, idx, arr) => arr.findIndex((e) => e.id === exec.id) === idx).slice(0, 5).map((exec) => {
+            const isStale = (exec.status === "paused" || exec.status === "running") && activeExecution?.id !== exec.id;
+            const displayStatus = isStale ? "interrupted" : exec.status;
+            return (
+              <div key={exec.id} className="bg-white border border-slate-200 rounded-lg p-3 hover:shadow-sm transition-shadow">
+                <div className="font-mono text-xs text-slate-600 truncate">{exec.input?.substring(0, 40)}</div>
+                <div className="flex items-center justify-between mt-1.5">
+                  <span className={`font-mono text-[10px] uppercase tracking-wide font-medium ${
+                    displayStatus === "completed" ? "text-emerald-600" : displayStatus === "failed" ? "text-rose-600" : "text-amber-600"
+                  }`}>
+                    {displayStatus}
+                  </span>
+                  <span className="font-mono text-[10px] text-slate-400">
+                    {exec.totalDuration ? `${Math.round(exec.totalDuration / 1000)}s` : "\u2014"}
+                  </span>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

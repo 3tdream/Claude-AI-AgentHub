@@ -6,6 +6,50 @@ import { addLog } from "@/lib/logs-storage";
 const PROJECT_ROOT = process.cwd();
 const STAGING_DIR = path.join(PROJECT_ROOT, "data", "applied");
 
+// Ignored directories when searching for existing files
+const SEARCH_IGNORE = new Set(["node_modules", ".next", ".git", "data", "dist", ".turbo"]);
+
+/**
+ * Smart path resolution: if staged file has no directory (e.g. "globals.css"),
+ * search the project for an existing file with that name and deploy there.
+ * If multiple matches — pick the shallowest one.
+ */
+async function resolveSmartPath(filePath: string): Promise<string> {
+  // If already has a directory component, use as-is
+  if (filePath.includes("/")) return filePath;
+
+  const fileName = path.basename(filePath);
+  const matches: { rel: string; depth: number }[] = [];
+
+  async function search(dir: string, prefix: string, depth: number) {
+    if (depth > 5) return; // don't go too deep
+    try {
+      const entries = await fs.readdir(dir, { withFileTypes: true });
+      for (const entry of entries) {
+        if (SEARCH_IGNORE.has(entry.name)) continue;
+        if (entry.isDirectory()) {
+          await search(path.join(dir, entry.name), prefix ? `${prefix}/${entry.name}` : entry.name, depth + 1);
+        } else if (entry.name === fileName) {
+          const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
+          matches.push({ rel, depth });
+        }
+      }
+    } catch { /* skip unreadable dirs */ }
+  }
+
+  await search(PROJECT_ROOT, "", 0);
+
+  if (matches.length === 1) return matches[0].rel;
+  if (matches.length > 1) {
+    // Pick shallowest match
+    matches.sort((a, b) => a.depth - b.depth);
+    return matches[0].rel;
+  }
+
+  // No match — use original path (will create new file)
+  return filePath;
+}
+
 /**
  * POST /api/orchestration/deploy
  * Copies staged files from data/applied/{pipelineId}/ into the real project.
@@ -60,20 +104,23 @@ export async function POST(request: NextRequest) {
 
     for (const filePath of filesToDeploy) {
       try {
+        // Smart path resolution: find real location for bare filenames
+        const resolvedPath = await resolveSmartPath(filePath);
+
         // Security: double-check path
-        if (filePath.includes("..") || path.isAbsolute(filePath)) {
-          results.push({ filePath, status: "error", error: "Path traversal not allowed" });
+        if (resolvedPath.includes("..") || path.isAbsolute(resolvedPath)) {
+          results.push({ filePath: resolvedPath, status: "error", error: "Path traversal not allowed" });
           continue;
         }
 
         const blocked = ["node_modules/", ".env", "data/api-keys", ".git/"];
-        if (blocked.some((b) => filePath.startsWith(b) || filePath.includes(b))) {
-          results.push({ filePath, status: "error", error: "Blocked path" });
+        if (blocked.some((b) => resolvedPath.startsWith(b) || resolvedPath.includes(b))) {
+          results.push({ filePath: resolvedPath, status: "error", error: "Blocked path" });
           continue;
         }
 
         const srcPath = path.join(stageDir, filePath);
-        const destPath = path.join(PROJECT_ROOT, filePath);
+        const destPath = path.join(PROJECT_ROOT, resolvedPath);
 
         // Check if target exists
         let existed = false;
@@ -85,9 +132,8 @@ export async function POST(request: NextRequest) {
         }
 
         // SAFETY: block overwriting existing files unless explicitly allowed
-        // This prevents agents from destroying working code (stores, pages, types)
         if (existed && (!allowOverwrite || !allowOverwrite.includes(filePath))) {
-          results.push({ filePath, status: "skipped" as any, error: "File exists — overwrite not allowed (select explicitly to overwrite)" });
+          results.push({ filePath: resolvedPath, status: "skipped" as any, error: `File exists at ${resolvedPath} — click Overwrite to replace` });
           continue;
         }
 
@@ -98,7 +144,8 @@ export async function POST(request: NextRequest) {
         const content = await fs.readFile(srcPath, "utf-8");
         await fs.writeFile(destPath, content, "utf-8");
 
-        results.push({ filePath, status: existed ? "updated" : "created" });
+        const note = resolvedPath !== filePath ? ` (resolved: ${filePath} → ${resolvedPath})` : "";
+        results.push({ filePath: resolvedPath, status: existed ? "updated" : "created", error: note || undefined });
       } catch (err) {
         results.push({
           filePath,
