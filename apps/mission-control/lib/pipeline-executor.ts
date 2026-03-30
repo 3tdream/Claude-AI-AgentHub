@@ -134,7 +134,7 @@ export async function executePipeline(
   }
 
   // --- Fetch KB entries for dynamic contract adaptation ---
-  const kbEntries = await fetchKBEntriesForContracts();
+  const kbEntries = await fetchKBEntriesForContracts(selectedProject);
   if (kbEntries.length > 0) {
     postLog({
       type: "system",

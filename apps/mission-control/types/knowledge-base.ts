@@ -7,6 +7,8 @@ export type KBCategory =
   | "architecture-patterns"
   | "tech-decisions";
 
+export type KBScope = "global" | "project";
+
 export interface KBEntry {
   id: string;
   /** Short title */
@@ -35,6 +37,15 @@ export interface KBEntry {
   lastConfirmedAt?: string;
   /** How many times this pattern was confirmed by pipeline runs */
   confirmCount?: number;
+  /** Project this entry belongs to (undefined = global) */
+  projectId?: string;
+  /** Tracking for entries promoted from project to global */
+  promotedFrom?: { projectId: string; originalId: string; promotedAt: string };
+}
+
+/** KBEntry with layer annotation — used in merged project+global results */
+export interface KBEntryWithLayer extends KBEntry {
+  _layer: KBScope;
 }
 
 export interface KBFile {

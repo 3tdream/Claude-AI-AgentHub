@@ -111,14 +111,29 @@ async function loadAnalytics(): Promise<PipelineAnalytics | null> {
   }
 }
 
-async function loadKBCategory(category: string): Promise<KBEntry[]> {
+async function loadKBCategory(category: string, projectId?: string | null): Promise<KBEntry[]> {
+  const entries: KBEntry[] = [];
+
+  // Load global entries
   try {
     const raw = await fs.readFile(path.join(KB_DIR, `${category}.json`), "utf-8");
     const file: KBFile = JSON.parse(raw);
-    return file.entries;
-  } catch {
-    return [];
+    entries.push(...file.entries);
+  } catch { /* no global file */ }
+
+  // Load project-specific entries if projectId provided
+  if (projectId) {
+    try {
+      const projectPath = path.join(process.cwd(), "projects", projectId, "knowledge-base", `${category}.json`);
+      const raw = await fs.readFile(projectPath, "utf-8");
+      const file: KBFile = JSON.parse(raw);
+      // Project entries first (dedup by id)
+      const globalIds = new Set(entries.map((e) => e.id));
+      entries.unshift(...file.entries.filter((e) => !globalIds.has(e.id)));
+    } catch { /* no project KB file */ }
   }
+
+  return entries;
 }
 
 // ── Input Complexity Analysis ────────────────────────────
@@ -309,8 +324,8 @@ export async function runPreflightSimulation(
   // Load all data sources in parallel
   const [analytics, failurePatterns, successPatterns] = await Promise.all([
     loadAnalytics(),
-    loadKBCategory("failure-patterns"),
-    loadKBCategory("success-patterns"),
+    loadKBCategory("failure-patterns", projectId),
+    loadKBCategory("success-patterns", projectId),
   ]);
 
   const inputAnalysis = analyzeInputComplexity(input, steps, projectId);

@@ -85,17 +85,21 @@ export function enrichContractWithKB(contract: StageContract, kbEntries: KBEntry
  * Fetch KB failure-patterns + security-playbook entries via API (client-side).
  * Returns empty array on failure (non-blocking).
  */
-export async function fetchKBEntriesForContracts(): Promise<KBEntry[]> {
+export async function fetchKBEntriesForContracts(projectId?: string | null): Promise<KBEntry[]> {
   try {
+    const scope = projectId ? `&projectId=${encodeURIComponent(projectId)}&scope=project` : "";
     const [fpRes, spRes] = await Promise.all([
-      fetch("/api/knowledge-base?category=failure-patterns"),
-      fetch("/api/knowledge-base?category=security-playbook"),
+      fetch(`/api/knowledge-base?category=failure-patterns${scope}`),
+      fetch(`/api/knowledge-base?category=security-playbook${scope}`),
     ]);
     const fpData = fpRes.ok ? await fpRes.json() : null;
     const spData = spRes.ok ? await spRes.json() : null;
     const entries: KBEntry[] = [];
+    // Handle both response shapes: { data: { entries } } and { data: [] }
     if (fpData?.data?.entries) entries.push(...fpData.data.entries);
+    else if (Array.isArray(fpData?.data)) entries.push(...fpData.data);
     if (spData?.data?.entries) entries.push(...spData.data.entries);
+    else if (Array.isArray(spData?.data)) entries.push(...spData.data);
     return entries;
   } catch {
     return []; // KB unavailable — degrade gracefully

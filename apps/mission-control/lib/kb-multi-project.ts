@@ -1,31 +1,28 @@
 /**
  * Multi-Project Knowledge Base
  *
- * Extends KB storage to support multiple projects:
- * - Each project has its own KB directory: data/knowledge-base/{projectId}/
- * - Global KB at data/knowledge-base/global/ — shared across all projects
- * - Cross-project search: find patterns from any project
- * - KB sync: promote project-specific patterns to global
+ * Two-layer KB:
+ * - Global: data/knowledge-base/*.json — shared across all projects
+ * - Project: projects/{projectId}/knowledge-base/*.json — project-specific
  *
- * Backwards compatible: existing data/knowledge-base/*.json → treated as "mission-control" project.
+ * Pipeline receives merged (project + global) entries.
+ * "Promote to Global" copies project entry into real global KB files.
  */
 
 import { promises as fs } from "fs";
 import path from "path";
 import crypto from "crypto";
-import type { KBCategory, KBEntry, KBFile, KBIndex } from "@/types";
+import type { KBCategory, KBEntry, KBFile, KBIndex, KBEntryWithLayer } from "@/types";
+import { addEntry as addGlobalEntry, readKBFile as readGlobalKBFile } from "@/lib/kb-storage";
 
-const DATA_DIR = path.join(process.cwd(), "data");
-const KB_ROOT = path.join(DATA_DIR, "knowledge-base");
-const GLOBAL_PROJECT = "_global";
-const DEFAULT_PROJECT = "mission-control";
+const PROJECT_ROOT = process.cwd();
+const PROJECTS_DIR = path.join(PROJECT_ROOT, "projects");
 const STALE_THRESHOLD_DAYS = 7;
 
 // ── Helpers ──────────────────────────────────────────
 
 function projectKBDir(projectId: string): string {
-  if (projectId === DEFAULT_PROJECT) return KB_ROOT; // Backwards compatible
-  return path.join(KB_ROOT, projectId);
+  return path.join(PROJECTS_DIR, projectId, "knowledge-base");
 }
 
 async function ensureDir(dir: string) {
@@ -47,16 +44,20 @@ function generateId(): string {
 // ── Project Discovery ────────────────────────────────
 
 export async function listProjects(): Promise<string[]> {
-  const projects = [DEFAULT_PROJECT]; // Always include default
+  const projects: string[] = [];
   try {
-    const entries = await fs.readdir(KB_ROOT, { withFileTypes: true });
+    const entries = await fs.readdir(PROJECTS_DIR, { withFileTypes: true });
     for (const entry of entries) {
       if (entry.isDirectory() && !entry.name.startsWith("_")) {
-        projects.push(entry.name);
+        // Check if this project has a knowledge-base dir
+        try {
+          await fs.access(path.join(PROJECTS_DIR, entry.name, "knowledge-base"));
+          projects.push(entry.name);
+        } catch { /* no KB dir — skip */ }
       }
     }
-  } catch { /* KB_ROOT doesn't exist yet */ }
-  return [...new Set(projects)];
+  } catch { /* projects dir doesn't exist */ }
+  return projects;
 }
 
 // ── Read ─────────────────────────────────────────────
@@ -82,6 +83,51 @@ export async function getProjectCategories(projectId: string): Promise<KBCategor
   }
 }
 
+/** Get all entries from a project, across all categories */
+export async function readAllProjectEntries(projectId: string): Promise<KBEntry[]> {
+  const cats = await getProjectCategories(projectId);
+  const entries: KBEntry[] = [];
+  for (const cat of cats) {
+    const file = await readProjectKBFile(projectId, cat);
+    if (file) entries.push(...file.entries);
+  }
+  return entries;
+}
+
+/** Get merged project + global entries for a category */
+export async function readMergedKB(projectId: string, category: KBCategory): Promise<KBEntryWithLayer[]> {
+  const results: KBEntryWithLayer[] = [];
+
+  // Project entries first (higher priority)
+  const projectFile = await readProjectKBFile(projectId, category);
+  if (projectFile) {
+    results.push(...projectFile.entries.map((e) => ({ ...e, _layer: "project" as const })));
+  }
+
+  // Global entries
+  const globalFile = await readGlobalKBFile(category);
+  if (globalFile) {
+    const projectIds = new Set(results.map((e) => e.id));
+    for (const entry of globalFile.entries) {
+      if (!projectIds.has(entry.id)) {
+        results.push({ ...entry, _layer: "global" as const });
+      }
+    }
+  }
+
+  return results;
+}
+
+/** Get all merged entries across all categories */
+export async function readAllMergedEntries(projectId: string): Promise<KBEntryWithLayer[]> {
+  const categories: KBCategory[] = ["failure-patterns", "success-patterns", "security-playbook", "architecture-patterns", "tech-decisions"];
+  const results: KBEntryWithLayer[] = [];
+  for (const cat of categories) {
+    results.push(...await readMergedKB(projectId, cat));
+  }
+  return results;
+}
+
 // ── Write ────────────────────────────────────────────
 
 export async function addProjectEntry(
@@ -94,7 +140,7 @@ export async function addProjectEntry(
   const filePath = path.join(dir, `${category}.json`);
 
   const now = new Date().toISOString();
-  const newEntry: KBEntry = { ...entry, id: generateId(), createdAt: now, updatedAt: now, version: 1 };
+  const newEntry: KBEntry = { ...entry, id: generateId(), projectId, createdAt: now, updatedAt: now, version: 1 };
 
   let file: KBFile;
   try {
@@ -108,6 +154,63 @@ export async function addProjectEntry(
   file.lastUpdated = now;
   await fs.writeFile(filePath, JSON.stringify(file, null, 2), "utf-8");
   return newEntry;
+}
+
+export async function updateProjectEntry(
+  projectId: string,
+  category: KBCategory,
+  entryId: string,
+  updates: Partial<Pick<KBEntry, "title" | "content" | "severity" | "tags" | "confidence">>,
+): Promise<KBEntry | null> {
+  const dir = projectKBDir(projectId);
+  const filePath = path.join(dir, `${category}.json`);
+
+  let file: KBFile;
+  try {
+    file = JSON.parse(await fs.readFile(filePath, "utf-8"));
+  } catch {
+    return null;
+  }
+
+  const idx = file.entries.findIndex((e) => e.id === entryId);
+  if (idx === -1) return null;
+
+  file.entries[idx] = {
+    ...file.entries[idx],
+    ...updates,
+    updatedAt: new Date().toISOString(),
+    version: file.entries[idx].version + 1,
+  };
+
+  file.contentHash = computeHash(file.entries);
+  file.lastUpdated = new Date().toISOString();
+  await fs.writeFile(filePath, JSON.stringify(file, null, 2), "utf-8");
+  return file.entries[idx];
+}
+
+export async function deleteProjectEntry(
+  projectId: string,
+  category: KBCategory,
+  entryId: string,
+): Promise<boolean> {
+  const dir = projectKBDir(projectId);
+  const filePath = path.join(dir, `${category}.json`);
+
+  let file: KBFile;
+  try {
+    file = JSON.parse(await fs.readFile(filePath, "utf-8"));
+  } catch {
+    return false;
+  }
+
+  const before = file.entries.length;
+  file.entries = file.entries.filter((e) => e.id !== entryId);
+  if (file.entries.length === before) return false;
+
+  file.contentHash = computeHash(file.entries);
+  file.lastUpdated = new Date().toISOString();
+  await fs.writeFile(filePath, JSON.stringify(file, null, 2), "utf-8");
+  return true;
 }
 
 // ── Cross-Project Search ─────────────────────────────
@@ -140,7 +243,7 @@ export async function searchAllProjects(
   return results.sort((a, b) => new Date(b.entry.updatedAt).getTime() - new Date(a.entry.updatedAt).getTime());
 }
 
-// ── Global KB (shared patterns) ──────────────────────
+// ── Promote to Global ────────────────────────────────
 
 export async function promoteToGlobal(projectId: string, entryId: string, category: KBCategory): Promise<KBEntry | null> {
   const file = await readProjectKBFile(projectId, category);
@@ -149,15 +252,17 @@ export async function promoteToGlobal(projectId: string, entryId: string, catego
   const entry = file.entries.find((e) => e.id === entryId);
   if (!entry) return null;
 
-  // Add to global with reference to source project
-  return addProjectEntry(GLOBAL_PROJECT, category, {
-    title: `[${projectId}] ${entry.title}`,
+  // Write directly to global KB using kb-storage.ts addEntry
+  return addGlobalEntry(category, {
+    title: entry.title,
     content: entry.content,
-    source: `${projectId}/${entry.source}`,
+    source: entry.source,
     agentId: entry.agentId,
     severity: entry.severity,
-    tags: [...entry.tags, `from:${projectId}`, "promoted-to-global"],
+    tags: [...entry.tags, `promoted-from:${projectId}`],
     pipelineRunId: entry.pipelineRunId,
+    confidence: entry.confidence,
+    promotedFrom: { projectId, originalId: entryId, promotedAt: new Date().toISOString() },
   });
 }
 
@@ -171,16 +276,17 @@ export async function validateAllProjects(): Promise<{
   const projects = await listProjects();
   const results: { projectId: string; index: KBIndex }[] = [];
   let totalEntries = 0;
-  let integrityOk = true;
+  let allOk = true;
 
   for (const projectId of projects) {
     const cats = await getProjectCategories(projectId);
+    let projectOk = true;
     const categories = await Promise.all(
       cats.map(async (cat) => {
         const file = await readProjectKBFile(projectId, cat);
         if (!file) return { category: cat, description: "", entryCount: 0, contentHash: "", lastUpdated: "", stale: true };
         const hashOk = computeHash(file.entries) === file.contentHash;
-        if (!hashOk) integrityOk = false;
+        if (!hashOk) { projectOk = false; allOk = false; }
         totalEntries += file.entries.length;
         return {
           category: cat,
@@ -199,10 +305,10 @@ export async function validateAllProjects(): Promise<{
         categories,
         totalEntries: categories.reduce((s, c) => s + c.entryCount, 0),
         lastValidated: new Date().toISOString(),
-        integrityOk,
+        integrityOk: projectOk,
       },
     });
   }
 
-  return { projects: results, totalEntries, integrityOk };
+  return { projects: results, totalEntries, integrityOk: allOk };
 }
