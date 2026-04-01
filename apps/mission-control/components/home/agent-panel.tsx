@@ -30,7 +30,7 @@ export function AgentPanel({ agent, onClose, onAgentUpdated }: { agent: Agent; o
           <span className="text-base">{icon}</span>
           <span className="text-sm font-semibold text-slate-900 tracking-tight truncate">{agent.name}</span>
         </div>
-        <button onClick={onClose} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
+        <button onClick={onClose} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors" aria-label="Close agent panel">
           <X className="w-4 h-4 text-slate-400" />
         </button>
       </div>

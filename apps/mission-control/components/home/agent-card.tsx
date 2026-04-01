@@ -26,6 +26,7 @@ export function AgentCard({ agent, stats, selected, onClick }: {
 
   return (
     <div
+      role="button"
       onClick={onClick}
       className={`border rounded-lg p-3 transition-all cursor-pointer overflow-hidden min-w-0 ${
         selected
@@ -37,14 +38,14 @@ export function AgentCard({ agent, stats, selected, onClick }: {
           <span className="text-sm shrink-0" title={agent.id}>{icon}</span>
           <span className="text-[13px] font-semibold text-slate-900 tracking-tight truncate">{agent.name}</span>
         </div>
-        <span className={`font-mono text-[9px] px-1.5 py-0.5 rounded-full ${sc.bg} ${sc.color} font-medium tracking-wide uppercase shrink-0`}>
+        <span className={`font-mono text-xs px-1.5 py-0.5 rounded-full ${sc.bg} ${sc.color} font-medium tracking-wide uppercase shrink-0`}>
           {status}
         </span>
       </div>
       <div className="flex items-center gap-1.5 mb-2">
-        <span className={`font-mono text-[9px] px-1.5 py-0.5 rounded-full border ${prov}`}>{agent.llmProvider}</span>
-        <span className="font-mono text-[9px] text-slate-400 truncate">{agent.llmModel}</span>
-        <span className="font-mono text-[9px] text-violet-500 ml-auto shrink-0">{teamName}</span>
+        <span className={`font-mono text-xs px-1.5 py-0.5 rounded-full border ${prov}`}>{agent.llmProvider}</span>
+        <span className="font-mono text-xs text-slate-400 truncate">{agent.llmModel}</span>
+        <span className="font-mono text-xs text-violet-500 ml-auto shrink-0">{teamName}</span>
       </div>
       <div className="h-1 bg-slate-100 rounded-full overflow-hidden">
         <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${successRate}%` }} />

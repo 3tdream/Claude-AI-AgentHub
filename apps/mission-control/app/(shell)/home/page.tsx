@@ -118,10 +118,10 @@ export default function HomePage() {
         {fleetCollapsed ? (
           <>
             <div className="flex flex-col items-center gap-1 pb-2 border-b border-slate-200">
-              <button onClick={() => setFleetCollapsed(false)} className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors" title="Expand fleet">
+              <button onClick={() => setFleetCollapsed(false)} className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors" title="Expand fleet" aria-label="Expand fleet">
                 <PanelLeft className="w-4 h-4 text-slate-400" />
               </button>
-              <button onClick={() => setSelectedAgentId("__new__")} className="p-1 rounded text-indigo-400 hover:text-indigo-600 transition-colors" title="New agent">
+              <button onClick={() => setSelectedAgentId("__new__")} className="p-1 rounded text-indigo-400 hover:text-indigo-600 transition-colors" title="New agent" aria-label="New agent">
                 <Plus className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -156,6 +156,7 @@ export default function HomePage() {
                   onClick={() => setEditMode(!editMode)}
                   className={`p-1 rounded transition-colors ${editMode ? "bg-indigo-50 text-indigo-600" : "text-slate-400 hover:text-slate-600"}`}
                   title={editMode ? "Done reordering" : "Reorder agents"}
+                  aria-label={editMode ? "Done reordering" : "Reorder agents"}
                 >
                   <Pencil className="w-3 h-3" />
                 </button>
@@ -163,6 +164,7 @@ export default function HomePage() {
                   onClick={() => setSelectedAgentId("__new__")}
                   className="p-1 rounded text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50 transition-colors"
                   title="New agent"
+                  aria-label="New agent"
                 >
                   <Plus className="w-3.5 h-3.5" />
                 </button>
@@ -170,6 +172,7 @@ export default function HomePage() {
                   onClick={() => setFleetCollapsed(true)}
                   className="p-1 rounded text-slate-400 hover:text-slate-600 transition-colors"
                   title="Collapse fleet"
+                  aria-label="Collapse fleet"
                 >
                   <PanelLeftClose className="w-3 h-3" />
                 </button>
@@ -183,11 +186,11 @@ export default function HomePage() {
               <div key={agent.id} className="flex items-stretch gap-1">
                 {editMode && (
                   <div className="flex flex-col justify-center gap-0.5 shrink-0">
-                    <button onClick={() => moveAgent(idx, -1)} disabled={idx === 0} className="p-0.5 text-slate-300 hover:text-indigo-600 disabled:opacity-20 transition-colors">
+                    <button onClick={() => moveAgent(idx, -1)} disabled={idx === 0} className="p-0.5 text-slate-300 hover:text-indigo-600 disabled:opacity-20 transition-colors" aria-label="Move agent up">
                       <ChevronUp className="w-3 h-3" />
                     </button>
                     <GripVertical className="w-3 h-3 text-slate-300 mx-auto" />
-                    <button onClick={() => moveAgent(idx, 1)} disabled={idx === orderedAgents.length - 1} className="p-0.5 text-slate-300 hover:text-indigo-600 disabled:opacity-20 transition-colors">
+                    <button onClick={() => moveAgent(idx, 1)} disabled={idx === orderedAgents.length - 1} className="p-0.5 text-slate-300 hover:text-indigo-600 disabled:opacity-20 transition-colors" aria-label="Move agent down">
                       <ChevronDown className="w-3 h-3" />
                     </button>
                   </div>

@@ -43,7 +43,7 @@ export function NewAgentPanel({ onClose, onCreated }: { onClose: () => void; onC
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
         <span className="text-sm font-semibold text-indigo-600">+ New Agent</span>
-        <button onClick={onClose} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
+        <button onClick={onClose} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors" aria-label="Close new agent panel">
           <X className="w-4 h-4 text-slate-400" />
         </button>
       </div>

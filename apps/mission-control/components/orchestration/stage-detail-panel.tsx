@@ -148,21 +148,21 @@ export function StageDetailPanel({ step, result, qualityScore, onClose }: StageD
         <div className="flex items-center gap-2">
           <Cpu className="w-3.5 h-3.5 text-muted-foreground" />
           <div>
-            <p className="font-mono text-[9px] text-muted-foreground uppercase">Agent</p>
+            <p className="font-mono text-xs text-muted-foreground uppercase">Agent</p>
             <p className="font-mono text-xs">{step.agentId}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <Layers className="w-3.5 h-3.5 text-muted-foreground" />
           <div>
-            <p className="font-mono text-[9px] text-muted-foreground uppercase">Model</p>
+            <p className="font-mono text-xs text-muted-foreground uppercase">Model</p>
             <p className="font-mono text-xs">{step.metadata?.model || "—"}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <Clock className="w-3.5 h-3.5 text-muted-foreground" />
           <div>
-            <p className="font-mono text-[9px] text-muted-foreground uppercase">Duration</p>
+            <p className="font-mono text-xs text-muted-foreground uppercase">Duration</p>
             <p className="font-mono text-xs">
               {result?.duration
                 ? `${(result.duration / 1000).toFixed(1)}s`
@@ -201,22 +201,22 @@ export function StageDetailPanel({ step, result, qualityScore, onClose }: StageD
       {/* Tags */}
       <div className="flex gap-2 flex-wrap">
         {step.metadata?.isParallel && (
-          <span className="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 font-mono text-[9px]">
+          <span className="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 font-mono text-xs">
             Parallel
           </span>
         )}
         {step.metadata?.isCheckpoint && (
-          <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-500 font-mono text-[9px]">
+          <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-500 font-mono text-xs">
             Checkpoint
           </span>
         )}
         {step.metadata?.conditional && (
-          <span className="px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-500 font-mono text-[9px]">
+          <span className="px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-500 font-mono text-xs">
             Conditional: {step.metadata.conditional}
           </span>
         )}
         {step.metadata?.group && (
-          <span className="px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-500 font-mono text-[9px]">
+          <span className="px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-500 font-mono text-xs">
             Group: {step.metadata.group}
           </span>
         )}
@@ -245,7 +245,7 @@ export function StageDetailPanel({ step, result, qualityScore, onClose }: StageD
       {/* Evaluation feedback */}
       {result?.evaluationFeedback && (
         <div>
-          <p className="font-mono text-[9px] text-muted-foreground uppercase mb-1">Orchestrator Feedback</p>
+          <p className="font-mono text-xs text-muted-foreground uppercase mb-1">Orchestrator Feedback</p>
           <div className="p-3 bg-background rounded-lg border border-border">
             <p className="font-mono text-[11px] text-foreground/80 whitespace-pre-wrap">
               {result.evaluationFeedback}
@@ -257,7 +257,7 @@ export function StageDetailPanel({ step, result, qualityScore, onClose }: StageD
       {/* Agent Activity Log (Tool Calls) */}
       {result?.toolCalls && result.toolCalls.length > 0 && (
         <div>
-          <p className="font-mono text-[9px] text-muted-foreground uppercase mb-1 flex items-center gap-1.5">
+          <p className="font-mono text-xs text-muted-foreground uppercase mb-1 flex items-center gap-1.5">
             <Terminal className="w-3 h-3" />
             Agent Activity ({result.toolCalls.length} tool calls)
           </p>
@@ -287,12 +287,12 @@ export function StageDetailPanel({ step, result, qualityScore, onClose }: StageD
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className={`font-mono text-[10px] font-semibold ${color}`}>{tc.name}</span>
-                      <span className="font-mono text-[9px] text-muted-foreground">{tc.durationMs}ms</span>
+                      <span className="font-mono text-xs text-muted-foreground">{tc.durationMs}ms</span>
                       {!tc.success && <XCircle className="w-3 h-3 text-red-400" />}
                     </div>
                     <p className="font-mono text-[10px] text-foreground/60 truncate">{inputSummary}</p>
                     {!tc.success && tc.output && (
-                      <p className="font-mono text-[9px] text-red-400 mt-0.5 truncate">{tc.output}</p>
+                      <p className="font-mono text-xs text-red-400 mt-0.5 truncate">{tc.output}</p>
                     )}
                   </div>
                 </div>
@@ -305,7 +305,7 @@ export function StageDetailPanel({ step, result, qualityScore, onClose }: StageD
       {/* Output */}
       {result?.output && (
         <div>
-          <p className="font-mono text-[9px] text-muted-foreground uppercase mb-1">Output</p>
+          <p className="font-mono text-xs text-muted-foreground uppercase mb-1">Output</p>
           <div className="p-3 bg-background rounded-lg border border-border max-h-[300px] overflow-y-auto">
             <p className="font-mono text-[11px] text-foreground/80 whitespace-pre-wrap">
               {result.output}
@@ -317,7 +317,7 @@ export function StageDetailPanel({ step, result, qualityScore, onClose }: StageD
       {/* Error */}
       {result?.error && (
         <div>
-          <p className="font-mono text-[9px] text-destructive uppercase mb-1">Error</p>
+          <p className="font-mono text-xs text-destructive uppercase mb-1">Error</p>
           <div className="p-3 bg-red-500/5 rounded-lg border border-red-500/20">
             <p className="font-mono text-[11px] text-red-500">{result.error}</p>
           </div>
@@ -328,7 +328,7 @@ export function StageDetailPanel({ step, result, qualityScore, onClose }: StageD
       {codeBlocks.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-2">
-            <p className="font-mono text-[9px] text-muted-foreground uppercase flex items-center gap-1.5">
+            <p className="font-mono text-xs text-muted-foreground uppercase flex items-center gap-1.5">
               <FileCode2 className="w-3 h-3" />
               {codeBlocks.length} file{codeBlocks.length > 1 ? "s" : ""} detected
             </p>
@@ -401,7 +401,7 @@ export function StageDetailPanel({ step, result, qualityScore, onClose }: StageD
                   <span className="font-mono text-[10px] text-foreground/80 truncate">
                     {block.filePath}
                   </span>
-                  <span className="font-mono text-[9px] text-muted-foreground flex-shrink-0 ml-2">
+                  <span className="font-mono text-xs text-muted-foreground flex-shrink-0 ml-2">
                     {block.language} · {block.content.split("\n").length} lines
                   </span>
                 </button>

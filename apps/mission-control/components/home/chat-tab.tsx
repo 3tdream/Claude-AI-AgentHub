@@ -157,6 +157,7 @@ export function ChatTab({ agent }: { agent: Agent }) {
             onClick={sendMessage}
             disabled={loading || !input.trim()}
             className="p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            aria-label="Send message"
           >
             <Send className="w-4 h-4" />
           </button>
