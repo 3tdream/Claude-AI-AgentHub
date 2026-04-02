@@ -244,7 +244,7 @@ function CreateIssueModal({
 }
 
 export default function JiraPage() {
-  const { activeProjectId, setActiveProject } = useAppStore();
+  const activeProjectId = useAppStore((s) => s.activeProjectId);
   const [selectedProject, setSelectedProject] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
