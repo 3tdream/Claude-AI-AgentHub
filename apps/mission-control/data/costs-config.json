@@ -5,6 +5,28 @@
       "amount": 100
     }
   ],
-  "apiKeyUsage": [],
-  "monthlyBudget": 250
+  "apiBalances": [
+    {
+      "provider": "anthropic",
+      "label": "Anthropic API",
+      "balance": 22.02,
+      "lastUpdated": "2026-04-02T07:09:45.173Z",
+      "consoleUrl": "https://console.anthropic.com/settings/billing"
+    },
+    {
+      "provider": "openai",
+      "label": "OpenAI API",
+      "balance": 17.31,
+      "lastUpdated": "2026-04-02T07:20:11.969Z",
+      "consoleUrl": "https://platform.openai.com/usage"
+    },
+    {
+      "provider": "google",
+      "label": "Google AI",
+      "balance": 54.79,
+      "lastUpdated": "2026-04-02T07:27:18.517Z",
+      "consoleUrl": "https://console.cloud.google.com/billing"
+    }
+  ],
+  "monthlyBudget": 194.12
 }

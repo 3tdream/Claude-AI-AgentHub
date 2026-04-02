@@ -245,8 +245,8 @@ export default function HomePage() {
           </div>
           <MetricBox value={String(stats?.totalRuns || "\u2014")} label="Total Runs" color="indigo" />
           <MetricBox value={stats ? `${Math.round((stats.completed / (stats.totalRuns || 1)) * 100)}%` : "\u2014"} label="Success Rate" color={stats && stats.completed / stats.totalRuns > 0.5 ? "green" : "amber"} />
-          <MetricBox value={budget ? `$${budget.spent?.toFixed(0)}` : "\u2014"} label="Spent" color="amber" />
-          <MetricBox value={budget ? `$${Math.round(budget.remaining)}` : "\u2014"} label="Remaining" color={budget && budget.remaining < 50 ? "red" : "green"} />
+          <MetricBox value={costsData?.data?.apiBalances ? `$${costsData.data.apiBalances.total?.toFixed(0)}` : "\u2014"} label="API Balance" color="amber" />
+          <MetricBox value={costsData?.data?.pipelineSpend ? `$${costsData.data.pipelineSpend.total?.toFixed(2)}` : "\u2014"} label="Pipeline Spend" color={costsData?.data?.pipelineSpend?.total > 50 ? "red" : "green"} />
         </div>
 
         {/* Center content — agent panel, pipeline, or health */}
@@ -280,10 +280,10 @@ export default function HomePage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <span>BUDGET</span>
-              <div className="w-16 h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                <div className={`h-full rounded-full ${budget && budget.usedPercent > 80 ? "bg-rose-500" : "bg-indigo-500"}`} style={{ width: `${budget?.usedPercent || 0}%` }} />
-              </div>
+              <span>BALANCE</span>
+              <span className={`font-semibold ${(costsData?.data?.apiBalances?.total || 0) < 20 ? "text-rose-500" : (costsData?.data?.apiBalances?.total || 0) < 50 ? "text-amber-500" : "text-emerald-500"}`}>
+                ${costsData?.data?.apiBalances?.total?.toFixed(0) || "—"}
+              </span>
             </div>
           </div>
         </div>

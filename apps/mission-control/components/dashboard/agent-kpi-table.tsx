@@ -2,8 +2,8 @@
 
 import { useState, useMemo } from "react";
 import { Download, Search, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { ScoreBar } from "./score-bar";
-import { ScoreCircle } from "./score-circle";
 import { StatPill } from "./stat-pill";
 import { FilterTabs } from "./filter-tabs";
 import { useAgents } from "@/lib/hooks/use-agents";
@@ -32,9 +32,9 @@ const providerColors: Record<LLMProvider, string> = {
   openrouter: "border-purple-500/30 text-purple-400 bg-purple-500/5",
 };
 
-function getActivityStatus(lastAccessed: string | undefined): "active" | "standby" | "offline" {
+function getActivityStatus(lastAccessed: string | undefined, now: number): "active" | "standby" | "offline" {
   if (!lastAccessed) return "offline";
-  const daysAgo = (Date.now() - new Date(lastAccessed).getTime()) / (1000 * 60 * 60 * 24);
+  const daysAgo = (now - new Date(lastAccessed).getTime()) / (1000 * 60 * 60 * 24);
   if (daysAgo <= 3) return "active";
   if (daysAgo <= 14) return "standby";
   return "offline";
@@ -63,15 +63,22 @@ interface AgentRow {
   status: "active" | "standby" | "offline";
 }
 
-export function AgentKPITable() {
+interface AgentKPITableProps {
+  pipelineRuns?: number;
+  avgSuccessRate?: number;
+}
+
+export function AgentKPITable({ pipelineRuns, avgSuccessRate }: AgentKPITableProps) {
   const { agents, isLoading: agentsLoading } = useAgents();
   const { costs, isLoading: costsLoading } = useCostSummary();
   const { teams, isLoading: teamsLoading } = useTeams();
+  const router = useRouter();
 
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [sortCol, setSortCol] = useState(-1);
   const [sortDir, setSortDir] = useState(1);
+  const [now] = useState(() => Date.now());
 
   const isLoading = agentsLoading || costsLoading || teamsLoading;
 
@@ -113,10 +120,10 @@ export function AgentKPITable() {
         requests,
         tokens,
         costShare: Math.round((cost / totalCost) * 100),
-        status: getActivityStatus(agent.lastAccessedAt),
+        status: getActivityStatus(agent.lastAccessedAt, now),
       };
     });
-  }, [agents, costs, costByAgent, teamMap]);
+  }, [agents, costs, costByAgent, teamMap, now]);
 
   // Build filter tabs dynamically
   const filterItems = useMemo(() => {
@@ -125,6 +132,7 @@ export function AgentKPITable() {
     if (groups.has("crm-pipeline")) items.push({ value: "crm-pipeline", label: "CRM Pipeline" });
     if (groups.has("personal")) items.push({ value: "personal", label: "Personal" });
     if (groups.has("herald")) items.push({ value: "herald", label: "Herald" });
+    if (groups.has("other")) items.push({ value: "other", label: "Other" });
     return items;
   }, [rows]);
 
@@ -177,7 +185,7 @@ export function AgentKPITable() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "agent-kpi-2026.csv";
+    link.download = `agent-kpi-${new Date().toISOString().slice(0, 10)}.csv`;
     link.click();
     URL.revokeObjectURL(url);
   }
@@ -198,18 +206,19 @@ export function AgentKPITable() {
       {/* Header */}
       <div className="flex items-end justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-4xl font-extrabold tracking-tight" style={{ background: "linear-gradient(135deg, #fff 0%, #06b6d4 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+          <h1 className="text-4xl font-extrabold tracking-tight bg-gradient-to-br from-foreground to-cyan-500 bg-clip-text text-transparent">
             Agent KPI Dashboard
           </h1>
           <p className="font-mono text-sm text-muted-foreground mt-2 tracking-widest uppercase">
             AI Orchestrator Squad &middot; {agents.length} Agents &middot; Live Data
           </p>
         </div>
-        <div className="flex gap-4">
-          <StatPill value={agents.length} label="Agents" />
+        <div className="flex gap-4 flex-wrap">
+          <StatPill value={agents.length} label="Total Agents" />
+          <StatPill value={totalRequests} label="Total Requests" />
           <StatPill value={`$${totalCost.toFixed(2)}`} label="Total Cost" />
-          <StatPill value={totalRequests} label="Requests" />
-          <StatPill value={activeCount} label="Active" color="#10b981" />
+          <StatPill value={avgSuccessRate != null ? `${avgSuccessRate.toFixed(1)}%` : "--"} label="Avg Success" color={avgSuccessRate != null && avgSuccessRate > 70 ? "#10b981" : undefined} />
+          <StatPill value={pipelineRuns ?? "--"} label="Pipeline Runs" />
         </div>
       </div>
 
@@ -263,7 +272,11 @@ export function AgentKPITable() {
                 };
 
                 return (
-                  <tr key={row.agent.id} className="border-b border-border/50 hover:bg-primary/5 transition-colors">
+                  <tr
+                    key={row.agent.id}
+                    className="border-b border-border/50 hover:bg-primary/5 transition-colors cursor-pointer"
+                    onClick={() => router.push(`/home?agent=${encodeURIComponent(row.agent.id)}`)}
+                  >
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3 min-w-[220px]">
                         <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-lg flex-shrink-0">
@@ -311,7 +324,7 @@ export function AgentKPITable() {
                     </td>
                     <td className="px-5 py-4">
                       {row.costShare > 0 ? (
-                        <ScoreBar value={row.costShare} />
+                        <ScoreBar value={row.costShare} variant="cost" />
                       ) : (
                         <span className="font-mono text-xs text-muted-foreground">--</span>
                       )}

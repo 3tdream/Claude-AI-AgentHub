@@ -25,10 +25,8 @@ export function Topbar() {
     return String(t);
   };
 
-  const budget = realCosts?.data?.budget;
-  const spent = budget?.spent;
-  const remaining = budget?.remaining;
-  const usedPercent = budget?.usedPercent ?? 0;
+  const apiBalance = realCosts?.data?.apiBalances?.total ?? null;
+  const pipelineSpend = realCosts?.data?.pipelineSpend?.total ?? 0;
 
   return (
     <header className="h-14 border-b border-border flex items-center justify-between px-6">
@@ -76,22 +74,19 @@ export function Topbar() {
           </div>
         </div>
 
-        {/* Real total spend + budget */}
-        {spent != null && (
+        {/* API Balance + Pipeline Spend */}
+        {apiBalance != null && (
           <div
             className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border bg-card ${
-              usedPercent > 90 ? "border-red-500/30" : usedPercent > 70 ? "border-amber-500/30" : "border-border"
+              apiBalance < 20 ? "border-red-500/30" : apiBalance < 50 ? "border-amber-500/30" : "border-border"
             }`}
-            title={`Budget: $${budget.monthly} | Spent: $${spent} | Remaining: $${remaining}`}
+            title={`API Balance: $${apiBalance.toFixed(2)} | Pipeline Spend: $${pipelineSpend.toFixed(2)}`}
           >
-            <Wallet className={`w-3 h-3 ${usedPercent > 90 ? "text-red-400" : usedPercent > 70 ? "text-amber-400" : "text-blue-400"}`} />
-            <span className={`font-mono text-[10px] font-semibold ${usedPercent > 90 ? "text-red-400" : usedPercent > 70 ? "text-amber-400" : "text-blue-400"}`}>
-              ${spent.toFixed(0)}
+            <Wallet className={`w-3 h-3 ${apiBalance < 20 ? "text-red-400" : apiBalance < 50 ? "text-amber-400" : "text-emerald-400"}`} />
+            <span className={`font-mono text-[10px] font-semibold ${apiBalance < 20 ? "text-red-400" : apiBalance < 50 ? "text-amber-400" : "text-emerald-400"}`}>
+              ${apiBalance.toFixed(0)}
             </span>
-            <span className="font-mono text-[9px] text-muted-foreground/50">/</span>
-            <span className="font-mono text-[10px] text-muted-foreground">
-              ${budget.monthly}
-            </span>
+            <span className="font-mono text-[9px] text-muted-foreground">bal</span>
           </div>
         )}
 

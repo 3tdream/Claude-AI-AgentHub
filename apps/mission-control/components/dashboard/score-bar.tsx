@@ -9,9 +9,16 @@ function getScoreColor(val: number) {
   return "#ef4444";
 }
 
-export function ScoreBar({ value }: { value: number }) {
+function getCostColor(val: number) {
+  if (val >= 40) return "#ef4444";
+  if (val >= 25) return "#f59e0b";
+  if (val >= 10) return "#06b6d4";
+  return "#10b981";
+}
+
+export function ScoreBar({ value, variant = "score" }: { value: number; variant?: "score" | "cost" }) {
   const [width, setWidth] = useState(0);
-  const color = getScoreColor(value);
+  const color = variant === "cost" ? getCostColor(value) : getScoreColor(value);
 
   useEffect(() => {
     const t = setTimeout(() => setWidth(value), 100);

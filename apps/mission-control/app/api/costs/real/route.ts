@@ -4,17 +4,27 @@ import path from "path";
 
 const CONFIG_FILE = path.join(process.cwd(), "data", "costs-config.json");
 
+interface ApiBalance {
+  provider: string;
+  label: string;
+  balance: number;
+  lastUpdated: string;
+  consoleUrl: string;
+}
+
 interface CostsConfig {
   fixedMonthlyCosts: { label: string; amount: number }[];
-  apiKeyUsage: { keyName: string; amount: number; periodStart: string; periodEnd: string; lastUpdated: string }[];
+  apiBalances: ApiBalance[];
   monthlyBudget: number;
 }
 
 const DEFAULT_CONFIG: CostsConfig = {
-  fixedMonthlyCosts: [
-    { label: "Claude Code Max", amount: 100 },
+  fixedMonthlyCosts: [{ label: "Claude Code Max", amount: 100 }],
+  apiBalances: [
+    { provider: "anthropic", label: "Anthropic API", balance: 0, lastUpdated: "", consoleUrl: "https://console.anthropic.com/settings/billing" },
+    { provider: "openai", label: "OpenAI API", balance: 0, lastUpdated: "", consoleUrl: "https://platform.openai.com/usage" },
+    { provider: "google", label: "Google AI", balance: 0, lastUpdated: "", consoleUrl: "https://console.cloud.google.com/billing" },
   ],
-  apiKeyUsage: [],
   monthlyBudget: 250,
 };
 
@@ -34,83 +44,100 @@ async function saveConfig(config: CostsConfig) {
   await fs.writeFile(CONFIG_FILE, JSON.stringify(config, null, 2), "utf-8");
 }
 
-/** Fetch live API costs from Agent Hub (if available) */
-async function fetchAgentHubCosts(): Promise<{ totalCost: number; byModel: Record<string, { cost: number; requests: number }> } | null> {
+/** Load pipeline token usage to calculate real API spend */
+async function loadPipelineSpend(): Promise<{ total: number; byProvider: Record<string, number> }> {
+  const byProvider: Record<string, number> = {};
+  let total = 0;
   try {
-    const baseUrl = process.env.AGENT_HUB_API_URL || "http://localhost:3000/assistant";
-    const apiKey = process.env.AGENT_HUB_API_KEY;
-    if (!apiKey) return null;
-
-    const res = await fetch(`${baseUrl}/costs/summary`, {
-      headers: { Authorization: `Bearer ${apiKey}` },
-      signal: AbortSignal.timeout(3000),
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return { totalCost: data.totalCost || 0, byModel: data.byModel || {} };
-  } catch {
-    // Hub offline — try cached
-    try {
-      const cachePath = path.join(process.cwd(), "data", "agent-hub-costs-cache.json");
-      const raw = await fs.readFile(cachePath, "utf-8");
-      return JSON.parse(raw);
-    } catch {
-      return null;
+    const runsDir = path.join(process.cwd(), "data", "pipeline-runs");
+    const files = await fs.readdir(runsDir);
+    for (const f of files.filter(f => f.endsWith(".json"))) {
+      try {
+        const run = JSON.parse(await fs.readFile(path.join(runsDir, f), "utf-8"));
+        if (run.tokenUsage) {
+          for (const usage of Object.values(run.tokenUsage) as any[]) {
+            const cost = usage.cost || 0;
+            const provider = usage.provider || "anthropic";
+            byProvider[provider] = (byProvider[provider] || 0) + cost;
+            total += cost;
+          }
+        }
+      } catch { /* skip corrupt */ }
     }
-  }
+  } catch { /* no runs dir */ }
+  return { total: Math.round(total * 100) / 100, byProvider };
 }
 
 /**
- * GET /api/costs/real — merged cost summary: fixed costs + live Agent Hub API costs
+ * GET /api/costs/real — real cost summary
+ *
+ * Shows:
+ * - Fixed costs (Claude Code subscription)
+ * - API balances per provider (manually entered)
+ * - Pipeline spend (calculated from tokenUsage in runs)
+ * - Budget remaining
  */
 export async function GET() {
-  const [config, hubCosts] = await Promise.all([loadConfig(), fetchAgentHubCosts()]);
+  const [config, pipelineSpend] = await Promise.all([loadConfig(), loadPipelineSpend()]);
 
   const fixedTotal = config.fixedMonthlyCosts.reduce((s, c) => s + c.amount, 0);
-  const manualApiTotal = config.apiKeyUsage.reduce((s, k) => s + k.amount, 0);
-  const hubApiTotal = hubCosts?.totalCost || 0;
-
-  // Use live Hub data if available, otherwise fall back to manual config
-  const apiTotal = hubApiTotal > 0 ? hubApiTotal : manualApiTotal;
-  const apiSource = hubApiTotal > 0 ? "live" : manualApiTotal > 0 ? "manual" : "none";
-
-  const totalSpent = fixedTotal + apiTotal;
+  const apiBalanceTotal = config.apiBalances.reduce((s, b) => s + b.balance, 0);
+  const totalSpent = fixedTotal + pipelineSpend.total;
   const remaining = config.monthlyBudget - totalSpent;
-  const budgetUsedPercent = config.monthlyBudget > 0 ? Math.round((totalSpent / config.monthlyBudget) * 100) : 0;
 
   return NextResponse.json({
     data: {
       totalSpent: Math.round(totalSpent * 100) / 100,
-      fixedCosts: { items: config.fixedMonthlyCosts, total: fixedTotal },
-      apiCosts: {
-        items: hubApiTotal > 0
-          ? [{ keyName: "Agent Hub (live)", amount: Math.round(hubApiTotal * 100) / 100, periodStart: "", periodEnd: "", lastUpdated: new Date().toISOString().split("T")[0] }]
-          : config.apiKeyUsage,
-        total: Math.round(apiTotal * 100) / 100,
-        source: apiSource,
-        byModel: hubCosts?.byModel || null,
+      fixedCosts: {
+        items: config.fixedMonthlyCosts,
+        total: fixedTotal,
+      },
+      apiBalances: {
+        items: config.apiBalances,
+        total: apiBalanceTotal,
+      },
+      pipelineSpend: {
+        total: pipelineSpend.total,
+        byProvider: pipelineSpend.byProvider,
       },
       budget: {
         monthly: config.monthlyBudget,
         spent: Math.round(totalSpent * 100) / 100,
         remaining: Math.round(remaining * 100) / 100,
-        usedPercent: budgetUsedPercent,
+        usedPercent: config.monthlyBudget > 0 ? Math.round((totalSpent / config.monthlyBudget) * 100) : 0,
       },
     },
   });
 }
 
 /**
- * PATCH /api/costs/real — update cost config (fixed costs, manual API usage, budget)
+ * PATCH /api/costs/real — update cost config
+ *
+ * Body options:
+ * - { fixedMonthlyCosts: [...] }
+ * - { monthlyBudget: number }
+ * - { updateBalance: { provider: "anthropic", balance: 45.50 } }
  */
 export async function PATCH(req: NextRequest) {
   try {
     const updates = await req.json();
     const config = await loadConfig();
 
-    if (updates.apiKeyUsage) config.apiKeyUsage = updates.apiKeyUsage;
     if (updates.fixedMonthlyCosts) config.fixedMonthlyCosts = updates.fixedMonthlyCosts;
     if (updates.monthlyBudget != null) config.monthlyBudget = updates.monthlyBudget;
+
+    // Update single provider balance
+    if (updates.updateBalance) {
+      const { provider, balance } = updates.updateBalance;
+      const idx = config.apiBalances.findIndex(b => b.provider === provider);
+      if (idx >= 0) {
+        config.apiBalances[idx].balance = balance;
+        config.apiBalances[idx].lastUpdated = new Date().toISOString();
+      }
+    }
+
+    // Replace all balances
+    if (updates.apiBalances) config.apiBalances = updates.apiBalances;
 
     await saveConfig(config);
     return NextResponse.json({ success: true });
