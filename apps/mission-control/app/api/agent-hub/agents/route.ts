@@ -3,6 +3,7 @@ import { agentHubFetch } from "@/lib/agent-hub-client";
 import { cachedAgents } from "@/lib/agent-hub-cache";
 import { promises as fs } from "fs";
 import path from "path";
+import crypto from "crypto";
 
 const OVERRIDES_FILE = path.join(process.cwd(), "data", "agent-overrides.json");
 
@@ -14,12 +15,26 @@ async function loadOverrides(): Promise<Record<string, Record<string, unknown>>>
   }
 }
 
+async function saveOverrides(overrides: Record<string, Record<string, unknown>>) {
+  await fs.mkdir(path.dirname(OVERRIDES_FILE), { recursive: true });
+  await fs.writeFile(OVERRIDES_FILE, JSON.stringify(overrides, null, 2), "utf-8");
+}
+
 // GET /api/agent-hub/agents — list all agents (with local overrides applied)
 export async function GET(request: NextRequest) {
   const overrides = await loadOverrides();
 
   function applyOverridesToList(agents: any[]): any[] {
-    return agents.map((a) => overrides[a.id] ? { ...a, ...overrides[a.id] } : a);
+    return agents
+      .map((a) => overrides[a.id] ? { ...a, ...overrides[a.id] } : a)
+      .filter((a) => !a._deleted);
+  }
+
+  // Collect locally-created agents (those with _local: true that aren't in the base list)
+  function getLocalAgents(baseIds: Set<string>): any[] {
+    return Object.entries(overrides)
+      .filter(([id, o]) => (o as any)._local && !baseIds.has(id) && !(o as any)._deleted)
+      .map(([id, o]) => ({ id, ...o }));
   }
 
   try {
@@ -31,27 +46,40 @@ export async function GET(request: NextRequest) {
       `/agents?limit=${limit}&offset=${offset}`,
     );
     const agents = raw.agents ?? raw;
-    return NextResponse.json({ success: true, data: applyOverridesToList(agents as any[]) });
+    const merged = applyOverridesToList(agents as any[]);
+    const baseIds = new Set(merged.map((a: any) => a.id));
+    return NextResponse.json({ success: true, data: [...merged, ...getLocalAgents(baseIds)] });
   } catch {
     console.log("[API] Agent Hub unreachable, serving cached agents");
-    return NextResponse.json({ success: true, data: applyOverridesToList(cachedAgents as any[]), cached: true });
+    const merged = applyOverridesToList(cachedAgents as any[]);
+    const baseIds = new Set(merged.map((a: any) => a.id));
+    return NextResponse.json({ success: true, data: [...merged, ...getLocalAgents(baseIds)], cached: true });
   }
 }
 
 // POST /api/agent-hub/agents — create agent
 export async function POST(request: NextRequest) {
+  const body = await request.json();
+
+  // Try Hub first
   try {
-    const body = await request.json();
     const data = await agentHubFetch("/agents", {
       method: "POST",
       body: JSON.stringify(body),
     });
     return NextResponse.json({ success: true, data });
-  } catch (error) {
-    console.error("[API] Create agent error:", error);
-    return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "Unknown error" },
-      { status: 500 },
-    );
+  } catch {
+    // Hub offline — save locally
+    const id = crypto.randomBytes(12).toString("hex");
+    const agent = {
+      id,
+      ...body,
+      _local: true,
+      createdAt: new Date().toISOString(),
+    };
+    const overrides = await loadOverrides();
+    overrides[id] = agent;
+    await saveOverrides(overrides);
+    return NextResponse.json({ success: true, data: agent });
   }
 }

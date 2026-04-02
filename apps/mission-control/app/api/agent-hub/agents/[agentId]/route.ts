@@ -30,11 +30,20 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
   const { agentId } = await params;
   const overrides = await loadOverrides();
 
+  // Check if agent is locally deleted
+  if (overrides[agentId]?._deleted) {
+    return NextResponse.json({ success: false, error: "Agent not found" }, { status: 404 });
+  }
+
   try {
     const data = await agentHubFetch(`/agents/${agentId}`);
     const merged = overrides[agentId] ? applyOverrides(data as Record<string, unknown>, overrides[agentId]) : data;
     return NextResponse.json({ success: true, data: merged });
   } catch {
+    // Check local-only agents
+    if (overrides[agentId] && (overrides[agentId] as any)._local) {
+      return NextResponse.json({ success: true, data: { id: agentId, ...overrides[agentId] } });
+    }
     const cached = cachedAgents.find((a) => a.id === agentId);
     if (cached) {
       const merged = overrides[agentId] ? applyOverrides(cached as Record<string, unknown>, overrides[agentId]) : cached;
@@ -70,17 +79,21 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   return NextResponse.json({ success: true, data: merged });
 }
 
-// DELETE /api/agent-hub/agents/[agentId] — delete agent
+// DELETE /api/agent-hub/agents/[agentId] — delete agent (persists locally)
 export async function DELETE(_request: NextRequest, { params }: RouteParams) {
+  const { agentId } = await params;
+
+  // Always mark as deleted locally
+  const overrides = await loadOverrides();
+  overrides[agentId] = { ...(overrides[agentId] || {}), _deleted: true };
+  await saveOverrides(overrides);
+
+  // Try to also delete on Hub (best-effort)
   try {
-    const { agentId } = await params;
-    const data = await agentHubFetch(`/agents/${agentId}`, { method: "DELETE" });
-    return NextResponse.json({ success: true, data });
-  } catch (error) {
-    console.error("[API] Delete agent error:", error);
-    return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "Unknown error" },
-      { status: 500 },
-    );
+    await agentHubFetch(`/agents/${agentId}`, { method: "DELETE" });
+  } catch {
+    // Hub offline — local delete marker is sufficient
   }
+
+  return NextResponse.json({ success: true, data: { id: agentId, deleted: true } });
 }
