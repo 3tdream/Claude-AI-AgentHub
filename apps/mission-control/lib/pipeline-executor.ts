@@ -1,6 +1,6 @@
 import type { WorkflowStep, PipelineExecution, QualityScore, ContractValidation } from "@/types";
 import { postLog } from "@/lib/hooks/use-logs";
-import { evaluateStepOutput, buildRetryPrompt } from "@/lib/quality-evaluator";
+import { evaluateStepOutput, evaluateStepOutputK, buildRetryPrompt } from "@/lib/quality-evaluator";
 import { PIPELINE, AGENT_CONFIG, TOOL_OUTPUT_LIMITS } from "@/lib/config";
 import { runCyberRedesignLoop } from "@/lib/pipeline-runner-cyber";
 import { runQAFeedbackLoop } from "@/lib/pipeline-runner-qa";
@@ -20,33 +20,51 @@ function generateId() {
 }
 
 /**
+ * Model escalation tiers — cheapest to most capable.
+ * Used for cost-aware dynamic escalation on retry failures.
+ */
+const MODEL_ESCALATION_CHAIN = ["haiku-4-5", "sonnet-4-6", "opus-4-6"] as const;
+
+function getEscalatedModel(currentModel: string): string | null {
+  const idx = MODEL_ESCALATION_CHAIN.indexOf(currentModel as typeof MODEL_ESCALATION_CHAIN[number]);
+  if (idx === -1 || idx >= MODEL_ESCALATION_CHAIN.length - 1) return null;
+  return MODEL_ESCALATION_CHAIN[idx + 1];
+}
+
+/**
  * Smart model selection — cheaper models for simple stages, premium for complex.
  * Saves 30-40% on token costs without quality loss.
+ *
+ * When retryCount > 0 and score was low, escalates to next model tier.
  */
-function selectModelForStage(step: WorkflowStep, mode?: string): string {
-  // If step has explicit model → use it
-  if (step.metadata?.model) return step.metadata.model;
+function selectModelForStage(step: WorkflowStep, mode?: string, retryCount?: number, lastScore?: number): string {
+  let baseModel: string;
 
-  // Quick mode → always use fast model
-  if (mode === "quick") return "haiku-4-5";
-
-  // Gate/orchestrator stages → fast model (they evaluate, don't generate)
-  const gateStages = ["s2.5-prd-gate", "s4.5-arch-gate", "s8.5-tech-review", "s11-final-verdict", "s12b-consolidation"];
-  if (gateStages.includes(step.id) || step.agentId === "orchestrator") {
-    return "haiku-4-5";
+  // If step has explicit model → use it as base
+  if (step.metadata?.model) {
+    baseModel = step.metadata.model;
+  } else if (mode === "quick") {
+    baseModel = "haiku-4-5";
+  } else {
+    // Gate/orchestrator stages → fast model (they evaluate, don't generate)
+    const gateStages = ["s2.5-prd-gate", "s4.5-arch-gate", "s8.5-tech-review", "s11-final-verdict", "s12b-consolidation"];
+    if (gateStages.includes(step.id) || step.agentId === "orchestrator") {
+      baseModel = "haiku-4-5";
+    } else if (step.agentId === "research-agent") {
+      baseModel = "haiku-4-5";
+    } else {
+      const premiumAgents = ["backend-agent", "frontend-agent", "architect-agent", "cyber-agent"];
+      baseModel = premiumAgents.includes(step.agentId) ? "sonnet-4-6" : "sonnet-4-6";
+    }
   }
 
-  // Research → fast (no code generation)
-  if (step.agentId === "research-agent") return "haiku-4-5";
-
-  // Implementation agents → premium (code quality matters)
-  const premiumAgents = ["backend-agent", "frontend-agent", "architect-agent", "cyber-agent"];
-  if (premiumAgents.includes(step.agentId)) {
-    return "sonnet-4-6";
+  // Dynamic escalation: if retry with low score, try stronger model
+  if (retryCount && retryCount > 0 && lastScore !== undefined && lastScore < 6) {
+    const escalated = getEscalatedModel(baseModel);
+    if (escalated) return escalated;
   }
 
-  // Default
-  return "sonnet-4-6";
+  return baseModel;
 }
 
 // --- Jira sync helper (calls server-side API route, never imports fs) ---
@@ -159,6 +177,7 @@ export async function executePipeline(
     qualityScores: previousExecution?.qualityScores || {},
     escalatedSteps: previousExecution?.escalatedSteps || [],
     routingDecision: routingDecision || undefined,
+    tokenUsage: previousExecution?.tokenUsage || {},
   };
 
   // Initialize pending steps (skip already completed from resume)
@@ -246,6 +265,31 @@ export async function executePipeline(
           return true;
         }
       } catch { /* cache miss — run normally */ }
+    }
+
+    // --- Conditional Stage: skip if condition not met (e.g. S8.6 only runs if S8.5 FAIL) ---
+    if (step.metadata?.conditional) {
+      const condMatch = step.metadata.conditional.match(/^step_(\S+)_output contains (.+)$/);
+      if (condMatch) {
+        const [, depOutput, keyword] = condMatch;
+        const depContent = context[`step_${depOutput}_output`] || "";
+        if (!depContent.includes(keyword)) {
+          execution.stepResults[step.id] = {
+            stepId: step.id,
+            status: "completed",
+            output: `Conditional skip: ${depOutput} did not contain "${keyword}"`,
+            completedAt: new Date().toISOString(),
+            source: "skipped" as any,
+          };
+          if (execution.qualityScores) {
+            execution.qualityScores[step.id] = { completeness: 10, specificity: 10, actionability: 10, overall: 10 };
+          }
+          callbacks.onUpdate({ ...execution });
+          postLog({ type: "system", agentId: step.agentId, agentName: step.agentName, content: `Conditional skip: ${step.agentName} — condition not met (${step.metadata.conditional})` }).catch(() => {});
+          completed.add(step.id);
+          return true;
+        }
+      }
     }
 
     // --- Smart Skip: skip implementation agents if Architect determined no work for them ---
@@ -409,8 +453,8 @@ export async function executePipeline(
         const toolMode = qaAgent ? "qa" : implementationAgents.includes(step.agentId) ? "readwrite" : "readonly";
         const maxToolSteps = agentCfg?.maxTurns || 5;
 
-        // Smart model selection: cheaper models for simple stages
-        const smartModel = selectModelForStage(step, routingDecision?.mode);
+        // Smart model selection: cheaper models for simple stages, escalate on retry
+        const smartModel = selectModelForStage(step, routingDecision?.mode, retryCount, lastScore);
 
         const res = await fetch("/api/ai/execute", {
           method: "POST",
@@ -475,15 +519,29 @@ export async function executePipeline(
         }
 
         // Analytics: capture token usage per step
+        const stepStartTime = execution.stepResults[step.id]?.startedAt;
+        const stepDurationMs = stepStartTime ? Date.now() - new Date(stepStartTime).getTime() : 0;
         const stepAnalytics = {
           inputTokens: data.tokensUsed?.input || 0,
           outputTokens: data.tokensUsed?.output || 0,
           outputChars: agentOutput.length,
           provider: data.provider || "unknown",
-          model: data.model || model,
+          model: data.model || smartModel,
           toolCalls: data.toolCalls || undefined,
           toolCallCount: data.toolCallCount || 0,
         };
+
+        // Per-stage cost tracking (accumulates across retries)
+        const prevUsage = execution.tokenUsage?.[step.id];
+        if (execution.tokenUsage) {
+          execution.tokenUsage[step.id] = {
+            provider: stepAnalytics.provider,
+            model: stepAnalytics.model,
+            input: (prevUsage?.input || 0) + stepAnalytics.inputTokens,
+            output: (prevUsage?.output || 0) + stepAnalytics.outputTokens,
+            durationMs: (prevUsage?.durationMs || 0) + stepDurationMs,
+          };
+        }
 
         // Hard enforcement: implementation agents MUST have called edit_file or create_file
         const implAgents = ["backend-agent", "frontend-agent", "devops-agent"];
@@ -578,15 +636,50 @@ export async function executePipeline(
           return true;
         }
 
-        const evaluation = await evaluateStepOutput(
-          step.agentName,
-          step.metadata?.stageNumber || "?",
-          input,
-          agentOutput,
-          threshold,
-          step.agentId,
-          data.toolCalls || undefined,
-        );
+        // Reviewer ≠ Author: use evaluatorOverride if set (gates evaluated by different agent)
+        const evaluatorAgent = step.metadata?.evaluatorOverride || step.agentId;
+        const evaluatorName = step.metadata?.evaluatorOverride
+          ? `Independent-Reviewer (${step.metadata.evaluatorOverride})`
+          : step.agentName;
+
+        // pass@k: gate stages use k=3 for statistical confidence, others use k=1
+        const isGateStage = step.id.includes("-gate") || step.id.includes("-review") || step.id === "s11-final-verdict";
+        const usePassAtK = isGateStage && routingDecision?.mode !== "quick";
+
+        let evaluation;
+        if (usePassAtK) {
+          const passKResult = await evaluateStepOutputK(
+            evaluatorName,
+            step.metadata?.stageNumber || "?",
+            input,
+            agentOutput,
+            threshold,
+            evaluatorAgent,
+            data.toolCalls || undefined,
+            3, // k=3 for gates
+          );
+          evaluation = {
+            score: passKResult.avgScore,
+            passed: passKResult.passAtK && passKResult.confidence >= 0.67, // 2/3 must pass
+            feedback: passKResult.combinedFeedback,
+          };
+          postLog({
+            type: "decision",
+            agentId: "orchestrator",
+            agentName: "Orchestrator",
+            content: `pass@3 for ${step.agentName}: ${passKResult.passCount}/3 passed (${Math.round(passKResult.confidence * 100)}% confidence), avg ${passKResult.avgScore.overall}/10`,
+          }).catch(() => {});
+        } else {
+          evaluation = await evaluateStepOutput(
+            evaluatorName,
+            step.metadata?.stageNumber || "?",
+            input,
+            agentOutput,
+            threshold,
+            evaluatorAgent,
+            data.toolCalls || undefined,
+          );
+        }
 
         if (execution.qualityScores) {
           execution.qualityScores[step.id] = evaluation.score;
@@ -761,11 +854,16 @@ export async function executePipeline(
         lastScore = evaluation.score.overall;
 
         if (retryCount < MAX_RETRIES) {
+          // Check if model will escalate on next retry
+          const nextModel = selectModelForStage(step, routingDecision?.mode, retryCount + 1, evaluation.score.overall);
+          const currentModel = selectModelForStage(step, routingDecision?.mode, retryCount, lastScore);
+          const modelEscalated = nextModel !== currentModel;
+
           postLog({
             type: "system",
             agentId: step.agentId,
             agentName: step.agentName,
-            content: `Step scored ${evaluation.score.overall}/10 (below ${threshold}) — retrying (attempt ${retryCount + 2}/${MAX_RETRIES + 1}). Feedback: ${evaluation.feedback.slice(0, 200)}`,
+            content: `Step scored ${evaluation.score.overall}/10 (below ${threshold}) — retrying (attempt ${retryCount + 2}/${MAX_RETRIES + 1})${modelEscalated ? ` [MODEL ESCALATION: ${currentModel} → ${nextModel}]` : ""}. Feedback: ${evaluation.feedback.slice(0, 200)}`,
           }).catch(() => {});
 
           currentPrompt = buildRetryPrompt(
@@ -897,20 +995,46 @@ export async function executePipeline(
     const ready = remaining.filter((s) => s.dependsOn.every((d) => completed.has(d)));
     if (ready.length === 0) break;
 
+    // ── DAG Parallel Execution: auto-detect independent ready stages ──
+    // If multiple stages are ready (all deps met) and none depend on each other,
+    // run them in parallel. This handles both explicit groups and auto-detected parallelism.
     const parallelGroup = ready.filter((s) => s.metadata?.isParallel && s.metadata?.group);
     const groupName = parallelGroup[0]?.metadata?.group;
 
-    if (parallelGroup.length > 1 && groupName && parallelGroup.every((s) => s.metadata?.group === groupName)) {
-      const results = await Promise.all(parallelGroup.map(executeStep));
+    // Explicit parallel group (legacy)
+    const useExplicitGroup = parallelGroup.length > 1 && groupName && parallelGroup.every((s) => s.metadata?.group === groupName);
+
+    // Auto-detect: multiple ready stages with no cross-dependencies = safe to parallelize
+    // Exclude checkpoints and gates from auto-parallel (they need sequential attention)
+    const autoParallelCandidates = ready.filter((s) =>
+      !s.metadata?.isCheckpoint &&
+      !s.id.includes("-gate") &&
+      !s.id.includes("-review") &&
+      !s.id.includes("-verdict"),
+    );
+    const canAutoParallel = !useExplicitGroup && autoParallelCandidates.length > 1 && routingDecision?.mode !== "quick";
+
+    if (useExplicitGroup || canAutoParallel) {
+      const group = useExplicitGroup ? parallelGroup : autoParallelCandidates;
+
+      postLog({
+        type: "system",
+        content: `DAG parallel: running ${group.length} stages simultaneously [${group.map((s) => s.id).join(", ")}]`,
+      }).catch(() => {});
+
+      const results = await Promise.all(group.map(executeStep));
       const anyFailed = results.some((r) => !r);
 
-      parallelGroup.forEach((r) => {
+      group.forEach((r) => {
         const idx = remaining.findIndex((s) => s.id === r.id);
         if (idx >= 0) remaining.splice(idx, 1);
       });
 
       if (anyFailed) {
-        execution.status = "failed";
+        // Check if it's an escalation or hard failure
+        const failedSteps = group.filter((_, i) => !results[i]);
+        const anyEscalated = failedSteps.some((s) => execution.stepResults[s.id]?.escalated);
+        execution.status = anyEscalated ? "paused" : "failed";
         break;
       }
     } else {
@@ -971,6 +1095,35 @@ export async function executePipeline(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(execution),
     }).catch(() => {});
+
+    // KB Evolution: boost/decay confidence based on step outcomes
+    const evolveSteps = Object.entries(execution.stepResults)
+      .filter(([, r]) => r.status === "completed" || r.status === "failed")
+      .map(([stepId, r]) => ({
+        stepId,
+        agentId: steps.find((s) => s.id === stepId)?.agentId || "",
+        status: r.status as "completed" | "failed",
+        qualityScore: execution.qualityScores?.[stepId]?.overall,
+      }));
+
+    if (evolveSteps.length > 0) {
+      fetch("/api/knowledge/evolve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "pipeline",
+          stepResults: evolveSteps,
+          pipelineRunId: execution.id,
+        }),
+      }).catch(() => {});
+    }
+
+    // KB Aging: apply time-based confidence decay
+    fetch("/api/knowledge/evolve", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "aging" }),
+    }).catch(() => {});
   }
 
   // Save to pipeline analytics (learning database) — via API
@@ -978,6 +1131,29 @@ export async function executePipeline(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(execution),
+  }).catch(() => {});
+
+  // Record eval baseline (quality tracking over time)
+  fetch("/api/pipeline/baselines", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(execution),
+  }).then(async (res) => {
+    if (res.ok) {
+      const { data } = await res.json();
+      if (data?.regressions?.length > 0) {
+        postLog({
+          type: "system",
+          content: `QUALITY REGRESSION: ${data.regressions.map((r: { stageId: string; delta: number }) => `${r.stageId} (${r.delta > 0 ? "+" : ""}${r.delta})`).join(", ")}`,
+        }).catch(() => {});
+      }
+      if (data?.isNewBest) {
+        postLog({
+          type: "system",
+          content: `NEW BEST SCORE: ${data.currentRun.overallScore}/10 (previous best: ${data.previousRun?.overallScore || "n/a"})`,
+        }).catch(() => {});
+      }
+    }
   }).catch(() => {});
 
   return execution;

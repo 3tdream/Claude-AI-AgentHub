@@ -70,6 +70,8 @@ All routes proxy through `agentHubFetch()` with cached fallback on failure.
 | `/api/jira/feature-log` | POST | PM Agent hook — creates `[AI-Built]` Jira issue from `FeatureCompletionPayload` |
 | `/api/jira/sync` | POST | Pipeline lifecycle sync — dispatches stage transitions, comments, and epic management |
 | `/api/knowledge/enrich` | POST | Auto-enriches knowledge base from completed pipeline execution |
+| `/api/knowledge/evolve` | GET, POST | KB confidence evolution — boost/decay patterns, aging, health report |
+| `/api/pipeline/baselines` | GET, POST | Eval baselines — quality tracking over time, run comparison, regression detection |
 | `/api/orchestration/apply` | POST | Auto-Apply: writes parsed code blocks from pipeline output to filesystem |
 
 ## Dual Chat Source
@@ -106,6 +108,77 @@ try {
 } catch {
   return NextResponse.json({ data: cachedData, cached: true });
 }
+```
+
+## Claude Code Hooks (`scripts/hooks/`)
+
+| Hook | Lifecycle | Purpose |
+|------|-----------|---------|
+| `memory-persist.mjs` | SessionStart / Stop | Auto-save/load session context (project, KB stats) |
+| `commit-quality.sh` | PreToolUse (Bash) | Block secrets, warn console.log, validate commit format |
+| `suggest-compact.sh` | PreToolUse (Bash) | Count tool calls, suggest /compact at 50/80/100 |
+| `typecheck-stop.sh` | Stop | Run `tsc --noEmit` on modified TS files after each response |
+
+## KB Evolution (`lib/kb-evolution.ts`)
+
+Confidence tiers: 0.3 tentative → 0.5 moderate → 0.7 strong → 0.9 near-certain.
+- **Boost**: +0.1 per pipeline confirmation (cap 0.95)
+- **Decay**: -0.02/day after 7-day grace period (floor 0.1)
+- **Stale**: 30+ days without confirmation → -0.15 penalty
+- **Agent context filter**: Only `moderate+` entries injected into agent prompts
+- **API**: `GET/POST /api/knowledge/evolve`
+
+## Pipeline Intelligence (Wave 2)
+
+### Cost-Aware Model Escalation (`pipeline-executor.ts`)
+Retry loop auto-escalates to stronger model when score < 6:
+`haiku-4-5 → sonnet-4-6 → opus-4-6`. Logged as `[MODEL ESCALATION]`.
+
+### Per-Stage Cost Tracking
+`PipelineExecution.tokenUsage[stepId]` accumulates input/output tokens + duration per stage across retries.
+
+### Build Error Resolver (S8.6)
+Conditional stage: runs only if S8.5 tech review FAILs. Auto-fixes type errors, imports, null checks.
+Constrained: no refactoring, no logic changes, no architecture changes.
+
+### Eval Baselines (`lib/eval-baselines.ts`)
+Stores last 20 runs per template in `data/eval-baselines.json`. Compares run N vs N-1:
+- Detects regressions (stage score drops > 1 point)
+- Tracks best score, average, trend (improving/stable/regressing)
+- Logs quality regression warnings to pipeline log
+
+### Reviewer ≠ Author Policy
+Gate stages (S2.5, S4.5, S8.5) use `evaluatorOverride: "qa-agent"` — quality evaluation
+performed by a different agent than the one that produced/routed the work.
+Gate prompts include "INDEPENDENT REVIEWER" framing to reduce approval bias.
+
+## Pipeline Intelligence (Wave 3)
+
+### Continuous Learning (`scripts/hooks/session-learner.mjs`)
+Stop hook that auto-extracts patterns from Claude Code sessions into KB.
+Detects: TypeScript fixes, build resolutions, hydration issues, workarounds, API patterns.
+Accumulates observations in `.session-observations.jsonl`, flushes to KB when threshold (5) reached.
+New entries start at confidence 0.3 (tentative).
+
+### pass@k Statistical Verification (`lib/quality-evaluator.ts`)
+Gate stages (S2.5, S4.5, S8.5, S11) evaluated k=3 times in parallel.
+Requires 2/3 passes (67% confidence) to proceed. Logged as `pass@3: X/3`.
+Non-gate stages use single evaluation (k=1) to save cost.
+
+### Parallel DAG Execution (`pipeline-executor.ts`)
+Auto-detects when multiple stages become ready simultaneously and runs them in parallel.
+S5 (Backend) and S6 (Designer) now run in parallel — Designer depends on arch-gate, not backend.
+Gates and checkpoints excluded from auto-parallel. Explicit `isParallel` groups still supported.
+
+```
+DAG (post-Wave 3):
+S0→S1→S2→S2.5→S3.1→S3.2→S3.3→S3.4→S4→S4.5
+                                          ↓
+                                  S5 ║ S6 (parallel)
+                                     ↘↙
+                                     S7
+                                      ↓
+                              S8→S8.5→[S8.6]→S9→S10→S11→S12
 ```
 
 ## File-Based Storage (`data/`)

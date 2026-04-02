@@ -257,6 +257,95 @@ function round(n: number): number {
   return Math.round(n * 10) / 10;
 }
 
+// ── pass@k Statistical Verification ─────────────────────────
+
+export interface PassAtKResult {
+  /** Individual evaluation results */
+  trials: EvaluationResult[];
+  /** pass@k: at least 1 trial passed */
+  passAtK: boolean;
+  /** pass^k: ALL trials passed */
+  passAllK: boolean;
+  /** Number of trials that passed */
+  passCount: number;
+  /** Total trials run */
+  k: number;
+  /** Statistical confidence: passCount / k */
+  confidence: number;
+  /** Aggregated score: average of all trials */
+  avgScore: QualityScore;
+  /** Best single trial */
+  bestTrial: EvaluationResult;
+  /** Worst single trial */
+  worstTrial: EvaluationResult;
+  /** Combined feedback from all trials */
+  combinedFeedback: string;
+}
+
+/**
+ * Run quality evaluation k times for statistical confidence.
+ * - pass@k: at least 1 success in k trials (target >90%)
+ * - pass^k: ALL k trials succeed (for critical paths)
+ *
+ * Default k=3 for balance between cost and confidence.
+ * Critical stages (cyber, final verdict) should use k=3.
+ * Simple stages can use k=1 (standard single eval).
+ */
+export async function evaluateStepOutputK(
+  agentName: string,
+  stageNumber: string,
+  taskInput: string,
+  agentOutput: string,
+  passThreshold?: number,
+  agentId?: string,
+  toolCalls?: ToolCallInfo[],
+  k: number = 3,
+): Promise<PassAtKResult> {
+  // Run k evaluations in parallel
+  const trials = await Promise.all(
+    Array.from({ length: k }, () =>
+      evaluateStepOutput(agentName, stageNumber, taskInput, agentOutput, passThreshold, agentId, toolCalls)
+    ),
+  );
+
+  const passCount = trials.filter((t) => t.passed).length;
+  const passAtK = passCount > 0;
+  const passAllK = passCount === k;
+  const confidence = Math.round((passCount / k) * 100) / 100;
+
+  // Aggregate scores
+  const avgScore: QualityScore = {
+    completeness: round(trials.reduce((a, t) => a + t.score.completeness, 0) / k),
+    specificity: round(trials.reduce((a, t) => a + t.score.specificity, 0) / k),
+    actionability: round(trials.reduce((a, t) => a + t.score.actionability, 0) / k),
+    taskCompletion: round(trials.reduce((a, t) => a + (t.score.taskCompletion || 0), 0) / k),
+    overall: round(trials.reduce((a, t) => a + t.score.overall, 0) / k),
+  };
+
+  // Find best and worst
+  const sorted = [...trials].sort((a, b) => b.score.overall - a.score.overall);
+  const bestTrial = sorted[0];
+  const worstTrial = sorted[sorted.length - 1];
+
+  // Combine unique feedback
+  const uniqueFeedback = [...new Set(trials.map((t) => t.feedback))];
+  const combinedFeedback = `pass@${k}: ${passCount}/${k} (${Math.round(confidence * 100)}% confidence). ` +
+    uniqueFeedback.join(" | ");
+
+  return {
+    trials,
+    passAtK,
+    passAllK,
+    passCount,
+    k,
+    confidence,
+    avgScore,
+    bestTrial,
+    worstTrial,
+    combinedFeedback,
+  };
+}
+
 /**
  * Builds a retry prompt that includes the evaluator's feedback.
  */

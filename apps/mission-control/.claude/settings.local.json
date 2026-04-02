@@ -211,7 +211,72 @@
       "Bash(netstat -aon)",
       "Bash(cmd.exe /c \"taskkill /PID 21564 /F\")",
       "Bash(cmd.exe /c \"netstat -aon | findstr :3077 | findstr LISTEN\")",
-      "Bash(powershell -Command \"Stop-Process -Id 21564 -Force\" 2>&1)"
+      "Bash(powershell -Command \"Stop-Process -Id 21564 -Force\" 2>&1)",
+      "mcp__claude_ai_Atlassian__getJiraIssue",
+      "mcp__claude_ai_Atlassian__getAccessibleAtlassianResources",
+      "Bash(powershell -Command \"Stop-Process -Id 13528 -Force\")",
+      "Bash(wc -l app/\\\\\\(shell\\\\\\)/home/page.tsx components/home/*.ts components/home/*.tsx)",
+      "mcp__claude_ai_AI_Agent_Hub__check_integration_status",
+      "mcp__claude_ai_AI_Agent_Hub__list_integrations",
+      "WebFetch(domain:github.com)",
+      "Bash(gh api:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(bash scripts/hooks/suggest-compact.sh)",
+      "Bash(bash scripts/hooks/memory-persist.sh save)",
+      "Bash(bash -x scripts/hooks/memory-persist.sh save)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node scripts/hooks/memory-persist.mjs load",
+            "timeout": 10000
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash scripts/hooks/commit-quality.sh",
+            "timeout": 10000
+          },
+          {
+            "type": "command",
+            "command": "bash scripts/hooks/suggest-compact.sh",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node scripts/hooks/memory-persist.mjs save",
+            "timeout": 10000
+          },
+          {
+            "type": "command",
+            "command": "bash scripts/hooks/typecheck-stop.sh",
+            "timeout": 30000
+          },
+          {
+            "type": "command",
+            "command": "node scripts/hooks/session-learner.mjs",
+            "timeout": 15000
+          }
+        ]
+      }
     ]
   }
 }

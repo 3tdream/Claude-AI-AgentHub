@@ -176,6 +176,9 @@ MAX 4000 words. If you reach 3600 words (90%), stop and finalize.`,
     agentName: "Orchestrator",
     promptTemplate: `PRD VALIDATION GATE — Review the PM's PRD before sending to Architect.
 
+IMPORTANT: You are acting as an INDEPENDENT REVIEWER. Evaluate the PRD objectively.
+Do NOT bias toward approval — the PM and Orchestrator who created the requirements are NOT you.
+
 PRD: {{step_s2-pm_output}}
 Research: {{step_s0-research_output}}
 Requirements: {{step_s1-orchestrator_output}}
@@ -200,6 +203,7 @@ If PASS: Architect proceeds with confidence.`,
       qualityThreshold: 7.5,
       leadAgent: "orchestrator",
       model: "sonnet-4-6",
+      evaluatorOverride: "qa-agent",
     },
   },
 
@@ -428,6 +432,9 @@ That's it. MAX 2-3 findings. MAX 4000 words. If you reach 3600 words (90%), stop
     agentName: "Orchestrator",
     promptTemplate: `ARCHITECTURE GATE — Verify Architecture matches PRD before implementation.
 
+IMPORTANT: You are acting as an INDEPENDENT REVIEWER. The Architect who designed this is NOT you.
+Evaluate objectively — look for gaps, not confirmations.
+
 PRD: {{step_s2-pm_output}}
 ADR: {{step_s3.1-adr_output}}
 API Contracts: {{step_s3.2-api_output}}
@@ -456,6 +463,7 @@ If PASS: implementation begins.`,
       qualityThreshold: 7.5,
       leadAgent: "orchestrator",
       model: "sonnet-4-6",
+      evaluatorOverride: "qa-agent",
     },
   },
 
@@ -632,7 +640,7 @@ CHUNKING RULES:
 3. No file > 200 lines. Split complex components.
 4. Every component must handle: loading, error, empty, populated states
 5. Accessibility: ARIA labels on interactive elements, keyboard navigation`,
-    dependsOn: ["s5-backend"],
+    dependsOn: ["s4.5-arch-gate"],
     outputKey: "design",
     metadata: {
       stageNumber: "6",
@@ -809,6 +817,63 @@ If PASS: Business QA proceeds.`,
       qualityThreshold: 7.5,
       leadAgent: "orchestrator",
       model: "sonnet-4-6",
+      evaluatorOverride: "qa-agent",
+    },
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // S8.6 — Build Error Resolver: auto-fix type/import/null errors
+  // CONDITIONAL: only runs if S8.5 tech review found P0 issues
+  // Constrained: ONLY fixes types, imports, null checks, missing deps
+  // PROHIBITED: refactoring, architecture changes, feature additions
+  // ═══════════════════════════════════════════════════════════════
+  {
+    id: "s8.6-build-fix",
+    agentId: "backend-agent",
+    agentName: "Build-Error-Resolver",
+    promptTemplate: `BUILD ERROR RESOLVER — Fix ONLY compilation and type errors.
+
+Technical QA found P0 issues: {{step_s8-technical-qa_output}}
+Tech Review Gate: {{step_s8.5-tech-review_output}}
+Backend code: {{step_s5-backend_output}}
+Frontend code: {{step_s7-frontend_output}}
+
+YOUR TASK:
+1. Run \`npx tsc --noEmit --pretty\` to get exact error list
+2. Fix ONLY these categories:
+   - Type annotation errors (TS2322, TS2345, TS7006)
+   - Missing imports/exports (TS2305, TS2307)
+   - Null/undefined checks (TS2531, TS18047)
+   - Missing dependencies (run \`npm install\` if needed)
+   - tsconfig.json misconfigurations
+3. Re-run \`npx tsc --noEmit\` to verify fixes
+4. Report what was fixed
+
+PROHIBITED (DO NOT DO):
+- Refactoring code
+- Changing business logic
+- Adding features
+- Modifying architecture
+- Changing API contracts
+- Renaming variables/functions for style
+
+If a fix requires architecture changes, report it but DO NOT fix it.
+
+Output format:
+ERRORS FOUND: [count]
+ERRORS FIXED: [count]
+ERRORS REMAINING: [count]
+CHANGES MADE:
+- [file]: [what was fixed]
+VERDICT: CLEAN | PARTIAL | BLOCKED`,
+    dependsOn: ["s8.5-tech-review"],
+    outputKey: "build_fix",
+    metadata: {
+      stageNumber: "8.6",
+      qualityThreshold: 7,
+      leadAgent: "backend-agent",
+      model: "sonnet-4-6",
+      conditional: "step_s8.5-tech-review_output contains FAIL",
     },
   },
 
@@ -824,6 +889,7 @@ If PASS: Business QA proceeds.`,
 
 PRD with acceptance criteria: {{step_s2-pm_output}}
 Technical QA results: {{step_s8-technical-qa_output}}
+Build fixes (if any): {{step_s8.6-build-fix_output}}
 Backend: {{step_s5-backend_output}}
 Frontend: {{step_s7-frontend_output}}
 

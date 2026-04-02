@@ -6,6 +6,7 @@
  */
 
 import type { KBEntry, WorkflowStep } from "@/types";
+import { filterByConfidence, getConfidenceTier } from "@/lib/kb-evolution";
 
 interface AgentKBContext {
   /** Formatted prompt block to inject */
@@ -62,11 +63,23 @@ function formatEntry(entry: KBEntry, category: string): string {
     : entry.severity === "high" ? "🟠"
     : entry.severity === "medium" ? "🟡" : "⚪";
 
+  // Confidence indicator
+  const conf = entry.confidence ?? 0.5;
+  const tier = getConfidenceTier(conf);
+  const confLabel = tier === "near-certain" ? "★★★"
+    : tier === "strong" ? "★★☆"
+    : tier === "moderate" ? "★☆☆" : "☆☆☆";
+
   // Extract actionable fix if present
   const fixMatch = entry.content.match(/Fix:\s*(.+?)(?:\.|$)/i);
   const fix = fixMatch ? `\n   FIX: ${fixMatch[1].trim()}` : "";
 
-  return `${icon} [${category}] ${entry.title}${fix}`;
+  // Staleness warning
+  const lastActive = entry.lastConfirmedAt || entry.updatedAt;
+  const daysSinceActive = (Date.now() - new Date(lastActive).getTime()) / (24 * 60 * 60 * 1000);
+  const staleTag = daysSinceActive > 30 ? " [STALE]" : "";
+
+  return `${icon} ${confLabel} [${category}] ${entry.title}${staleTag}${fix}`;
 }
 
 /**
@@ -83,8 +96,11 @@ export function buildAgentKBContext(
   allEntries: KBEntry[],
   maxEntries: number = 12,
 ): AgentKBContext {
+  // Filter out low-confidence entries (tentative patterns are noise)
+  const confidentEntries = filterByConfidence(allEntries, "moderate");
+
   // Categorize entries
-  const failureEntries = allEntries.filter((e) =>
+  const failureEntries = confidentEntries.filter((e) =>
     e.tags.some((t) => ["truncation", "p0", "compilation", "guard-bypass", "sql-injection",
       "scope-creep", "timeout", "failure-rate", "implementation-gap"].includes(t)) ||
     // Entries from failure-patterns category (check source patterns)

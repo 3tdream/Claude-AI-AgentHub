@@ -8,6 +8,10 @@ export interface StageMetadata {
   stageNumber: string;
   conditional?: string;
   disabled?: boolean;
+  /** Reviewer ≠ Author: override the evaluator agent for this stage.
+   * When set, quality evaluation uses this agent instead of the default orchestrator.
+   * Prevents the routing agent from evaluating its own decisions. */
+  evaluatorOverride?: string;
 }
 
 export interface QualityScore {

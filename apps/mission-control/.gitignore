@@ -10,3 +10,9 @@ data/api-keys.json
 data/applied/
 data/pipeline-runs/
 data/pipeline-analytics.json
+data/.session-state.json
+data/.tool-call-count
+data/.app-state-cache.json
+data/eval-baselines.json
+data/.session-observations.jsonl
+data/.learner-state.json
