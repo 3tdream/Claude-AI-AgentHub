@@ -9,12 +9,27 @@ import { getContractPromptBlock, validateStageOutput, fetchKBEntriesForContracts
 import { validateStageOutputSchema, validateContextInjection } from "@/lib/stage-output-schema";
 import { buildAgentKBContext } from "@/lib/kb-agent-context";
 import { logActivity } from "@/lib/stores/activity-store";
-import { loadProjectContext } from "@/lib/project-context-loader";
+// loadProjectContext removed — uses fs, loaded via API fetch instead
 import { investigateFailure } from "@/lib/failure-investigator";
 import { validateDesignCompliance } from "@/lib/design-validator";
 import { parseConfidence, getEarlyTerminationAction, CONFIDENCE_INSTRUCTION } from "@/lib/confidence-gate";
 import { checkBudget, calculateCost, suggestDowngrade } from "@/lib/budget-manager";
-import { startExecutionLog, logStage, finalizeExecutionLog } from "@/lib/execution-logger";
+// Execution logger — fire-and-forget via API to avoid fs import in client bundle
+function startExecutionLog(id: string, name: string, input: string, project?: string | null) {
+  fetch("/api/pipeline/replay", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "start", executionId: id, workflowName: name, input, projectId: project }),
+  }).catch(() => {});
+}
+function logStage(_stage: unknown) { /* logged via finalizeExecutionLog */ }
+function finalizeExecutionLog(execution: PipelineExecution) {
+  return fetch("/api/pipeline/replay", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "finalize", execution }),
+  }).catch(() => {});
+}
 import type { RoutingDecisionData } from "@/types";
 // Analytics storage accessed via API (can't import fs in client-side code)
 

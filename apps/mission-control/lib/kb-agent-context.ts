@@ -6,7 +6,24 @@
  */
 
 import type { KBEntry, WorkflowStep } from "@/types";
-import { filterByConfidence, getConfidenceTier } from "@/lib/kb-evolution";
+
+// Inlined from kb-evolution.ts to avoid fs import chain in client bundle
+const CONFIDENCE_TIERS = { tentative: 0.3, moderate: 0.5, strong: 0.7, nearCertain: 0.9 } as const;
+
+function getConfidenceTier(confidence: number): string {
+  if (confidence >= CONFIDENCE_TIERS.nearCertain) return "near-certain";
+  if (confidence >= CONFIDENCE_TIERS.strong) return "strong";
+  if (confidence >= CONFIDENCE_TIERS.moderate) return "moderate";
+  return "tentative";
+}
+
+function filterByConfidence(
+  entries: KBEntry[],
+  minTier: "tentative" | "moderate" | "strong" | "near-certain" = "tentative",
+): KBEntry[] {
+  const minConfidence = CONFIDENCE_TIERS[minTier === "near-certain" ? "nearCertain" : minTier];
+  return entries.filter((e) => (e.confidence ?? CONFIDENCE_TIERS.moderate) >= minConfidence);
+}
 
 interface AgentKBContext {
   /** Formatted prompt block to inject */
