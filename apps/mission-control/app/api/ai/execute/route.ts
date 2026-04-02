@@ -22,6 +22,16 @@ export async function POST(request: NextRequest) {
       ? path.resolve(process.cwd(), "..", projectId)
       : undefined;
 
+    // Map non-Anthropic models to Claude equivalents (all execution goes through Anthropic SDK)
+    const resolvedModel = (() => {
+      const m = model || "sonnet-4-6";
+      if (m.includes("claude") || m.includes("sonnet") || m.includes("haiku") || m.includes("opus")) return m;
+      // Map OpenAI/Google models to Claude equivalents
+      if (m.includes("gpt-4.1-mini") || m.includes("gpt-4o-mini") || m.includes("haiku")) return "haiku-4-5";
+      if (m.includes("gpt-4") || m.includes("gpt-5") || m.includes("gemini")) return "sonnet-4-6";
+      return "sonnet-4-6"; // safe default
+    })();
+
     if (!agentId || !userInput) {
       return NextResponse.json(
         { success: false, error: "agentId and userInput are required" },
@@ -57,7 +67,7 @@ export async function POST(request: NextRequest) {
       let toolCallCount = 0;
 
       const result = await callAIWithTools({
-        model: model || "sonnet-4-6",
+        model: resolvedModel,
         systemPrompt,
         userPrompt: userInput,
         tools,
