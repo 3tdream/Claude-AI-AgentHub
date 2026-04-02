@@ -112,10 +112,13 @@ export function checkBudget(
   let action: BudgetAction = "continue";
   let ok = true;
 
-  if (percentUsed >= 100) {
+  // Budget enforcement disabled — collecting data first.
+  // Caps will be calibrated from real usage statistics.
+  // Tracking continues: spent/limit/percentUsed are still recorded.
+  if (false && percentUsed >= 100) {
     action = "pause";
     ok = false;
-  } else if (percentUsed >= 80) {
+  } else if (false && percentUsed >= 80) {
     action = "warn";
   }
 

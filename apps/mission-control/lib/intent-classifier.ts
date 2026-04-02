@@ -50,6 +50,10 @@ export function classifyIntent(input: string): IntentDecision {
     /\b(one|single|this|that)\s+(file|line|component|string|value)\b/,
     /\bto\s+(blue|red|green|black|white|bold|italic|hidden|visible|left|right|center)\b/,
     /\b(move|reorder|sort|hide|show|enable|disable)\b/,
+    // File-specific edits are always direct
+    /\bin\s+(lib|app|components|types|pages)\/\S+\.(ts|tsx|js|json|css)\b/,
+    /\b(should|must|always|never)\s+(return|be|have|use)\b/,
+    /\b(bug|broken|doesn't work|not working|error|crash|404|500)\b/,
   ];
 
   const directScore = directSignals.filter((r) => r.test(t)).length;
@@ -113,10 +117,11 @@ export function classifyIntent(input: string): IntentDecision {
     return { intent: "hybrid", confidence: 0.65, reason: "Multi-domain task" };
   }
 
-  // Default: short = direct, long = pipeline
-  if (wordCount <= 12 && pipelineScore === 0) {
-    return { intent: "direct", confidence: 0.5, reason: "Short input, defaulting to direct" };
+  // Default: no pipeline signals = direct (regardless of length)
+  if (pipelineScore === 0) {
+    return { intent: "direct", confidence: 0.6, reason: "No pipeline signals, defaulting to direct" };
   }
 
-  return { intent: "pipeline", confidence: 0.5, reason: "Complex input, defaulting to pipeline", pipelineMode: "medium" };
+  // Only default to pipeline if there are actual pipeline signals
+  return { intent: "pipeline", confidence: 0.5, reason: "Has pipeline signals, defaulting to pipeline", pipelineMode: "medium" };
 }
