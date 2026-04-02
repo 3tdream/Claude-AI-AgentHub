@@ -69,7 +69,7 @@ export function PipelineHistory({
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
-                    <div className="font-mono text-xs text-slate-700 truncate">{exec.input?.substring(0, 60)}</div>
+                    <div className="font-mono text-xs text-slate-700 truncate">{exec.input?.substring(0, 400)}</div>
                     <div className="flex items-center gap-2 mt-1.5">
                       <span className={`font-mono text-[10px] uppercase tracking-wide font-medium ${
                         displayStatus === "completed" ? "text-emerald-600" : displayStatus === "failed" ? "text-rose-600" : displayStatus === "interrupted" || displayStatus === "paused" || displayStatus === "stopped" ? "text-amber-600" : "text-indigo-600"
