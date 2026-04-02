@@ -232,7 +232,7 @@ export default function HomePage() {
               label={stats ? `${stats.completed}/${stats.totalRuns} runs passed` : "\u2014"}
             />
           </div>
-          <span className="font-mono text-xs text-slate-500">{clock}</span>
+          <span className="font-mono text-xs text-slate-500" suppressHydrationWarning>{clock}</span>
         </div>
 
         {/* Metrics grid */}
@@ -246,7 +246,7 @@ export default function HomePage() {
           <MetricBox value={String(stats?.totalRuns || "\u2014")} label="Total Runs" color="indigo" />
           <MetricBox value={stats ? `${Math.round((stats.completed / (stats.totalRuns || 1)) * 100)}%` : "\u2014"} label="Success Rate" color={stats && stats.completed / stats.totalRuns > 0.5 ? "green" : "amber"} />
           <MetricBox value={costsData?.data?.apiBalances ? `$${costsData.data.apiBalances.total?.toFixed(0)}` : "\u2014"} label="API Balance" color="amber" />
-          <MetricBox value={costsData?.data?.pipelineSpend ? `$${costsData.data.pipelineSpend.total?.toFixed(2)}` : "\u2014"} label="Pipeline Spend" color={costsData?.data?.pipelineSpend?.total > 50 ? "red" : "green"} />
+          <MetricBox value={costsData?.data?.pipelineSpend ? `$${costsData.data.pipelineSpend.total?.toFixed(2)}` : "\u2014"} label="Pipeline Spend" color={(costsData?.data?.pipelineSpend?.total ?? 0) > 50 ? "red" : "green"} />
         </div>
 
         {/* Center content — agent panel, pipeline, or health */}

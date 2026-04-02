@@ -4,10 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
-  Bot,
   Users,
-  GitBranch,
-  MessageSquare,
   ScrollText,
   DollarSign,
   TicketCheck,
@@ -19,10 +16,6 @@ import {
   ChevronRight,
   Zap,
   Settings,
-  BookMarked,
-  ShieldCheck,
-  HeartPulse,
-  Terminal,
   Home,
 } from "lucide-react";
 import { cn } from "@/lib/utils";

@@ -43,7 +43,7 @@ const subsystemIcons: Record<string, typeof Bot> = {
 };
 
 export function HealthPanel() {
-  const { data, isLoading, mutate } = useSWR<HealthReport>("/api/system/health", fetcher, { refreshInterval: 30000 });
+  const { data, error, isLoading, mutate } = useSWR<HealthReport>("/api/system/health", fetcher, { refreshInterval: 30000 });
   const [expandedSub, setExpandedSub] = useState<string | null>(null);
 
   const report = data;
@@ -82,6 +82,12 @@ export function HealthPanel() {
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {!report && isLoading && (
           <div className="text-center py-8 text-slate-400 text-sm">Loading health data...</div>
+        )}
+        {error && !report && (
+          <div className="text-center py-8">
+            <div className="text-sm text-rose-500 mb-2">Failed to load health data</div>
+            <button onClick={() => mutate()} className="text-xs text-indigo-600 hover:underline">Retry</button>
+          </div>
         )}
 
         {/* Overall score bar */}

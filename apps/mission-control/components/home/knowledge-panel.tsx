@@ -18,12 +18,10 @@ import {
   FolderOpen,
   ArrowUp,
 } from "lucide-react";
-import type { KBFile, KBIndex, KBEntry, KBCategory } from "@/types";
+import type { KBFile, KBIndex, KBEntry, KBCategory, KBScope } from "@/types";
 import { useAppStore } from "@/lib/stores/app-store";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
-
-type KBScope = "global" | "project";
 
 const CATEGORY_META: Record<string, { label: string; icon: typeof AlertTriangle; color: string; bg: string; border: string }> = {
   "failure-patterns": { label: "Failures", icon: AlertTriangle, color: "text-rose-600", bg: "bg-rose-50", border: "border-rose-200" },
@@ -85,11 +83,16 @@ export function KnowledgePanel() {
       })();
 
   const handlePromoteToGlobal = async (entry: KBEntry) => {
-    await fetch("/api/knowledge-base/projects", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ projectId: activeProjectId, entryId: entry.id, category: selectedCategory }),
-    });
+    try {
+      const res = await fetch("/api/knowledge-base/projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId: activeProjectId, entryId: entry.id, category: selectedCategory }),
+      });
+      if (res.ok) revalidateIndex();
+    } catch (err) {
+      console.error("[KB] Promote failed:", err);
+    }
   };
 
   return (
