@@ -93,7 +93,12 @@ export async function POST(request: NextRequest) {
     }
 
     // ── Tier 2: Anthropic Claude (primary fallback — with streaming) ──
+    // Note: Chat mode is text-only. For tool-enabled execution, use /api/ai/execute or pipeline.
     const systemPrompt = await loadPrompt(agentId);
+    const toolAgents = ["backend-agent", "frontend-agent", "qa-agent", "devops-agent", "cyber-agent"];
+    const chatSystemPrompt = toolAgents.includes(agentId)
+      ? systemPrompt + "\n\nNOTE: You are in CHAT mode (no file tools). If the user asks you to edit files or run commands, explain that they should use the Pipeline tab for execution tasks."
+      : systemPrompt;
 
     try {
       const anthropicModel = mapToAnthropicModel(agent?.llmModel || "claude-sonnet-4-20250514");
@@ -101,7 +106,7 @@ export async function POST(request: NextRequest) {
       const stream = anthropic.messages.stream({
         model: anthropicModel,
         max_tokens: 4096,
-        system: systemPrompt,
+        system: chatSystemPrompt,
         messages: messages.map((m: { role: string; content: string }) => ({
           role: m.role as "user" | "assistant",
           content: m.content,
@@ -160,7 +165,7 @@ export async function POST(request: NextRequest) {
     const stream = await openai.chat.completions.create({
       model: openaiModel,
       messages: [
-        { role: "system", content: systemPrompt },
+        { role: "system", content: chatSystemPrompt },
         ...messages.map((m: { role: string; content: string }) => ({
           role: m.role as "user" | "assistant",
           content: m.content,

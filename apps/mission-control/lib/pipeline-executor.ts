@@ -446,10 +446,10 @@ export async function executePipeline(
         // Determine tool access level from AGENT_CONFIG
         const agentCfg = AGENT_CONFIG[step.agentId];
         const implementationAgents = ["backend-agent", "frontend-agent"];
+        const readOnlyAgents = ["cyber-agent", "devops-agent"];
         const qaAgent = step.agentId === "qa-agent";
-        const plannerAgents = ["research-agent", "designer-agent", "architect-agent"];
-        const hasTools = !!agentCfg && !plannerAgents.includes(step.agentId);
-        const useTools = hasTools;
+        const plannerAgents = ["research-agent", "designer-agent", "architect-agent", "orchestrator"];
+        const useTools = !!agentCfg && !plannerAgents.includes(step.agentId);
         const toolMode = qaAgent ? "qa" : implementationAgents.includes(step.agentId) ? "readwrite" : "readonly";
         const maxToolSteps = agentCfg?.maxTurns || 5;
 
@@ -866,12 +866,22 @@ export async function executePipeline(
             content: `Step scored ${evaluation.score.overall}/10 (below ${threshold}) — retrying (attempt ${retryCount + 2}/${MAX_RETRIES + 1})${modelEscalated ? ` [MODEL ESCALATION: ${currentModel} → ${nextModel}]` : ""}. Feedback: ${evaluation.feedback.slice(0, 200)}`,
           }).catch(() => {});
 
+          // Run investigation for quality failures too — gives retry agent context
+          const qualityInvestigation = investigateFailure(
+            step.id, step.agentId,
+            { status: "failed", output: agentOutput, error: evaluation.feedback, toolCalls: data.toolCalls, toolCallCount: data.toolCallCount },
+            evaluation.feedback,
+            crossProjectContext?.projectPath || selectedProject || undefined,
+            kbEntries,
+          );
+
           currentPrompt = buildRetryPrompt(
             step.agentName,
             buildPrompt(step, input, context, projectContext, routingDecision?.mode, kbEntries),
             agentOutput,
             evaluation.feedback,
             evaluation.score.overall,
+            { diagnosis: qualityInvestigation.diagnosis, category: qualityInvestigation.category, matchedKBPatterns: qualityInvestigation.matchedKBPatterns },
           );
 
           retryCount++;

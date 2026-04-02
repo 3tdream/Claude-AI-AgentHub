@@ -348,6 +348,7 @@ export async function evaluateStepOutputK(
 
 /**
  * Builds a retry prompt that includes the evaluator's feedback.
+ * Optionally includes investigation diagnosis and matched KB patterns.
  */
 export function buildRetryPrompt(
   agentName: string,
@@ -355,11 +356,22 @@ export function buildRetryPrompt(
   previousOutput: string,
   feedback: string,
   prevScore?: number,
+  investigation?: { diagnosis: string; category: string; matchedKBPatterns?: string[] },
 ): string {
-  return RETRY_PROMPT
+  let prompt = RETRY_PROMPT
     .replace("{{agentName}}", agentName)
     .replace("{{originalPrompt}}", originalPrompt)
     .replace("{{prevScore}}", (prevScore ?? 0).toFixed(1))
     .replace("{{feedback}}", feedback);
+
+  // Append investigation context if available
+  if (investigation) {
+    prompt += `\n\n## FAILURE DIAGNOSIS (from investigation)\n- Category: ${investigation.category}\n- ${investigation.diagnosis}`;
+    if (investigation.matchedKBPatterns && investigation.matchedKBPatterns.length > 0) {
+      prompt += `\n\n## KNOWN FAILURE PATTERNS (from KB — avoid these)\n${investigation.matchedKBPatterns.map(p => `- ${p}`).join("\n")}`;
+    }
+  }
+
+  return prompt;
   // NOTE: previousOutput intentionally NOT included — clean context prevents copying mistakes
 }
