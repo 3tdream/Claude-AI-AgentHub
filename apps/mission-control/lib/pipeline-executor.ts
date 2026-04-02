@@ -444,12 +444,11 @@ export async function executePipeline(
         const timer = controller ? setTimeout(() => controller.abort(), STEP_TIMEOUT_MS) : undefined;
 
         // Determine tool access level from AGENT_CONFIG
+        // All agents get tools — implementers get readwrite, QA gets qa tools, everyone else gets readonly
         const agentCfg = AGENT_CONFIG[step.agentId];
         const implementationAgents = ["backend-agent", "frontend-agent"];
-        const readOnlyAgents = ["cyber-agent", "devops-agent"];
         const qaAgent = step.agentId === "qa-agent";
-        const plannerAgents = ["research-agent", "designer-agent", "architect-agent", "orchestrator"];
-        const useTools = !!agentCfg && !plannerAgents.includes(step.agentId);
+        const useTools = !!agentCfg;
         const toolMode = qaAgent ? "qa" : implementationAgents.includes(step.agentId) ? "readwrite" : "readonly";
         const maxToolSteps = agentCfg?.maxTurns || 5;
 
