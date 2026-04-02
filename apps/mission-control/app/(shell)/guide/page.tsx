@@ -6,11 +6,10 @@ import {
   ChevronDown,
   ChevronRight,
   LayoutDashboard,
-  Bot,
-  Users,
-  GitBranch,
-  MessageSquare,
-  ScrollText,
+  Home,
+  HeartPulse,
+  FolderOpen,
+  Play,
   DollarSign,
   BarChart3,
   TicketCheck,
@@ -21,7 +20,9 @@ import {
   Wifi,
   WifiOff,
   BookMarked,
-  ShieldCheck,
+  Brain,
+  Moon,
+  ScrollText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -65,110 +66,262 @@ function Tip({ children }: { children: React.ReactNode }) {
 
 const sections: GuideSection[] = [
   {
+    id: "home",
+    icon: Home,
+    title: "Home",
+    subtitle: "Command center — agents, pipeline, chat, knowledge, health",
+    content: (
+      <div className="space-y-4">
+        <p className="text-sm text-foreground/80">
+          Home is the primary workspace. It combines the agent fleet, pipeline execution, chat, knowledge base, and health monitoring in one unified view.
+        </p>
+
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Agent Fleet (left panel)</p>
+          <div className="space-y-2">
+            <Step n={1}>Browse all 16 agents grouped by team</Step>
+            <Step n={2}>Click any agent to open its detail view with tabs: <strong>Chat</strong>, <strong>Config</strong>, <strong>Prompt</strong>, <strong>Sessions</strong></Step>
+            <Step n={3}>Chat directly with the selected agent — messages route through Agent Hub with fallback</Step>
+          </div>
+        </div>
+
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Pipeline Panel (center, no agent selected)</p>
+          <div className="space-y-2">
+            <Step n={1}>Type a task into the input field</Step>
+            <Step n={2}>Intent classifier routes it: direct response or multi-stage pipeline</Step>
+            <Step n={3}>Three tabs below the graph: <strong>Pipeline</strong> (DAG view), <strong>Contracts</strong> (stage I/O specs), <strong>Analytics</strong> (run history)</Step>
+            <Step n={4}>Use the <strong>Project selector</strong> in the pipeline header to scope the run to a specific project</Step>
+          </div>
+        </div>
+
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Health Panel</p>
+          <p className="text-sm text-foreground/80">
+            Click the <strong>Health</strong> metric in the top stats row to open the system health dashboard — agent availability, API latencies, error rates.
+          </p>
+        </div>
+
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Knowledge Panel</p>
+          <p className="text-sm text-foreground/80">
+            Click the <strong>KB Entries</strong> metric in the top stats row to open the full Knowledge Base browser with search and category filters.
+          </p>
+        </div>
+
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Execution History</p>
+          <div className="space-y-2">
+            <Step n={1}>Toggle between <strong>Input</strong> and <strong>History</strong> views</Step>
+            <Step n={2}>History shows clickable execution cards with status, duration, and quality score</Step>
+            <Step n={3}>Click a card to expand: <strong>View Stages</strong>, <strong>Deploy</strong>, <strong>Resume</strong> actions</Step>
+          </div>
+        </div>
+
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Pipeline Launch Flow</p>
+          <div className="space-y-2">
+            <Step n={1}>Type your task in the input field</Step>
+            <Step n={2}>Review the routing preview (intent + selected agents)</Step>
+            <Step n={3}>Click <strong>Confirm &amp; Execute</strong> to start the pipeline</Step>
+            <Step n={4}>Watch stages progress in the DAG graph in real time</Step>
+          </div>
+        </div>
+
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Stage Detail</p>
+          <p className="text-sm text-foreground/80">
+            Click any graph node to see: output content, token usage, <strong>Apply to Source</strong> (merge output into project files), and <strong>Deploy to Source</strong> (push to target repo).
+          </p>
+        </div>
+
+        <Tip>Home replaces the old separate Agents, Orchestration, Chat, and Contracts pages — everything is now in one place.</Tip>
+      </div>
+    ),
+  },
+  {
     id: "dashboard",
     icon: LayoutDashboard,
     title: "Dashboard",
-    subtitle: "KPI overview of all agents",
+    subtitle: "KPI overview — agents, cost, success rate, pipeline runs",
     content: (
-      <div className="space-y-3">
-        <p className="text-sm text-foreground/80">Central overview showing cost, requests, tokens, and last accessed time for all 16 agents.</p>
-        <div className="space-y-2">
-          <Step n={1}>Open <strong>/dashboard</strong> — it loads automatically on start</Step>
-          <Step n={2}>Review agent metrics in the table</Step>
-          <Step n={3}>Click any agent name to go to its detail page</Step>
-        </div>
-      </div>
-    ),
-  },
-  {
-    id: "agents",
-    icon: Bot,
-    title: "Agents",
-    subtitle: "Browse, create, and manage AI agents",
-    content: (
-      <div className="space-y-3">
-        <div className="space-y-2">
-          <Step n={1}>Toggle between grid/list view (top right)</Step>
-          <Step n={2}>Click an agent card to open its detail page</Step>
-          <Step n={3}>Click <strong>New Agent</strong> to create a new one</Step>
-        </div>
-        <div className="mt-4 space-y-1">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Agent Detail Tabs:</p>
+      <div className="space-y-4">
+        <p className="text-sm text-foreground/80">
+          Central analytics view with summary stats, agent performance table, and export tools.
+        </p>
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Summary Stats Row</p>
           <ul className="text-sm text-foreground/80 space-y-1 ml-4 list-disc">
-            <li><strong>Config</strong> — Edit name, description, LLM model, token limits</li>
-            <li><strong>Prompt</strong> — Edit system prompt; version history tracked automatically</li>
-            <li><strong>Sessions</strong> — View past chat sessions for this agent</li>
+            <li><strong>Total Agents</strong> — active agent count</li>
+            <li><strong>Total Requests</strong> — cumulative API calls</li>
+            <li><strong>Total Cost</strong> — combined spend across all providers</li>
+            <li><strong>Success Rate</strong> — percentage of non-error responses</li>
+            <li><strong>Pipeline Runs</strong> — total pipeline executions</li>
           </ul>
         </div>
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Agent Table</p>
+          <div className="space-y-2">
+            <Step n={1}>Review agent metrics — cost, requests, tokens, last accessed</Step>
+            <Step n={2}>Click any agent row to open it in the Home page</Step>
+            <Step n={3}>Use the <strong>time range filter</strong> (7d / 30d / all) to adjust the view</Step>
+          </div>
+        </div>
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Export &amp; Refresh</p>
+          <div className="space-y-2">
+            <Step n={1}>Click <strong>CSV Export</strong> to download data — filename includes the current date dynamically</Step>
+            <Step n={2}>Performance matrix includes a <strong>Refresh</strong> button with last-updated timestamp</Step>
+          </div>
+        </div>
       </div>
     ),
   },
   {
-    id: "teams",
-    icon: Users,
-    title: "Teams",
-    subtitle: "Organize agents into teams",
-    content: (
-      <div className="space-y-2">
-        <Step n={1}>View all teams with agent counts</Step>
-        <Step n={2}>Click a team to see its members</Step>
-        <Step n={3}>Click <strong>New Team</strong> to create one</Step>
-      </div>
-    ),
-  },
-  {
-    id: "orchestration",
-    icon: GitBranch,
-    title: "Orchestration",
-    subtitle: "Multi-agent pipeline with quality gating",
+    id: "costs",
+    icon: DollarSign,
+    title: "Costs",
+    subtitle: "Spending dashboard — subscriptions, API balances, pipeline spend",
     content: (
       <div className="space-y-4">
         <div className="space-y-1">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Step 1 — Create Workflow</p>
-          <div className="space-y-2">
-            <Step n={1}>Click <strong>CRM Pipeline</strong> to load the 10-stage template, or create a custom workflow</Step>
-            <Step n={2}>Review stages in the visual pipeline graph</Step>
-          </div>
-        </div>
-        <div className="space-y-1">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Step 2 — Execute</p>
-          <div className="space-y-2">
-            <Step n={1}>Enter task input (e.g., &quot;Build a CRM for a beauty salon&quot;)</Step>
-            <Step n={2}>Click <strong>Execute</strong></Step>
-            <Step n={3}>Watch stages run — each shows status (running/retrying/completed/failed)</Step>
-          </div>
-        </div>
-        <div className="space-y-1">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Quality Evaluation</p>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Two Cost Sources</p>
           <ul className="text-sm text-foreground/80 space-y-1 ml-4 list-disc">
-            <li>Each stage is auto-evaluated (completeness, specificity, actionability)</li>
-            <li>Score &ge; 8.0 &rarr; PASS</li>
-            <li>Score &lt; 8.0 &rarr; automatic retry (up to 2 retries)</li>
-            <li>Score &lt; 5.0 after max retries &rarr; ESCALATION (pipeline halts)</li>
+            <li><strong>Claude Code Subscription</strong> — fixed $100/month for Claude Code Max</li>
+            <li><strong>API Balances</strong> — remaining credits on Anthropic, OpenAI, and Google accounts</li>
           </ul>
         </div>
         <div className="space-y-1">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Checkpoint</p>
-          <p className="text-sm text-foreground/80">At the Human Checkpoint stage, review all previous outputs. Click <strong>Approve</strong> to continue or <strong>Reject</strong> to stop.</p>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Pipeline Spend</p>
+          <p className="text-sm text-foreground/80">
+            Calculated from actual token usage during pipeline runs — input/output tokens multiplied by per-model pricing.
+          </p>
         </div>
-        <Tip>Check Execution History (bottom panel) for past runs with quality scores and durations.</Tip>
+        <div className="space-y-2">
+          <Step n={1}>View summary cards: subscription, balances, pipeline spend</Step>
+          <Step n={2}>Check provider breakdown chart (Anthropic, OpenAI, Google)</Step>
+          <Step n={3}>Update balances via <strong>Settings</strong> page or through the API</Step>
+        </div>
+        <Tip>In offline mode, costs show cached data from the last Agent Hub snapshot.</Tip>
       </div>
     ),
   },
   {
-    id: "chat",
-    icon: MessageSquare,
-    title: "Chat",
-    subtitle: "Dual-source chat with any agent",
+    id: "knowledge",
+    icon: BookMarked,
+    title: "Knowledge Base",
+    subtitle: "Persistent learning memory — accessed from Home via KB Entries metric",
     content: (
-      <div className="space-y-3">
-        <div className="space-y-2">
-          <Step n={1}>Select an agent from the left sidebar</Step>
-          <Step n={2}>Type a message, press <Kbd>Enter</Kbd> to send (<Kbd>Shift+Enter</Kbd> for newline)</Step>
-          <Step n={3}>Watch the source badge — <code className="text-xs bg-muted px-1.5 py-0.5 rounded">agent-hub</code> or <code className="text-xs bg-muted px-1.5 py-0.5 rounded">openai-fallback</code></Step>
-          <Step n={4}>Click <strong>Clear Chat</strong> to reset conversation (saves to logs first)</Step>
+      <div className="space-y-4">
+        <p className="text-sm text-foreground/80">
+          The KB stores lessons learned from every pipeline run. Agents read it before acting, and contracts adapt dynamically based on it. Access it by clicking the <strong>KB Entries</strong> metric box on the Home page.
+        </p>
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Scope Toggle</p>
+          <p className="text-sm text-foreground/80">
+            Switch between <strong>Global</strong> (shared across all projects) and <strong>Project</strong> (scoped to the selected project). Use <strong>Promote to Global</strong> to elevate a project-level entry.
+          </p>
         </div>
-        <Tip>If Agent Hub is unreachable, chat automatically falls back to OpenAI with the agent&apos;s cached system prompt.</Tip>
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">5 Categories</p>
+          <ul className="text-sm text-foreground/80 space-y-1 ml-4 list-disc">
+            <li><strong>Failure Patterns</strong> — recurring bugs, truncation issues, prompt gaps</li>
+            <li><strong>Security Playbook</strong> — JWT rules, auth requirements, OWASP findings</li>
+            <li><strong>Success Patterns</strong> — what works: agent pairings, output formats, gate patterns</li>
+            <li><strong>Architecture Patterns</strong> — established code patterns: fire-and-forget, SWR hooks, file storage</li>
+            <li><strong>Tech Decisions</strong> — technology choices with rationale: PostgreSQL, NestJS, Tailwind 4, Zod</li>
+          </ul>
+        </div>
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Search &amp; Browse</p>
+          <div className="space-y-2">
+            <Step n={1}>Full-text search across title, content, and tags</Step>
+            <Step n={2}>Filter by category using the tab bar</Step>
+            <Step n={3}>Each entry has severity (critical/high/medium/low), version counter, and SHA-256 hash validation</Step>
+          </div>
+        </div>
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Feedback Loop</p>
+          <p className="text-sm text-foreground/80">
+            KB entries are automatically injected into agent prompts before each run. When a pipeline fails, QA writes new failure patterns. When it succeeds, success patterns are auto-captured. Each run makes the next one smarter.
+          </p>
+        </div>
+        <Tip>KB entries with severity &ldquo;critical&rdquo; or &ldquo;high&rdquo; become blocking constraints in stage contracts automatically.</Tip>
+      </div>
+    ),
+  },
+  {
+    id: "pipeline-intelligence",
+    icon: Brain,
+    title: "Pipeline Intelligence",
+    subtitle: "19-stage pipeline with gates, escalation, confidence scoring, and DAG execution",
+    content: (
+      <div className="space-y-4">
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Pipeline Structure</p>
+          <p className="text-sm text-foreground/80">
+            19 stages organized with 4 quality gates. Stages execute as a parallel DAG — independent branches run concurrently, dependent stages wait for upstream completion.
+          </p>
+        </div>
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Model Escalation</p>
+          <p className="text-sm text-foreground/80">
+            Stages start with the cheapest capable model (haiku). On retry, they escalate to sonnet. If that fails, opus is used as the final attempt. This keeps costs low while maintaining quality.
+          </p>
+        </div>
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Confidence Scoring</p>
+          <p className="text-sm text-foreground/80">
+            Each agent self-reports a confidence score (0.0 to 1.0) with its output. Low-confidence outputs (&lt;0.6) trigger automatic re-evaluation or retry.
+          </p>
+        </div>
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Budget Caps</p>
+          <p className="text-sm text-foreground/80">
+            Each stage has a budget cap ($1&ndash;$3 depending on complexity). If a stage exceeds its cap, it halts and escalates rather than burning through credits.
+          </p>
+        </div>
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Failure Taxonomy</p>
+          <ul className="text-sm text-foreground/80 space-y-1 ml-4 list-disc">
+            <li><strong>Truncation</strong> — output cut off mid-sentence</li>
+            <li><strong>Hallucination</strong> — references non-existent APIs or libraries</li>
+            <li><strong>Off-topic</strong> — output doesn&apos;t address the task</li>
+            <li><strong>Incomplete</strong> — missing required sections</li>
+            <li><strong>Format violation</strong> — wrong output structure</li>
+            <li><strong>Security violation</strong> — fails security contract checks</li>
+            <li><strong>Timeout</strong> — exceeded time limit</li>
+            <li><strong>Budget exceeded</strong> — exceeded cost cap</li>
+          </ul>
+        </div>
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Advanced Features</p>
+          <ul className="text-sm text-foreground/80 space-y-1 ml-4 list-disc">
+            <li><strong>Eval Baselines</strong> — each stage has a quality baseline; regression below baseline triggers alerts</li>
+            <li><strong>Design-to-Code Validator</strong> — compares Figma specs to generated UI code for layout accuracy</li>
+            <li><strong>Ownership Feedback Loop</strong> — when a stage output is manually edited, the edit is fed back to improve the agent&apos;s next run</li>
+          </ul>
+        </div>
+        <Tip>The pipeline adapts per-run: if prediction is below 30% on quick mode, it auto-upgrades to medium. Security KB patterns force-add the Cyber-Agent.</Tip>
+      </div>
+    ),
+  },
+  {
+    id: "analytics",
+    icon: BarChart3,
+    title: "Analytics",
+    subtitle: "Pipeline quality trends and retries",
+    content: (
+      <div className="space-y-2">
+        <ul className="text-sm text-foreground/80 space-y-1.5 ml-4 list-disc">
+          <li><strong>KPI Cards</strong> — total runs, success rate, avg duration, escalation count</li>
+          <li><strong>Quality by Stage</strong> — bar chart of average scores per pipeline stage</li>
+          <li><strong>Retries by Agent</strong> — which agents need the most retries</li>
+          <li><strong>Timeline</strong> — execution count over time</li>
+          <li><strong>Status Distribution</strong> — pie chart (completed/failed/paused)</li>
+          <li><strong>Execution History</strong> — table of last 15 runs with details</li>
+        </ul>
+        <Tip>Analytics is also accessible via the <strong>Analytics</strong> tab in the Home pipeline panel.</Tip>
       </div>
     ),
   },
@@ -188,127 +341,10 @@ const sections: GuideSection[] = [
     ),
   },
   {
-    id: "costs",
-    icon: DollarSign,
-    title: "Costs",
-    subtitle: "Spending dashboard — 30-day breakdown",
-    content: (
-      <div className="space-y-2">
-        <Step n={1}>View summary cards: total cost, requests, tokens</Step>
-        <Step n={2}>Review the daily cost chart</Step>
-        <Step n={3}>Check provider breakdown (Anthropic, OpenAI, Google)</Step>
-        <Step n={4}>Scroll down for the daily costs table</Step>
-        <Tip>In offline mode, costs show cached data from the last Agent Hub snapshot.</Tip>
-      </div>
-    ),
-  },
-  {
-    id: "analytics",
-    icon: BarChart3,
-    title: "Analytics",
-    subtitle: "Pipeline quality trends and retries",
-    content: (
-      <div className="space-y-2">
-        <ul className="text-sm text-foreground/80 space-y-1.5 ml-4 list-disc">
-          <li><strong>KPI Cards</strong> — total runs, success rate, avg duration, escalation count</li>
-          <li><strong>Quality by Stage</strong> — bar chart of average scores per pipeline stage</li>
-          <li><strong>Retries by Agent</strong> — which agents need the most retries</li>
-          <li><strong>Timeline</strong> — execution count over time</li>
-          <li><strong>Status Distribution</strong> — pie chart (completed/failed/paused)</li>
-          <li><strong>Execution History</strong> — table of last 15 runs with details</li>
-        </ul>
-      </div>
-    ),
-  },
-  {
-    id: "knowledge",
-    icon: BookMarked,
-    title: "Knowledge Base",
-    subtitle: "Persistent learning memory — failure patterns, security rules, success patterns",
-    content: (
-      <div className="space-y-4">
-        <p className="text-sm text-foreground/80">
-          The KB stores lessons learned from every pipeline run. Agents read it before acting, and contracts adapt dynamically based on it.
-        </p>
-        <div className="space-y-1">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">5 Categories</p>
-          <ul className="text-sm text-foreground/80 space-y-1 ml-4 list-disc">
-            <li><strong>Failure Patterns</strong> — recurring bugs, truncation issues, prompt gaps</li>
-            <li><strong>Security Playbook</strong> — JWT rules, auth requirements, OWASP findings</li>
-            <li><strong>Success Patterns</strong> — what works: agent pairings, output formats, gate patterns</li>
-            <li><strong>Architecture Patterns</strong> — established code patterns: fire-and-forget, SWR hooks, file storage</li>
-            <li><strong>Tech Decisions</strong> — technology choices with rationale: PostgreSQL, NestJS, Tailwind 4, Zod</li>
-          </ul>
-        </div>
-        <div className="space-y-1">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">How it works</p>
-          <div className="space-y-2">
-            <Step n={1}>Browse entries by category or search across all (full-text on title, content, tags)</Step>
-            <Step n={2}>Each entry has severity (critical/high/medium/low), version counter, and SHA-256 hash validation</Step>
-            <Step n={3}>Click <strong>Validate Hashes</strong> to verify integrity of all KB files</Step>
-          </div>
-        </div>
-        <div className="space-y-1">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Feedback Loop</p>
-          <p className="text-sm text-foreground/80">
-            KB entries are automatically injected into agent prompts before each run. When pipeline fails, QA writes new failure patterns. When it succeeds, success patterns are auto-captured. Each run makes the next one smarter.
-          </p>
-        </div>
-        <Tip>KB entries with severity &ldquo;critical&rdquo; or &ldquo;high&rdquo; become blocking constraints in stage contracts automatically.</Tip>
-      </div>
-    ),
-  },
-  {
-    id: "contracts",
-    icon: ShieldCheck,
-    title: "Stage Contracts & Simulation",
-    subtitle: "Deterministic I/O validation + preflight prediction",
-    content: (
-      <div className="space-y-4">
-        <div className="space-y-1">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Stage Contracts</p>
-          <p className="text-sm text-foreground/80">
-            Each pipeline stage has a deterministic contract defining inputs, required outputs, constraints, and risks.
-            Agents see their contract in the prompt. After output, the executor validates it automatically.
-          </p>
-          <ul className="text-sm text-foreground/80 space-y-1 ml-4 list-disc">
-            <li><strong>Inputs</strong> — what the stage consumes from upstream (with required/optional)</li>
-            <li><strong>Outputs</strong> — what it MUST produce (validated via regex patterns)</li>
-            <li><strong>Constraints</strong> — hard rules: &ldquo;file tree first&rdquo;, &ldquo;no localStorage for tokens&rdquo;, etc.</li>
-            <li><strong>KB Dynamic</strong> — constraints auto-injected from failure patterns (highlighted in amber)</li>
-            <li><strong>Risks</strong> — known risks with probability, impact, and mitigation</li>
-          </ul>
-        </div>
-        <div className="space-y-1">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Preflight Simulation</p>
-          <p className="text-sm text-foreground/80">
-            Type a task description and simulate the pipeline outcome before running it.
-          </p>
-          <div className="space-y-2">
-            <Step n={1}>Enter task description in the simulation input</Step>
-            <Step n={2}>Click <strong>Simulate</strong> — analyzes against 114 historical runs + 58 KB entries</Step>
-            <Step n={3}>See per-stage probability bars, bottlenecks, and recommendations</Step>
-            <Step n={4}>Simulation also runs automatically when you route a task in Orchestration</Step>
-          </div>
-        </div>
-        <div className="space-y-1">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Auto-Routing Adjustments</p>
-          <ul className="text-sm text-foreground/80 space-y-1 ml-4 list-disc">
-            <li>If prediction &lt; 30% on quick mode &rarr; auto-upgrade to medium</li>
-            <li>If any stage is critical &rarr; QA-Agent force-added</li>
-            <li>If security KB patterns active &rarr; Cyber-Agent force-added</li>
-            <li>High-token stages get split suggestions</li>
-          </ul>
-        </div>
-        <Tip>The simulation improves with every pipeline run — new KB entries refine predictions and add dynamic constraints.</Tip>
-      </div>
-    ),
-  },
-  {
     id: "jira",
     icon: TicketCheck,
     title: "Jira Integration",
-    subtitle: "Search, create, and track Jira issues",
+    subtitle: "Search, create, and track Jira issues — global sync",
     content: (
       <div className="space-y-4">
         <div className="space-y-1">
@@ -329,6 +365,35 @@ const sections: GuideSection[] = [
             <li>Pipeline completion transitions the Epic to <strong>Done</strong></li>
           </ul>
         </div>
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Global Sync</p>
+          <p className="text-sm text-foreground/80">
+            Jira issues sync globally across all projects in Mission Control. The Chat panel shows a project context indicator so you always know which project context is active.
+          </p>
+        </div>
+      </div>
+    ),
+  },
+  {
+    id: "nightly-evolution",
+    icon: Moon,
+    title: "Nightly Evolution",
+    subtitle: "PM2 cron at 03:00 — KB decay, pattern extraction, self-improvement",
+    content: (
+      <div className="space-y-4">
+        <p className="text-sm text-foreground/80">
+          Every night at 03:00, a PM2 cron job runs the evolution cycle to keep the system current and prevent knowledge rot.
+        </p>
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">What Happens</p>
+          <ul className="text-sm text-foreground/80 space-y-1 ml-4 list-disc">
+            <li><strong>KB Decay</strong> — entries that haven&apos;t been referenced in recent runs have their relevance score reduced; stale entries eventually archive</li>
+            <li><strong>Pattern Extraction</strong> — analyzes recent pipeline runs and extracts new success/failure patterns into the Knowledge Base</li>
+            <li><strong>Baseline Recalculation</strong> — updates eval baselines for each stage based on latest run data</li>
+            <li><strong>Cross-session Sync</strong> — merges project-level KB entries that appear in multiple projects into global scope</li>
+          </ul>
+        </div>
+        <Tip>Check PM2 logs (<Kbd>npm run pm2:logs</Kbd>) to see the nightly evolution output and any entries it created or archived.</Tip>
       </div>
     ),
   },
@@ -346,6 +411,8 @@ const sections: GuideSection[] = [
           <div>AGENT_HUB_LIVE=1</div>
           <div className="mt-2 text-muted-foreground"># Required — OpenAI fallback for chat</div>
           <div>OPENAI_API_KEY=sk-proj-...</div>
+          <div className="mt-2 text-muted-foreground"># Optional — Anthropic direct fallback</div>
+          <div>ANTHROPIC_API_KEY=sk-ant-...</div>
           <div className="mt-2 text-muted-foreground"># App URL</div>
           <div>NEXT_PUBLIC_BASE_URL=http://localhost:3077</div>
           <div className="mt-2 text-muted-foreground"># Optional — Jira (or configure via UI at /jira/settings)</div>
@@ -368,6 +435,7 @@ const sections: GuideSection[] = [
           <Kbd>Enter</Kbd> <span className="text-foreground/80">Send chat message</span>
           <Kbd>Shift+Enter</Kbd> <span className="text-foreground/80">New line in chat</span>
           <Kbd>Cmd/Ctrl+K</Kbd> <span className="text-foreground/80">Command palette (quick navigation)</span>
+          <Kbd>Esc</Kbd> <span className="text-foreground/80">Deselect agent / close panel</span>
         </div>
       </div>
     ),
@@ -376,7 +444,7 @@ const sections: GuideSection[] = [
     id: "storage",
     icon: Database,
     title: "Data Storage",
-    subtitle: "Local file-based storage",
+    subtitle: "Local file-based storage in data/",
     content: (
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
@@ -404,19 +472,34 @@ const sections: GuideSection[] = [
               <td className="py-2">Jira credentials (gitignored)</td>
             </tr>
             <tr className="border-b border-border/50">
+              <td className="py-2 pr-4 font-mono text-xs">knowledge-base/_index.json</td>
+              <td className="py-2 pr-4">data/</td>
+              <td className="py-2">KB master index — global scope</td>
+            </tr>
+            <tr className="border-b border-border/50">
               <td className="py-2 pr-4 font-mono text-xs">knowledge-base/*.json</td>
               <td className="py-2 pr-4">data/</td>
               <td className="py-2">KB entries (5 categories, SHA-256 hashed, versioned)</td>
             </tr>
             <tr className="border-b border-border/50">
+              <td className="py-2 pr-4 font-mono text-xs">knowledge-base/</td>
+              <td className="py-2 pr-4">projects/&lt;name&gt;/</td>
+              <td className="py-2">Project-scoped KB entries (two-layer architecture)</td>
+            </tr>
+            <tr className="border-b border-border/50">
               <td className="py-2 pr-4 font-mono text-xs">pipeline-analytics.json</td>
               <td className="py-2 pr-4">data/</td>
-              <td className="py-2">Aggregate pipeline stats (114 runs, per-agent metrics)</td>
+              <td className="py-2">Aggregate pipeline stats and per-agent metrics</td>
             </tr>
-            <tr>
+            <tr className="border-b border-border/50">
               <td className="py-2 pr-4 font-mono text-xs">pipeline-runs/*.json</td>
               <td className="py-2 pr-4">data/</td>
-              <td className="py-2">Individual pipeline run records (85 files)</td>
+              <td className="py-2">Individual pipeline run records</td>
+            </tr>
+            <tr>
+              <td className="py-2 pr-4 font-mono text-xs">security-playbook.json</td>
+              <td className="py-2 pr-4">data/knowledge-base/</td>
+              <td className="py-2">Security rules and OWASP patterns</td>
             </tr>
           </tbody>
         </table>
@@ -427,16 +510,29 @@ const sections: GuideSection[] = [
     id: "offline",
     icon: WifiOff,
     title: "Offline Mode",
-    subtitle: "Works without Agent Hub connection",
+    subtitle: "3-tier chat fallback — Hub, Anthropic, OpenAI; MC runs autonomously",
     content: (
-      <div className="space-y-2">
-        <p className="text-sm text-foreground/80">When <code className="text-xs bg-muted px-1 rounded">AGENT_HUB_LIVE</code> is <strong>not set</strong>:</p>
-        <ul className="text-sm text-foreground/80 space-y-1 ml-4 list-disc">
-          <li>All API reads return cached snapshots (agents, teams, costs)</li>
-          <li>Chat falls back to OpenAI directly</li>
-          <li>Pipeline execution still works via the execute API route</li>
-          <li>Jira integration works independently (uses Jira API directly)</li>
-        </ul>
+      <div className="space-y-4">
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">3-Tier Chat Fallback</p>
+          <div className="space-y-2">
+            <Step n={1}><strong>Tier 1: Agent Hub</strong> — primary source, routes through the Hub backend</Step>
+            <Step n={2}><strong>Tier 2: Anthropic Direct</strong> — if Hub is down, falls back to Anthropic API with cached system prompt</Step>
+            <Step n={3}><strong>Tier 3: OpenAI Direct</strong> — if Anthropic is also unavailable, uses OpenAI as last resort</Step>
+          </div>
+        </div>
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">MC Autonomous Mode</p>
+          <p className="text-sm text-foreground/80">
+            When <code className="text-xs bg-muted px-1 rounded">AGENT_HUB_LIVE</code> is not set, Mission Control operates fully offline:
+          </p>
+          <ul className="text-sm text-foreground/80 space-y-1 ml-4 list-disc">
+            <li>All API reads return cached snapshots (agents, teams, costs)</li>
+            <li>Pipeline execution still works via the local execute API route</li>
+            <li>Knowledge Base reads/writes work locally (file-based)</li>
+            <li>Jira integration works independently (uses Jira API directly)</li>
+          </ul>
+        </div>
       </div>
     ),
   },
@@ -469,11 +565,13 @@ const sections: GuideSection[] = [
       <div className="space-y-2">
         {[
           ["\"Agent Hub unreachable\" on every request", "Set AGENT_HUB_LIVE=1 in .env.local and ensure Agent Hub runs on :3000"],
-          ["Chat shows \"openai-fallback\" badge", "Agent Hub is down; chat works via OpenAI instead"],
+          ["Chat shows \"openai-fallback\" badge", "Agent Hub and Anthropic both down — chat is using OpenAI as last-resort fallback"],
           ["Jira \"Not configured\"", "Go to /jira/settings, enter credentials, test connection"],
           ["JQL error on Jira search", "Project key must be uppercase letters (e.g., CAI, not cai)"],
-          ["Pipeline stuck at checkpoint", "Click Approve or Reject in the Orchestration panel"],
+          ["Pipeline stuck at checkpoint", "Click Approve or Reject in the Home pipeline panel"],
           ["Stale cost/agent data", "Cache is from last snapshot; set AGENT_HUB_LIVE=1 for fresh data"],
+          ["KB entries not showing", "Click the KB Entries metric on Home to open the browser; check scope toggle (Global vs Project)"],
+          ["Nightly evolution didn't run", "Check PM2 status — the cron job requires PM2 to be running (npm run pm2:dev)"],
         ].map(([issue, solution]) => (
           <div key={issue} className="flex gap-3 px-4 py-3 rounded-lg bg-muted/30 border border-border/50">
             <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
@@ -529,7 +627,7 @@ function GuideAccordion({ section, isOpen, onToggle }: { section: GuideSection; 
 // --- Page ---
 
 export default function GuidePage() {
-  const [openSections, setOpenSections] = useState<Set<string>>(new Set(["dashboard"]));
+  const [openSections, setOpenSections] = useState<Set<string>>(new Set(["home"]));
 
   function toggle(id: string) {
     setOpenSections((prev) => {
@@ -583,7 +681,7 @@ export default function GuidePage() {
         <div>
           <p className="text-sm font-medium text-foreground">Quick Start</p>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Set up <code className="bg-muted px-1 rounded">.env.local</code> &rarr; run <code className="bg-muted px-1 rounded">npm run dev</code> &rarr; open <code className="bg-muted px-1 rounded">http://localhost:3077</code>
+            Set up <code className="bg-muted px-1 rounded">.env.local</code> &rarr; run <code className="bg-muted px-1 rounded">npm run dev</code> &rarr; open <code className="bg-muted px-1 rounded">http://localhost:3077</code> &rarr; Home page loads with agent fleet + pipeline
           </p>
         </div>
       </div>
