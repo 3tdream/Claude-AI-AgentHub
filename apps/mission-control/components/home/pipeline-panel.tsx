@@ -4,7 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import { useOrchestrationStore } from "@/lib/stores/orchestration-store";
 import { toast } from "sonner";
 import type { WorkflowStep, RoutingDecisionData, PipelineExecution } from "@/types";
-import { GitBranch, ShieldCheck, BarChart3, History } from "lucide-react";
+import { GitBranch, ShieldCheck, BarChart3, History, Box, Rows3 } from "lucide-react";
+import { Pipeline3D } from "./pipeline-3d";
 import { ContractsTab } from "@/components/orchestration/contracts-tab";
 import { AnalyticsTab } from "@/components/orchestration/analytics-tab";
 import { PipelineGraph } from "@/components/orchestration/pipeline-graph";
@@ -28,6 +29,7 @@ export function PipelinePanel({ activeProjectId, projects, onSelectProject }: {
   onSelectProject: (id: string | null) => void;
 }) {
   const [activeTab, setActiveTab] = useState<PipelineTab>("pipeline");
+  const [graphMode, setGraphMode] = useState<"2d" | "3d">("3d");
   const [pipelineView, setPipelineView] = useState<PipelineView>("input");
 
   const [input, setInput] = useState("");
@@ -317,18 +319,58 @@ export function PipelinePanel({ activeProjectId, projects, onSelectProject }: {
         />
       )}
 
-      {/* Pipeline Graph */}
+      {/* Pipeline Graph — 2D or 3D toggle */}
       {activeTab === "pipeline" && displayExecution && displaySteps.length > 0 && (
-        <div className="border-b border-slate-200 overflow-x-auto">
-          <PipelineGraph
-            steps={displaySteps}
-            execution={displayExecution}
-            executionHistory={executionHistory}
-            selectedStageId={selectedStageId}
-            onSelectStage={setSelectedStageId}
-            onApproveCheckpoint={() => activeExecution && approveCheckpoint(activeExecution.id)}
-            onRejectCheckpoint={(reason) => activeExecution && rejectCheckpoint(activeExecution.id, reason)}
-          />
+        <div className="border-b border-slate-200">
+          {/* View mode toggle */}
+          <div className="flex items-center justify-end px-3 py-1 border-b border-slate-100 bg-slate-50/50">
+            <div className="flex items-center gap-0.5 bg-slate-100 rounded-md p-0.5">
+              <button
+                onClick={() => setGraphMode("3d")}
+                className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${graphMode === "3d" ? "bg-white text-slate-700 shadow-sm" : "text-slate-400"}`}
+                aria-label="3D visualization"
+              >
+                <Box className="w-3 h-3" />
+                3D
+              </button>
+              <button
+                onClick={() => setGraphMode("2d")}
+                className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${graphMode === "2d" ? "bg-white text-slate-700 shadow-sm" : "text-slate-400"}`}
+                aria-label="2D graph"
+              >
+                <Rows3 className="w-3 h-3" />
+                2D
+              </button>
+            </div>
+          </div>
+
+          {graphMode === "3d" ? (
+            <div className="h-[400px]">
+              <Pipeline3D
+                execution={displayExecution}
+                onAgentClick={(agentId) => {
+                  // Map 3D viz agent ID back to step ID
+                  const step = displaySteps.find((s) =>
+                    s.agentId.toLowerCase().includes(agentId) || s.id.toLowerCase().includes(agentId)
+                  );
+                  if (step) setSelectedStageId(step.id);
+                }}
+                theme="light"
+              />
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <PipelineGraph
+                steps={displaySteps}
+                execution={displayExecution}
+                executionHistory={executionHistory}
+                selectedStageId={selectedStageId}
+                onSelectStage={setSelectedStageId}
+                onApproveCheckpoint={() => activeExecution && approveCheckpoint(activeExecution.id)}
+                onRejectCheckpoint={(reason) => activeExecution && rejectCheckpoint(activeExecution.id, reason)}
+              />
+            </div>
+          )}
         </div>
       )}
 

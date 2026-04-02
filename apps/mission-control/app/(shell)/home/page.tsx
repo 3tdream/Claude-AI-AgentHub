@@ -97,10 +97,17 @@ export default function HomePage() {
     }
   }, [agents, agentOrder.length]);
 
-  // Sort agentsWithStats by order
-  const orderedAgents = agentOrder.length > 0
-    ? agentOrder.map((id) => agentsWithStats.find((a) => a.agent.id === id)).filter(Boolean) as typeof agentsWithStats
-    : agentsWithStats;
+  // Sort agentsWithStats by order, then bubble active agents to the top
+  const orderedAgents = useMemo(() => {
+    const base = agentOrder.length > 0
+      ? agentOrder.map((id) => agentsWithStats.find((a) => a.agent.id === id)).filter(Boolean) as typeof agentsWithStats
+      : agentsWithStats;
+    return [...base].sort((a, b) => {
+      const aActive = a.stats && a.stats.runs > 0 ? 1 : 0;
+      const bActive = b.stats && b.stats.runs > 0 ? 1 : 0;
+      return bActive - aActive;
+    });
+  }, [agentOrder, agentsWithStats]);
 
   const moveAgent = (fromIdx: number, dir: -1 | 1) => {
     const toIdx = fromIdx + dir;

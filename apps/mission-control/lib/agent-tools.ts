@@ -298,30 +298,38 @@ export async function executeTool(
       case "edit_file": {
         const relPath = validatePath(input.path);
         const readPath = path.join(ROOT, relPath);
-        const content = await fs.readFile(readPath, "utf-8");
+        const rawContent = await fs.readFile(readPath, "utf-8");
 
-        if (!content.includes(input.old_string)) {
+        // Normalize line endings for comparison (Windows \r\n → \n)
+        const content = rawContent.replace(/\r\n/g, "\n");
+        const oldString = (input.old_string as string).replace(/\r\n/g, "\n");
+        const newString = (input.new_string as string).replace(/\r\n/g, "\n");
+
+        if (!content.includes(oldString)) {
           return { success: false, output: "", error: "old_string not found in file. Use read_file to check exact content." };
         }
 
-        const occurrences = content.split(input.old_string).length - 1;
+        const occurrences = content.split(oldString).length - 1;
         if (occurrences > 1) {
           return { success: false, output: "", error: `old_string found ${occurrences} times — must be unique. Provide more context.` };
         }
 
         // Speed Governor: hard limit on diff size (soft limits per-agent via prompts)
-        const oldLines = input.old_string.split("\n").length;
-        const newLines = input.new_string.split("\n").length;
+        const oldLines = oldString.split("\n").length;
+        const newLines = newString.split("\n").length;
         const diffLines = Math.abs(newLines - oldLines) + Math.min(oldLines, newLines);
         const HARD_DIFF_LIMIT = 250;
         if (diffLines > HARD_DIFF_LIMIT) {
           return { success: false, output: "", error: `Edit too large: ${diffLines} lines (hard limit ${HARD_DIFF_LIMIT}). Break into smaller edits.` };
         }
 
-        const newContent = content.replace(input.old_string, input.new_string);
+        // Apply edit on normalized content, then restore original line ending style
+        const newContent = content.replace(oldString, newString);
+        // If original file had \r\n, preserve that style
+        const finalContent = rawContent.includes("\r\n") ? newContent.replace(/\n/g, "\r\n") : newContent;
         const writePath = path.join(ROOT, relPath);
         await fs.mkdir(path.dirname(writePath), { recursive: true });
-        await fs.writeFile(writePath, newContent, "utf-8");
+        await fs.writeFile(writePath, finalContent, "utf-8");
 
         // Post-edit syntax check — auto-revert if broken
         const syntaxError = await quickSyntaxCheck(writePath);
