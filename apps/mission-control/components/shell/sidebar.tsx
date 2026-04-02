@@ -35,8 +35,6 @@ const navItems = [
   { href: "/logs", label: "Logs", icon: ScrollText },
   { href: "/costs", label: "Costs", icon: DollarSign },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
-  { href: "/health", label: "Health", icon: HeartPulse },
-  { href: "/knowledge", label: "Knowledge", icon: BookMarked },
   { href: "/jira", label: "Jira", icon: TicketCheck },
   { href: "/projects", label: "Projects", icon: FolderOpen },
   { href: "/integrations", label: "Integrations", icon: Plug },

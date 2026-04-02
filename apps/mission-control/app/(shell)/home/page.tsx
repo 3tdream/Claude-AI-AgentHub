@@ -16,6 +16,8 @@ import { LogEntry } from "@/components/home/log-entry";
 import { AgentPanel } from "@/components/home/agent-panel";
 import { NewAgentPanel } from "@/components/home/new-agent-panel";
 import { PipelinePanel } from "@/components/home/pipeline-panel";
+import { HealthPanel } from "@/components/home/health-panel";
+import { KnowledgePanel } from "@/components/home/knowledge-panel";
 
 // ══════════════════════════════════════════════
 // MAIN HOME PAGE
@@ -32,6 +34,7 @@ export default function HomePage() {
   const [editMode, setEditMode] = useState(false);
   const [agentOrder, setAgentOrder] = useState<string[]>([]);
   const [fleetCollapsed, setFleetCollapsed] = useState(false);
+  const [centerView, setCenterView] = useState<"pipeline" | "health" | "knowledge">("pipeline");
 
   // Clock
   const [clock, setClock] = useState("");
@@ -132,7 +135,7 @@ export default function HomePage() {
               return (
                 <button
                   key={agent.id}
-                  onClick={() => setSelectedAgentId(selectedAgentId === agent.id ? null : agent.id)}
+                  onClick={() => { setSelectedAgentId(selectedAgentId === agent.id ? null : agent.id); setCenterView("pipeline"); }}
                   title={`${agent.name} — ${stats ? Math.round(successRate) + "%" : "idle"}`}
                   className={`flex flex-col items-center py-1.5 rounded-lg transition-all ${
                     selectedAgentId === agent.id
@@ -200,7 +203,7 @@ export default function HomePage() {
                     agent={agent}
                     stats={stats || undefined}
                     selected={selectedAgentId === agent.id}
-                    onClick={() => !editMode && setSelectedAgentId(selectedAgentId === agent.id ? null : agent.id)}
+                    onClick={() => { if (!editMode) { setSelectedAgentId(selectedAgentId === agent.id ? null : agent.id); setCenterView("pipeline"); } }}
                   />
                 </div>
               </div>
@@ -234,20 +237,28 @@ export default function HomePage() {
 
         {/* Metrics grid */}
         <div className="grid grid-cols-6 gap-3">
-          <MetricBox value={String(health?.overallScore || "\u2014")} label="Health" color="green" />
-          <MetricBox value={String(kbIndex?.totalEntries || "\u2014")} label="KB Entries" color="purple" />
+          <div onClick={() => { setCenterView(centerView === "health" ? "pipeline" : "health"); setSelectedAgentId(null); }} className="cursor-pointer">
+            <MetricBox value={String(health?.overallScore || "\u2014")} label="Health" color={centerView === "health" ? "indigo" : "green"} />
+          </div>
+          <div onClick={() => { setCenterView(centerView === "knowledge" ? "pipeline" : "knowledge"); setSelectedAgentId(null); }} className="cursor-pointer">
+            <MetricBox value={String(kbIndex?.totalEntries || "\u2014")} label="KB Entries" color={centerView === "knowledge" ? "indigo" : "purple"} />
+          </div>
           <MetricBox value={String(stats?.totalRuns || "\u2014")} label="Total Runs" color="indigo" />
           <MetricBox value={stats ? `${Math.round((stats.completed / (stats.totalRuns || 1)) * 100)}%` : "\u2014"} label="Success Rate" color={stats && stats.completed / stats.totalRuns > 0.5 ? "green" : "amber"} />
           <MetricBox value={budget ? `$${budget.spent?.toFixed(0)}` : "\u2014"} label="Spent" color="amber" />
           <MetricBox value={budget ? `$${Math.round(budget.remaining)}` : "\u2014"} label="Remaining" color={budget && budget.remaining < 50 ? "red" : "green"} />
         </div>
 
-        {/* Center content — agent panel or empty state */}
+        {/* Center content — agent panel, pipeline, or health */}
         <div className="flex-1 bg-white border border-slate-200 rounded-xl relative overflow-hidden">
           {selectedAgentId === "__new__" ? (
             <NewAgentPanel onClose={() => setSelectedAgentId(null)} onCreated={(id) => { mutateAgents(); setSelectedAgentId(id); }} />
           ) : selectedAgent ? (
             <AgentPanel agent={selectedAgent} onClose={() => setSelectedAgentId(null)} onAgentUpdated={() => mutateAgents()} />
+          ) : centerView === "health" ? (
+            <HealthPanel />
+          ) : centerView === "knowledge" ? (
+            <KnowledgePanel />
           ) : (
             <PipelinePanel activeProjectId={activeProjectId} projects={discoveredProjects} onSelectProject={setActiveProject} />
           )}
