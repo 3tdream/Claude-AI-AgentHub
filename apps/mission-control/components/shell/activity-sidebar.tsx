@@ -15,6 +15,11 @@ const typeColors: Record<ActivityType, string> = {
   agent: "text-orange-400",
   routing: "text-teal-400",
   system: "text-muted-foreground",
+  schema_validate: "text-emerald-300",
+  confidence_gate: "text-yellow-400",
+  budget_warn: "text-orange-400",
+  budget_pause: "text-red-400",
+  design_validate: "text-pink-400",
 };
 
 const typeBg: Record<ActivityType, string> = {
@@ -29,6 +34,11 @@ const typeBg: Record<ActivityType, string> = {
   agent: "bg-orange-500/10",
   routing: "bg-teal-500/10",
   system: "bg-muted/50",
+  schema_validate: "bg-emerald-500/10",
+  confidence_gate: "bg-yellow-500/10",
+  budget_warn: "bg-orange-500/10",
+  budget_pause: "bg-red-500/10",
+  design_validate: "bg-pink-500/10",
 };
 
 function formatTime(iso: string) {

@@ -6,10 +6,15 @@ import { runCyberRedesignLoop } from "@/lib/pipeline-runner-cyber";
 import { runQAFeedbackLoop } from "@/lib/pipeline-runner-qa";
 import { isTruncationFailure, continueOutput } from "@/lib/output-continuation";
 import { getContractPromptBlock, validateStageOutput, fetchKBEntriesForContracts } from "@/lib/stage-contracts";
+import { validateStageOutputSchema, validateContextInjection } from "@/lib/stage-output-schema";
 import { buildAgentKBContext } from "@/lib/kb-agent-context";
 import { logActivity } from "@/lib/stores/activity-store";
 import { loadProjectContext } from "@/lib/project-context-loader";
 import { investigateFailure } from "@/lib/failure-investigator";
+import { validateDesignCompliance } from "@/lib/design-validator";
+import { parseConfidence, getEarlyTerminationAction, CONFIDENCE_INSTRUCTION } from "@/lib/confidence-gate";
+import { checkBudget, calculateCost, suggestDowngrade } from "@/lib/budget-manager";
+import { startExecutionLog, logStage, finalizeExecutionLog } from "@/lib/execution-logger";
 import type { RoutingDecisionData } from "@/types";
 // Analytics storage accessed via API (can't import fs in client-side code)
 
@@ -178,6 +183,7 @@ export async function executePipeline(
     escalatedSteps: previousExecution?.escalatedSteps || [],
     routingDecision: routingDecision || undefined,
     tokenUsage: previousExecution?.tokenUsage || {},
+    budgetUsage: previousExecution?.budgetUsage || {},
   };
 
   // Initialize pending steps (skip already completed from resume)
@@ -191,6 +197,14 @@ export async function executePipeline(
   postLog({
     type: "system",
     content: `Pipeline "${workflowName}" started [mode: ${routingDecision?.mode ?? "full"}] with ${steps.length} steps. Input: ${input.slice(0, 200)}`,
+  }).catch(() => {});
+
+  // Start execution log for replay mode
+  startExecutionLog(execution.id, workflowName, input, selectedProject);
+
+  postLog({
+    type: "system",
+    content: `Execution log started for replay: ${execution.id.slice(0, 8)}`,
   }).catch(() => {});
 
   // --- Jira: Check if enabled + create Epic ---
@@ -422,6 +436,22 @@ export async function executePipeline(
       }
     }
 
+    // ── Context Injection Validation: check upstream deps before execution ──
+    const contextCheck = validateContextInjection(step, context);
+    if (!contextCheck.valid) {
+      const missingList = contextCheck.missing.join(", ");
+      postLog({
+        type: "system",
+        agentId: step.agentId,
+        agentName: step.agentName,
+        content: `Agent ${step.agentName} missing context from: ${missingList}`,
+      }).catch(() => {});
+      logActivity("system", `${step.agentName}: missing deps`, missingList);
+
+      // Append warning to prompt so agent can work with partial context
+      currentPrompt += `\n\n---\nWARNING: You are missing data from stages: ${missingList}. Work with what you have.`;
+    }
+
     // Jira: stage start
     if (jiraKey) {
       jiraSyncAction("stage-start", {
@@ -517,6 +547,52 @@ export async function executePipeline(
           }
         }
 
+        // ── Stage Output Schema Validation (JSON structure) ──
+        const schemaResult = validateStageOutputSchema(step.id, agentOutput);
+        if (!schemaResult.valid) {
+          postLog({
+            type: "system",
+            agentId: step.agentId,
+            agentName: step.agentName,
+            content: `SCHEMA WARNING [${step.id}]: ${schemaResult.errors.join("; ")}`,
+          }).catch(() => {});
+          logActivity("schema_validate", `${step.id}: INVALID`, schemaResult.errors.join("; "));
+
+          // Add schema errors to investigation context for downstream stages
+          context[`step_${step.id}_schema_errors`] = schemaResult.errors.join("\n");
+        } else if (schemaResult.parsed) {
+          // Store parsed structured data for downstream consumption
+          (execution.stepResults[step.id] as unknown as Record<string, unknown>).parsedOutput = schemaResult.parsed;
+          logActivity("schema_validate", `${step.id}: PASS (parsed JSON stored)`);
+        }
+
+        // ── Design-to-Code Validation: after frontend (S7), check compliance with designer output ──
+        if (step.agentId === "frontend-agent") {
+          const designerOutputKey = Object.keys(context).find(
+            (k) => k.includes("designer") || k.includes("s6"),
+          );
+          const designerOutput = designerOutputKey ? context[designerOutputKey] : "";
+          if (designerOutput) {
+            const designCompliance = validateDesignCompliance(designerOutput, agentOutput);
+            (execution.stepResults[step.id] as unknown as Record<string, unknown>).designCompliance = designCompliance;
+
+            if (!designCompliance.compliant) {
+              postLog({
+                type: "system",
+                agentId: step.agentId,
+                agentName: step.agentName,
+                content: `DESIGN COMPLIANCE: ${designCompliance.score}/100 — ${designCompliance.violations.length} violation(s): ${designCompliance.violations.slice(0, 2).join("; ")}`,
+              }).catch(() => {});
+              logActivity("design_validate", `${step.id}: ${designCompliance.score}/100`, designCompliance.violations.slice(0, 2).join("; "));
+
+              // Add violations to context so QA (S8) can include them in evaluation
+              context[`step_${step.id}_design_violations`] = designCompliance.violations.join("\n");
+            } else {
+              logActivity("design_validate", `${step.id}: PASS ${designCompliance.score}/100`);
+            }
+          }
+        }
+
         // Analytics: capture token usage per step
         const stepStartTime = execution.stepResults[step.id]?.startedAt;
         const stepDurationMs = stepStartTime ? Date.now() - new Date(stepStartTime).getTime() : 0;
@@ -540,6 +616,110 @@ export async function executePipeline(
             output: (prevUsage?.output || 0) + stepAnalytics.outputTokens,
             durationMs: (prevUsage?.durationMs || 0) + stepDurationMs,
           };
+        }
+
+        // ── Confidence Scoring: parse agent self-reported confidence ──
+        const agentConfidence = parseConfidence(agentOutput);
+        if (agentConfidence !== null) {
+          (execution.stepResults[step.id] as unknown as Record<string, unknown>).confidence = agentConfidence;
+          postLog({
+            type: "decision",
+            agentId: step.agentId,
+            agentName: step.agentName,
+            content: `Confidence: ${agentConfidence.toFixed(2)} for stage ${step.id}`,
+          }).catch(() => {});
+
+          // ── Early Termination Logic ──
+          const terminationAction = getEarlyTerminationAction(
+            step.id,
+            agentConfidence,
+            stepAnalytics.model || smartModel,
+            retryCount > 0, // already escalated if we retried
+          );
+
+          if (terminationAction.action === "escalate_model") {
+            postLog({
+              type: "system",
+              agentId: step.agentId,
+              agentName: step.agentName,
+              content: `CONFIDENCE ESCALATION: ${terminationAction.reason}`,
+            }).catch(() => {});
+            logActivity("confidence_gate", `${step.id}: escalate model`, terminationAction.reason);
+            // Force retry with model escalation by setting lastScore very low
+            if (retryCount < MAX_RETRIES) {
+              lastScore = 0;
+              lastFeedback = `Low confidence (${agentConfidence.toFixed(2)}) — model escalation triggered`;
+              retryCount++;
+              continue;
+            }
+          } else if (terminationAction.action === "pause") {
+            postLog({
+              type: "system",
+              agentId: step.agentId,
+              agentName: step.agentName,
+              content: `EARLY TERMINATION: ${terminationAction.reason}`,
+            }).catch(() => {});
+            logActivity("confidence_gate", `${step.id}: paused`, terminationAction.reason);
+
+            execution.stepResults[step.id] = {
+              stepId: step.id,
+              status: "failed",
+              output: agentOutput.substring(0, 20000),
+              error: terminationAction.reason,
+              completedAt: new Date().toISOString(),
+              retryCount,
+              confidence: agentConfidence,
+              ...stepAnalytics,
+            };
+            execution.status = "paused";
+            callbacks.onUpdate({ ...execution });
+            completed.add(step.id);
+            return false;
+          }
+        }
+
+        // ── Budget Check: enforce per-stage spending caps ──
+        const prevBudget = execution.budgetUsage?.[step.id];
+        const budgetResult = checkBudget(
+          step.id,
+          stepAnalytics.model || smartModel,
+          { input: stepAnalytics.inputTokens, output: stepAnalytics.outputTokens },
+          prevBudget?.spent || 0,
+        );
+        if (execution.budgetUsage) {
+          execution.budgetUsage[step.id] = { spent: budgetResult.spent, limit: budgetResult.limit };
+        }
+
+        if (budgetResult.action === "warn") {
+          postLog({
+            type: "system",
+            agentId: step.agentId,
+            agentName: step.agentName,
+            content: `BUDGET WARNING [${step.id}]: $${budgetResult.spent.toFixed(4)} / $${budgetResult.limit.toFixed(2)} (${budgetResult.percentUsed.toFixed(0)}%)`,
+          }).catch(() => {});
+          logActivity("budget_warn", `${step.id}: ${budgetResult.percentUsed.toFixed(0)}% budget used`, `$${budgetResult.spent.toFixed(4)}`);
+        } else if (budgetResult.action === "pause") {
+          postLog({
+            type: "system",
+            agentId: step.agentId,
+            agentName: step.agentName,
+            content: `BUDGET EXCEEDED [${step.id}]: $${budgetResult.spent.toFixed(4)} / $${budgetResult.limit.toFixed(2)} — pipeline paused for confirmation`,
+          }).catch(() => {});
+          logActivity("budget_pause", `${step.id}: budget exceeded`, `$${budgetResult.spent.toFixed(4)} / $${budgetResult.limit.toFixed(2)}`);
+
+          execution.status = "paused";
+          execution.stepResults[step.id] = {
+            stepId: step.id,
+            status: "failed",
+            output: agentOutput.substring(0, 20000),
+            error: `Budget exceeded: $${budgetResult.spent.toFixed(4)} > $${budgetResult.limit.toFixed(2)} cap`,
+            completedAt: new Date().toISOString(),
+            retryCount,
+            ...stepAnalytics,
+          };
+          callbacks.onUpdate({ ...execution });
+          completed.add(step.id);
+          return false;
         }
 
         // Hard enforcement: implementation agents MUST have called edit_file or create_file
@@ -678,6 +858,18 @@ export async function executePipeline(
             evaluatorAgent,
             data.toolCalls || undefined,
           );
+        }
+
+        // Apply schema validation penalty: reduce score if JSON output is invalid
+        if (!schemaResult.valid && schemaResult.errors.length > 0) {
+          const penalty = Math.min(2, schemaResult.errors.length * 0.5);
+          evaluation.score = {
+            ...evaluation.score,
+            completeness: Math.max(1, evaluation.score.completeness - penalty),
+            overall: Math.max(1, evaluation.score.overall - penalty),
+          };
+          evaluation.feedback += ` [Schema penalty: -${penalty} for ${schemaResult.errors.length} JSON structure error(s)]`;
+          evaluation.passed = evaluation.score.overall >= threshold;
         }
 
         if (execution.qualityScores) {
@@ -1092,6 +1284,9 @@ export async function executePipeline(
   execution.totalDuration = Date.now() - new Date(execution.startedAt).getTime();
   callbacks.onUpdate({ ...execution });
 
+  // Finalize execution log for replay
+  finalizeExecutionLog(execution).catch(() => {});
+
   // Jira: Finalize pipeline
   if (jiraKey) {
     jiraSyncAction("finalize", { jiraKey, execution });
@@ -1276,6 +1471,9 @@ function buildPrompt(
   if (contractBlock) {
     prompt += `\n\n${contractBlock}`;
   }
+
+  // ── Confidence self-reporting instruction ──
+  prompt += CONFIDENCE_INSTRUCTION;
 
   return prompt;
 }

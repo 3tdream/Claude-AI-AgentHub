@@ -109,6 +109,10 @@ export interface StepResult {
     durationMs: number;
   }>;
   toolCallCount?: number;
+  // Parsed structured JSON output (from stage-output-schema validation)
+  parsedOutput?: Record<string, unknown>;
+  // Confidence scoring (0-1, self-reported by agent)
+  confidence?: number;
   // Source tracking for resume/cache
   source?: "live" | "cached" | "resumed";
   cachedFromRun?: string; // pipeline run ID if cached
@@ -266,4 +270,5 @@ export interface PipelineExecution {
   jiraUrl?: string;
   routingDecision?: RoutingDecisionData;
   tokenUsage?: Record<string, StepTokenUsage>;
+  budgetUsage?: Record<string, { spent: number; limit: number }>;
 }

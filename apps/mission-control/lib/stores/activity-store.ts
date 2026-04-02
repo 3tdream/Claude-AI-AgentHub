@@ -13,7 +13,12 @@ export type ActivityType =
   | "skill"
   | "agent"
   | "routing"
-  | "system";
+  | "system"
+  | "schema_validate"
+  | "confidence_gate"
+  | "budget_warn"
+  | "budget_pause"
+  | "design_validate";
 
 export interface ActivityEvent {
   id: string;
@@ -44,6 +49,11 @@ const ICONS: Record<ActivityType, string> = {
   agent: "\u{1F916}",        // 🤖
   routing: "\u{1F6E4}",      // 🛤️
   system: "\u{2699}",        // ⚙️
+  schema_validate: "\u{1F4D0}", // 📐
+  confidence_gate: "\u{1F3AF}", // 🎯
+  budget_warn: "\u{1F4B8}",     // 💸
+  budget_pause: "\u{1F6D1}",    // 🛑
+  design_validate: "\u{1F3A8}", // 🎨
 };
 
 const MAX_EVENTS = 100;

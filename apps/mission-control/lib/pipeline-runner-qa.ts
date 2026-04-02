@@ -19,6 +19,7 @@ import {
   buildRevalidationPrompt,
   type QAResults,
 } from "@/lib/qa-feedback-loop";
+import { routeFixToOwner, type QAIssue } from "@/lib/ownership-router";
 
 const { MAX_QA_FIX_CYCLES } = PIPELINE;
 
@@ -60,9 +61,23 @@ export async function runQAFeedbackLoop({
     const fixTargets = groupFailuresByAgent(currentResults);
     if (fixTargets.length === 0) { fixCycleSuccess = true; break; }
 
+    // ── Ownership Feedback Loop: try targeted routing first ──
+    const ownershipIssues: QAIssue[] = currentResults.acceptance_results
+      .filter((r) => r.status === "FAIL" || r.status === "PARTIAL")
+      .map((r) => ({
+        fix_agent: classifyAgentFromEvidence(r.evidence),
+        description: `${r.criteria_id}: ${r.fix_required || r.evidence}`,
+        file: extractFirstFilePath(r.evidence),
+        severity: r.severity,
+        criteria_id: r.criteria_id,
+      }));
+
+    const ownershipTasks = routeFixToOwner({ issues: ownershipIssues }, context);
+    const useOwnershipRouting = ownershipTasks.length > 0 && ownershipIssues.every((i) => i.file);
+
     postLog({
       type: "system",
-      content: `Fix cycle ${cycle}/${MAX_QA_FIX_CYCLES}: ${fixTargets.map((t) => `${t.agentId} (${t.failures.length} failures)`).join(", ")}`,
+      content: `Fix cycle ${cycle}/${MAX_QA_FIX_CYCLES}: ${fixTargets.map((t) => `${t.agentId} (${t.failures.length} failures)`).join(", ")}${useOwnershipRouting ? " [ownership-routed]" : ""}`,
     }).catch(() => {});
 
     // Run targeted fixes for each responsible agent
@@ -72,7 +87,14 @@ export async function runQAFeedbackLoop({
       const originalStepId = steps.find((s) => s.agentId === target.agentId)?.id;
       const originalOutput = originalStepId ? (execution.stepResults[originalStepId]?.output || "") : "";
       const architectOutput = context["step_s3.2-api_output"] || "";
-      const fixPrompt = buildFixPrompt(target, originalOutput, cycle, architectOutput);
+
+      // Use ownership-routed prompt if available, otherwise fall back to standard fix prompt
+      const ownershipTask = useOwnershipRouting
+        ? ownershipTasks.find((t) => t.agentId === target.agentId)
+        : null;
+      const fixPrompt = ownershipTask
+        ? ownershipTask.fixPrompt
+        : buildFixPrompt(target, originalOutput, cycle, architectOutput);
       const fixStepId = `${originalStepId || target.agentId}-fix-${cycle}`;
 
       execution.stepResults[fixStepId] = {
@@ -226,4 +248,27 @@ export async function runQAFeedbackLoop({
   }
 
   return { shouldBreak: false };
+}
+
+// ── Helpers for ownership routing ──
+
+/** Classify which agent should fix an issue based on evidence text */
+function classifyAgentFromEvidence(evidence: string): string {
+  const lower = evidence.toLowerCase();
+  if (lower.includes("/api/") || lower.includes("route.ts") || lower.includes("lib/") || lower.includes("schema") || lower.includes("migration")) {
+    return "backend-agent";
+  }
+  if (lower.includes("components/") || lower.includes("page.tsx") || lower.includes("app/(shell)") || lower.includes(".css") || lower.includes("layout.tsx")) {
+    return "frontend-agent";
+  }
+  if (lower.includes("globals.css") || lower.includes("design") || lower.includes("token")) {
+    return "designer-agent";
+  }
+  return "frontend-agent";
+}
+
+/** Extract the first file path from evidence text */
+function extractFirstFilePath(evidence: string): string {
+  const match = evidence.match(/([a-zA-Z0-9_\-/.]+\.[a-zA-Z]+)(?::\d+)?/);
+  return match?.[1] || "";
 }
