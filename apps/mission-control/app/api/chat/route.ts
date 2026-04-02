@@ -46,7 +46,9 @@ function mapToAnthropicModel(llmModel: string): string {
 
 // Map model names to OpenAI models
 function mapToOpenAIModel(llmModel: string): string {
-  if (llmModel.includes("gpt")) return llmModel;
+  // Only pass through known OpenAI models, fallback everything else
+  const knownModels = ["gpt-4.1-mini", "gpt-4.1", "gpt-4o", "gpt-4o-mini", "gpt-4-turbo"];
+  if (knownModels.some((m) => llmModel.includes(m))) return llmModel;
   return "gpt-4.1-mini";
 }
 
