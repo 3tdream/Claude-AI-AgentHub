@@ -1,9 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { agentHubFetch } from "@/lib/agent-hub-client";
 import { cachedAgents } from "@/lib/agent-hub-cache";
+import { promises as fs } from "fs";
+import path from "path";
 
-// GET /api/agent-hub/agents — list all agents
+const OVERRIDES_FILE = path.join(process.cwd(), "data", "agent-overrides.json");
+
+async function loadOverrides(): Promise<Record<string, Record<string, unknown>>> {
+  try {
+    return JSON.parse(await fs.readFile(OVERRIDES_FILE, "utf-8"));
+  } catch {
+    return {};
+  }
+}
+
+// GET /api/agent-hub/agents — list all agents (with local overrides applied)
 export async function GET(request: NextRequest) {
+  const overrides = await loadOverrides();
+
+  function applyOverridesToList(agents: any[]): any[] {
+    return agents.map((a) => overrides[a.id] ? { ...a, ...overrides[a.id] } : a);
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const limit = searchParams.get("limit") || "50";
@@ -12,11 +30,11 @@ export async function GET(request: NextRequest) {
     const raw = await agentHubFetch<{ agents: unknown[]; pagination: unknown }>(
       `/agents?limit=${limit}&offset=${offset}`,
     );
-    return NextResponse.json({ success: true, data: raw.agents ?? raw });
+    const agents = raw.agents ?? raw;
+    return NextResponse.json({ success: true, data: applyOverridesToList(agents as any[]) });
   } catch {
-    // Fallback to cached data when Agent Hub backend is unreachable
     console.log("[API] Agent Hub unreachable, serving cached agents");
-    return NextResponse.json({ success: true, data: cachedAgents, cached: true });
+    return NextResponse.json({ success: true, data: applyOverridesToList(cachedAgents as any[]), cached: true });
   }
 }
 
