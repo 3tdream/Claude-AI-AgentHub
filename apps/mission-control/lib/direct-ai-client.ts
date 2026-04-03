@@ -244,8 +244,8 @@ export async function callAIWithTools(req: ToolCallAIRequest): Promise<DirectAIR
           durationMs: Date.now() - toolStart,
         });
         // Truncate + summarize tool output to prevent context explosion
-        const TOOL_LIMITS: Record<string, number> = { read_file: 12000, list_files: 12000, run_command: 5000 };
-        const maxOutputLen = TOOL_LIMITS[toolUse.name] || 8000;
+        const TOOL_LIMITS: Record<string, number> = { read_file: 50000, list_files: 12000, run_command: 10000 };
+        const maxOutputLen = TOOL_LIMITS[toolUse.name] || 12000;
         let truncatedOutput = result.output;
         // Summarize run_command output if too large (saves QA tokens)
         if (toolUse.name === "run_command" && result.output.length > 5000) {

@@ -22,14 +22,14 @@ export async function POST(request: NextRequest) {
       ? path.resolve(process.cwd(), "..", projectId)
       : undefined;
 
-    // Map non-Anthropic models to Claude equivalents (all execution goes through Anthropic SDK)
+    // Smart model router: opus for edit-heavy/complex tasks, sonnet for simple reads
     const resolvedModel = (() => {
-      const m = model || "sonnet-4-6";
-      if (m.includes("claude") || m.includes("sonnet") || m.includes("haiku") || m.includes("opus")) return m;
-      // Map OpenAI/Google models to Claude equivalents
-      if (m.includes("gpt-4.1-mini") || m.includes("gpt-4o-mini") || m.includes("haiku")) return "haiku-4-5";
-      if (m.includes("gpt-4") || m.includes("gpt-5") || m.includes("gemini")) return "sonnet-4-6";
-      return "sonnet-4-6"; // safe default
+      if (model && (model.includes("claude") || model.includes("sonnet") || model.includes("haiku") || model.includes("opus"))) return model;
+      // Smart routing: if task mentions edit/create/fix/build → opus, otherwise sonnet
+      const t = (userInput || "").toLowerCase();
+      const complexSignals = /\b(edit|create|add|fix|build|implement|refactor|move|change|replace)\b/;
+      if (complexSignals.test(t)) return "claude-opus-4-6";
+      return "sonnet-4-6";
     })();
 
     if (!agentId || !userInput) {
@@ -75,6 +75,24 @@ START with read_file on the SPECIFIC file you need. Do NOT list_files.`;
       }
     } catch { /* KB unavailable — proceed without */ }
 
+    // --- Recent execution history (gives agent context of what was done before) ---
+    try {
+      const fs = await import("fs/promises");
+      const historyDir = (await import("path")).join(process.cwd(), "data", "pipeline-runs");
+      const files = await fs.readdir(historyDir);
+      const recentFiles = files.filter(f => f.endsWith(".json")).slice(-5);
+      const recentTasks: string[] = [];
+      for (const f of recentFiles) {
+        try {
+          const run = JSON.parse(await fs.readFile((await import("path")).join(historyDir, f), "utf-8"));
+          if (run.input) recentTasks.push(`- [${run.status}] ${run.input.substring(0, 80)}`);
+        } catch { /* skip */ }
+      }
+      if (recentTasks.length > 0) {
+        systemPrompt += `\n\n## RECENT TASKS (for context — what was done recently):\n${recentTasks.join("\n")}`;
+      }
+    } catch { /* no history — proceed without */ }
+
     // --- Execution logging ---
     addLog({
       type: "decision",
@@ -92,7 +110,7 @@ START with read_file on the SPECIFIC file you need. Do NOT list_files.`;
         systemPrompt,
         userPrompt: userInput,
         tools,
-        maxToolSteps: maxToolSteps || 25,
+        maxToolSteps: maxToolSteps || 50, // no practical limit — agent works until done
         readBudget: readBudget || 10,
         onToolCall: async (name, input) => {
           toolCallCount++;

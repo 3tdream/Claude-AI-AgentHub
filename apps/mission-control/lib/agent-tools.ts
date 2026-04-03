@@ -106,7 +106,7 @@ export const AGENT_TOOLS = [
         },
         line_end: {
           type: "number",
-          description: "End line (inclusive). Omit to read to end. Max 200 lines per call.",
+          description: "End line (inclusive). Omit to read to end. Max 2000 lines per call.",
         },
       },
       required: ["path"],
@@ -271,7 +271,7 @@ export async function executeTool(
 
         const lineStart = Math.max(1, parseInt(input.line_start as any) || 1);
         const lineEnd = Math.min(totalLines, parseInt(input.line_end as any) || totalLines);
-        const maxLines = 200;
+        const maxLines = 2000;
 
         // If file is large and no line range specified, return summary + first 100 lines
         if (totalLines > 100 && !input.line_start && !input.line_end) {
