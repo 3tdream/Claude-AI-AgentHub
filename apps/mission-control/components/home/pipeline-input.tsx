@@ -13,6 +13,10 @@ export interface PipelineInputResult {
   intent?: { intent: string; confidence: number; reason: string };
   investigation?: InvestigationData;
   jiraKey?: string;
+  // Task tracking
+  taskId?: string;
+  userInput?: string;
+  status?: "success" | "partial" | "failed" | "no-edit";
 }
 
 export interface PipelineInputProps {
@@ -52,7 +56,20 @@ export function PipelineInput({
       <div className="flex-1 overflow-y-auto p-4">
         {result ? (
           <div className="space-y-3">
-            {/* Top row: intent badge + actions */}
+            {/* User input (what was asked) */}
+            {result.userInput && (
+              <div className="bg-slate-50 rounded-lg px-3 py-2 border border-slate-100">
+                <div className="flex items-center gap-2 mb-1">
+                  {result.taskId && (
+                    <span className="font-mono text-[9px] text-slate-400">#{result.taskId}</span>
+                  )}
+                  <span className="text-[10px] text-slate-400">Your request:</span>
+                </div>
+                <p className="text-xs text-slate-700">{result.userInput}</p>
+              </div>
+            )}
+
+            {/* Top row: intent + status + actions */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 {result.intent && (
@@ -60,6 +77,20 @@ export function PipelineInput({
                     result.type === "direct" ? "bg-emerald-50 text-emerald-600" : result.type === "pipeline" ? "bg-indigo-50 text-indigo-600" : "bg-rose-50 text-rose-600"
                   }`}>
                     {result.intent.intent.toUpperCase()}
+                  </span>
+                )}
+                {/* Task status badge */}
+                {result.status && (
+                  <span className={`font-mono text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                    result.status === "success" ? "bg-emerald-50 text-emerald-700" :
+                    result.status === "partial" ? "bg-amber-50 text-amber-700" :
+                    result.status === "no-edit" ? "bg-slate-100 text-slate-600" :
+                    "bg-rose-50 text-rose-700"
+                  }`}>
+                    {result.status === "success" ? "✓ DONE" :
+                     result.status === "partial" ? "⚠ PARTIAL" :
+                     result.status === "no-edit" ? "— NO CHANGES" :
+                     "✗ FAILED"}
                   </span>
                 )}
                 {result.intent && (

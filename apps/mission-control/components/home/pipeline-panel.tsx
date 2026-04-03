@@ -83,6 +83,8 @@ export function PipelinePanel({ activeProjectId, projects, onSelectProject }: {
 
   const execute = async () => {
     if (!input.trim() || loading) return;
+    const taskInput = input;
+    const taskId = Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
     setLoading(true);
     setResult(null);
     setRoutingDecision(null);
@@ -91,21 +93,51 @@ export function PipelinePanel({ activeProjectId, projects, onSelectProject }: {
       const res = await fetch("/api/command", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ input, projectId: activeProjectId }),
+        body: JSON.stringify({ input: taskInput, projectId: activeProjectId }),
       });
       const data = await res.json();
 
       if (data.error) {
-        setResult({ type: "error", message: data.error });
+        setResult({ type: "error", message: data.error, userInput: taskInput, taskId });
       } else if (data.action === "executed") {
-        setResult({
-          type: "direct",
+        // Determine status from tool calls
+        const edits = data.toolCalls?.filter((t: { name: string; success: boolean }) => t.name === "edit_file" || t.name === "create_file") || [];
+        const successEdits = edits.filter((t: { success: boolean }) => t.success);
+        const status = edits.length === 0 ? "no-edit" as const
+          : successEdits.length === edits.length ? "success" as const
+          : successEdits.length > 0 ? "partial" as const
+          : "failed" as const;
+
+        const directResult = {
+          type: "direct" as const,
           response: data.response,
           toolCalls: data.toolCalls,
           intent: data.intent,
           investigation: data.investigation || null,
           jiraKey: data.jiraKey || null,
-        });
+          taskId,
+          userInput: taskInput,
+          status,
+        };
+        setResult(directResult);
+
+        // Save direct task to execution history
+        addToHistory({
+          id: taskId,
+          workflowId: "direct",
+          workflowName: "Direct Execution",
+          status: status === "success" ? "completed" : status === "failed" ? "failed" : "completed",
+          input: taskInput,
+          stepResults: {
+            "direct": {
+              stepId: "direct",
+              status: status === "success" || status === "no-edit" ? "completed" : status === "partial" ? "completed" : "failed",
+              output: data.response?.substring(0, 5000),
+            },
+          },
+          startedAt: new Date().toISOString(),
+          completedAt: new Date().toISOString(),
+        } as any);
       } else if (data.action === "redirect_to_pipeline") {
         // Instead of redirect — fetch routing decision
         setPipelineInput(input);
@@ -345,17 +377,12 @@ export function PipelinePanel({ activeProjectId, projects, onSelectProject }: {
           </div>
 
           {graphMode === "3d" ? (
-            <div className="h-[400px]">
+            <div className="h-[350px]">
               <Pipeline3D
+                steps={displaySteps}
                 execution={displayExecution}
-                onAgentClick={(agentId) => {
-                  // Map 3D viz agent ID back to step ID
-                  const step = displaySteps.find((s) =>
-                    s.agentId.toLowerCase().includes(agentId) || s.id.toLowerCase().includes(agentId)
-                  );
-                  if (step) setSelectedStageId(step.id);
-                }}
-                theme="light"
+                onSelectStage={setSelectedStageId}
+                selectedStageId={selectedStageId}
               />
             </div>
           ) : (
