@@ -42,6 +42,27 @@ export async function POST(request: NextRequest) {
     let systemPrompt =
       systemPromptOverride || (await loadAgentPrompt(agentId));
 
+    // --- Project structure map (saves tool steps on exploration) ---
+    systemPrompt += `\n\n## PROJECT STRUCTURE (do NOT waste tool calls exploring — use this map)
+Home page (main): app/(shell)/home/page.tsx — imports from components/home/
+Agent Fleet (left panel with collapse): app/(shell)/home/page.tsx — look for fleetCollapsed, PanelLeftClose
+Pipeline Panel: components/home/pipeline-panel.tsx
+Pipeline History: components/home/pipeline-history.tsx
+Pipeline Input: components/home/pipeline-input.tsx
+Agent Card: components/home/agent-card.tsx
+Agent Panel (tabs): components/home/agent-panel.tsx
+Chat Tab: components/home/chat-tab.tsx
+Config Tab: components/home/config-tab.tsx
+Health Panel: components/home/health-panel.tsx
+Knowledge Panel: components/home/knowledge-panel.tsx
+Sidebar (navigation): components/shell/sidebar.tsx
+Topbar: components/shell/topbar.tsx
+Pipeline Executor: lib/pipeline-executor.ts
+Agent Tools: lib/agent-tools.ts
+KB Storage: lib/kb-storage.ts
+Types: types/workflow.ts, types/knowledge-base.ts
+START with read_file on the SPECIFIC file you need. Do NOT list_files.`;
+
     // --- KB context injection (prevents "sandbox" bypass) ---
     try {
       const keywords = userInput.split(/\s+/).slice(0, 5).join(" ");
@@ -71,7 +92,7 @@ export async function POST(request: NextRequest) {
         systemPrompt,
         userPrompt: userInput,
         tools,
-        maxToolSteps: maxToolSteps || 15,
+        maxToolSteps: maxToolSteps || 25,
         readBudget: readBudget || 10,
         onToolCall: async (name, input) => {
           toolCallCount++;
