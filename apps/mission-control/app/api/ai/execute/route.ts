@@ -77,14 +77,15 @@ START with read_file on the SPECIFIC file you need. Do NOT list_files.`;
 
     // --- Recent execution history (gives agent context of what was done before) ---
     try {
-      const fs = await import("fs/promises");
-      const historyDir = (await import("path")).join(process.cwd(), "data", "pipeline-runs");
-      const files = await fs.readdir(historyDir);
+      const fsPromises = await import("fs/promises");
+      const pathMod = await import("path");
+      const historyDir = pathMod.join(process.cwd(), "data", "pipeline-runs");
+      const files = await fsPromises.readdir(historyDir);
       const recentFiles = files.filter(f => f.endsWith(".json")).slice(-5);
       const recentTasks: string[] = [];
       for (const f of recentFiles) {
         try {
-          const run = JSON.parse(await fs.readFile((await import("path")).join(historyDir, f), "utf-8"));
+          const run = JSON.parse(await fsPromises.readFile(pathMod.join(historyDir, f), "utf-8"));
           if (run.input) recentTasks.push(`- [${run.status}] ${run.input.substring(0, 80)}`);
         } catch { /* skip */ }
       }
@@ -110,7 +111,7 @@ START with read_file on the SPECIFIC file you need. Do NOT list_files.`;
         systemPrompt,
         userPrompt: userInput,
         tools,
-        maxToolSteps: maxToolSteps || 50, // no practical limit — agent works until done
+        maxToolSteps: maxToolSteps ?? 50, // no practical limit — agent works until done
         readBudget: readBudget || 10,
         onToolCall: async (name, input) => {
           toolCallCount++;

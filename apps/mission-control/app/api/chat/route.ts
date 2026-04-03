@@ -8,8 +8,27 @@ import { executeAgent } from "@/lib/agent-hub-client";
 import { readFile } from "fs/promises";
 import { join } from "path";
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// Lazy client init — resolves key from env or data/api-keys.json
+async function resolveKey(provider: string): Promise<string> {
+  const envKey = provider === "anthropic" ? process.env.ANTHROPIC_API_KEY : process.env.OPENAI_API_KEY;
+  if (envKey) return envKey;
+  try {
+    const keys = JSON.parse(await readFile(join(process.cwd(), "data", "api-keys.json"), "utf-8"));
+    return keys[provider]?.apiKey || keys[`${provider}_api_key`] || "";
+  } catch { return ""; }
+}
+
+let _anthropic: Anthropic | null = null;
+let _openai: OpenAI | null = null;
+
+async function getAnthropic(): Promise<Anthropic> {
+  if (!_anthropic) _anthropic = new Anthropic({ apiKey: await resolveKey("anthropic") });
+  return _anthropic;
+}
+async function getOpenAI(): Promise<OpenAI> {
+  if (!_openai) _openai = new OpenAI({ apiKey: await resolveKey("openai") });
+  return _openai;
+}
 
 // Build conversation context string for Agent Hub
 function buildContextInput(messages: Array<{ role: string; content: string }>): string {
@@ -105,6 +124,7 @@ export async function POST(request: NextRequest) {
     try {
       const anthropicModel = mapToAnthropicModel(agent?.llmModel || "claude-sonnet-4-20250514");
 
+      const anthropic = await getAnthropic();
       const stream = anthropic.messages.stream({
         model: anthropicModel,
         max_tokens: 4096,
@@ -164,6 +184,7 @@ export async function POST(request: NextRequest) {
     // ── Tier 3: OpenAI (secondary fallback) ──
     const openaiModel = mapToOpenAIModel(agent?.llmModel || "gpt-4.1-mini");
 
+    const openai = await getOpenAI();
     const stream = await openai.chat.completions.create({
       model: openaiModel,
       messages: [

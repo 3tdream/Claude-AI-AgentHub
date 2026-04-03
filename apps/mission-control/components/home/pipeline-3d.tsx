@@ -45,7 +45,6 @@ function layoutNodes(steps: WorkflowStep[], results: Record<string, { status: St
   if (steps.length === 0) return [];
 
   // Topological sort into columns
-  const done = new Set<string>();
   const cols: string[][] = [];
 
   // Assign columns by dependency depth
