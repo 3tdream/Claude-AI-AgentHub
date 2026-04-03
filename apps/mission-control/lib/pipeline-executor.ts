@@ -494,7 +494,8 @@ export async function executePipeline(
         const implementationAgents = ["backend-agent", "frontend-agent"];
         const qaAgent = step.agentId === "qa-agent";
         const useTools = !!agentCfg;
-        const toolMode = qaAgent ? "qa" : implementationAgents.includes(step.agentId) ? "readwrite" : "readonly";
+        const designerAgent = step.agentId === "designer-agent";
+        const toolMode = qaAgent ? "qa" : designerAgent ? "designer" : implementationAgents.includes(step.agentId) ? "readwrite" : "readonly";
         const maxToolSteps = agentCfg?.maxTurns || 5;
 
         // Smart model selection: cheaper models for simple stages, escalate on retry

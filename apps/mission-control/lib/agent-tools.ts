@@ -213,6 +213,70 @@ export const QA_TOOLS = AGENT_TOOLS.filter(
   (t) => t.name === "list_files" || t.name === "read_file" || t.name === "run_command" || t.name === "save_failure_pattern",
 );
 
+// Figma tools for designer agent
+const FIGMA_TOOLS = [
+  {
+    name: "figma_get_design",
+    description: "Read design context from a Figma file. Returns node tree, styles, and component data. Use figma_parse_url first if you have a URL.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        fileKey: { type: "string", description: "Figma file key (from URL)" },
+        nodeId: { type: "string", description: "Specific node ID (optional)" },
+      },
+      required: ["fileKey"],
+    },
+  },
+  {
+    name: "figma_get_screenshot",
+    description: "Get a screenshot/image of a Figma node. Returns image URL.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        fileKey: { type: "string", description: "Figma file key" },
+        nodeId: { type: "string", description: "Node ID to capture" },
+      },
+      required: ["fileKey", "nodeId"],
+    },
+  },
+  {
+    name: "figma_get_styles",
+    description: "Get all styles (colors, typography, effects) from a Figma file. Use for design token extraction.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        fileKey: { type: "string", description: "Figma file key" },
+      },
+      required: ["fileKey"],
+    },
+  },
+  {
+    name: "figma_get_components",
+    description: "Get all components from a Figma file. Use for component library mapping.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        fileKey: { type: "string", description: "Figma file key" },
+      },
+      required: ["fileKey"],
+    },
+  },
+  {
+    name: "figma_parse_url",
+    description: "Parse a Figma URL to extract fileKey and nodeId. Use before other figma tools.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        url: { type: "string", description: "Full Figma URL (figma.com/design/...)" },
+      },
+      required: ["url"],
+    },
+  },
+];
+
+// Designer tools: read-only + figma
+export const DESIGNER_TOOLS = [...READ_ONLY_TOOLS, ...FIGMA_TOOLS];
+
 // --- Security ---
 
 const BLOCKED_PATHS = ["node_modules", ".env", ".git", "data/api-keys"];
@@ -430,6 +494,29 @@ export async function executeTool(
 
         await fs.writeFile(patternsPath, JSON.stringify(data, null, 2), "utf-8");
         return { success: true, output: `Saved failure pattern ${newId}: ${input.title}` };
+      }
+
+      // Figma tools — proxy to /api/figma
+      case "figma_get_design":
+      case "figma_get_screenshot":
+      case "figma_get_styles":
+      case "figma_get_components":
+      case "figma_parse_url": {
+        const actionMap: Record<string, string> = {
+          figma_get_design: "get_design",
+          figma_get_screenshot: "get_screenshot",
+          figma_get_styles: "get_styles",
+          figma_get_components: "get_components",
+          figma_parse_url: "parse_url",
+        };
+        const res = await fetch("http://localhost:3077/api/figma", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: actionMap[name], ...input }),
+        });
+        const data = await res.json();
+        if (data.error) return { success: false, output: "", error: data.error };
+        return { success: true, output: JSON.stringify(data.data, null, 2).substring(0, 50000) };
       }
 
       default:

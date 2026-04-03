@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { callAI, callAIWithTools } from "@/lib/direct-ai-client";
 import { loadAgentPrompt } from "@/lib/agent-prompt-loader";
-import { AGENT_TOOLS, READ_ONLY_TOOLS, QA_TOOLS, executeTool } from "@/lib/agent-tools";
+import { AGENT_TOOLS, READ_ONLY_TOOLS, QA_TOOLS, DESIGNER_TOOLS, executeTool } from "@/lib/agent-tools";
 import { addLog } from "@/lib/logs-storage";
 import { searchKB } from "@/lib/kb-storage";
 
@@ -103,7 +103,7 @@ START with read_file on the SPECIFIC file you need. Do NOT list_files.`;
 
     // --- Tool-use mode ---
     if (useTools) {
-      const tools = (toolMode === "qa" ? QA_TOOLS : toolMode === "readonly" ? READ_ONLY_TOOLS : AGENT_TOOLS) as any[];
+      const tools = (toolMode === "qa" ? QA_TOOLS : toolMode === "designer" ? DESIGNER_TOOLS : toolMode === "readonly" ? READ_ONLY_TOOLS : AGENT_TOOLS) as any[];
       let toolCallCount = 0;
 
       const result = await callAIWithTools({
