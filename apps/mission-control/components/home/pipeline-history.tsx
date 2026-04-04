@@ -93,9 +93,12 @@ export function PipelineHistory({
                       )}
                     </div>
                   </div>
-                  <span className="font-mono text-[9px] text-slate-300 shrink-0 ml-2">
-                    {new Date(exec.startedAt).toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit" })}
-                  </span>
+                  <div className="flex flex-col items-end gap-0.5 shrink-0 ml-2">
+                    <span className="font-mono text-[9px] text-slate-300">
+                      {new Date(exec.startedAt).toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                    <span className="font-mono text-[9px] text-slate-300">{exec.id.substring(0, 8)}</span>
+                  </div>
                 </div>
                 {/* Step results mini bar */}
                 <div className="flex gap-0.5 mt-2">
