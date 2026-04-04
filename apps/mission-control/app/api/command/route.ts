@@ -8,6 +8,7 @@ import { addLog } from "@/lib/logs-storage";
 import { routeToAgent } from "@/lib/agent-router";
 import { loadAgentPrompt } from "@/lib/agent-prompt-loader";
 import path from "path";
+import fs from "fs/promises";
 
 const APPS_DIR = path.resolve(process.cwd(), "..");
 
@@ -109,7 +110,28 @@ ${contextBlock}`;
       },
     });
 
+    // Persist execution log so direct tasks appear in history
+    const taskId = `direct_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const executionLog = {
+      taskId,
+      input,
+      intent,
+      status: "completed",
+      toolCalls: toolCallLog,
+      response: result.content,
+      timestamp: new Date().toISOString(),
+    };
+    const logPath = path.resolve(
+      process.cwd(),
+      "data/execution-logs",
+      `${taskId}.json`
+    );
+    fs.writeFile(logPath, JSON.stringify(executionLog, null, 2)).catch((err) =>
+      console.error("[command] failed to write execution log:", err)
+    );
+
     return NextResponse.json({
+      taskId,
       intent,
       action: "executed",
       agent: { id: routeResult.agentId, name: routeResult.agentName, isFallback: routeResult.isFallback },
