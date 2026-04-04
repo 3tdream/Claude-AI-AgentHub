@@ -3,6 +3,7 @@
 import { useRef, useEffect, useCallback, useState } from "react";
 import type { PipelineExecution, WorkflowStep, StepStatus } from "@/types";
 
+// ─── Public interface — unchanged so all callers keep working ─────────────────
 interface Pipeline3DProps {
   steps: WorkflowStep[];
   execution: PipelineExecution;
@@ -10,28 +11,37 @@ interface Pipeline3DProps {
   selectedStageId: string | null;
 }
 
-// ── Colors by status ──
-const STATUS_COLORS: Record<StepStatus, { fill: string; glow: string; text: string }> = {
-  pending: { fill: "#94a3b8", glow: "rgba(148,163,184,0.3)", text: "#64748b" },
-  running: { fill: "#6366f1", glow: "rgba(99,102,241,0.5)", text: "#4f46e5" },
-  completed: { fill: "#10b981", glow: "rgba(16,185,129,0.4)", text: "#059669" },
-  failed: { fill: "#ef4444", glow: "rgba(239,68,68,0.4)", text: "#dc2626" },
-  skipped: { fill: "#cbd5e1", glow: "rgba(203,213,225,0.2)", text: "#94a3b8" },
-  awaiting_approval: { fill: "#f59e0b", glow: "rgba(245,158,11,0.5)", text: "#d97706" },
-  retrying: { fill: "#f97316", glow: "rgba(249,115,22,0.4)", text: "#ea580c" },
+// ─── Status palette (extended with per-channel RGB for radial gradients) ──────
+const STATUS_COLORS: Record<
+  StepStatus,
+  { fill: string; top: string; side: string; glow: string; text: string; r: number; g: number; b: number }
+> = {
+  pending:           { fill: "#94a3b8", top: "#cbd5e1", side: "#64748b", glow: "rgba(148,163,184,0.35)", text: "#64748b",  r: 148, g: 163, b: 184 },
+  running:           { fill: "#6366f1", top: "#818cf8", side: "#4338ca", glow: "rgba(99,102,241,0.55)",  text: "#4f46e5",  r: 99,  g: 102, b: 241 },
+  completed:         { fill: "#10b981", top: "#34d399", side: "#059669", glow: "rgba(16,185,129,0.45)",  text: "#059669",  r: 16,  g: 185, b: 129 },
+  failed:            { fill: "#ef4444", top: "#f87171", side: "#b91c1c", glow: "rgba(239,68,68,0.45)",   text: "#dc2626",  r: 239, g: 68,  b: 68  },
+  skipped:           { fill: "#cbd5e1", top: "#e2e8f0", side: "#94a3b8", glow: "rgba(203,213,225,0.25)", text: "#94a3b8",  r: 203, g: 213, b: 225 },
+  awaiting_approval: { fill: "#f59e0b", top: "#fcd34d", side: "#b45309", glow: "rgba(245,158,11,0.50)", text: "#d97706",  r: 245, g: 158, b: 11  },
+  retrying:          { fill: "#f97316", top: "#fb923c", side: "#c2410c", glow: "rgba(249,115,22,0.45)",  text: "#ea580c",  r: 249, g: 115, b: 22  },
 };
 
-interface NodeLayout {
+// ─── Internal types ───────────────────────────────────────────────────────────
+
+/** World-space node with projected screen coords filled each frame */
+interface IsoNode {
   id: string;
   agentName: string;
   status: StepStatus;
-  x: number;
-  y: number;
+  wx: number;   // isometric world X (left-right axis)
+  wy: number;   // isometric world Y (depth axis)
+  wz: number;   // isometric world Z (height) — elevated for running nodes
   col: number;
   row: number;
   isGate: boolean;
   isCheckpoint: boolean;
   dependsOn: string[];
+  sx: number;   // projected screen X (updated each frame)
+  sy: number;   // projected screen Y (updated each frame)
 }
 
 interface Particle {
@@ -39,113 +49,124 @@ interface Particle {
   toId: string;
   progress: number;
   speed: number;
+  lane: number; // 0-2 — slight lateral offset so streams don't overlap
 }
 
-function layoutNodes(steps: WorkflowStep[], results: Record<string, { status: StepStatus }>): NodeLayout[] {
+// ─── Isometric projection constants ──────────────────────────────────────────
+//
+//  applyCamera(wx, wy, wz, cx, cy, scale) → { sx, sy }
+//
+//  Classic dimetric / "game" isometric:
+//    sx = cx + (wx - wy) * TILE_W/2 * scale
+//    sy = cy + (wx + wy) * TILE_H/2 * scale - wz * TILE_Z * scale
+//
+const TILE_W = 90;  // horizontal pixels per world unit
+const TILE_H = 46;  // vertical pixels per world unit  (≈ TILE_W * sin30°)
+const TILE_Z = 52;  // vertical pixels per Z unit
+
+function applyCamera(
+  wx: number, wy: number, wz: number,
+  cx: number, cy: number, scale: number
+): { sx: number; sy: number } {
+  return {
+    sx: cx + (wx - wy) * (TILE_W / 2) * scale,
+    sy: cy + (wx + wy) * (TILE_H / 2) * scale - wz * TILE_Z * scale,
+  };
+}
+
+/** Lerp a point along the isometric path between two world positions */
+function isoLerp(
+  ax: number, ay: number, az: number,
+  bx: number, by: number, bz: number,
+  t: number
+): { wx: number; wy: number; wz: number } {
+  return { wx: ax + (bx - ax) * t, wy: ay + (by - ay) * t, wz: az + (bz - az) * t };
+}
+
+// ─── Topological layout → isometric world positions ──────────────────────────
+const ISO_COL_STEP = 2.8;  // world units between columns (X axis)
+const ISO_ROW_STEP = 2.4;  // world units between rows    (Y axis)
+
+function layoutNodes(
+  steps: WorkflowStep[],
+  results: Record<string, { status: StepStatus }>
+): IsoNode[] {
   if (steps.length === 0) return [];
 
-  // Topological sort into columns
-  const cols: string[][] = [];
-
-  // Assign columns by dependency depth
+  // Depth via topological sort
   const depthMap = new Map<string, number>();
-  function getDepth(stepId: string): number {
-    if (depthMap.has(stepId)) return depthMap.get(stepId)!;
-    const step = steps.find((s) => s.id === stepId);
-    if (!step || step.dependsOn.length === 0) { depthMap.set(stepId, 0); return 0; }
-    const maxParent = Math.max(...step.dependsOn.map((d) => getDepth(d)));
-    const depth = maxParent + 1;
-    depthMap.set(stepId, depth);
-    return depth;
+  function getDepth(id: string): number {
+    if (depthMap.has(id)) return depthMap.get(id)!;
+    const step = steps.find((s) => s.id === id);
+    if (!step || step.dependsOn.length === 0) { depthMap.set(id, 0); return 0; }
+    const d = Math.max(...step.dependsOn.map(getDepth)) + 1;
+    depthMap.set(id, d);
+    return d;
   }
   steps.forEach((s) => getDepth(s.id));
 
-  // Group by depth
   const maxDepth = Math.max(...Array.from(depthMap.values()), 0);
-  for (let d = 0; d <= maxDepth; d++) {
-    cols[d] = steps.filter((s) => depthMap.get(s.id) === d).map((s) => s.id);
-  }
+  const cols: string[][] = Array.from({ length: maxDepth + 1 }, () => []);
+  steps.forEach((s) => cols[depthMap.get(s.id)!].push(s.id));
 
-  // Layout with spacing
-  const NODE_W = 100;
-  const NODE_H = 60;
-  const COL_GAP = 140;
-  const ROW_GAP = 70;
-  const PADDING = 60;
-
-  const nodes: NodeLayout[] = [];
-
+  const nodes: IsoNode[] = [];
   for (let col = 0; col < cols.length; col++) {
     const group = cols[col];
-    const groupHeight = group.length * ROW_GAP;
-    const startY = -groupHeight / 2 + ROW_GAP / 2;
-
     for (let row = 0; row < group.length; row++) {
       const stepId = group[row];
       const step = steps.find((s) => s.id === stepId)!;
-      const result = results[stepId];
-      const isGate = stepId.includes("-gate") || stepId.includes("verdict") || stepId.includes("consolidation");
+      const status: StepStatus = results[stepId]?.status ?? "pending";
+      const isGate =
+        stepId.includes("-gate") || stepId.includes("verdict") || stepId.includes("consolidation");
       const isCheckpoint = !!step.metadata?.isCheckpoint;
-
+      // Centre each column's rows around Y=0; running nodes float above floor
+      const rowOffset = (row - (group.length - 1) / 2) * ISO_ROW_STEP;
+      const wz = status === "running" || status === "retrying" ? 0.55 : 0;
       nodes.push({
-        id: stepId,
-        agentName: step.agentName,
-        status: result?.status || "pending",
-        x: PADDING + col * COL_GAP,
-        y: startY + row * ROW_GAP,
-        col,
-        row,
-        isGate,
-        isCheckpoint,
+        id: stepId, agentName: step.agentName, status,
+        wx: col * ISO_COL_STEP, wy: rowOffset, wz,
+        col, row, isGate, isCheckpoint,
         dependsOn: step.dependsOn.filter((d) => steps.some((s) => s.id === d)),
+        sx: 0, sy: 0,
       });
     }
   }
-
-  // Center vertically
-  const minY = Math.min(...nodes.map((n) => n.y));
-  const maxY = Math.max(...nodes.map((n) => n.y));
-  const offsetY = -(minY + maxY) / 2;
-  nodes.forEach((n) => (n.y += offsetY));
-
   return nodes;
 }
 
 export function Pipeline3D({ steps, execution, onSelectStage, selectedStageId }: Pipeline3DProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const nodesRef = useRef<NodeLayout[]>([]);
+  const canvasRef    = useRef<HTMLCanvasElement>(null);
+  const nodesRef     = useRef<IsoNode[]>([]);
   const particlesRef = useRef<Particle[]>([]);
   const animFrameRef = useRef<number>(0);
-  const [canvasSize, setCanvasSize] = useState({ w: 800, h: 400 });
-  const hoverRef = useRef<string | null>(null);
-  const timeRef = useRef(0);
+  const hoverRef     = useRef<string | null>(null);
+  const timeRef      = useRef(0);
+  const [canvasSize, setCanvasSize] = useState({ w: 800, h: 480 });
 
-  // Serialize step statuses for change detection (reference comparison won't work)
+  // Stable key for change detection
   const stepStatusKey = JSON.stringify(
     Object.entries(execution.stepResults).map(([id, r]) => `${id}:${r.status}`).sort()
   );
 
-  // Layout nodes when steps/execution change
+  // ── Rebuild layout + particles when pipeline state changes ──────────────────
   useEffect(() => {
     const results: Record<string, { status: StepStatus }> = {};
-    for (const [id, r] of Object.entries(execution.stepResults)) {
-      results[id] = { status: r.status };
-    }
+    for (const [id, r] of Object.entries(execution.stepResults)) results[id] = { status: r.status };
     nodesRef.current = layoutNodes(steps, results);
 
-    // Create particles for active connections (completed → next running/pending)
+    // Particles flow on completed → running edges
     const particles: Particle[] = [];
     for (const node of nodesRef.current) {
       if (node.status === "running" || node.status === "retrying") {
         for (const dep of node.dependsOn) {
           const parent = nodesRef.current.find((n) => n.id === dep);
           if (parent && parent.status === "completed") {
-            for (let i = 0; i < 3; i++) {
+            for (let lane = 0; lane < 3; lane++) {
               particles.push({
-                fromId: dep,
-                toId: node.id,
-                progress: Math.random(),
-                speed: 0.003 + Math.random() * 0.004,
+                fromId: dep, toId: node.id,
+                progress: (lane / 3) + Math.random() * 0.15,
+                speed: 0.0028 + Math.random() * 0.0035,
+                lane,
               });
             }
           }
@@ -153,73 +174,49 @@ export function Pipeline3D({ steps, execution, onSelectStage, selectedStageId }:
       }
     }
     particlesRef.current = particles;
-  }, [steps, stepStatusKey]);
+  }, [steps, stepStatusKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Resize observer
+  // ── Resize observer ─────────────────────────────────────────────────────────
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const parent = canvas.parentElement;
     if (!parent) return;
-
-    const observer = new ResizeObserver((entries) => {
+    const ro = new ResizeObserver((entries) => {
       const { width, height } = entries[0].contentRect;
       setCanvasSize({ w: Math.floor(width), h: Math.floor(height) });
     });
-    observer.observe(parent);
-    return () => observer.disconnect();
+    ro.observe(parent);
+    return () => ro.disconnect();
   }, []);
 
-  // Click handler
-  const handleClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const mx = e.clientX - rect.left;
-    const my = e.clientY - rect.top;
-    const nodes = nodesRef.current;
-    const cx = canvasSize.w / 2;
-    const cy = canvasSize.h / 2;
-
-    for (const node of nodes) {
-      const nx = cx + node.x;
-      const ny = cy + node.y;
-      const r = node.isGate ? 18 : 24;
-      if (Math.hypot(mx - nx, my - ny) < r + 5) {
-        onSelectStage(node.id);
-        return;
-      }
+  // ── Hit-test: screen coords → node id (uses pre-projected sx/sy) ───────────
+  const hitTest = useCallback((mx: number, my: number): string | null => {
+    for (let i = nodesRef.current.length - 1; i >= 0; i--) {
+      const n = nodesRef.current[i];
+      const r = n.isGate ? 16 : 20;
+      if (Math.hypot(mx - n.sx, my - n.sy) < r + 6) return n.id;
     }
-  }, [canvasSize, onSelectStage]);
+    return null;
+  }, []);
 
-  // Mouse move for hover
+  // ── Click ───────────────────────────────────────────────────────────────────
+  const handleClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const hit = hitTest(e.clientX - rect.left, e.clientY - rect.top);
+    if (hit) onSelectStage(hit);
+  }, [hitTest, onSelectStage]);
+
+  // ── Hover ───────────────────────────────────────────────────────────────────
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
-    const mx = e.clientX - rect.left;
-    const my = e.clientY - rect.top;
-    const nodes = nodesRef.current;
-    const cx = canvasSize.w / 2;
-    const cy = canvasSize.h / 2;
-
-    let found = false;
-    for (const node of nodes) {
-      const nx = cx + node.x;
-      const ny = cy + node.y;
-      const r = node.isGate ? 18 : 24;
-      if (Math.hypot(mx - nx, my - ny) < r + 5) {
-        hoverRef.current = node.id;
-        canvas.style.cursor = "pointer";
-        found = true;
-        break;
-      }
-    }
-    if (!found) {
-      hoverRef.current = null;
-      canvas.style.cursor = "default";
-    }
-  }, [canvasSize]);
+    const hit = hitTest(e.clientX - rect.left, e.clientY - rect.top);
+    hoverRef.current = hit;
+    canvas.style.cursor = hit ? "pointer" : "default";
+  }, [hitTest]);
 
   // Animation loop
   useEffect(() => {
@@ -244,6 +241,17 @@ export function Pipeline3D({ steps, execution, onSelectStage, selectedStageId }:
       timeRef.current += 0.016;
       const t = timeRef.current;
 
+      // Project all nodes to screen coordinates
+      const scale = Math.min(W / ((nodesRef.current.length || 1) * 70), H / 300, 1.2);
+      for (const node of nodes) {
+        const floatZ = (node.status === "running" || node.status === "retrying")
+          ? 0.55 + Math.sin(t * 2.5) * 0.15
+          : node.wz;
+        const proj = applyCamera(node.wx, node.wy, floatZ, cx, cy * 0.85, scale);
+        node.sx = proj.sx;
+        node.sy = proj.sy;
+      }
+
       // Clear
       ctx.clearRect(0, 0, W, H);
 
@@ -260,10 +268,10 @@ export function Pipeline3D({ steps, execution, onSelectStage, selectedStageId }:
           const parent = nodes.find((n) => n.id === depId);
           if (!parent) continue;
 
-          const x1 = cx + parent.x;
-          const y1 = cy + parent.y;
-          const x2 = cx + node.x;
-          const y2 = cy + node.y;
+          const x1 = parent.sx;
+          const y1 = parent.sy;
+          const x2 = node.sx;
+          const y2 = node.sy;
 
           const parentColors = STATUS_COLORS[parent.status] || STATUS_COLORS.pending;
 
@@ -288,10 +296,10 @@ export function Pipeline3D({ steps, execution, onSelectStage, selectedStageId }:
         const to = nodes.find((n) => n.id === p.toId);
         if (!from || !to) continue;
 
-        const x1 = cx + from.x;
-        const y1 = cy + from.y;
-        const x2 = cx + to.x;
-        const y2 = cy + to.y;
+        const x1 = from.sx;
+        const y1 = from.sy;
+        const x2 = to.sx;
+        const y2 = to.sy;
         const midX = (x1 + x2) / 2;
 
         // Bezier interpolation
@@ -314,8 +322,8 @@ export function Pipeline3D({ steps, execution, onSelectStage, selectedStageId }:
 
       // Draw nodes
       for (const node of nodes) {
-        const nx = cx + node.x;
-        const ny = cy + node.y;
+        const nx = node.sx;
+        const ny = node.sy;
         const colors = STATUS_COLORS[node.status] || STATUS_COLORS.pending;
         const isSelected = selectedStageId === node.id;
         const isHovered = hoverRef.current === node.id;
