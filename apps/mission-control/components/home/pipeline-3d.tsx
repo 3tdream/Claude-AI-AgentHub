@@ -143,6 +143,12 @@ export function Pipeline3D({ steps, execution, onSelectStage, selectedStageId }:
   const timeRef      = useRef(0);
   const [canvasSize, setCanvasSize] = useState({ w: 800, h: 480 });
 
+  // Navigation state
+  const [zoom, setZoom] = useState(1.0);
+  const [panX, setPanX] = useState(0);
+  const [panY, setPanY] = useState(0);
+  const dragRef = useRef<{ active: boolean; startX: number; startY: number; startPanX: number; startPanY: number }>({ active: false, startX: 0, startY: 0, startPanX: 0, startPanY: 0 });
+
   // Stable key for change detection
   const stepStatusKey = JSON.stringify(
     Object.entries(execution.stepResults).map(([id, r]) => `${id}:${r.status}`).sort()
@@ -241,13 +247,14 @@ export function Pipeline3D({ steps, execution, onSelectStage, selectedStageId }:
       timeRef.current += 0.016;
       const t = timeRef.current;
 
-      // Project all nodes to screen coordinates
-      const scale = Math.min(W / ((nodesRef.current.length || 1) * 70), H / 300, 1.2);
+      // Project all nodes to screen coordinates (with zoom + pan)
+      const baseScale = Math.min(W / ((nodesRef.current.length || 1) * 70), H / 300, 1.2);
+      const scale = baseScale * zoom;
       for (const node of nodes) {
         const floatZ = (node.status === "running" || node.status === "retrying")
           ? 0.55 + Math.sin(t * 2.5) * 0.15
           : node.wz;
-        const proj = applyCamera(node.wx, node.wy, floatZ, cx, cy * 0.85, scale);
+        const proj = applyCamera(node.wx, node.wy, floatZ, cx + panX, cy * 0.85 + panY, scale);
         node.sx = proj.sx;
         node.sy = proj.sy;
       }
@@ -417,7 +424,39 @@ export function Pipeline3D({ steps, execution, onSelectStage, selectedStageId }:
 
     animFrameRef.current = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(animFrameRef.current);
-  }, [canvasSize, selectedStageId, steps, stepStatusKey]);
+  }, [canvasSize, selectedStageId, steps, stepStatusKey, zoom, panX, panY]);
+
+  // Wheel zoom
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const handler = (e: WheelEvent) => {
+      e.preventDefault();
+      setZoom(z => Math.max(0.3, Math.min(3, z + (e.deltaY > 0 ? -0.1 : 0.1))));
+    };
+    canvas.addEventListener("wheel", handler, { passive: false });
+    return () => canvas.removeEventListener("wheel", handler);
+  }, []);
+
+  // Drag pan
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (e.button === 0) {
+      dragRef.current = { active: true, startX: e.clientX, startY: e.clientY, startPanX: panX, startPanY: panY };
+    }
+  }, [panX, panY]);
+
+  const handleMouseMoveNav = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    const d = dragRef.current;
+    if (d.active) {
+      setPanX(d.startPanX + (e.clientX - d.startX));
+      setPanY(d.startPanY + (e.clientY - d.startY));
+    }
+    handleMouseMove(e);
+  }, [handleMouseMove]);
+
+  const handleMouseUp = useCallback(() => {
+    dragRef.current.active = false;
+  }, []);
 
   return (
     <div className="w-full h-full relative">
@@ -425,8 +464,21 @@ export function Pipeline3D({ steps, execution, onSelectStage, selectedStageId }:
         ref={canvasRef}
         style={{ width: canvasSize.w, height: canvasSize.h }}
         onClick={handleClick}
-        onMouseMove={handleMouseMove}
+        onMouseMove={handleMouseMoveNav}
+        onMouseDown={handleMouseDown}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
       />
+      {/* Navigation controls */}
+      <div className="absolute bottom-3 right-3 flex flex-col gap-1">
+        <button onClick={() => setZoom(z => Math.min(3, z + 0.2))} className="w-7 h-7 rounded bg-white/90 border border-slate-200 shadow-sm flex items-center justify-center text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors text-xs font-bold" aria-label="Zoom in">+</button>
+        <button onClick={() => setZoom(z => Math.max(0.3, z - 0.2))} className="w-7 h-7 rounded bg-white/90 border border-slate-200 shadow-sm flex items-center justify-center text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors text-xs font-bold" aria-label="Zoom out">−</button>
+        <button onClick={() => { setZoom(1); setPanX(0); setPanY(0); }} className="w-7 h-7 rounded bg-white/90 border border-slate-200 shadow-sm flex items-center justify-center text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors text-[9px] font-mono" aria-label="Reset view">⊙</button>
+      </div>
+      {/* Zoom indicator */}
+      <div className="absolute bottom-3 left-3 font-mono text-[9px] text-slate-400 bg-white/70 px-1.5 py-0.5 rounded">
+        {Math.round(zoom * 100)}%
+      </div>
     </div>
   );
 }
