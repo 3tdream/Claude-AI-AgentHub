@@ -5,6 +5,8 @@ import { AGENT_TOOLS, executeTool } from "@/lib/agent-tools";
 import { loadProjectContext } from "@/lib/project-context-loader";
 import { searchKB } from "@/lib/kb-storage";
 import { addLog } from "@/lib/logs-storage";
+import { routeToAgent } from "@/lib/agent-router";
+import { loadAgentPrompt } from "@/lib/agent-prompt-loader";
 import path from "path";
 
 const APPS_DIR = path.resolve(process.cwd(), "..");
@@ -40,8 +42,19 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 3. DIRECT execution: Claude + tools
+    // 3. DIRECT execution: route to best agent, then run with tools
     const projectPath = projectId ? path.join(APPS_DIR, projectId) : undefined;
+
+    // Pick the best agent for this task
+    const routeResult = routeToAgent(input);
+
+    addLog({
+      type: "decision",
+      content: `[command] routed to ${routeResult.agentName} (${routeResult.agentId})${routeResult.isFallback ? " [fallback]" : ` matched: ${routeResult.matchedKeywords.join(", ")}`}`,
+    }).catch(() => {});
+
+    // Load agent system prompt from .md file / agent-prompts-cache
+    const agentBasePrompt = await loadAgentPrompt(routeResult.agentId);
 
     // Load context
     let contextBlock = "";
@@ -60,7 +73,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const systemPrompt = `You are a code assistant embedded in Mission Control.
+    const systemPrompt = `${agentBasePrompt}
+
 You have file tools: list_files, read_file, edit_file, create_file, run_command.
 ${projectId ? `Active project: ${projectId}. All file operations target this project.` : "Working in mission-control."}
 
@@ -69,7 +83,6 @@ Rules:
 - Always read the file before editing
 - One edit_file call per change (don't rewrite entire files)
 - After editing, briefly confirm what you changed
-
 ${contextBlock}`;
 
     let toolCallLog: { name: string; path?: string; success: boolean }[] = [];
@@ -99,6 +112,7 @@ ${contextBlock}`;
     return NextResponse.json({
       intent,
       action: "executed",
+      agent: { id: routeResult.agentId, name: routeResult.agentName, isFallback: routeResult.isFallback },
       response: result.content,
       toolCalls: toolCallLog,
       tokensUsed: result.tokensUsed,
