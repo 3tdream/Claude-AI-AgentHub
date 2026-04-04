@@ -110,24 +110,33 @@ ${contextBlock}`;
       },
     });
 
-    // Persist execution log so direct tasks appear in history
+    // Persist as a pipeline-run so direct tasks appear in UI history and nightly evolution
     const taskId = `direct_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    const executionLog = {
-      taskId,
+    const startedAt = new Date().toISOString();
+    const completedAt = new Date().toISOString();
+    const pipelineRun = {
+      id: taskId,
+      workflowId: "direct",
+      workflowName: "Direct Execution",
+      status: result.content ? "completed" : "failed",
       input,
-      intent,
-      status: "completed",
-      toolCalls: toolCallLog,
-      response: result.content,
-      timestamp: new Date().toISOString(),
+      stepResults: {
+        direct: {
+          stepId: "direct",
+          status: result.content ? "completed" : "failed",
+          output: result.content,
+        },
+      },
+      startedAt,
+      completedAt,
     };
     const logPath = path.resolve(
       process.cwd(),
-      "data/execution-logs",
+      "data/pipeline-runs",
       `${taskId}.json`
     );
-    fs.writeFile(logPath, JSON.stringify(executionLog, null, 2)).catch((err) =>
-      console.error("[command] failed to write execution log:", err)
+    fs.writeFile(logPath, JSON.stringify(pipelineRun, null, 2)).catch((err) =>
+      console.error("[command] failed to write pipeline run:", err)
     );
 
     return NextResponse.json({
