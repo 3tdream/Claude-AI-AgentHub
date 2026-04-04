@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useOrchestrationStore } from "@/lib/stores/orchestration-store";
+import useSWR from "swr";
 import { toast } from "sonner";
 import type { WorkflowStep, RoutingDecisionData, PipelineExecution } from "@/types";
 import { GitBranch, ShieldCheck, BarChart3, History, Box, Rows3 } from "lucide-react";
@@ -45,7 +46,27 @@ export function PipelinePanel({ activeProjectId, projects, onSelectProject }: {
 
   // Store connections for live execution, checkpoint, pause/stop/resume
   const activeExecution = useOrchestrationStore((s) => s.activeExecution);
-  const executionHistory = useOrchestrationStore((s) => s.executionHistory);
+  const storeHistory = useOrchestrationStore((s) => s.executionHistory);
+  // Fetch file-based history (includes CLI/API tasks not in browser store)
+  const { data: fileHistory } = useSWR("/api/pipeline/history", (url: string) => fetch(url).then(r => r.json()), { revalidateOnFocus: false });
+  // Merge: store history + file history, deduplicate by ID
+  const executionHistory = useMemo(() => {
+    const fileRuns = (fileHistory?.runs || []).map((r: any) => ({
+      id: r.id,
+      workflowId: r.workflowName === "Direct Execution" ? "direct" : r.id,
+      workflowName: r.workflowName || "Unknown",
+      status: r.status,
+      input: r.input,
+      stepResults: {},
+      startedAt: r.startedAt,
+      completedAt: r.completedAt,
+      totalDuration: r.totalDuration,
+      jiraKey: r.jiraKey,
+    }));
+    const storeIds = new Set(storeHistory.map(e => e.id));
+    const merged = [...storeHistory, ...fileRuns.filter((r: any) => !storeIds.has(r.id))];
+    return merged.sort((a: any, b: any) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());
+  }, [storeHistory, fileHistory]);
   const setActiveExecution = useOrchestrationStore((s) => s.setActiveExecution);
   const addToHistory = useOrchestrationStore((s) => s.addToHistory);
   const pauseRequested = useOrchestrationStore((s) => s.pauseRequested);
