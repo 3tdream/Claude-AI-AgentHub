@@ -46,7 +46,10 @@ export async function POST(request: NextRequest) {
     systemPrompt += `\n\n## PROJECT STRUCTURE (do NOT waste tool calls exploring — use this map)
 Home page (main): app/(shell)/home/page.tsx — imports from components/home/
 Agent Fleet (left panel with collapse): app/(shell)/home/page.tsx — look for fleetCollapsed, PanelLeftClose
-Pipeline Panel: components/home/pipeline-panel.tsx
+Pipeline Panel: components/home/pipeline-panel.tsx — contains 3D/2D toggle
+Pipeline 3D Visualization: components/home/pipeline-3d.tsx — isometric canvas, THE ACTIVE pipeline view. Edit THIS for any pipeline visual changes.
+Pipeline 2D Graph: components/orchestration/pipeline-graph.tsx — LEGACY, DO NOT EDIT. All pipeline visual work goes to pipeline-3d.tsx.
+⚠ CRITICAL: If a task mentions "pipeline", "3d", "graph", "visualization", "nodes" → ALWAYS edit components/home/pipeline-3d.tsx, NEVER components/orchestration/pipeline-graph.tsx
 Pipeline History: components/home/pipeline-history.tsx
 Pipeline Input: components/home/pipeline-input.tsx
 Agent Card: components/home/agent-card.tsx

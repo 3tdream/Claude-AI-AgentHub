@@ -280,6 +280,13 @@ export const DESIGNER_TOOLS = [...READ_ONLY_TOOLS, ...FIGMA_TOOLS];
 // --- Security ---
 
 const BLOCKED_PATHS = ["node_modules", ".env", ".git", "data/api-keys"];
+// Legacy files: can be READ but not EDITED (agents must use the new versions)
+const EDIT_PROTECTED_PATHS = [
+  "components/orchestration/pipeline-graph.tsx", // legacy 2D → use components/home/pipeline-3d.tsx
+  "app/(shell)/agents/",        // migrated to Home
+  "app/(shell)/chat/",          // migrated to Home
+  "app/(shell)/orchestration/", // migrated to Home
+];
 const ALLOWED_COMMANDS = ["tsc", "eslint", "grep", "cat", "head", "wc"];
 
 function validatePath(p: string): string {
@@ -361,6 +368,11 @@ export async function executeTool(
 
       case "edit_file": {
         const relPath = validatePath(input.path);
+        // Block edits to legacy/migrated files
+        const protectedMatch = EDIT_PROTECTED_PATHS.find(p => relPath.includes(p));
+        if (protectedMatch) {
+          return { success: false, output: "", error: `BLOCKED: ${relPath} is a legacy file. Check the PROJECT STRUCTURE in your instructions for the correct file to edit.` };
+        }
         const readPath = path.join(ROOT, relPath);
         const rawContent = await fs.readFile(readPath, "utf-8");
 
