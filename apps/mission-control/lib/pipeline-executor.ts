@@ -1229,7 +1229,9 @@ export async function executePipeline(
       !s.id.includes("-review") &&
       !s.id.includes("-verdict"),
     );
-    const canAutoParallel = !useExplicitGroup && autoParallelCandidates.length > 1 && routingDecision?.mode !== "quick";
+    // Auto-parallel disabled — sequential execution is more predictable and debuggable.
+    // Only explicit parallel groups (metadata.isParallel + group) are allowed.
+    const canAutoParallel = false;
 
     if (useExplicitGroup || canAutoParallel) {
       const group = useExplicitGroup ? parallelGroup : autoParallelCandidates;
