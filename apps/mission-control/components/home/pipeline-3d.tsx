@@ -2,8 +2,8 @@
 
 import { useRef, useEffect, useCallback, useState } from "react";
 import type { PipelineExecution, WorkflowStep, StepStatus } from "@/types";
+import type * as THREE from "three";
 
-// ─── Public interface — unchanged so all callers keep working ─────────────────
 interface Pipeline3DProps {
   steps: WorkflowStep[];
   execution: PipelineExecution;
@@ -11,491 +11,338 @@ interface Pipeline3DProps {
   selectedStageId: string | null;
 }
 
-// ─── Status palette (extended with per-channel RGB for radial gradients) ──────
-const STATUS_COLORS: Record<
-  StepStatus,
-  { fill: string; top: string; side: string; glow: string; text: string; r: number; g: number; b: number }
-> = {
-  pending:           { fill: "#94a3b8", top: "#cbd5e1", side: "#64748b", glow: "rgba(148,163,184,0.35)", text: "#64748b",  r: 148, g: 163, b: 184 },
-  running:           { fill: "#6366f1", top: "#818cf8", side: "#4338ca", glow: "rgba(99,102,241,0.55)",  text: "#4f46e5",  r: 99,  g: 102, b: 241 },
-  completed:         { fill: "#10b981", top: "#34d399", side: "#059669", glow: "rgba(16,185,129,0.45)",  text: "#059669",  r: 16,  g: 185, b: 129 },
-  failed:            { fill: "#ef4444", top: "#f87171", side: "#b91c1c", glow: "rgba(239,68,68,0.45)",   text: "#dc2626",  r: 239, g: 68,  b: 68  },
-  skipped:           { fill: "#cbd5e1", top: "#e2e8f0", side: "#94a3b8", glow: "rgba(203,213,225,0.25)", text: "#94a3b8",  r: 203, g: 213, b: 225 },
-  awaiting_approval: { fill: "#f59e0b", top: "#fcd34d", side: "#b45309", glow: "rgba(245,158,11,0.50)", text: "#d97706",  r: 245, g: 158, b: 11  },
-  retrying:          { fill: "#f97316", top: "#fb923c", side: "#c2410c", glow: "rgba(249,115,22,0.45)",  text: "#ea580c",  r: 249, g: 115, b: 22  },
+// ── Status colors ──
+const STATUS_CONFIG: Record<StepStatus, { color: number; emissive: number; intensity: number }> = {
+  pending:            { color: 0x4a6080, emissive: 0x4a6080, intensity: 0.05 },
+  running:            { color: 0x6366f1, emissive: 0x6366f1, intensity: 0.8 },
+  completed:          { color: 0x10b981, emissive: 0x10b981, intensity: 0.4 },
+  failed:             { color: 0xef4444, emissive: 0xef4444, intensity: 0.6 },
+  skipped:            { color: 0x334155, emissive: 0x334155, intensity: 0.02 },
+  awaiting_approval:  { color: 0xf59e0b, emissive: 0xf59e0b, intensity: 0.6 },
+  retrying:           { color: 0xf97316, emissive: 0xf97316, intensity: 0.7 },
 };
 
-// ─── Internal types ───────────────────────────────────────────────────────────
-
-/** World-space node with projected screen coords filled each frame */
-interface IsoNode {
+interface NodeData {
   id: string;
   agentName: string;
   status: StepStatus;
-  wx: number;   // isometric world X (left-right axis)
-  wy: number;   // isometric world Y (depth axis)
-  wz: number;   // isometric world Z (height) — elevated for running nodes
-  col: number;
-  row: number;
+  x: number;
+  y: number;
   isGate: boolean;
-  isCheckpoint: boolean;
   dependsOn: string[];
-  sx: number;   // projected screen X (updated each frame)
-  sy: number;   // projected screen Y (updated each frame)
 }
 
-interface Particle {
-  fromId: string;
-  toId: string;
-  progress: number;
-  speed: number;
-  lane: number; // 0-2 — slight lateral offset so streams don't overlap
-}
-
-// ─── Isometric projection constants ──────────────────────────────────────────
-//
-//  applyCamera(wx, wy, wz, cx, cy, scale) → { sx, sy }
-//
-//  Classic dimetric / "game" isometric:
-//    sx = cx + (wx - wy) * TILE_W/2 * scale
-//    sy = cy + (wx + wy) * TILE_H/2 * scale - wz * TILE_Z * scale
-//
-const TILE_W = 90;  // horizontal pixels per world unit
-const TILE_H = 46;  // vertical pixels per world unit  (≈ TILE_W * sin30°)
-const TILE_Z = 52;  // vertical pixels per Z unit
-
-function applyCamera(
-  wx: number, wy: number, wz: number,
-  cx: number, cy: number, scale: number
-): { sx: number; sy: number } {
-  return {
-    sx: cx + (wx - wy) * (TILE_W / 2) * scale,
-    sy: cy + (wx + wy) * (TILE_H / 2) * scale - wz * TILE_Z * scale,
-  };
-}
-
-/** Lerp a point along the isometric path between two world positions */
-function isoLerp(
-  ax: number, ay: number, az: number,
-  bx: number, by: number, bz: number,
-  t: number
-): { wx: number; wy: number; wz: number } {
-  return { wx: ax + (bx - ax) * t, wy: ay + (by - ay) * t, wz: az + (bz - az) * t };
-}
-
-// ─── Topological layout → isometric world positions ──────────────────────────
-const ISO_COL_STEP = 2.8;  // world units between columns (X axis)
-const ISO_ROW_STEP = 2.4;  // world units between rows    (Y axis)
-
-function layoutNodes(
-  steps: WorkflowStep[],
-  results: Record<string, { status: StepStatus }>
-): IsoNode[] {
+function layoutNodes(steps: WorkflowStep[], results: Record<string, { status: StepStatus }>): NodeData[] {
   if (steps.length === 0) return [];
 
-  const stepIds = new Set(steps.map((s) => s.id));
-
-  // Resolve dependencies: if all deps are outside current set,
-  // link to previous step in array order (maintains sequential flow)
-  const resolvedDeps = new Map<string, string[]>();
-  steps.forEach((s, idx) => {
-    const inSetDeps = s.dependsOn.filter((d) => stepIds.has(d));
-    if (inSetDeps.length > 0) {
-      resolvedDeps.set(s.id, inSetDeps);
-    } else if (idx > 0) {
-      // No deps in set — chain to previous step
-      resolvedDeps.set(s.id, [steps[idx - 1].id]);
-    } else {
-      resolvedDeps.set(s.id, []);
-    }
-  });
-
-  // Depth via topological sort using resolved deps
+  // Topological depth assignment
   const depthMap = new Map<string, number>();
-  function getDepth(id: string): number {
-    if (depthMap.has(id)) return depthMap.get(id)!;
-    const deps = resolvedDeps.get(id) || [];
-    if (deps.length === 0) { depthMap.set(id, 0); return 0; }
-    const d = Math.max(...deps.map(getDepth)) + 1;
-    depthMap.set(id, d);
-    return d;
+  function getDepth(stepId: string): number {
+    if (depthMap.has(stepId)) return depthMap.get(stepId)!;
+    const step = steps.find((s) => s.id === stepId);
+    if (!step || step.dependsOn.length === 0) { depthMap.set(stepId, 0); return 0; }
+    const maxParent = Math.max(...step.dependsOn.map((d) => getDepth(d)));
+    const depth = maxParent + 1;
+    depthMap.set(stepId, depth);
+    return depth;
   }
   steps.forEach((s) => getDepth(s.id));
 
+  // Group by depth
   const maxDepth = Math.max(...Array.from(depthMap.values()), 0);
-  const cols: string[][] = Array.from({ length: maxDepth + 1 }, () => []);
-  steps.forEach((s) => cols[depthMap.get(s.id)!].push(s.id));
+  const cols: string[][] = [];
+  for (let d = 0; d <= maxDepth; d++) {
+    cols[d] = steps.filter((s) => depthMap.get(s.id) === d).map((s) => s.id);
+  }
 
-  const nodes: IsoNode[] = [];
+  const COL_GAP = 2.5;
+  const ROW_GAP = 2.0;
+  const nodes: NodeData[] = [];
+
   for (let col = 0; col < cols.length; col++) {
     const group = cols[col];
+    const startY = -(group.length - 1) * ROW_GAP / 2;
+
     for (let row = 0; row < group.length; row++) {
       const stepId = group[row];
       const step = steps.find((s) => s.id === stepId)!;
-      const status: StepStatus = results[stepId]?.status ?? "pending";
-      const isGate =
-        stepId.includes("-gate") || stepId.includes("verdict") || stepId.includes("consolidation");
-      const isCheckpoint = !!step.metadata?.isCheckpoint;
-      // Centre each column's rows around Y=0; running nodes float above floor
-      const rowOffset = (row - (group.length - 1) / 2) * ISO_ROW_STEP;
-      const wz = status === "running" || status === "retrying" ? 0.55 : 0;
+      const result = results[stepId];
+      const isGate = stepId.includes("-gate") || stepId.includes("verdict") || stepId.includes("consolidation");
+
       nodes.push({
-        id: stepId, agentName: step.agentName, status,
-        wx: col * ISO_COL_STEP, wy: rowOffset, wz,
-        col, row, isGate, isCheckpoint,
-        dependsOn: resolvedDeps.get(stepId) || [],
-        sx: 0, sy: 0,
+        id: stepId,
+        agentName: step.agentName,
+        status: result?.status || "pending",
+        x: col * COL_GAP - (maxDepth * COL_GAP) / 2,
+        y: startY + row * ROW_GAP,
+        isGate,
+        dependsOn: step.dependsOn.filter((d) => steps.some((s) => s.id === d)),
       });
     }
   }
+
   return nodes;
 }
 
 export function Pipeline3D({ steps, execution, onSelectStage, selectedStageId }: Pipeline3DProps) {
-  const canvasRef    = useRef<HTMLCanvasElement>(null);
-  const nodesRef     = useRef<IsoNode[]>([]);
-  const particlesRef = useRef<Particle[]>([]);
-  const animFrameRef = useRef<number>(0);
-  const hoverRef     = useRef<string | null>(null);
-  const timeRef      = useRef(0);
-  const [canvasSize, setCanvasSize] = useState({ w: 800, h: 480 });
+  const containerRef = useRef<HTMLDivElement>(null);
+  const cleanupRef = useRef<(() => void) | null>(null);
 
-  // Navigation state
-  const [zoom, setZoom] = useState(1.0);
-  const [panX, setPanX] = useState(0);
-  const [panY, setPanY] = useState(0);
-  const dragRef = useRef<{ active: boolean; startX: number; startY: number; startPanX: number; startPanY: number }>({ active: false, startX: 0, startY: 0, startPanX: 0, startPanY: 0 });
-
-  // Stable key for change detection
+  // Serialize status for change detection
   const stepStatusKey = JSON.stringify(
     Object.entries(execution.stepResults).map(([id, r]) => `${id}:${r.status}`).sort()
   );
 
-  // ── Rebuild layout + particles when pipeline state changes ──────────────────
   useEffect(() => {
-    const results: Record<string, { status: StepStatus }> = {};
-    for (const [id, r] of Object.entries(execution.stepResults)) results[id] = { status: r.status };
-    nodesRef.current = layoutNodes(steps, results);
+    const container = containerRef.current;
+    if (!container) return;
 
-    // Particles flow on completed → running edges
-    const particles: Particle[] = [];
-    for (const node of nodesRef.current) {
-      if (node.status === "running" || node.status === "retrying") {
-        for (const dep of node.dependsOn) {
-          const parent = nodesRef.current.find((n) => n.id === dep);
-          if (parent && parent.status === "completed") {
-            for (let lane = 0; lane < 3; lane++) {
-              particles.push({
-                fromId: dep, toId: node.id,
-                progress: (lane / 3) + Math.random() * 0.15,
-                speed: 0.0028 + Math.random() * 0.0035,
-                lane,
-              });
-            }
-          }
-        }
+    // Dynamically import three.js (avoid SSR issues)
+    let cancelled = false;
+
+    (async () => {
+      const THREE = await import("three");
+      const { OrbitControls } = await import("three/examples/jsm/controls/OrbitControls.js");
+
+      if (cancelled) return;
+
+      const W = container.clientWidth;
+      const H = container.clientHeight;
+      if (W === 0 || H === 0) return;
+
+      // Layout
+      const results: Record<string, { status: StepStatus }> = {};
+      for (const [id, r] of Object.entries(execution.stepResults)) {
+        results[id] = { status: r.status };
       }
-    }
-    particlesRef.current = particles;
-  }, [steps, stepStatusKey]); // eslint-disable-line react-hooks/exhaustive-deps
+      const nodeData = layoutNodes(steps, results);
 
-  // ── Resize observer ─────────────────────────────────────────────────────────
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const parent = canvas.parentElement;
-    if (!parent) return;
-    const ro = new ResizeObserver((entries) => {
-      const { width, height } = entries[0].contentRect;
-      setCanvasSize({ w: Math.floor(width), h: Math.floor(height) });
-    });
-    ro.observe(parent);
-    return () => ro.disconnect();
-  }, []);
+      // Scene
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(55, W / H, 0.1, 1000);
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(W, H);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setClearColor(0x0a0f25, 1);
+      container.innerHTML = "";
+      container.appendChild(renderer.domElement);
 
-  // ── Hit-test: screen coords → node id (uses pre-projected sx/sy) ───────────
-  const hitTest = useCallback((mx: number, my: number): string | null => {
-    for (let i = nodesRef.current.length - 1; i >= 0; i--) {
-      const n = nodesRef.current[i];
-      const r = n.isGate ? 16 : 20;
-      if (Math.hypot(mx - n.sx, my - n.sy) < r + 6) return n.id;
-    }
-    return null;
-  }, []);
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
 
-  // ── Click ───────────────────────────────────────────────────────────────────
-  const handleClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const hit = hitTest(e.clientX - rect.left, e.clientY - rect.top);
-    if (hit) onSelectStage(hit);
-  }, [hitTest, onSelectStage]);
+      // Lights
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      dirLight.position.set(5, 5, 8);
+      scene.add(dirLight);
+      scene.add(new THREE.AmbientLight(0x1a2040, 0.6));
 
-  // ── Hover ───────────────────────────────────────────────────────────────────
-  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const hit = hitTest(e.clientX - rect.left, e.clientY - rect.top);
-    hoverRef.current = hit;
-    canvas.style.cursor = hit ? "pointer" : "default";
-  }, [hitTest]);
+      // Grid
+      const grid = new THREE.GridHelper(30, 30, 0x1a2550, 0x0a1530);
+      grid.rotation.x = Math.PI / 2;
+      grid.position.z = -1.5;
+      scene.add(grid);
 
-  // Animation loop
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+      // Build nodes
+      const meshMap = new Map<string, THREE.Mesh>();
+      const ringMeshes: THREE.Mesh[] = [];
 
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = canvasSize.w * dpr;
-    canvas.height = canvasSize.h * dpr;
-    ctx.scale(dpr, dpr);
+      nodeData.forEach((node) => {
+        const cfg = STATUS_CONFIG[node.status] || STATUS_CONFIG.pending;
+        const geo = node.isGate
+          ? new THREE.OctahedronGeometry(0.3, 0)
+          : node.status === "running"
+          ? new THREE.OctahedronGeometry(0.35, 0)
+          : new THREE.SphereGeometry(0.3, 16, 16);
 
-    function draw() {
-      if (!ctx) return;
-      const W = canvasSize.w;
-      const H = canvasSize.h;
-      const cx = W / 2;
-      const cy = H / 2;
-      const nodes = nodesRef.current;
-      const particles = particlesRef.current;
-      timeRef.current += 0.016;
-      const t = timeRef.current;
+        const mat = new THREE.MeshStandardMaterial({
+          color: cfg.color,
+          emissive: cfg.emissive,
+          emissiveIntensity: cfg.intensity,
+          roughness: 0.3,
+          metalness: 0.7,
+        });
 
-      // Project all nodes to screen coordinates (with zoom + pan)
-      const baseScale = Math.min(W / ((nodesRef.current.length || 1) * 70), H / 300, 1.2);
-      const scale = baseScale * zoom;
-      for (const node of nodes) {
-        const floatZ = (node.status === "running" || node.status === "retrying")
-          ? 0.55 + Math.sin(t * 2.5) * 0.15
-          : node.wz;
-        const proj = applyCamera(node.wx, node.wy, floatZ, cx + panX, cy * 0.85 + panY, scale);
-        node.sx = proj.sx;
-        node.sy = proj.sy;
-      }
-
-      // Clear
-      ctx.clearRect(0, 0, W, H);
-
-      // Background gradient
-      const bg = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(W, H) * 0.6);
-      bg.addColorStop(0, "#f8fafc");
-      bg.addColorStop(1, "#f1f5f9");
-      ctx.fillStyle = bg;
-      ctx.fillRect(0, 0, W, H);
-
-      // Draw connections
-      for (const node of nodes) {
-        for (const depId of node.dependsOn) {
-          const parent = nodes.find((n) => n.id === depId);
-          if (!parent) continue;
-
-          const x1 = parent.sx;
-          const y1 = parent.sy;
-          const x2 = node.sx;
-          const y2 = node.sy;
-
-          const parentColors = STATUS_COLORS[parent.status] || STATUS_COLORS.pending;
-
-          ctx.beginPath();
-          ctx.moveTo(x1, y1);
-          // Bezier curve for smooth connections
-          const midX = (x1 + x2) / 2;
-          ctx.bezierCurveTo(midX, y1, midX, y2, x2, y2);
-          ctx.strokeStyle = parent.status === "completed" ? "rgba(16,185,129,0.3)" : "rgba(148,163,184,0.15)";
-          ctx.lineWidth = parent.status === "completed" ? 2 : 1;
-          ctx.stroke();
-        }
-      }
-
-      // Draw particles on connections
-      for (let i = particles.length - 1; i >= 0; i--) {
-        const p = particles[i];
-        p.progress += p.speed;
-        if (p.progress > 1) p.progress -= 1;
-
-        const from = nodes.find((n) => n.id === p.fromId);
-        const to = nodes.find((n) => n.id === p.toId);
-        if (!from || !to) continue;
-
-        const x1 = from.sx;
-        const y1 = from.sy;
-        const x2 = to.sx;
-        const y2 = to.sy;
-        const midX = (x1 + x2) / 2;
-
-        // Bezier interpolation
-        const t2 = p.progress;
-        const mt = 1 - t2;
-        const px = mt * mt * mt * x1 + 3 * mt * mt * t2 * midX + 3 * mt * t2 * t2 * midX + t2 * t2 * t2 * x2;
-        const py = mt * mt * mt * y1 + 3 * mt * mt * t2 * y1 + 3 * mt * t2 * t2 * y2 + t2 * t2 * t2 * y2;
-
-        ctx.beginPath();
-        ctx.arc(px, py, 2.5, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(99,102,241,0.7)";
-        ctx.fill();
-
-        // Glow
-        ctx.beginPath();
-        ctx.arc(px, py, 5, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(99,102,241,0.15)";
-        ctx.fill();
-      }
-
-      // Draw nodes
-      for (const node of nodes) {
-        const nx = node.sx;
-        const ny = node.sy;
-        const colors = STATUS_COLORS[node.status] || STATUS_COLORS.pending;
-        const isSelected = selectedStageId === node.id;
-        const isHovered = hoverRef.current === node.id;
-        const r = node.isGate ? 18 : 24;
-
-        // Glow for running nodes
-        if (node.status === "running" || node.status === "retrying") {
-          const pulseR = r + 8 + Math.sin(t * 3) * 4;
-          ctx.beginPath();
-          ctx.arc(nx, ny, pulseR, 0, Math.PI * 2);
-          ctx.fillStyle = colors.glow;
-          ctx.fill();
-        }
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.set(node.x, node.y, 0);
+        mesh.userData = { nodeId: node.id };
+        scene.add(mesh);
+        meshMap.set(node.id, mesh);
 
         // Selection ring
-        if (isSelected) {
-          ctx.beginPath();
-          ctx.arc(nx, ny, r + 4, 0, Math.PI * 2);
-          ctx.strokeStyle = "#6366f1";
-          ctx.lineWidth = 2;
-          ctx.stroke();
+        if (selectedStageId === node.id) {
+          const ringGeo = new THREE.TorusGeometry(0.5, 0.04, 8, 32);
+          const ringMat = new THREE.MeshBasicMaterial({ color: 0x6366f1, transparent: true, opacity: 0.7 });
+          const ring = new THREE.Mesh(ringGeo, ringMat);
+          ring.position.copy(mesh.position);
+          scene.add(ring);
+          ringMeshes.push(ring);
         }
 
-        // Hover ring
-        if (isHovered && !isSelected) {
-          ctx.beginPath();
-          ctx.arc(nx, ny, r + 3, 0, Math.PI * 2);
-          ctx.strokeStyle = "rgba(99,102,241,0.3)";
-          ctx.lineWidth = 1.5;
-          ctx.stroke();
+        // Running glow ring
+        if (node.status === "running" || node.status === "retrying") {
+          const ringGeo = new THREE.TorusGeometry(0.5, 0.025, 8, 32);
+          const ringMat = new THREE.MeshBasicMaterial({ color: cfg.color, transparent: true, opacity: 0.4 });
+          const ring = new THREE.Mesh(ringGeo, ringMat);
+          ring.position.copy(mesh.position);
+          scene.add(ring);
+          ringMeshes.push(ring);
         }
+      });
 
-        // Node body
-        ctx.beginPath();
-        if (node.isGate) {
-          // Diamond shape for gates
-          ctx.moveTo(nx, ny - r);
-          ctx.lineTo(nx + r, ny);
-          ctx.lineTo(nx, ny + r);
-          ctx.lineTo(nx - r, ny);
-          ctx.closePath();
-        } else {
-          ctx.arc(nx, ny, r, 0, Math.PI * 2);
+      // Connections
+      nodeData.forEach((node) => {
+        node.dependsOn.forEach((depId) => {
+          const fromNode = nodeData.find((n) => n.id === depId);
+          if (!fromNode) return;
+
+          const points: THREE.Vector3[] = [];
+          for (let t = 0; t <= 1; t += 0.05) {
+            points.push(new THREE.Vector3(
+              fromNode.x + (node.x - fromNode.x) * t,
+              fromNode.y + (node.y - fromNode.y) * t,
+              Math.sin(t * Math.PI) * 0.4,
+            ));
+          }
+          const curve = new THREE.CatmullRomCurve3(points);
+          const tubeGeo = new THREE.TubeGeometry(curve, 20, 0.02, 8, false);
+          const completed = fromNode.status === "completed";
+          const tubeMat = new THREE.MeshBasicMaterial({
+            color: completed ? 0x10b981 : 0x1a3050,
+            transparent: true,
+            opacity: completed ? 0.5 : 0.15,
+          });
+          scene.add(new THREE.Mesh(tubeGeo, tubeMat));
+        });
+      });
+
+      // Particles on active connections
+      const particles: Array<{ mesh: THREE.Mesh; from: NodeData; to: NodeData; progress: number; speed: number }> = [];
+      const particleGeo = new THREE.SphereGeometry(0.05, 8, 8);
+
+      nodeData.forEach((node) => {
+        if (node.status !== "running" && node.status !== "retrying") return;
+        node.dependsOn.forEach((depId) => {
+          const fromNode = nodeData.find((n) => n.id === depId);
+          if (!fromNode || fromNode.status !== "completed") return;
+          for (let i = 0; i < 4; i++) {
+            const pMat = new THREE.MeshBasicMaterial({
+              color: STATUS_CONFIG[fromNode.status].color,
+              transparent: true,
+              opacity: 0.8,
+            });
+            const p = new THREE.Mesh(particleGeo, pMat);
+            scene.add(p);
+            particles.push({ mesh: p, from: fromNode, to: node, progress: Math.random(), speed: 0.004 + Math.random() * 0.004 });
+          }
+        });
+      });
+
+      // Camera position
+      const maxX = Math.max(...nodeData.map((n) => Math.abs(n.x)), 4);
+      camera.position.set(0, 0, maxX * 2.2);
+
+      // Raycaster for click
+      const raycaster = new THREE.Raycaster();
+      const mouse = new THREE.Vector2();
+
+      function onClick(event: MouseEvent) {
+        const rect = renderer.domElement.getBoundingClientRect();
+        mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+        const meshes = Array.from(meshMap.values());
+        const intersects = raycaster.intersectObjects(meshes);
+        if (intersects.length > 0) {
+          const nodeId = intersects[0].object.userData.nodeId;
+          if (nodeId) onSelectStage(nodeId);
         }
-        ctx.fillStyle = "#ffffff";
-        ctx.fill();
-        ctx.strokeStyle = colors.fill;
-        ctx.lineWidth = node.status === "running" ? 3 : 2;
-        ctx.stroke();
-
-        // Inner circle with status color
-        ctx.beginPath();
-        if (node.isGate) {
-          ctx.arc(nx, ny, r * 0.5, 0, Math.PI * 2);
-        } else {
-          ctx.arc(nx, ny, r * 0.6, 0, Math.PI * 2);
-        }
-        ctx.fillStyle = colors.fill;
-        ctx.globalAlpha = 0.2;
-        ctx.fill();
-        ctx.globalAlpha = 1;
-
-        // Status icon
-        ctx.font = "bold 10px system-ui";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillStyle = colors.fill;
-        if (node.status === "completed") ctx.fillText("✓", nx, ny);
-        else if (node.status === "failed") ctx.fillText("✗", nx, ny);
-        else if (node.status === "running") ctx.fillText("●", nx, ny);
-        else if (node.status === "awaiting_approval") ctx.fillText("⏸", nx, ny);
-        else if (node.isGate) ctx.fillText("◆", nx, ny);
-        else ctx.fillText("○", nx, ny);
-
-        // Label below node
-        ctx.font = "500 10px system-ui";
-        ctx.textAlign = "center";
-        ctx.fillStyle = isSelected || isHovered ? colors.text : "#64748b";
-        const label = node.agentName.length > 14 ? node.agentName.substring(0, 12) + "…" : node.agentName;
-        ctx.fillText(label, nx, ny + r + 14);
-
-        // Stage ID above node
-        ctx.font = "9px monospace";
-        ctx.fillStyle = "#94a3b8";
-        const stageLabel = node.id.replace(/^s/, "S").replace(/-.*/, "");
-        ctx.fillText(stageLabel, nx, ny - r - 8);
       }
+      renderer.domElement.addEventListener("click", onClick);
 
-      animFrameRef.current = requestAnimationFrame(draw);
-    }
+      // Hover cursor
+      function onMouseMove(event: MouseEvent) {
+        const rect = renderer.domElement.getBoundingClientRect();
+        mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+        const meshes = Array.from(meshMap.values());
+        const intersects = raycaster.intersectObjects(meshes);
+        renderer.domElement.style.cursor = intersects.length > 0 ? "pointer" : "grab";
+      }
+      renderer.domElement.addEventListener("mousemove", onMouseMove);
 
-    animFrameRef.current = requestAnimationFrame(draw);
-    return () => cancelAnimationFrame(animFrameRef.current);
-  }, [canvasSize, selectedStageId, steps, stepStatusKey, zoom, panX, panY]);
+      // Animation
+      let animFrame = 0;
+      function animate() {
+        animFrame = requestAnimationFrame(animate);
+        const t = Date.now() * 0.001;
 
-  // Wheel zoom
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const handler = (e: WheelEvent) => {
-      e.preventDefault();
-      setZoom(z => Math.max(0.3, Math.min(3, z + (e.deltaY > 0 ? -0.1 : 0.1))));
+        // Rotate running nodes
+        meshMap.forEach((mesh) => {
+          const nd = nodeData.find((n) => n.id === mesh.userData.nodeId);
+          if (nd && (nd.status === "running" || nd.status === "retrying")) {
+            mesh.rotation.y = t * 1.5;
+            mesh.position.y = nd.y + Math.sin(t * 2) * 0.1;
+          }
+        });
+
+        // Rotate rings
+        ringMeshes.forEach((ring) => {
+          ring.rotation.z = t * 2;
+          ring.rotation.x = Math.sin(t) * 0.3;
+        });
+
+        // Animate particles
+        particles.forEach((p) => {
+          p.progress += p.speed;
+          if (p.progress > 1) p.progress -= 1;
+          const pt = p.progress;
+          p.mesh.position.x = p.from.x + (p.to.x - p.from.x) * pt;
+          p.mesh.position.y = p.from.y + (p.to.y - p.from.y) * pt;
+          p.mesh.position.z = Math.sin(pt * Math.PI) * 0.4;
+          (p.mesh.material as THREE.MeshBasicMaterial).opacity = 0.3 + Math.sin(pt * Math.PI) * 0.5;
+        });
+
+        controls.update();
+        renderer.render(scene, camera);
+      }
+      animate();
+
+      // Resize
+      const observer = new ResizeObserver(() => {
+        const w = container.clientWidth;
+        const h = container.clientHeight;
+        if (w === 0 || h === 0) return;
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+        renderer.setSize(w, h);
+      });
+      observer.observe(container);
+
+      // Cleanup function
+      cleanupRef.current = () => {
+        cancelAnimationFrame(animFrame);
+        observer.disconnect();
+        renderer.domElement.removeEventListener("click", onClick);
+        renderer.domElement.removeEventListener("mousemove", onMouseMove);
+        controls.dispose();
+        renderer.dispose();
+        scene.clear();
+        if (container.contains(renderer.domElement)) {
+          container.removeChild(renderer.domElement);
+        }
+      };
+    })();
+
+    return () => {
+      cancelled = true;
+      if (cleanupRef.current) {
+        cleanupRef.current();
+        cleanupRef.current = null;
+      }
     };
-    canvas.addEventListener("wheel", handler, { passive: false });
-    return () => canvas.removeEventListener("wheel", handler);
-  }, []);
+  }, [steps, stepStatusKey, selectedStageId, onSelectStage]);
 
-  // Drag pan
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (e.button === 0) {
-      dragRef.current = { active: true, startX: e.clientX, startY: e.clientY, startPanX: panX, startPanY: panY };
-    }
-  }, [panX, panY]);
-
-  const handleMouseMoveNav = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    const d = dragRef.current;
-    if (d.active) {
-      setPanX(d.startPanX + (e.clientX - d.startX));
-      setPanY(d.startPanY + (e.clientY - d.startY));
-    }
-    handleMouseMove(e);
-  }, [handleMouseMove]);
-
-  const handleMouseUp = useCallback(() => {
-    dragRef.current.active = false;
-  }, []);
-
-  return (
-    <div className="w-full h-full relative">
-      <canvas
-        ref={canvasRef}
-        style={{ width: canvasSize.w, height: canvasSize.h }}
-        onClick={handleClick}
-        onMouseMove={handleMouseMoveNav}
-        onMouseDown={handleMouseDown}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-      />
-      {/* Navigation controls */}
-      <div className="absolute bottom-3 right-3 flex flex-col gap-1">
-        <button onClick={() => setZoom(z => Math.min(3, z + 0.2))} className="w-7 h-7 rounded bg-white/90 border border-slate-200 shadow-sm flex items-center justify-center text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors text-xs font-bold" aria-label="Zoom in">+</button>
-        <button onClick={() => setZoom(z => Math.max(0.3, z - 0.2))} className="w-7 h-7 rounded bg-white/90 border border-slate-200 shadow-sm flex items-center justify-center text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors text-xs font-bold" aria-label="Zoom out">−</button>
-        <button onClick={() => { setZoom(1); setPanX(0); setPanY(0); }} className="w-7 h-7 rounded bg-white/90 border border-slate-200 shadow-sm flex items-center justify-center text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors text-[9px] font-mono" aria-label="Reset view">⊙</button>
-      </div>
-      {/* Zoom indicator */}
-      <div className="absolute bottom-3 left-3 font-mono text-[9px] text-slate-400 bg-white/70 px-1.5 py-0.5 rounded">
-        {Math.round(zoom * 100)}%
-      </div>
-    </div>
-  );
+  return <div ref={containerRef} className="w-full h-full" />;
 }
