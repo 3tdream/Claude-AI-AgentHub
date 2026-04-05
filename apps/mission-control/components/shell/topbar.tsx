@@ -1,13 +1,48 @@
 "use client";
 
-import { Search, Command, DollarSign, Zap, Wallet, FolderOpen, ChevronDown } from "lucide-react";
+import { Search, Command, DollarSign, Zap, Wallet, FolderOpen, ChevronDown, Sun, Moon, Monitor } from "lucide-react";
 import { useAppStore } from "@/lib/stores/app-store";
+import type { Theme } from "@/lib/stores/app-store";
 import { useCostSummary } from "@/lib/hooks/use-costs";
 import useSWR from "swr";
 import { useState, useRef, useEffect } from "react";
 import { ActivityToggle } from "@/components/shell/activity-sidebar";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
+
+/** Cycles light → dark → system and applies the class to <html> */
+function ThemeToggle() {
+  const { settings, updateSettings } = useAppStore();
+  const theme = settings.theme;
+
+  const cycle: Record<Theme, Theme> = { light: "dark", dark: "system", system: "light" };
+  const icons: Record<Theme, React.ReactNode> = {
+    light: <Sun className="w-4 h-4" />,
+    dark: <Moon className="w-4 h-4" />,
+    system: <Monitor className="w-4 h-4" />,
+  };
+  const labels: Record<Theme, string> = { light: "Light", dark: "Dark", system: "System" };
+
+  function handleToggle() {
+    const next = cycle[theme];
+    updateSettings({ theme: next });
+    // Apply immediately to DOM (safe: only ever adds 'dark' or 'light')
+    const isDark = next === "dark" || (next === "system" && matchMedia("(prefers-color-scheme:dark)").matches);
+    document.documentElement.classList.toggle("dark", isDark);
+    document.documentElement.classList.toggle("light", !isDark);
+  }
+
+  return (
+    <button
+      onClick={handleToggle}
+      title={`Theme: ${labels[theme]} — click to switch`}
+      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border bg-card text-muted-foreground hover:text-foreground hover:border-primary/30 transition-all"
+    >
+      {icons[theme]}
+      <span className="font-mono text-[10px] hidden sm:inline">{labels[theme]}</span>
+    </button>
+  );
+}
 
 export function Topbar() {
   const { setCommandPaletteOpen, activeProjectId, setActiveProject } = useAppStore();

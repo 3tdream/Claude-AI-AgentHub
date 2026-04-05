@@ -97,15 +97,19 @@ export default function HomePage() {
     }
   }, [agents, agentOrder.length]);
 
-  // Sort agentsWithStats by order, then bubble active agents to the top
+  // Sort agentsWithStats by order, then bubble by status: active → busy → idle
   const orderedAgents = useMemo(() => {
     const base = agentOrder.length > 0
       ? agentOrder.map((id) => agentsWithStats.find((a) => a.agent.id === id)).filter(Boolean) as typeof agentsWithStats
       : agentsWithStats;
     return [...base].sort((a, b) => {
-      const aActive = a.stats && a.stats.runs > 0 ? 1 : 0;
-      const bActive = b.stats && b.stats.runs > 0 ? 1 : 0;
-      return bActive - aActive;
+      const rank = (s: typeof a.stats) => {
+        if (!s || s.runs === 0) return 0;          // idle
+        if (s.successRate > 70) return 2;           // active
+        if (s.successRate > 40) return 1;           // busy
+        return 0;                                   // idle
+      };
+      return rank(b.stats) - rank(a.stats);
     });
   }, [agentOrder, agentsWithStats]);
 

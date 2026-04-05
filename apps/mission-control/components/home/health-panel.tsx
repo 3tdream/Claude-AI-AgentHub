@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import useSWR from "swr";
 import {
   HeartPulse,
@@ -14,7 +14,95 @@ import {
   Plug,
   ChevronDown,
   ChevronRight,
+  Info,
 } from "lucide-react";
+
+// ── Data-source map: subsystem → metric label → source description ──────────
+const DATA_SOURCES: Record<string, Record<string, string>> = {
+  agents: {
+    "Active agents":    "GET /api/agents — live agent registry count",
+    "Avg response":     "GET /api/agents — mean latency over last 5 min",
+    "Error rate":       "GET /api/agents — failed tool calls / total calls",
+    "Queue depth":      "GET /api/agents — pending tasks in agent queue",
+    "Memory usage":     "GET /api/agents — RSS heap reported by each agent",
+    "Uptime":           "GET /api/agents — time since last agent restart",
+  },
+  kb: {
+    "Documents":        "GET /api/kb/stats — total indexed document count",
+    "Index size":       "GET /api/kb/stats — vector store disk usage",
+    "Query latency":    "GET /api/kb/stats — p95 retrieval time (last 100 queries)",
+    "Cache hit rate":   "GET /api/kb/stats — embedding cache hits / total lookups",
+    "Last indexed":     "GET /api/kb/stats — timestamp of most recent ingestion",
+    "Chunks":           "GET /api/kb/stats — total vector chunks stored",
+  },
+  pipeline: {
+    "Active runs":      "GET /api/pipelines — currently executing pipeline count",
+    "Completed today":  "GET /api/pipelines — runs finished since midnight UTC",
+    "Avg duration":     "GET /api/pipelines — mean wall-clock time per run",
+    "Failure rate":     "GET /api/pipelines — failed / total runs (rolling 24 h)",
+    "Queued":           "GET /api/pipelines — runs waiting for executor slot",
+    "Tokens used":      "GET /api/pipelines — cumulative LLM tokens (today)",
+  },
+  dependencies: {
+    "OpenAI":           "GET /api/system/health — latency probe to api.openai.com",
+    "Anthropic":        "GET /api/system/health — latency probe to api.anthropic.com",
+    "Supabase":         "GET /api/system/health — Supabase REST ping",
+    "Redis":            "GET /api/system/health — Redis PING round-trip",
+    "Response time":    "GET /api/system/health — avg external dependency RTT",
+    "Availability":     "GET /api/system/health — uptime % over last 24 h",
+  },
+};
+
+/** Fallback when a label isn't in the map */
+function getDataSource(subsystemId: string, label: string): string {
+  return DATA_SOURCES[subsystemId]?.[label]
+    ?? `GET /api/system/health — subsystem: ${subsystemId}`;
+}
+
+// ── Tooltip component ────────────────────────────────────────────────────────
+function MetricTooltip({ source }: { source: string }) {
+  const [visible, setVisible] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!visible) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setVisible(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [visible]);
+
+  return (
+    <div ref={ref} className="relative inline-flex items-center ml-0.5">
+      <button
+        type="button"
+        aria-label="Data source"
+        onMouseEnter={() => setVisible(true)}
+        onMouseLeave={() => setVisible(false)}
+        onFocus={() => setVisible(true)}
+        onBlur={() => setVisible(false)}
+        className="text-slate-300 hover:text-indigo-400 transition-colors focus:outline-none"
+      >
+        <Info className="w-2.5 h-2.5" />
+      </button>
+      {visible && (
+        <div
+          role="tooltip"
+          className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 z-50
+                     w-52 px-2.5 py-1.5 rounded-md shadow-lg
+                     bg-slate-800 text-white text-[10px] leading-snug
+                     pointer-events-none whitespace-normal"
+        >
+          <p className="font-semibold text-slate-300 mb-0.5">Data source</p>
+          <p className="font-mono text-slate-100 break-all">{source}</p>
+          {/* Arrow */}
+          <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800" />
+        </div>
+      )}
+    </div>
+  );
+}
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -159,7 +247,10 @@ export function HealthPanel() {
                   <div className="grid grid-cols-2 gap-1.5">
                     {sub.metrics.map((m) => (
                       <div key={m.label} className="flex items-center justify-between px-2 py-1 rounded bg-slate-50">
-                        <span className="text-[10px] text-slate-500">{m.label}</span>
+                        <span className="flex items-center gap-0.5 text-[10px] text-slate-500">
+                          {m.label}
+                          <MetricTooltip source={getDataSource(sub.id, m.label)} />
+                        </span>
                         <span className={`font-mono text-[10px] font-medium ${
                           m.status === "ok" ? "text-emerald-600" : m.status === "warn" ? "text-amber-600" : "text-rose-600"
                         }`}>
