@@ -93,13 +93,30 @@ function layoutNodes(
 ): IsoNode[] {
   if (steps.length === 0) return [];
 
-  // Depth via topological sort
+  const stepIds = new Set(steps.map((s) => s.id));
+
+  // Resolve dependencies: if all deps are outside current set,
+  // link to previous step in array order (maintains sequential flow)
+  const resolvedDeps = new Map<string, string[]>();
+  steps.forEach((s, idx) => {
+    const inSetDeps = s.dependsOn.filter((d) => stepIds.has(d));
+    if (inSetDeps.length > 0) {
+      resolvedDeps.set(s.id, inSetDeps);
+    } else if (idx > 0) {
+      // No deps in set — chain to previous step
+      resolvedDeps.set(s.id, [steps[idx - 1].id]);
+    } else {
+      resolvedDeps.set(s.id, []);
+    }
+  });
+
+  // Depth via topological sort using resolved deps
   const depthMap = new Map<string, number>();
   function getDepth(id: string): number {
     if (depthMap.has(id)) return depthMap.get(id)!;
-    const step = steps.find((s) => s.id === id);
-    if (!step || step.dependsOn.length === 0) { depthMap.set(id, 0); return 0; }
-    const d = Math.max(...step.dependsOn.map(getDepth)) + 1;
+    const deps = resolvedDeps.get(id) || [];
+    if (deps.length === 0) { depthMap.set(id, 0); return 0; }
+    const d = Math.max(...deps.map(getDepth)) + 1;
     depthMap.set(id, d);
     return d;
   }
@@ -126,7 +143,7 @@ function layoutNodes(
         id: stepId, agentName: step.agentName, status,
         wx: col * ISO_COL_STEP, wy: rowOffset, wz,
         col, row, isGate, isCheckpoint,
-        dependsOn: step.dependsOn.filter((d) => steps.some((s) => s.id === d)),
+        dependsOn: resolvedDeps.get(stepId) || [],
         sx: 0, sy: 0,
       });
     }
