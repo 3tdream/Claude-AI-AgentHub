@@ -9,7 +9,7 @@
 // ── Stage classification for threshold selection ──
 
 const CRITICAL_STAGES = new Set([
-  "s3.1-overview", "s3.2-api", "s3.3-erd", "s3.4-file-plan",
+  "s3.1-adr", "s3.2-api", "s3.3-erd", "s3.4-fileplan",
   "s5-backend", "s7-frontend",
 ]);
 

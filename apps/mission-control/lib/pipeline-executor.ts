@@ -408,6 +408,7 @@ export async function executePipeline(
     // --- Normal step execution with quality evaluation + retry loop ---
     const threshold = step.metadata?.qualityThreshold ?? 8;
     let retryCount = 0;
+    let modelEscalated = false; // Track whether model was escalated (separate from retryCount)
     let lastFeedback = "";
     let lastScore = 0; // Track previous score for smart retry (not from execution which gets overwritten)
     let currentPrompt = buildPrompt(step, input, context, projectContext, routingDecision?.mode, kbEntries);
@@ -650,7 +651,7 @@ export async function executePipeline(
             step.id,
             agentConfidence,
             stepAnalytics.model || smartModel,
-            retryCount > 0, // already escalated if we retried
+            modelEscalated,
           );
 
           if (terminationAction.action === "escalate_model") {
@@ -1064,13 +1065,13 @@ export async function executePipeline(
           // Check if model will escalate on next retry
           const nextModel = selectModelForStage(step, routingDecision?.mode, retryCount + 1, evaluation.score.overall);
           const currentModel = selectModelForStage(step, routingDecision?.mode, retryCount, lastScore);
-          const modelEscalated = nextModel !== currentModel;
+          if (nextModel !== currentModel) modelEscalated = true;
 
           postLog({
             type: "system",
             agentId: step.agentId,
             agentName: step.agentName,
-            content: `Step scored ${evaluation.score.overall}/10 (below ${threshold}) — retrying (attempt ${retryCount + 2}/${MAX_RETRIES + 1})${modelEscalated ? ` [MODEL ESCALATION: ${currentModel} → ${nextModel}]` : ""}. Feedback: ${evaluation.feedback.slice(0, 200)}`,
+            content: `Step scored ${evaluation.score.overall}/10 (below ${threshold}) — retrying (attempt ${retryCount + 2}/${MAX_RETRIES + 1})${nextModel !== currentModel ? ` [MODEL ESCALATION: ${currentModel} → ${nextModel}]` : ""}. Feedback: ${evaluation.feedback.slice(0, 200)}`,
           }).catch(() => {});
 
           // Run investigation for quality failures too — gives retry agent context

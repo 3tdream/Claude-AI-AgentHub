@@ -640,7 +640,7 @@ CHUNKING RULES:
 3. No file > 200 lines. Split complex components.
 4. Every component must handle: loading, error, empty, populated states
 5. Accessibility: ARIA labels on interactive elements, keyboard navigation`,
-    dependsOn: ["s4.5-arch-gate"],
+    dependsOn: ["s5-backend"],
     outputKey: "design",
     metadata: {
       stageNumber: "6",

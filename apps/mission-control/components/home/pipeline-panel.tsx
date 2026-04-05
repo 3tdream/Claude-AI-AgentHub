@@ -220,7 +220,9 @@ export function PipelinePanel({ activeProjectId, projects, onSelectProject }: {
     }
 
     try {
-      const steps = routingDecision ? filterStepsForRouting(wf.steps, routingDecision) : wf.steps;
+      // Use routing decision from resume execution if available, otherwise component state
+      const effectiveRouting = resumeFrom?.routingDecision || routingDecision || undefined;
+      const steps = effectiveRouting ? filterStepsForRouting(wf.steps, effectiveRouting) : wf.steps;
       const result = await executePipeline(
         steps,
         taskInput,
@@ -246,7 +248,7 @@ export function PipelinePanel({ activeProjectId, projects, onSelectProject }: {
           isPauseRequested: () => useOrchestrationStore.getState().pauseRequested,
           isStopRequested: () => useOrchestrationStore.getState().stopRequested,
         },
-        routingDecision || undefined,
+        effectiveRouting,
         activeProjectId,
         resumeFrom || undefined,
       );
