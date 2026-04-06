@@ -1,4 +1,15 @@
-import type { CostQueryLogRow } from "@/types/costs";
+interface CostQueryLogRow {
+  session_id: string;
+  requested_at: string;
+  start_date: string;
+  end_date: string;
+  cache_hit: boolean;
+  total_usd_returned: number | null;
+  response_status: number;
+  error_code: string | null;
+  upstream_called: boolean;
+  upstream_response_ms: number | null;
+}
 
 /**
  * Fire-and-forget async insert into CostQueryLog.
@@ -18,6 +29,7 @@ async function insertLogRow(row: CostQueryLogRow): Promise<void> {
 
   try {
     // Attempt to load the project's DB client (adjust path to match your project)
+    // @ts-expect-error — DB module does not exist yet; dynamic import is intentional
     const mod = await import("@/lib/db").catch(() => null);
     db = mod?.default ?? mod?.db ?? null;
   } catch {

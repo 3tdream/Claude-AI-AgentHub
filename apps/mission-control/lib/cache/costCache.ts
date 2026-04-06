@@ -1,14 +1,17 @@
-import NodeCache from "node-cache";
 import type { CostApiResponse } from "../../types/costs";
 
-const CACHE_TTL_SECONDS = 60;
+const CACHE_TTL_MS = 60_000;
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
-// Singleton — survives across requests in the same Node.js process
-const cache = new NodeCache({ stdTTL: CACHE_TTL_SECONDS, checkperiod: 30 });
+interface CacheEntry {
+  value: CostApiResponse;
+  expiry: number;
+}
+
+// Singleton Map — survives across requests in the same Node.js process
+const cache = new Map<string, CacheEntry>();
 
 export function buildCacheKey(start: string, end: string): string {
-  // Strict guard against prototype-pollution via crafted date strings
   if (!ISO_DATE_RE.test(start) || !ISO_DATE_RE.test(end)) {
     throw new Error("Invalid date format for cache key construction");
   }
@@ -16,9 +19,15 @@ export function buildCacheKey(start: string, end: string): string {
 }
 
 export function getCached(key: string): CostApiResponse | undefined {
-  return cache.get<CostApiResponse>(key);
+  const entry = cache.get(key);
+  if (!entry) return undefined;
+  if (Date.now() > entry.expiry) {
+    cache.delete(key);
+    return undefined;
+  }
+  return entry.value;
 }
 
 export function setCached(key: string, value: CostApiResponse): void {
-  cache.set(key, value, CACHE_TTL_SECONDS);
+  cache.set(key, { value, expiry: Date.now() + CACHE_TTL_MS });
 }

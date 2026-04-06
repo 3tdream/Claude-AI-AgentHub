@@ -1,4 +1,10 @@
-import type { CacheEntry } from "@/types/costs";
+interface CacheEntry {
+  total_usd: number;
+  period_start: string;
+  period_end: string;
+  fetched_at: number;
+  expires_at: number;
+}
 
 const CACHE_TTL_MS = 300_000; // 5 minutes
 

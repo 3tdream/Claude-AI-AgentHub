@@ -17,6 +17,7 @@ import {
   Zap,
   Settings,
   Home,
+  Network,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/lib/stores/app-store";
@@ -31,6 +32,7 @@ const navItems = [
   { href: "/jira", label: "Jira", icon: TicketCheck },
   { href: "/projects", label: "Projects", icon: FolderOpen },
   { href: "/integrations", label: "Integrations", icon: Plug },
+  { href: "/knowledge-map", label: "Knowledge Map", icon: Network },
   { href: "/guide", label: "Guide", icon: BookOpen },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
