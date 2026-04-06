@@ -11,6 +11,17 @@ AI Agent Management Platform — see [ARCHITECTURE.md](ARCHITECTURE.md) for full
 - File-based storage goes in `data/` — follow `lib/logs-storage.ts` pattern (ensureDataDir, fs/promises).
 - Sensitive files (`data/jira-config.json`) must be in `.gitignore`.
 
+## MANDATORY WORKFLOW (never skip)
+1. **Before ANY code edit** → run task through MC system: `/run <task>` or `POST /api/command`
+2. **Before ANY pipeline** → check KB (`/kb-search`), run simulation
+3. **After ANY change** → verify in browser (Chrome DevTools screenshot), NOT just curl
+4. **If MC system is broken** → fix the system FIRST, do not bypass it
+5. **Never say "done"** without browser screenshot proof
+6. **Every task gets an ID** — track through system, not ad-hoc edits
+7. **Use skills** — `/status`, `/health`, `/deploy-check` before commits
+
+**Why this exists:** Claude repeatedly bypassed MC systems, causing untested features that looked "done" in reports but were broken in the browser. Direct edits skip KB learning, simulation, contracts, and history tracking.
+
 ## Feature Development Workflow
 
 ### Pre-flight Check (MANDATORY before writing code)

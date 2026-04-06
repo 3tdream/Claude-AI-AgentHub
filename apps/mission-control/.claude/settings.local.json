@@ -223,7 +223,27 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(bash scripts/hooks/suggest-compact.sh)",
       "Bash(bash scripts/hooks/memory-persist.sh save)",
-      "Bash(bash -x scripts/hooks/memory-persist.sh save)"
+      "Bash(bash -x scripts/hooks/memory-persist.sh save)",
+      "Bash(grep -n \"interface WorkflowStep\\\\|type WorkflowStep\" lib/types.ts lib/*.ts)",
+      "mcp__claude_ai_AI_Agent_Hub__get_cost_summary",
+      "mcp__claude_ai_AI_Agent_Hub__get_daily_costs",
+      "Bash([ -f \"/c/Users/Ro050/.claude/skills/$skill/SKILL.md\" ])",
+      "Bash(read f:*)",
+      "Bash([ -f \"C:/Users/Ro050/Desktop/ai-projects/apps/mission-control/skills/$s/SKILL.md\" ])",
+      "Bash(MC_URL=http://localhost:3077 node scripts/nightly-evolution.mjs)",
+      "Bash(find C:/Users/Ro050/Desktop/ai-projects/apps/mission-control/data/pipeline-runs/ -name \"*mnk4531*\" -exec cat {} \\\\;)",
+      "Bash(sed 's/.*error //')",
+      "Bash(rm -f components/dashboard/score-circle.tsx)",
+      "Bash(rm -f components/orchestration/stage-status-badge.tsx)",
+      "Bash(rm -f components/shell/command-bar.tsx)",
+      "Bash(rm -f components/shell/mobile-nav.tsx)",
+      "Bash(rm -f components/topbar/CostCounter.tsx)",
+      "Bash(powershell -Command \"Start-Process 'C:\\\\Program Files\\\\Google\\\\Chrome\\\\Application\\\\chrome.exe' -ArgumentList '--remote-debugging-port=9222'\")",
+      "Bash(powershell -Command \"Start-Process 'C:\\\\Program Files \\(x86\\)\\\\Google\\\\Chrome\\\\Application\\\\chrome.exe' -ArgumentList '--remote-debugging-port=9222'\")",
+      "mcp__claude_ai_AI_Agent_Hub__list_agents",
+      "mcp__claude_ai_Three_js_3D_Viewer__learn_threejs",
+      "mcp__claude_ai_Three_js_3D_Viewer__show_threejs_scene",
+      "Skill(update-config)"
     ]
   },
   "hooks": {
@@ -235,6 +255,12 @@
             "type": "command",
             "command": "node scripts/hooks/memory-persist.mjs load",
             "timeout": 10000
+          },
+          {
+            "type": "command",
+            "command": "node scripts/hooks/session-start-rules.mjs",
+            "timeout": 5000,
+            "statusMessage": "Loading MC workflow rules..."
           }
         ]
       }
@@ -252,6 +278,17 @@
             "type": "command",
             "command": "bash scripts/hooks/suggest-compact.sh",
             "timeout": 5000
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash scripts/hooks/mc-workflow-check.sh",
+            "timeout": 3000,
+            "statusMessage": "Checking MC workflow..."
           }
         ]
       }
