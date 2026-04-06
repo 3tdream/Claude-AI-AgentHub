@@ -1,6 +1,7 @@
 "use client";
 
-import { History, FileText, Layers, ExternalLink, Play, FileDown } from "lucide-react";
+import { useState } from "react";
+import { History, FileText, Layers, ExternalLink, Play, FileDown, Filter } from "lucide-react";
 import { toast } from "sonner";
 import type { PipelineExecution } from "@/types";
 
@@ -13,6 +14,8 @@ export interface PipelineHistoryProps {
   onSelectStage: (stageId: string | null) => void;
   onSetPipelineView: (view: "input" | "history") => void;
   onResumeExecution: (exec: PipelineExecution) => void;
+  /** Available projectIds for filter dropdown */
+  projectIds?: string[];
 }
 
 export function PipelineHistory({
@@ -24,7 +27,17 @@ export function PipelineHistory({
   onSelectStage,
   onSetPipelineView,
   onResumeExecution,
+  projectIds = [],
 }: PipelineHistoryProps) {
+  const [projectFilter, setProjectFilter] = useState<string>("");
+
+  const filtered = projectFilter
+    ? executionHistory.filter((e) => (e as any).projectId === projectFilter)
+    : executionHistory;
+
+  // Deduplicate by ID
+  const deduplicated = filtered.filter((exec, idx, arr) => arr.findIndex((e) => e.id === exec.id) === idx);
+
   if (executionHistory.length === 0) {
     return (
       <div className="flex-1 overflow-y-auto p-4">
@@ -40,9 +53,30 @@ export function PipelineHistory({
 
   return (
     <div className="flex-1 overflow-y-auto p-4">
+      {/* Project filter */}
+      {projectIds.length > 0 && (
+        <div className="flex items-center gap-2 mb-3">
+          <Filter className="w-3 h-3 text-slate-400" />
+          <select
+            value={projectFilter}
+            onChange={(e) => setProjectFilter(e.target.value)}
+            className="text-[11px] font-mono bg-white border border-slate-200 rounded px-2 py-1 text-slate-600 focus:outline-none focus:ring-1 focus:ring-indigo-300"
+          >
+            <option value="">All projects ({executionHistory.length})</option>
+            {projectIds.map((pid) => (
+              <option key={pid} value={pid}>{pid}</option>
+            ))}
+          </select>
+          {projectFilter && (
+            <span className="text-[10px] text-slate-400">{deduplicated.length} runs</span>
+          )}
+        </div>
+      )}
+
       <div className="space-y-2">
-        {/* Deduplicate by ID */}
-        {executionHistory.filter((exec, idx, arr) => arr.findIndex((e) => e.id === exec.id) === idx).map((exec) => {
+        {deduplicated.map((exec, index) => {
+          const rowNumber = deduplicated.length - index;
+          const shortId = (exec as any).shortId || `#${rowNumber}`;
           const steps = Object.values(exec.stepResults);
           const done = steps.filter((s) => s.status === "completed").length;
           const failed = steps.filter((s) => s.status === "failed").length;
@@ -69,6 +103,18 @@ export function PipelineHistory({
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
+                    {/* Short ID + row number */}
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-mono text-[10px] font-bold text-indigo-500 bg-indigo-50 px-1.5 py-0.5 rounded">
+                        {shortId}
+                      </span>
+                      <span className="font-mono text-[9px] text-slate-300">#{rowNumber}</span>
+                      {(exec as any).projectId && (
+                        <span className="font-mono text-[9px] text-teal-500 bg-teal-50 px-1.5 rounded">
+                          {(exec as any).projectId}
+                        </span>
+                      )}
+                    </div>
                     <div className="font-mono text-xs text-slate-700 truncate">{exec.input?.substring(0, 400)}</div>
                     <div className="flex items-center gap-2 mt-1.5">
                       <span className={`font-mono text-[10px] uppercase tracking-wide font-medium ${
@@ -97,7 +143,9 @@ export function PipelineHistory({
                     <span className="font-mono text-[9px] text-slate-300">
                       {new Date(exec.startedAt).toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit" })}
                     </span>
-                    <span className="font-mono text-[9px] text-slate-300">{exec.id.substring(0, 8)}</span>
+                    <span className="font-mono text-[9px] text-slate-300">
+                      {new Date(exec.startedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                    </span>
                   </div>
                 </div>
                 {/* Step results mini bar */}
@@ -152,7 +200,7 @@ export function PipelineHistory({
                     Deploy Files
                   </button>
                 )}
-                {/* Resume — reuses completed stages, reruns failed/pending */}
+                {/* Resume */}
                 {(isStale || exec.status === "stopped" || exec.status === "failed") && exec.input && (
                   <button
                     onClick={(e) => {
@@ -174,10 +222,10 @@ export function PipelineHistory({
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement("a");
                     a.href = url;
-                    a.download = `pipeline-${exec.id.substring(0, 8)}.json`;
+                    a.download = `pipeline-${shortId}.json`;
                     a.click();
                     setTimeout(() => URL.revokeObjectURL(url), 200);
-                    toast.success("Exported pipeline JSON");
+                    toast.success(`Exported ${shortId}`);
                   }}
                   className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium text-slate-500 hover:bg-slate-100 transition-colors ml-auto"
                 >

@@ -93,7 +93,11 @@
       "Bash(node_modules/.bin/next:*)",
       "Read(//c/Users/Ro050/Downloads/**)",
       "Bash(python3 -c \":*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(sort -t: -k3 -n)",
+      "Bash(pnpm dev:*)",
+      "Bash(git add:*)",
+      "Bash(git:*)"
     ]
   }
 }

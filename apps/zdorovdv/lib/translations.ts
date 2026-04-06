@@ -117,6 +117,35 @@ export const translations = {
       messageSend: 'Отправить',
       messageSent: 'Сообщение отправлено!',
     },
+    specialists: {
+      title: 'Наши специалисты',
+      subtitle: 'Опытная команда врачей и косметологов',
+      viewAll: 'Все специалисты',
+      experience: 'лет опыта',
+      items: [
+        {
+          name: 'Иванова Елена Сергеевна',
+          role: 'Дерматолог-косметолог',
+          experience: 12,
+          description: 'Специалист по лазерным процедурам и инъекционной косметологии. Кандидат медицинских наук.',
+          avatar: '/specialists/specialist-1.jpg',
+        },
+        {
+          name: 'Петров Андрей Викторович',
+          role: 'Хирург-дерматолог',
+          experience: 18,
+          description: 'Эксперт по удалению новообразований и малоинвазивным хирургическим вмешательствам.',
+          avatar: '/specialists/specialist-2.jpg',
+        },
+        {
+          name: 'Смирнова Ольга Николаевна',
+          role: 'Врач-косметолог',
+          experience: 9,
+          description: 'Специалист по уходу за кожей лица и тела, аппаратной косметологии.',
+          avatar: '/specialists/specialist-3.jpg',
+        },
+      ],
+    },
     footer: {
       description: 'Медицинский центр «Здоровье» — современная клиника в Хабаровске, предлагающая широкий спектр медицинских и косметологических услуг.',
       quickLinks: 'Быстрые ссылки',
@@ -242,6 +271,35 @@ export const translations = {
       messageText: 'Message',
       messageSend: 'Send',
       messageSent: 'Message sent!',
+    },
+    specialists: {
+      title: 'Our Specialists',
+      subtitle: 'An experienced team of doctors and cosmetologists',
+      viewAll: 'All Specialists',
+      experience: 'years of experience',
+      items: [
+        {
+          name: 'Elena Ivanova',
+          role: 'Dermatologist-Cosmetologist',
+          experience: 12,
+          description: 'Specialist in laser procedures and injection cosmetology. Candidate of Medical Sciences.',
+          avatar: '/specialists/specialist-1.jpg',
+        },
+        {
+          name: 'Andrey Petrov',
+          role: 'Surgical Dermatologist',
+          experience: 18,
+          description: 'Expert in removal of neoplasms and minimally invasive surgical procedures.',
+          avatar: '/specialists/specialist-2.jpg',
+        },
+        {
+          name: 'Olga Smirnova',
+          role: 'Cosmetologist',
+          experience: 9,
+          description: 'Specialist in facial and body skin care, hardware cosmetology.',
+          avatar: '/specialists/specialist-3.jpg',
+        },
+      ],
     },
     footer: {
       description: 'Medical Center "Zdorovye" is a modern clinic in Khabarovsk offering a wide range of medical and cosmetic services.',

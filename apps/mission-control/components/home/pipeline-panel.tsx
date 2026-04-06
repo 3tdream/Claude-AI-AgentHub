@@ -53,6 +53,7 @@ export function PipelinePanel({ activeProjectId, projects, onSelectProject }: {
   const executionHistory = useMemo(() => {
     const fileRuns = (fileHistory?.runs || []).map((r: any) => ({
       id: r.id,
+      shortId: r.shortId || "",
       workflowId: r.workflowName === "Direct Execution" ? "direct" : r.id,
       workflowName: r.workflowName || "Unknown",
       status: r.status,
@@ -62,6 +63,7 @@ export function PipelinePanel({ activeProjectId, projects, onSelectProject }: {
       completedAt: r.completedAt,
       totalDuration: r.totalDuration,
       jiraKey: r.jiraKey,
+      projectId: r.projectId || undefined,
     }));
     const storeIds = new Set(storeHistory.map(e => e.id));
     const merged = [...storeHistory, ...fileRuns.filter((r: any) => !storeIds.has(r.id))];
@@ -362,7 +364,7 @@ export function PipelinePanel({ activeProjectId, projects, onSelectProject }: {
                   <History className="w-3 h-3" />
                   History
                   {executionHistory.length > 0 && (
-                    <span className="font-mono text-[9px] bg-slate-200 text-slate-600 px-1 rounded">{executionHistory.length}</span>
+                    <span className="font-mono text-[9px] bg-slate-200 text-slate-600 px-1 rounded">{fileHistory?.total ?? executionHistory.length}</span>
                   )}
                 </button>
               </div>
@@ -481,6 +483,7 @@ export function PipelinePanel({ activeProjectId, projects, onSelectProject }: {
           onSelectStage={setSelectedStageId}
           onSetPipelineView={setPipelineView}
           onResumeExecution={confirmAndExecute}
+          projectIds={fileHistory?.projectIds || []}
         />
       ) : (
         <PipelineInput

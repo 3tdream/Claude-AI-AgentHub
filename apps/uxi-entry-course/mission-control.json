@@ -1,0 +1,16 @@
+{
+  "id": "uxi-entry-course",
+  "name": "UXI Entry Course",
+  "port": 3040,
+  "stack": [
+    "nextjs",
+    "react",
+    "tailwind"
+  ],
+  "entrypoint": "app/page.tsx",
+  "devCommand": "npm run dev",
+  "kb_scope": [
+    "global",
+    "uxi-entry-course"
+  ]
+}

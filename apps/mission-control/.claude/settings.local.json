@@ -243,7 +243,18 @@
       "mcp__claude_ai_AI_Agent_Hub__list_agents",
       "mcp__claude_ai_Three_js_3D_Viewer__learn_threejs",
       "mcp__claude_ai_Three_js_3D_Viewer__show_threejs_scene",
-      "Skill(update-config)"
+      "Skill(update-config)",
+      "Bash(cmd.exe /c \"start \\\\\"\\\\\" \\\\\"C:\\\\Program Files\\\\Google\\\\Chrome\\\\Application\\\\chrome.exe\\\\\" --remote-debugging-port=9222 http://localhost:3077/home\")",
+      "Bash(cmd.exe /c \"start \\\\\"\\\\\" \\\\\"C:\\\\Program Files \\(x86\\)\\\\Google\\\\Chrome\\\\Application\\\\chrome.exe\\\\\" --remote-debugging-port=9222 http://localhost:3077/home\")",
+      "Bash(cmd.exe /c \"taskkill /F /IM chrome.exe\")",
+      "Bash(cmd.exe:*)",
+      "Bash(tasklist.exe)",
+      "Bash(npx @anthropic-ai/claude-code --version)",
+      "Bash(claude --version)",
+      "Bash(claude mcp:*)",
+      "Bash(grep -r \"direct_\\\\|mnn\\\\|nanoid\\\\|shortId\\\\|generateId\" /c/Users/Ro050/Desktop/ai-projects/apps/mission-control/lib/*.ts)",
+      "Bash(grep -n \"taskId\\\\|executionId\" /c/Users/Ro050/Desktop/ai-projects/apps/mission-control/app/api/pipeline/*/route.ts)",
+      "Bash(npx kill-port:*)"
     ]
   },
   "hooks": {

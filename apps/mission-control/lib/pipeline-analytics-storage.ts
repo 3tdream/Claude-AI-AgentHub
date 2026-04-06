@@ -15,6 +15,20 @@ import path from "path";
 const DATA_DIR = path.join(process.cwd(), "data");
 const RUNS_DIR = path.join(DATA_DIR, "pipeline-runs");
 const ANALYTICS_FILE = path.join(DATA_DIR, "pipeline-analytics.json");
+const COUNTER_FILE = path.join(DATA_DIR, "pipeline-counter.json");
+
+// --- Short ID generator (MC-001, MC-002, ...) ---
+
+async function getNextShortId(): Promise<string> {
+  let counter = 0;
+  try {
+    const data = JSON.parse(await fs.readFile(COUNTER_FILE, "utf-8"));
+    counter = data.counter || 0;
+  } catch { /* first run */ }
+  counter++;
+  await fs.writeFile(COUNTER_FILE, JSON.stringify({ counter }, null, 2), "utf-8");
+  return `MC-${String(counter).padStart(3, "0")}`;
+}
 
 async function ensureDir(dir: string) {
   await fs.mkdir(dir, { recursive: true });
@@ -41,6 +55,8 @@ export interface AgentRunRecord {
 
 export interface PipelineRunRecord {
   id: string;
+  /** Short trackable ID: MC-001, MC-002, ... */
+  shortId: string;
   workflowName: string;
   input: string;
   mode: string; // quick | medium | full
@@ -50,6 +66,8 @@ export interface PipelineRunRecord {
   totalDuration: number;
   totalTokens: { input: number; output: number };
   jiraKey?: string;
+  /** Project this run belongs to */
+  projectId?: string;
   agents: AgentRunRecord[];
   stepOutputs?: Record<string, string>;
   /** Full stepResults for UI (file detection, deploy) */
@@ -125,8 +143,11 @@ export async function savePipelineRun(execution: any): Promise<PipelineRunRecord
     }
   }
 
+  const shortId = await getNextShortId();
+
   const record: PipelineRunRecord = {
     id: execution.id,
+    shortId,
     workflowName: execution.workflowName,
     input: execution.input,
     mode: execution.routingDecision?.mode || "unknown",
@@ -136,6 +157,7 @@ export async function savePipelineRun(execution: any): Promise<PipelineRunRecord
     totalDuration: execution.totalDuration || 0,
     totalTokens: { input: totalInput, output: totalOutput },
     jiraKey: execution.jiraKey,
+    projectId: execution.projectId || undefined,
     agents,
     stepOutputs,
     stepResults: execution.stepResults || undefined,

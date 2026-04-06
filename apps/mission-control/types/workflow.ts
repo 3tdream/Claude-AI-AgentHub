@@ -254,6 +254,8 @@ export interface StepTokenUsage {
 
 export interface PipelineExecution {
   id: string;
+  /** Short trackable ID: MC-001, MC-002, ... */
+  shortId?: string;
   workflowId: string;
   workflowName: string;
   status: PipelineStatus;
@@ -268,6 +270,8 @@ export interface PipelineExecution {
   escalatedSteps?: string[];
   jiraKey?: string;
   jiraUrl?: string;
+  /** Project this execution belongs to */
+  projectId?: string;
   routingDecision?: RoutingDecisionData;
   tokenUsage?: Record<string, StepTokenUsage>;
   budgetUsage?: Record<string, { spent: number; limit: number }>;

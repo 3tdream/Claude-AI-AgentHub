@@ -8,6 +8,7 @@ import { StatsSection } from "@/components/landing/stats-section"
 import { AboutPreview } from "@/components/landing/about-preview"
 import { TestimonialsSection } from "@/components/landing/testimonials-section"
 import { CtaSection } from "@/components/landing/cta-section"
+import { SpecialistsSection } from "@/components/landing/specialists-section"
 import { AiChatButton } from "@/components/chat/ai-chat-button"
 
 export default function HomePage() {
@@ -18,6 +19,7 @@ export default function HomePage() {
         <HeroSection />
         <ServicesPreview />
         <StatsSection />
+        <SpecialistsSection />
         <AboutPreview />
         <TestimonialsSection />
         <CtaSection />
