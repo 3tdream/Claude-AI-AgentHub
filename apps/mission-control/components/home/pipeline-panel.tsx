@@ -129,6 +129,30 @@ export function PipelinePanel({ activeProjectId, projects, onSelectProject }: {
           : successEdits.length > 0 ? "partial" as const
           : "failed" as const;
 
+        // Estimate task cost from tool calls (rough: $0.05 per tool call for sonnet)
+        const taskCost = (data.toolCalls?.length ?? 0) * 0.05;
+
+        // Fetch current balance and deduct task cost
+        let remainingBalance: number | undefined;
+        try {
+          const costRes = await fetch("/api/costs/real");
+          if (costRes.ok) {
+            const costData = await costRes.json();
+            const currentBalance = costData.data?.apiBalances?.items?.find((b: { provider: string }) => b.provider === "anthropic")?.balance;
+            if (currentBalance !== undefined) {
+              remainingBalance = Math.max(0, currentBalance - taskCost);
+              // Deduct from stored balance
+              fetch("/api/costs/real", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ updateBalance: { provider: "anthropic", balance: remainingBalance } }),
+              }).catch(() => {});
+            }
+          }
+        } catch {
+          // non-fatal
+        }
+
         const directResult = {
           type: "direct" as const,
           response: data.response,
@@ -139,6 +163,8 @@ export function PipelinePanel({ activeProjectId, projects, onSelectProject }: {
           taskId,
           userInput: taskInput,
           status,
+          taskCost,
+          remainingBalance,
         };
         setResult(directResult);
 

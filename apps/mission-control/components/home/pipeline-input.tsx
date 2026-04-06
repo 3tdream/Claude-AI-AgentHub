@@ -1,6 +1,6 @@
 "use client";
 
-import { GitBranch, FileDown, Link2, Play, BookTemplate } from "lucide-react";
+import { GitBranch, FileDown, Link2, Play, BookTemplate, TriangleAlert, CircleDollarSign } from "lucide-react";
 import { InvestigationCard } from "@/components/orchestration/investigation-card";
 import type { InvestigationData } from "@/components/orchestration/investigation-card";
 import type { RoutingDecisionData, Workflow } from "@/types";
@@ -17,6 +17,9 @@ export interface PipelineInputResult {
   taskId?: string;
   userInput?: string;
   status?: "success" | "partial" | "failed" | "no-edit";
+  // Cost tracking
+  taskCost?: number;
+  remainingBalance?: number;
 }
 
 export interface PipelineInputProps {
@@ -243,6 +246,49 @@ export function PipelineInput({
               <div className="text-sm text-rose-600 bg-rose-50 rounded-lg p-3">{result.message}</div>
             )}
 
+            {/* Cost summary */}
+            {(result.taskCost !== undefined || result.remainingBalance !== undefined) && (
+              <div className="space-y-1.5">
+                {/* Low balance warning */}
+                {result.remainingBalance !== undefined && result.remainingBalance < 3 && (
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200">
+                    <TriangleAlert className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                    <span className="text-xs font-medium text-amber-700">
+                      Low balance — only{" "}
+                      <span className="font-semibold">${result.remainingBalance.toFixed(2)}</span>{" "}
+                      remaining. Top up to avoid interruptions.
+                    </span>
+                  </div>
+                )}
+
+                {/* Cost row */}
+                <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-slate-50 border border-slate-100">
+                  <div className="flex items-center gap-1.5 text-slate-500">
+                    <CircleDollarSign className="w-3.5 h-3.5 shrink-0" />
+                    <span className="text-[11px]">Task cost</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {result.taskCost !== undefined && (
+                      <span className="font-mono text-[11px] font-semibold text-slate-700">
+                        −${result.taskCost.toFixed(4)}
+                      </span>
+                    )}
+                    {result.remainingBalance !== undefined && (
+                      <span className={`font-mono text-[11px] font-medium ${
+                        result.remainingBalance < 3
+                          ? "text-amber-600"
+                          : result.remainingBalance < 10
+                          ? "text-slate-500"
+                          : "text-emerald-600"
+                      }`}>
+                        ${result.remainingBalance.toFixed(2)} left
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
             <button onClick={onClearResult} className="text-xs text-slate-400 hover:text-slate-600">
               Clear
             </button>
@@ -289,9 +335,24 @@ export function PipelineInput({
           <button
             onClick={onExecute}
             disabled={loading || !input.trim()}
-            className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-30 transition-colors"
+            className="relative flex items-center justify-center gap-2 min-w-[72px] px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-all duration-200 overflow-hidden"
           >
-            {loading ? "..." : "Run"}
+            {loading ? (
+              <>
+                {/* Animated shimmer bar across button bottom */}
+                <span className="absolute bottom-0 left-0 h-[2px] w-full bg-white/20 overflow-hidden rounded-b-lg">
+                  <span className="absolute inset-y-0 left-[-100%] w-1/2 bg-white/60 animate-[runSlide_1s_ease-in-out_infinite]" />
+                </span>
+                {/* Spinner + label */}
+                <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" />
+                <span className="text-white/90">Running</span>
+              </>
+            ) : (
+              <>
+                <Play className="w-3.5 h-3.5 shrink-0" />
+                <span>Run</span>
+              </>
+            )}
           </button>
         </div>
       </div>
