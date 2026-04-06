@@ -17,9 +17,11 @@
         "mandatory"
       ],
       "createdAt": "2026-03-22T18:07:40.430Z",
-      "updatedAt": "2026-03-23T20:00:00.000Z",
+      "updatedAt": "2026-04-02T20:28:59.086Z",
       "pipelineRunId": "pipeline-v3-test",
-      "version": 2
+      "version": 2,
+      "confidence": 0.94,
+      "confirmCount": 0
     },
     {
       "id": "kb-sp-002",
@@ -35,9 +37,11 @@
         "vpc"
       ],
       "createdAt": "2026-03-22T18:07:40.430Z",
-      "updatedAt": "2026-03-22T18:07:40.430Z",
+      "updatedAt": "2026-04-02T20:28:59.086Z",
       "pipelineRunId": "pipeline-v3-test",
-      "version": 1
+      "version": 1,
+      "confidence": 0.92,
+      "confirmCount": 0
     },
     {
       "id": "kb-sp-003",
@@ -54,9 +58,11 @@
         "decorator"
       ],
       "createdAt": "2026-03-22T18:09:15.452Z",
-      "updatedAt": "2026-03-22T18:09:15.452Z",
+      "updatedAt": "2026-04-02T20:28:59.086Z",
       "pipelineRunId": "pipeline-v3-test",
-      "version": 1
+      "version": 1,
+      "confidence": 0.92,
+      "confirmCount": 0
     },
     {
       "id": "kb-sp-004",
@@ -72,9 +78,11 @@
         "brute-force"
       ],
       "createdAt": "2026-03-22T18:09:15.452Z",
-      "updatedAt": "2026-03-22T18:09:15.452Z",
+      "updatedAt": "2026-04-02T20:28:59.086Z",
       "pipelineRunId": "pipeline-v3-test",
-      "version": 1
+      "version": 1,
+      "confidence": 0.92,
+      "confirmCount": 0
     },
     {
       "id": "kb-sp-005",
@@ -90,9 +98,11 @@
         "headers"
       ],
       "createdAt": "2026-03-22T18:07:40.430Z",
-      "updatedAt": "2026-03-22T18:07:40.430Z",
+      "updatedAt": "2026-04-02T20:28:59.086Z",
       "pipelineRunId": "pipeline-v3-test",
-      "version": 1
+      "version": 1,
+      "confidence": 0.92,
+      "confirmCount": 0
     },
     {
       "id": "kb-sp-006",
@@ -109,9 +119,11 @@
         "compliance"
       ],
       "createdAt": "2026-03-22T18:09:15.452Z",
-      "updatedAt": "2026-03-22T18:09:15.452Z",
+      "updatedAt": "2026-04-02T20:28:59.086Z",
       "pipelineRunId": "pipeline-v3-test",
-      "version": 1
+      "version": 1,
+      "confidence": 0.92,
+      "confirmCount": 0
     },
     {
       "id": "kb-sp-007",
@@ -126,9 +138,11 @@
         "input-validation"
       ],
       "createdAt": "2026-03-24T10:52:09.535Z",
-      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-04-02T20:28:59.086Z",
       "pipelineRunId": "pipeline-runs-analysis",
-      "version": 1
+      "version": 1,
+      "confidence": 0.95,
+      "confirmCount": 0
     },
     {
       "id": "kb-sp-008",
@@ -143,9 +157,11 @@
         "access-control"
       ],
       "createdAt": "2026-03-24T10:52:09.535Z",
-      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-04-02T20:28:59.086Z",
       "pipelineRunId": "pipeline-runs-analysis",
-      "version": 1
+      "version": 1,
+      "confidence": 0.95,
+      "confirmCount": 0
     },
     {
       "id": "kb-sp-009",
@@ -160,9 +176,11 @@
         "resource-limits"
       ],
       "createdAt": "2026-03-24T10:52:09.535Z",
-      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-04-02T20:28:59.086Z",
       "pipelineRunId": "pipeline-runs-analysis",
-      "version": 1
+      "version": 1,
+      "confidence": 0.95,
+      "confirmCount": 0
     },
     {
       "id": "kb-sp-010",
@@ -177,9 +195,11 @@
         "implementation-gap"
       ],
       "createdAt": "2026-03-24T10:52:09.535Z",
-      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-04-02T20:28:59.086Z",
       "pipelineRunId": "pipeline-runs-analysis",
-      "version": 1
+      "version": 1,
+      "confidence": 0.95,
+      "confirmCount": 0
     },
     {
       "id": "kb-sp-011",
@@ -194,9 +214,11 @@
         "mutation-security"
       ],
       "createdAt": "2026-03-24T10:52:09.535Z",
-      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-04-02T20:28:59.086Z",
       "pipelineRunId": "pipeline-runs-analysis",
-      "version": 1
+      "version": 1,
+      "confidence": 0.95,
+      "confirmCount": 0
     },
     {
       "id": "kb-sp-012",
@@ -212,12 +234,14 @@
         "compliance"
       ],
       "createdAt": "2026-03-24T10:52:09.535Z",
-      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-04-02T20:28:59.086Z",
       "pipelineRunId": "pipeline-runs-analysis",
-      "version": 1
+      "version": 1,
+      "confidence": 0.95,
+      "confirmCount": 0
     }
   ],
-  "contentHash": "f6096f4e7d9e45e14ff82352edb50ed5ed52b8d3797f0179e791f7dbafe290a0",
-  "lastUpdated": "2026-03-24T10:52:09.668Z",
+  "contentHash": "7a97ad45f0b2eeda1210015c57e5ce0905ab4e8aaf11eff5d3e286ec6ba4bcca",
+  "lastUpdated": "2026-04-02T20:28:59.087Z",
   "schemaVersion": 1
 }

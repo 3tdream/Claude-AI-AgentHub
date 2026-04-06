@@ -1,6 +1,6 @@
 {
   "_description": "Reusable patterns and anti-patterns — maintained by Architect-Agent and Backend-Agent",
-  "_updated": "2026-03-27",
+  "_updated": "2026-04-05",
   "patterns": [
     {
       "id": "PAT-001",
@@ -231,6 +231,51 @@
       "code_reference": "",
       "when_to_use": "The pipeline does not currently differentiate audit depth based on s4-cyber's risk classification. A Low-risk pre-screen does not trigger a lightweight audit path — s10-cyber-audit runs full-depth regardless.",
       "source_pipeline": "b158e1d7-f699-4eb0-8578-8c50e81e6856"
+    },
+    {
+      "id": "PAT-027",
+      "name": "Three.js/React Three Fiber for In-App 3D Pipeline Visualization",
+      "context": "The ADR (s3.1-adr) resolved to implement a dedicated canvas component using Three.js via React Three Fiber for rendering an animated 3D pipeline preview with agent connection nodes. This kept 3D rendering isolated from the main React tree, avoiding layout/hydration interference.",
+      "pattern": "Encapsulate WebGL/Three.js canvas in a self-contained component boundary. Use React Three Fiber as the React-idiomatic bridge to avoid imperative Three.js lifecycle leaking into component state. Apply this pattern for any future real-time visualization feature (topology maps, execution graphs).",
+      "code_reference": "",
+      "when_to_use": "N/A — deliberate design decision",
+      "source_pipeline": "3141bd05-a01c-4fc8-9227-7f14d1d44f60"
+    },
+    {
+      "id": "PAT-028",
+      "name": "Cyber-Agent Pre-Validation on UI Filtering Features Confirms Low-Risk Pattern",
+      "context": "Step s4-cyber ran proactively on a purely frontend filtering task (showing active agents/connections in pipeline activity view) and returned Risk Level: Low with a 10/10 score in 17.8s. This confirms the pipeline correctly gates even UI-only changes through security review.",
+      "pattern": "Maintain this gate for all pipeline graph modifications. Even read-only UI filters can expose internal topology data (agent names, connection metadata, active state signals) that may leak architectural information. The low-risk verdict here is correct but not automatic — the gate earns its place.",
+      "code_reference": "",
+      "when_to_use": "N/A — this is a positive pattern, not a failure.",
+      "source_pipeline": "89621d18-21b8-49e0-857f-326343cf8389"
+    },
+    {
+      "id": "PAT-029",
+      "name": "Cyber Re-evaluation Gate After Frontend Implementation",
+      "context": "The pipeline ran a two-pass security review: s4-cyber assessed risk pre-implementation, then s3.5-cyber-reeval-1 re-evaluated the actual implementation post-build. This caught any delta between the approved design and what was actually shipped.",
+      "pattern": "This pattern (pre-flight cyber scan → build → post-build cyber re-eval) is the correct approach for UI features that touch data exposure surfaces. The 22.3s re-eval cost is justified for any feature rendering backend-sourced metadata in the UI. Standardize this two-gate pattern for all tooltip, metadata-display, and data-label features.",
+      "code_reference": "",
+      "when_to_use": "N/A — intentional pipeline design.",
+      "source_pipeline": "de37f599-e9f8-4730-bc03-dc8ca5bbdbed"
+    },
+    {
+      "id": "PAT-030",
+      "name": "Two-Pass Security Review with Cyber Re-Evaluation After Architect Redesign",
+      "context": "The pipeline ran a dedicated cyber re-evaluation step (s3.5-cyber-reeval-1) after the architect's redesign output (s3.2-api-redesign-1), creating a closed feedback loop where security findings from the initial scan (s4-cyber) were validated against the actual implementation post-fix rather than trusting the fix blindly.",
+      "pattern": "Retain this two-pass pattern (initial cyber scan → architect fix → cyber re-eval) for any UI feature that touches persistent state, auth tokens, or user preferences. The 19.6s re-eval cost is low relative to the risk of shipping an unverified fix.",
+      "code_reference": "",
+      "when_to_use": "N/A — this is an intentional architectural pattern, not a failure.",
+      "source_pipeline": "9b809e37-786e-40e3-bc2f-90351bfab453"
+    },
+    {
+      "id": "PAT-031",
+      "name": "Cyber Pre-Check on UI Mutations Catches Interaction Vulnerabilities Early",
+      "context": "s4-cyber ran before s7-frontend and identified the debounce/disabled-state risk at the design level — before any code was written. This sequencing allowed the frontend agent to incorporate the fix proactively rather than reactively.",
+      "pattern": "Always route UI mutation tasks through a cyber/risk pre-check step when the change involves interactive controls. The cyber agent's finding directly shaped the frontend implementation, resulting in a 10/10 score with zero retries.",
+      "code_reference": "",
+      "when_to_use": "UI changes that affect user-triggered actions (buttons, forms, inputs) carry implicit security and UX risks (double-submit, CSRF-adjacent patterns, state desync) that are easy to miss when focused purely on visual implementation.",
+      "source_pipeline": "27faae26-2b4f-4e13-8c3b-0703ef23cb65"
     }
   ],
   "anti_patterns": [

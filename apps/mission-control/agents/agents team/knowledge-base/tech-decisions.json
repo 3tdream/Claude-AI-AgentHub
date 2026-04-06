@@ -1,6 +1,6 @@
 {
   "_description": "Architecture Decision Records — maintained by Architect-Agent and DevOps-Agent",
-  "_updated": "2026-03-26",
+  "_updated": "2026-04-05",
   "decisions": [
     {
       "id": "ADR-001",
@@ -175,6 +175,61 @@
       "tradeoffs": "N/A — successful execution. Prior failure context was leveraged proactively.",
       "alternatives_rejected": [],
       "source_pipeline": "50f840fa-feec-4271-8da6-07af9874fa1a"
+    },
+    {
+      "id": "ADR-015",
+      "title": "PRD Gate Passed on Skipped PRD — Routing Mode Dependency Risk",
+      "date": "2026-03",
+      "status": "accepted",
+      "context": "s2.5-prd-gate scored 10/10 and passed despite the PRD step being skipped by the router (quick/medium routing mode). The gate evaluated the original task description directly rather than a formal PRD artifact. This worked here but represents a structural assumption.",
+      "decision": "When PRD is skipped, the gate should explicitly flag the bypass in its verdict metadata (e.g., `prd_source: task_description`). Downstream agents (ADR, Designer) should be aware they are operating without a formal requirements artifact. Consider enforcing full PRD for tasks involving new UI primitives or third-party library adoption.",
+      "tradeoffs": "Quick/medium routing mode bypasses PRD generation. The gate compensated by validating task intent directly — acceptable for well-scoped tasks, but fragile for ambiguous ones.",
+      "alternatives_rejected": [],
+      "source_pipeline": "3141bd05-a01c-4fc8-9227-7f14d1d44f60"
+    },
+    {
+      "id": "ADR-016",
+      "title": "Shell Layout Sidebar State Managed at Layout Level in Next.js App Router",
+      "date": "2026-04",
+      "status": "accepted",
+      "context": "The s7-frontend agent (which required 1 retry, indicating initial complexity) confirmed the collapse menu was implemented by modifying `app/(shell)/layout.tsx` and `components/shell/sidebar.ts`. This establishes a pattern where persistent UI shell state lives at the layout boundary rather than in individual page components.",
+      "decision": "For MC pages or similar shell-based architectures, document upfront that sidebar/navigation state belongs in `app/(shell)/layout.tsx`. This avoids investigative overhead on future tasks. Consider adding a codebase map or ADR (Architecture Decision Record) noting the shell component boundaries so agents and developers skip the discovery phase.",
+      "tradeoffs": "The retry on s7-frontend likely stemmed from the need to first investigate the existing codebase structure before implementation — the agent had to discover the shell/layout architecture before knowing where to correctly inject collapse behavior.",
+      "alternatives_rejected": [],
+      "source_pipeline": "b9e9c409-a865-441e-a237-fae15670af61"
+    },
+    {
+      "id": "ADR-017",
+      "title": "Frontend Agent Read-Before-Write Pattern on health-panel.tsx",
+      "date": "2026-04",
+      "status": "accepted",
+      "context": "s7-frontend explicitly read the health panel file before implementing tooltips (\"I'll read the health panel to understand the current metric boxes structure before implementing\"), achieving a 10/10 quality score with zero retries in 39.8s.",
+      "decision": "Confirming that the read-file-first discipline on components/home/health-panel.tsx before any structural UI modification is the correct pattern. Agents that skip the read step and assume structure tend to produce misaligned implementations requiring retries. This should be enforced as a pre-condition in frontend agent prompts for any component-modification task.",
+      "tradeoffs": "N/A — deliberate approach.",
+      "alternatives_rejected": [],
+      "source_pipeline": "de37f599-e9f8-4730-bc03-dc8ca5bbdbed"
+    },
+    {
+      "id": "ADR-018",
+      "title": "Theme Toggle Scoped to Topbar Component Next to Project Selector",
+      "date": "2026-04",
+      "status": "accepted",
+      "context": "The dark mode toggle was placed in the topbar (`components/shell/topbar.tsx`) adjacent to the project selector rather than in a settings page or sidebar. This is a deliberate UX placement decision — persistent, always-visible, contextually near other workspace-level controls.",
+      "decision": "Maintain this pattern for workspace-level toggles (theme, locale, density). Reserve sidebar slots for navigation and settings pages for account-level preferences. If the topbar becomes crowded, group these controls into a single icon-button dropdown rather than adding more inline buttons.",
+      "tradeoffs": "N/A — intentional design choice.",
+      "alternatives_rejected": [],
+      "source_pipeline": "9b809e37-786e-40e3-bc2f-90351bfab453"
+    },
+    {
+      "id": "ADR-019",
+      "title": "Optimistic UI Disabled State Pattern for Async Triggers",
+      "date": "2026-04",
+      "status": "accepted",
+      "context": "s7-frontend implemented a loading animation on the run button by reading the existing pipeline-input component first, then applying a disabled + animated state during execution. This pattern was flagged proactively by s4-cyber as a risk surface if not handled correctly.",
+      "decision": "Pair any loading animation on a trigger button with: (1) immediate disabled state on click, (2) visual spinner/animation, (3) re-enable only on settled promise (resolve or reject). Never rely on animation alone to signal non-interactivity.",
+      "tradeoffs": "Run buttons without proper disabled state during async operations allow duplicate submissions, race conditions, and inconsistent UI feedback — a common oversight when adding visual polish without considering interaction logic.",
+      "alternatives_rejected": [],
+      "source_pipeline": "27faae26-2b4f-4e13-8c3b-0703ef23cb65"
     }
   ]
 }

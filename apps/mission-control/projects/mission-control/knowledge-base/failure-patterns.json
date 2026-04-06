@@ -1,6 +1,6 @@
 {
   "_description": "Known issues, root causes, and solutions — maintained by QA-Agent and all agents",
-  "_updated": "2026-03-28",
+  "_updated": "2026-04-05",
   "patterns": [
     {
       "id": "FAIL-001",
@@ -1015,6 +1015,190 @@
         "styles/globals.css",
         "styles/theme.ts",
         "package.json"
+      ]
+    },
+    {
+      "id": "FAIL-098",
+      "category": "security",
+      "title": "Insufficient DOMPurify scope — StepResult.output/error/evaluationFeedback rendered unsanitized in drei Html overlays",
+      "symptoms": "ADR-013 mandates DOMPurify only on `step.agentName`; however StepResult exposes `output`, `error`, `evaluationFeedback`, and `toolCalls[].result` — all LLM-generated strings — that could be injected into drei Html overlays without sanitization, enabling stored XSS in a WebGL canvas context where CSP frame-ancestors controls are absent.",
+      "root_cause": "The ADR scopes sanitization to a single field (`agentName`) while the data model (`StepResult`) contains multiple free-text LLM-output fields. Developers implementing tooltip/detail overlays will naturally reach for `step.output` or `step.error` without realising they are outside the documented sanitization perimeter.",
+      "solution": "Centralise sanitization in a single helper `sanitizeStepText(s: string) => DOMPurify.sanitize(s, { ALLOWED_TAGS: [] })` and apply it to ALL StepResult string fields before passing them to any drei Html component. Add an ESLint rule (no-unsanitized) targeting `components/orchestration/` to enforce this at CI time.",
+      "date_discovered": "2026-03-29",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "components/orchestration/pipeline-3d-preview.tsx",
+        "components/orchestration/agent-node-3d.tsx",
+        "components/orchestration/connection-beam-3d.tsx",
+        "types/workflow.ts"
+      ]
+    },
+    {
+      "id": "FAIL-099",
+      "category": "missing_file",
+      "title": "3D Pipeline Preview — All Specified Files Missing from Repository",
+      "symptoms": "Frontend implementation claimed to create 10+ files (styles/globals.css, components/domain/pipeline-3d-preview.tsx, agent-node.tsx, connection-beam.tsx, agent-label.tsx, pipeline-legend.tsx, execution-hud.tsx, components/layouts/pipeline-canvas-layout.tsx, components/ui/badge.tsx, components/ui/card.tsx, components/ui/progress-ring.tsx, components/icons/agent-icons.tsx) but NONE of them exist on disk. components/domain/ directory does not exist. styles/ directory does not exist. components/ui/ only contains button.tsx, bottom-sheet.tsx, empty-state.tsx — no badge, card, or progress-ring.",
+      "root_cause": "The frontend agent reported \"I'll start by creating the core files immediately\" but the pipeline was routed in quick/medium mode and the actual file writes were never executed. The implementation step produced only a description/plan, not actual committed files.",
+      "solution": "Re-run the frontend implementation step with full execution mode. Ensure the agent actually writes all files to disk before QA runs. Verify with list_files after each create_file call. The 3D pipeline preview requires: Three.js/React Three Fiber OR a CSS/SVG-based 3D simulation (since @react-three/fiber is not in package.json). Given the current dependency set (motion, lucide-react, tailwindcss), the implementation should use CSS 3D transforms + SVG animated beams rather than WebGL.",
+      "date_discovered": "2026-03-29",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "styles/globals.css",
+        "components/domain/pipeline-3d-preview.tsx",
+        "components/domain/agent-node.tsx",
+        "components/domain/connection-beam.tsx",
+        "components/domain/agent-label.tsx",
+        "components/domain/pipeline-legend.tsx",
+        "components/domain/execution-hud.tsx",
+        "components/layouts/pipeline-canvas-layout.tsx",
+        "components/ui/badge.tsx",
+        "components/ui/card.tsx",
+        "components/ui/progress-ring.tsx",
+        "components/icons/agent-icons.tsx"
+      ]
+    },
+    {
+      "id": "FAIL-100",
+      "category": "security",
+      "title": "XSS via unsanitized Zustand-persisted strings rendered in 3D pipeline overlay",
+      "symptoms": "StepResult.output and agentName strings read from useOrchestrationStore (which uses zustand/persist → localStorage) are rendered into DOM overlays inside pipeline-3d-preview.tsx without sanitization, allowing stored XSS if a malicious workflow payload is injected into localStorage or received from an API response that populates the store.",
+      "root_cause": "zustand persist middleware serializes the full OrchestrationState to localStorage. Any string field (agentName, StepResult.output, workflow.name, step.name) can be tampered with by an attacker with local access or via a reflected/stored payload from the pipeline API. When the 3D preview renders these strings into React JSX without sanitization, React's dangerouslySetInnerHTML or even plain text nodes inside SVG foreignObject elements can execute scripts in certain rendering paths.",
+      "solution": "All strings sourced from useOrchestrationStore that are rendered in pipeline-3d-preview.tsx MUST be passed through DOMPurify.sanitize(s, { ALLOWED_TAGS: [] }) before use. Import DOMPurify lazily (it requires window) inside the ssr:false dynamic component. Apply sanitization at the point of reading from the store, not at the point of rendering, so every code path is covered. Never use dangerouslySetInnerHTML with store-sourced strings.",
+      "date_discovered": "2026-03-29",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "components/orchestration/pipeline-3d-preview.tsx",
+        "lib/stores/orchestration-store.ts"
+      ]
+    },
+    {
+      "id": "FAIL-101",
+      "category": "broke-something",
+      "title": "Frontend implementation reported success but delivered zero files to disk",
+      "symptoms": "All 12 files specified in the design spec FILE TREE are absent. grep across entire project returns no matches for any component name. styles/ and components/domain/ directories do not exist. Feature is completely non-functional.",
+      "root_cause": "The frontend-agent reported creating files (\"I'll start by creating the core files immediately\") but no file creation tool calls were executed or persisted. The implementation step produced only a verbal description without actual file writes.",
+      "solution": "Frontend-agent must re-implement all 12 files: styles/globals.css (design tokens + 3D keyframes), styles/theme.ts, components/domain/{pipeline-3d-preview,agent-node,connection-beam,agent-label,pipeline-legend}.tsx, components/layouts/pipeline-canvas-layout.tsx, components/icons/agent-icons.tsx, components/ui/{progress-ring,badge,card}.tsx. Also update app/(shell)/orchestration/page.tsx to render the new component.",
+      "date_discovered": "2026-03-29",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "styles/globals.css",
+        "styles/theme.ts",
+        "components/domain/pipeline-3d-preview.tsx",
+        "components/domain/agent-node.tsx",
+        "components/domain/connection-beam.tsx",
+        "components/domain/agent-label.tsx",
+        "components/domain/pipeline-legend.tsx",
+        "components/layouts/pipeline-canvas-layout.tsx",
+        "components/icons/agent-icons.tsx",
+        "components/ui/progress-ring.tsx",
+        "components/ui/badge.tsx",
+        "components/ui/card.tsx",
+        "app/(shell)/orchestration/page.tsx"
+      ]
+    },
+    {
+      "id": "FAIL-102",
+      "category": "broke-something",
+      "title": "3D Pipeline Preview feature completely unimplemented — zero deliverables on disk",
+      "symptoms": "All 12+ files specified in the design spec (components/domain/, components/layouts/, components/icons/, styles/theme.ts, styles/globals.css, components/ui/progress-ring.tsx, components/ui/badge.tsx, components/ui/card.tsx) are absent from the repository. grep across app/ and components/ for any 3D/pipeline-preview/connection-beam/node-pulse identifiers returns zero matches. The orchestration page.tsx was not updated to render any new 3D preview component. The feature is completely unreachable by users.",
+      "root_cause": "The frontend-agent reported creating files but none were persisted to disk. The implementation step either failed silently, wrote to a wrong path, or was skipped entirely. The Technical QA (S5) confirmed this with grep exit code 1 across the entire project.",
+      "solution": "Frontend-agent must re-implement from scratch: (1) Create components/orchestration/pipeline-3d-preview.tsx as the root component, (2) Create sub-components for agent nodes with CSS 3D transforms, (3) Create SVG connection beams with keyframe animations, (4) Add CSS keyframes (node-pulse, beam-travel, beam-shimmer, node-float) to app/globals.css, (5) Import and render Pipeline3DPreview in app/(shell)/orchestration/page.tsx. Verify with grep after creation.",
+      "date_discovered": "2026-03-29",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "components/orchestration/pipeline-3d-preview.tsx",
+        "app/(shell)/orchestration/page.tsx",
+        "app/globals.css"
+      ]
+    },
+    {
+      "id": "FAIL-103",
+      "category": "security",
+      "title": "SVG animation CSS injection via unescaped store string values in style attributes",
+      "symptoms": "Store fields like step.agentName or step.name used directly in CSS custom properties (e.g. style={{ '--label': step.name }}) or SVG attribute strings allow CSS injection; a crafted workflow name containing `); background:url(//evil` breaks out of the property value and can exfiltrate data or alter rendering.",
+      "root_cause": "Zustand store persists workflow/step data to localStorage via zustand/middleware persist. Any string field (agentName, name, output) loaded from localStorage is attacker-controlled if the user imports a malicious workflow JSON. If the component passes these strings into SVG attribute values or CSS custom properties without sanitization, CSS injection is possible even without dangerouslySetInnerHTML.",
+      "solution": "Never interpolate store strings into CSS custom properties or SVG attribute strings. Use only React text children ({step.name}) for labels. For dynamic CSS values (animation-delay, color), derive them from safe numeric/enum fields (step index, status enum) — never from free-text store fields. Add ESLint rule no-restricted-syntax to ban style={{ [storeField]: ... }} patterns in components/orchestration/.",
+      "date_discovered": "2026-03-29",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "components/orchestration/pipeline-3d-preview.tsx",
+        "lib/stores/orchestration-store.ts"
+      ]
+    },
+    {
+      "id": "FAIL-104",
+      "category": "bad-code",
+      "title": "3D Pipeline Not Implemented — Zero Code Changes Made",
+      "symptoms": "No 3D pipeline template, store integration, or UI components exist. Grep for \"3D\" or \"3d\" across the entire codebase returns zero results. The task \"implement 3d pipeline exactly like 2d\" was not executed at all.",
+      "root_cause": "The implementation agent got stuck in a read-only loop (16 tool calls, 0 edits) and never created the 3D pipeline template or integrated it into the orchestration store.",
+      "solution": "1. Create a 3D pipeline template in lib/pipeline-templates.ts (e.g., PIPELINE_3D_STAGES) mirroring CRM_PIPELINE_STAGES with identical step order, dependsOn connections, and metadata structure. 2. Export it alongside the existing CRM template. 3. Register it in orchestration-store.ts so it can be loaded into workflow slots. 4. Add any necessary UI entry points (dropdown option, template selector) so users can select the 3D pipeline.",
+      "date_discovered": "2026-04-02",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "lib/pipeline-templates.ts",
+        "lib/stores/orchestration-store.ts"
+      ]
+    },
+    {
+      "id": "FAIL-105",
+      "category": "security",
+      "title": "CSS Class Injection via unvalidated theme value from localStorage",
+      "symptoms": "Theme value read from localStorage (Zustand persist) could contain arbitrary strings. If interpolated into classList.add() or className, attacker can inject arbitrary CSS classes into document root.",
+      "root_cause": "TypeScript union type `Theme = 'light' | 'dark' | 'system'` has no runtime enforcement. localStorage is attacker-writable. The inline FOUC script and updateSettings action both trust the stored value without validation.",
+      "solution": "1) Add allowlist check in layout.tsx inline script: `if(t!=='dark'&&t!=='light'&&t!=='system') t='dark'`. 2) Add runtime validation in app-store.ts updateSettings before persisting theme. 3) Always apply theme via classList.toggle('dark', bool) — never interpolate the raw theme string into class/style attributes.",
+      "date_discovered": "2026-04-04",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/layout.tsx",
+        "lib/stores/app-store.ts"
+      ]
+    },
+    {
+      "id": "FAIL-106",
+      "category": "bad-code",
+      "title": "Perplexity API integration files were never deployed to the codebase",
+      "symptoms": "All 6 files from the implementation plan (types/research.ts, lib/perplexity-client.ts, lib/research-tools.ts, app/api/research/route.ts, app/api/research/search/route.ts, app/api/research/analyze/route.ts) do not exist on disk. grep for \"perplexity\" returns zero matches across the entire project. No app/api/research/ directory exists.",
+      "root_cause": "The backend implementation step generated code in the pipeline output (Section 3 JSON) but the files were never actually written to the filesystem via create_file calls. The implementation was described but not executed.",
+      "solution": "All 6 files must be created on disk using create_file: types/research.ts, lib/perplexity-client.ts, lib/research-tools.ts, app/api/research/route.ts, app/api/research/search/route.ts, app/api/research/analyze/route.ts. Additionally, the research tool must be registered in lib/agent-tools.ts and PERPLEXITY_API_KEY must be added to .env.example.",
+      "date_discovered": "2026-04-05",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "types/research.ts",
+        "lib/perplexity-client.ts",
+        "lib/research-tools.ts",
+        "app/api/research/route.ts",
+        "app/api/research/search/route.ts",
+        "app/api/research/analyze/route.ts",
+        "lib/agent-tools.ts",
+        ".env.example"
+      ]
+    },
+    {
+      "id": "FAIL-107",
+      "category": "security",
+      "title": "Perplexity API integration never deployed — zero security controls on planned external API surface",
+      "symptoms": "All 6 implementation files (lib/perplexity-client.ts, lib/research-tools.ts, types/research.ts, app/api/research/*) are missing from disk. No PERPLEXITY_API_KEY validation, no rate limiting, no auth middleware, no input sanitization exists for the planned research API routes.",
+      "root_cause": "Backend implementation step was skipped by the router. Code was generated as pipeline JSON output but never written to the filesystem. The planned API routes would have been unauthenticated public endpoints with no rate limiting, no input length validation, and API key stored without runtime validation.",
+      "solution": "When creating lib/perplexity-client.ts: (1) validate PERPLEXITY_API_KEY at module load with hard throw, (2) enforce AbortSignal.timeout(30000), (3) never log API keys in errors. When creating app/api/research/route.ts: (1) add authentication check before proxying, (2) validate + sanitize query string (max 500 chars, strip HTML), (3) add rate limiting header checks, (4) never forward raw Perplexity errors to client — map to generic messages. Add PERPLEXITY_API_KEY to .env.example.",
+      "date_discovered": "2026-04-05",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "lib/perplexity-client.ts",
+        "lib/research-tools.ts",
+        "types/research.ts",
+        "app/api/research/route.ts",
+        "app/api/research/search/route.ts",
+        "app/api/research/analyze/route.ts"
       ]
     }
   ]

@@ -16,9 +16,11 @@
         "cascading-failure"
       ],
       "createdAt": "2026-03-22T18:07:59.791Z",
-      "updatedAt": "2026-03-23T20:00:00.000Z",
+      "updatedAt": "2026-04-02T20:28:58.907Z",
       "pipelineRunId": "pipeline-v3-test",
-      "version": 2
+      "version": 2,
+      "confidence": 0.94,
+      "confirmCount": 0
     },
     {
       "id": "kb-fp-002",
@@ -35,9 +37,12 @@
         "p0"
       ],
       "createdAt": "2026-03-22T18:08:33.262Z",
-      "updatedAt": "2026-03-23T20:00:00.000Z",
-      "pipelineRunId": "pipeline-v3-test",
-      "version": 2
+      "updatedAt": "2026-04-05T18:49:22.370Z",
+      "pipelineRunId": "27faae26-2b4f-4e13-8c3b-0703ef23cb65",
+      "version": 6,
+      "confidence": 0.95,
+      "confirmCount": 4,
+      "lastConfirmedAt": "2026-04-05T18:49:22.370Z"
     },
     {
       "id": "kb-fp-003",
@@ -54,9 +59,12 @@
         "p0"
       ],
       "createdAt": "2026-03-22T18:08:44.750Z",
-      "updatedAt": "2026-03-22T18:08:44.750Z",
-      "pipelineRunId": "pipeline-v3-test",
-      "version": 1
+      "updatedAt": "2026-04-05T17:17:56.876Z",
+      "pipelineRunId": "37b9dce0-0275-4c36-9c31-4c73dfe4f29e",
+      "version": 2,
+      "confidence": 0.95,
+      "confirmCount": 1,
+      "lastConfirmedAt": "2026-04-05T17:17:56.876Z"
     },
     {
       "id": "kb-fp-004",
@@ -73,9 +81,12 @@
         "p0"
       ],
       "createdAt": "2026-03-22T18:09:15.452Z",
-      "updatedAt": "2026-03-22T18:09:15.452Z",
-      "pipelineRunId": "pipeline-v3-test",
-      "version": 1
+      "updatedAt": "2026-04-05T18:49:22.700Z",
+      "pipelineRunId": "27faae26-2b4f-4e13-8c3b-0703ef23cb65",
+      "version": 6,
+      "confidence": 0.95,
+      "confirmCount": 5,
+      "lastConfirmedAt": "2026-04-05T18:49:22.700Z"
     },
     {
       "id": "kb-fp-005",
@@ -92,9 +103,11 @@
         "p0"
       ],
       "createdAt": "2026-03-22T18:08:09.619Z",
-      "updatedAt": "2026-03-23T20:00:00.000Z",
+      "updatedAt": "2026-04-02T20:28:58.908Z",
       "pipelineRunId": "pipeline-v3-test",
-      "version": 2
+      "version": 2,
+      "confidence": 0.94,
+      "confirmCount": 0
     },
     {
       "id": "kb-fp-006",
@@ -111,9 +124,11 @@
         "p0"
       ],
       "createdAt": "2026-03-22T18:07:59.791Z",
-      "updatedAt": "2026-03-22T18:07:59.791Z",
+      "updatedAt": "2026-04-02T20:28:58.908Z",
       "pipelineRunId": "pipeline-v3-test",
-      "version": 1
+      "version": 1,
+      "confidence": 0.92,
+      "confirmCount": 0
     },
     {
       "id": "kb-fp-007",
@@ -130,9 +145,11 @@
         "failure-rate"
       ],
       "createdAt": "2026-03-23T20:00:00.000Z",
-      "updatedAt": "2026-03-23T20:00:00.000Z",
+      "updatedAt": "2026-04-02T20:28:58.908Z",
       "pipelineRunId": "analytics-review",
-      "version": 1
+      "version": 1,
+      "confidence": 0.94,
+      "confirmCount": 0
     },
     {
       "id": "kb-fp-008",
@@ -148,9 +165,12 @@
         "p0"
       ],
       "createdAt": "2026-03-22T18:08:44.750Z",
-      "updatedAt": "2026-03-22T18:08:44.750Z",
-      "pipelineRunId": "pipeline-v3-test",
-      "version": 1
+      "updatedAt": "2026-04-05T17:17:57.014Z",
+      "pipelineRunId": "37b9dce0-0275-4c36-9c31-4c73dfe4f29e",
+      "version": 2,
+      "confidence": 0.95,
+      "confirmCount": 1,
+      "lastConfirmedAt": "2026-04-05T17:17:57.014Z"
     },
     {
       "id": "kb-fp-009",
@@ -166,9 +186,12 @@
         "gate-logic"
       ],
       "createdAt": "2026-03-24T10:52:09.535Z",
-      "updatedAt": "2026-03-24T10:52:09.535Z",
-      "pipelineRunId": "analytics-review",
-      "version": 1
+      "updatedAt": "2026-04-05T17:17:57.126Z",
+      "pipelineRunId": "37b9dce0-0275-4c36-9c31-4c73dfe4f29e",
+      "version": 2,
+      "confidence": 0.95,
+      "confirmCount": 1,
+      "lastConfirmedAt": "2026-04-05T17:17:57.126Z"
     },
     {
       "id": "kb-fp-010",
@@ -184,9 +207,12 @@
         "connection-failure"
       ],
       "createdAt": "2026-03-24T10:52:09.535Z",
-      "updatedAt": "2026-03-24T10:52:09.535Z",
-      "pipelineRunId": "analytics-review",
-      "version": 1
+      "updatedAt": "2026-04-02T22:56:18.128Z",
+      "pipelineRunId": "a031b8f4-30a6-407b-95ac-57ab0b2e2046",
+      "version": 5,
+      "confidence": 0.95,
+      "confirmCount": 4,
+      "lastConfirmedAt": "2026-04-02T22:56:18.128Z"
     },
     {
       "id": "kb-fp-011",
@@ -202,9 +228,11 @@
         "pm-agent"
       ],
       "createdAt": "2026-03-24T10:52:09.535Z",
-      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-04-02T20:28:58.908Z",
       "pipelineRunId": "analytics-review",
-      "version": 1
+      "version": 1,
+      "confidence": 0.95,
+      "confirmCount": 0
     },
     {
       "id": "kb-fp-012",
@@ -220,9 +248,11 @@
         "pre-flight"
       ],
       "createdAt": "2026-03-24T10:52:09.535Z",
-      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-04-02T20:28:58.908Z",
       "pipelineRunId": "analytics-review",
-      "version": 1
+      "version": 1,
+      "confidence": 0.95,
+      "confirmCount": 0
     },
     {
       "id": "kb-fp-013",
@@ -238,9 +268,11 @@
         "39pct-success"
       ],
       "createdAt": "2026-03-24T10:52:09.535Z",
-      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-04-02T20:28:58.908Z",
       "pipelineRunId": "analytics-review",
-      "version": 1
+      "version": 1,
+      "confidence": 0.95,
+      "confirmCount": 0
     },
     {
       "id": "kb-fp-014",
@@ -256,9 +288,11 @@
         "token-management"
       ],
       "createdAt": "2026-03-24T10:52:09.535Z",
-      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-04-02T20:28:58.908Z",
       "pipelineRunId": "pipeline-v3-test",
-      "version": 1
+      "version": 1,
+      "confidence": 0.95,
+      "confirmCount": 0
     },
     {
       "id": "kb-fp-015",
@@ -274,9 +308,12 @@
         "full-mode"
       ],
       "createdAt": "2026-03-24T10:52:09.535Z",
-      "updatedAt": "2026-03-24T10:52:09.535Z",
-      "pipelineRunId": "analytics-review",
-      "version": 1
+      "updatedAt": "2026-04-05T17:17:58.378Z",
+      "pipelineRunId": "37b9dce0-0275-4c36-9c31-4c73dfe4f29e",
+      "version": 2,
+      "confidence": 0.95,
+      "confirmCount": 1,
+      "lastConfirmedAt": "2026-04-05T17:17:58.378Z"
     },
     {
       "id": "kb-fp-016",
@@ -292,9 +329,12 @@
         "over-scoping"
       ],
       "createdAt": "2026-03-24T10:52:09.535Z",
-      "updatedAt": "2026-03-24T10:52:09.535Z",
-      "pipelineRunId": "analytics-review",
-      "version": 1
+      "updatedAt": "2026-04-02T22:56:18.227Z",
+      "pipelineRunId": "a031b8f4-30a6-407b-95ac-57ab0b2e2046",
+      "version": 5,
+      "confidence": 0.95,
+      "confirmCount": 4,
+      "lastConfirmedAt": "2026-04-02T22:56:18.227Z"
     },
     {
       "title": "backend failed 4x in recent runs",
@@ -310,8 +350,10 @@
       "pipelineRunId": "1a3f1cdb-53f9-45d7-92ea-0925506658db",
       "id": "kb-mn59976p-74f750ce",
       "createdAt": "2026-03-24T23:38:00.481Z",
-      "updatedAt": "2026-03-24T23:38:00.481Z",
-      "version": 1
+      "updatedAt": "2026-04-02T20:28:58.909Z",
+      "version": 1,
+      "confidence": 0.96,
+      "confirmCount": 0
     },
     {
       "title": "pm failed 2x in recent runs",
@@ -327,8 +369,10 @@
       "pipelineRunId": "174121a8-90e9-47aa-97d2-bee7a02311a3",
       "id": "kb-mn59977e-55b7a629",
       "createdAt": "2026-03-24T23:38:00.506Z",
-      "updatedAt": "2026-03-24T23:38:00.506Z",
-      "version": 1
+      "updatedAt": "2026-04-02T20:28:58.909Z",
+      "version": 1,
+      "confidence": 0.96,
+      "confirmCount": 0
     },
     {
       "title": "orchestrator failed 6x in recent runs",
@@ -341,11 +385,14 @@
         "recurring-failure",
         "orchestrator"
       ],
-      "pipelineRunId": "444160fb-6dfd-4d16-92e2-ac305e8b99d5",
+      "pipelineRunId": "a031b8f4-30a6-407b-95ac-57ab0b2e2046",
       "id": "kb-mn599783-84cf414d",
       "createdAt": "2026-03-24T23:38:00.531Z",
-      "updatedAt": "2026-03-24T23:38:00.531Z",
-      "version": 1
+      "updatedAt": "2026-04-02T22:56:18.323Z",
+      "version": 5,
+      "confidence": 0.95,
+      "confirmCount": 4,
+      "lastConfirmedAt": "2026-04-02T22:56:18.323Z"
     },
     {
       "title": "research failed 3x in recent runs",
@@ -361,8 +408,10 @@
       "pipelineRunId": "23bd9693-d6a7-4342-ad59-93a7dfa7e107",
       "id": "kb-mn599799-ac7b1b2c",
       "createdAt": "2026-03-24T23:38:00.573Z",
-      "updatedAt": "2026-03-24T23:38:00.573Z",
-      "version": 1
+      "updatedAt": "2026-04-02T20:28:58.909Z",
+      "version": 1,
+      "confidence": 0.96,
+      "confirmCount": 0
     },
     {
       "title": "architect failed 3x in recent runs",
@@ -378,8 +427,10 @@
       "pipelineRunId": "2ba56da5-73a3-430d-a772-af68882d4958",
       "id": "kb-mn5997al-4ec5ee5e",
       "createdAt": "2026-03-24T23:38:00.621Z",
-      "updatedAt": "2026-03-24T23:38:00.621Z",
-      "version": 1
+      "updatedAt": "2026-04-02T20:28:58.909Z",
+      "version": 1,
+      "confidence": 0.96,
+      "confirmCount": 0
     },
     {
       "title": "High pause rate: 44/85 runs paused",
@@ -394,8 +445,10 @@
       "pipelineRunId": "2494aced-9ac1-4076-ba62-b440ed21d432",
       "id": "kb-mn5997c3-07ab2e3b",
       "createdAt": "2026-03-24T23:38:00.675Z",
-      "updatedAt": "2026-03-24T23:38:00.675Z",
-      "version": 1
+      "updatedAt": "2026-04-02T20:28:58.909Z",
+      "version": 1,
+      "confidence": 0.96,
+      "confirmCount": 0
     },
     {
       "title": "No auto changes without approval",
@@ -409,8 +462,10 @@
       ],
       "id": "kb-mn59rl8r-e09c0734",
       "createdAt": "2026-03-24T23:52:18.507Z",
-      "updatedAt": "2026-03-24T23:52:18.507Z",
-      "version": 1
+      "updatedAt": "2026-04-02T20:28:58.909Z",
+      "version": 1,
+      "confidence": 0.96,
+      "confirmCount": 0
     },
     {
       "title": "No threshold lowering without approval",
@@ -424,8 +479,10 @@
       ],
       "id": "kb-mn59rl9t-2897c23a",
       "createdAt": "2026-03-24T23:52:18.545Z",
-      "updatedAt": "2026-03-24T23:52:18.545Z",
-      "version": 1
+      "updatedAt": "2026-04-02T20:28:58.909Z",
+      "version": 1,
+      "confidence": 0.96,
+      "confirmCount": 0
     },
     {
       "title": "Proactive skill suggestions",
@@ -439,8 +496,10 @@
       ],
       "id": "kb-mn59rlb7-ec326687",
       "createdAt": "2026-03-24T23:52:18.595Z",
-      "updatedAt": "2026-03-24T23:52:18.595Z",
-      "version": 1
+      "updatedAt": "2026-04-02T20:28:58.909Z",
+      "version": 1,
+      "confidence": 0.96,
+      "confirmCount": 0
     },
     {
       "title": "Use Mission Control systems actively",
@@ -454,8 +513,10 @@
       ],
       "id": "kb-mn59rlcm-98fc8b80",
       "createdAt": "2026-03-24T23:52:18.646Z",
-      "updatedAt": "2026-03-24T23:52:18.646Z",
-      "version": 1
+      "updatedAt": "2026-04-02T20:28:58.909Z",
+      "version": 1,
+      "confidence": 0.96,
+      "confirmCount": 0
     },
     {
       "title": "Duplicate execution ID in history � React key collision",
@@ -471,8 +532,10 @@
       ],
       "id": "kb-mn5c0zu6-09b9e467",
       "createdAt": "2026-03-25T00:55:36.558Z",
-      "updatedAt": "2026-03-25T00:55:36.558Z",
-      "version": 1
+      "updatedAt": "2026-04-02T20:28:58.909Z",
+      "version": 1,
+      "confidence": 0.96,
+      "confirmCount": 0
     },
     {
       "title": "Pipeline run file missing agent output and stepResults",
@@ -488,8 +551,10 @@
       ],
       "id": "kb-mn5capgj-3f06fc5a",
       "createdAt": "2026-03-25T01:03:09.667Z",
-      "updatedAt": "2026-03-25T01:03:09.667Z",
-      "version": 1
+      "updatedAt": "2026-04-02T20:28:58.909Z",
+      "version": 1,
+      "confidence": 0.96,
+      "confirmCount": 0
     },
     {
       "title": "Resume pipeline shows paused in execution history until completion",
@@ -505,8 +570,10 @@
       ],
       "id": "kb-mn5cr0sy-691c796e",
       "createdAt": "2026-03-25T01:15:50.866Z",
-      "updatedAt": "2026-03-25T01:15:50.866Z",
-      "version": 1
+      "updatedAt": "2026-04-02T20:28:58.909Z",
+      "version": 1,
+      "confidence": 0.96,
+      "confirmCount": 0
     },
     {
       "title": "High pause rate: 46/88 runs paused",
@@ -521,8 +588,10 @@
       "pipelineRunId": "6a18d908-5fe7-4ab1-966f-ab9556f58d87",
       "id": "kb-mn5d93mi-8de09270",
       "createdAt": "2026-03-25T01:29:54.330Z",
-      "updatedAt": "2026-03-25T01:29:54.330Z",
-      "version": 1
+      "updatedAt": "2026-04-02T20:28:58.909Z",
+      "version": 1,
+      "confidence": 0.96,
+      "confirmCount": 0
     },
     {
       "title": "pnpm workspace broken next@16.1.6 symlink � dev servers crash",
@@ -538,8 +607,10 @@
       ],
       "id": "kb-mn628dj8-aa13b1bc",
       "createdAt": "2026-03-25T13:09:10.915Z",
-      "updatedAt": "2026-03-25T13:09:10.915Z",
-      "version": 1
+      "updatedAt": "2026-04-02T20:28:58.909Z",
+      "version": 1,
+      "confidence": 0.97,
+      "confirmCount": 0
     },
     {
       "title": "pnpm Windows junction symlinks break next binary � use npm install per project",
@@ -556,8 +627,10 @@
       ],
       "id": "kb-mn64fc48-35016808",
       "createdAt": "2026-03-25T14:10:34.904Z",
-      "updatedAt": "2026-03-25T14:10:34.904Z",
-      "version": 1
+      "updatedAt": "2026-04-02T20:28:58.909Z",
+      "version": 1,
+      "confidence": 0.97,
+      "confirmCount": 0
     },
     {
       "title": "pnpm install breaks other projects � NEVER run pnpm install in monorepo root",
@@ -573,8 +646,10 @@
       ],
       "id": "kb-mn6ec469-f18f17f0",
       "createdAt": "2026-03-25T18:48:00.801Z",
-      "updatedAt": "2026-03-25T18:48:00.801Z",
-      "version": 1
+      "updatedAt": "2026-04-02T20:28:58.909Z",
+      "version": 1,
+      "confidence": 0.98,
+      "confirmCount": 0
     },
     {
       "title": "orchestrator failed 5x in recent runs",
@@ -587,11 +662,14 @@
         "recurring-failure",
         "orchestrator"
       ],
-      "pipelineRunId": "444160fb-6dfd-4d16-92e2-ac305e8b99d5",
+      "pipelineRunId": "a031b8f4-30a6-407b-95ac-57ab0b2e2046",
       "id": "kb-mn6k0q6t-2d4cf355",
       "createdAt": "2026-03-25T21:27:07.157Z",
-      "updatedAt": "2026-03-25T21:27:07.157Z",
-      "version": 1
+      "updatedAt": "2026-04-02T22:56:18.355Z",
+      "version": 5,
+      "confidence": 0.95,
+      "confirmCount": 4,
+      "lastConfirmedAt": "2026-04-02T22:56:18.355Z"
     },
     {
       "title": "High pause rate: 31/44 runs paused",
@@ -606,8 +684,10 @@
       "pipelineRunId": "6a18d908-5fe7-4ab1-966f-ab9556f58d87",
       "id": "kb-mn6k0q75-6906fa9a",
       "createdAt": "2026-03-25T21:27:07.169Z",
-      "updatedAt": "2026-03-25T21:27:07.169Z",
-      "version": 1
+      "updatedAt": "2026-04-02T20:28:58.909Z",
+      "version": 1,
+      "confidence": 0.98,
+      "confirmCount": 0
     },
     {
       "title": "Pipeline agent corrupted file by inserting code inside import block",
@@ -624,8 +704,12 @@
       ],
       "id": "kb-mn7nc7gl-0751af57",
       "createdAt": "2026-03-26T15:47:47.781Z",
-      "updatedAt": "2026-03-26T15:47:47.781Z",
-      "version": 1
+      "updatedAt": "2026-04-05T18:49:22.819Z",
+      "version": 6,
+      "confidence": 0.95,
+      "confirmCount": 5,
+      "lastConfirmedAt": "2026-04-05T18:49:22.819Z",
+      "pipelineRunId": "27faae26-2b4f-4e13-8c3b-0703ef23cb65"
     },
     {
       "title": "High pause rate: 29/40 runs paused",
@@ -640,8 +724,10 @@
       "pipelineRunId": "d79758f0-ccb9-4003-bd08-0c0261b786b0",
       "id": "kb-mn9wgxpu-1380c1ac",
       "createdAt": "2026-03-28T05:38:57.329Z",
-      "updatedAt": "2026-03-28T05:38:57.329Z",
-      "version": 1
+      "updatedAt": "2026-04-04T08:51:10.562Z",
+      "version": 1,
+      "confidence": 1,
+      "confirmCount": 0
     },
     {
       "title": "Decision framework — think before doing",
@@ -655,8 +741,10 @@
       ],
       "id": "kb-mn9wgyfi-6213385f",
       "createdAt": "2026-03-28T05:38:58.254Z",
-      "updatedAt": "2026-03-28T05:38:58.254Z",
-      "version": 1
+      "updatedAt": "2026-04-04T08:51:10.562Z",
+      "version": 1,
+      "confidence": 1,
+      "confirmCount": 0
     },
     {
       "title": "Simple solution first — always",
@@ -670,8 +758,10 @@
       ],
       "id": "kb-mn9wgyg2-7c357580",
       "createdAt": "2026-03-28T05:38:58.274Z",
-      "updatedAt": "2026-03-28T05:38:58.274Z",
-      "version": 1
+      "updatedAt": "2026-04-04T08:51:10.562Z",
+      "version": 1,
+      "confidence": 1,
+      "confirmCount": 0
     },
     {
       "title": "Use agents for complex multi-step tasks",
@@ -685,8 +775,10 @@
       ],
       "id": "kb-mn9wgygi-32af8e51",
       "createdAt": "2026-03-28T05:38:58.290Z",
-      "updatedAt": "2026-03-28T05:38:58.290Z",
-      "version": 1
+      "updatedAt": "2026-04-04T08:51:10.562Z",
+      "version": 1,
+      "confidence": 1,
+      "confirmCount": 0
     },
     {
       "title": "High pause rate: 29/40 runs paused",
@@ -701,11 +793,187 @@
       "pipelineRunId": "d79758f0-ccb9-4003-bd08-0c0261b786b0",
       "id": "kb-mn9whwg2-54d65c20",
       "createdAt": "2026-03-28T05:39:42.338Z",
-      "updatedAt": "2026-03-28T05:39:42.338Z",
-      "version": 1
+      "updatedAt": "2026-04-04T08:51:10.562Z",
+      "version": 1,
+      "confidence": 1,
+      "confirmCount": 0
+    },
+    {
+      "title": "High pause rate: 16/25 runs paused",
+      "content": "64% of recent runs are in paused state. This may indicate checkpoint bottleneck or missing user approval. Consider auto-approve for low-risk stages.",
+      "source": "nightly-evolution",
+      "severity": "medium",
+      "tags": [
+        "auto-detected",
+        "pause-rate",
+        "checkpoint"
+      ],
+      "pipelineRunId": "dd7c26fc-bb50-43df-bb3b-74655ecb01eb",
+      "id": "kb-mnb013tn-faff0e02",
+      "createdAt": "2026-03-29T00:06:23.387Z",
+      "updatedAt": "2026-04-05T17:17:56.744Z",
+      "version": 1,
+      "confidence": 0.99,
+      "confirmCount": 0
+    },
+    {
+      "title": "Propose new skills when gaps found",
+      "content": "When I make a fix, build a feature, or investigate a failure — check if a reusable skill pattern emerges.\n\n**When to propose:**\n- Fixed a bug that could recur → propose a prevention/detection skill\n- Built a feature that follows a repeatable pattern → propose a builder skill\n- Investigation revealed a gap → propose a diagnostic skill\n- Tuning improved results → propose a calibration skill\n\n**How to propose:**\n- Name: short, action-oriented (verb-noun)\n- What it does: 1 sentence\n- When to use: sp",
+      "source": "claude-memory",
+      "severity": "high",
+      "tags": [
+        "imported-from-memory",
+        "memory:feedback_propose_skills.md",
+        "feedback"
+      ],
+      "id": "kb-mnb015k5-5b62438d",
+      "createdAt": "2026-03-29T00:06:25.637Z",
+      "updatedAt": "2026-04-05T17:17:56.744Z",
+      "version": 1,
+      "confidence": 0.99,
+      "confirmCount": 0
+    },
+    {
+      "title": "High pause rate: 13/23 runs paused",
+      "content": "57% of recent runs are in paused state. This may indicate checkpoint bottleneck or missing user approval. Consider auto-approve for low-risk stages.",
+      "source": "nightly-evolution",
+      "severity": "medium",
+      "tags": [
+        "auto-detected",
+        "pause-rate",
+        "checkpoint"
+      ],
+      "pipelineRunId": "df8b61d5-b4b4-4a8e-9eb8-e4ad51ff19de",
+      "id": "kb-mncf8vya-44d1ee0f",
+      "createdAt": "2026-03-30T00:00:06.850Z",
+      "updatedAt": "2026-03-30T00:00:06.850Z",
+      "version": 1,
+      "confidence": 1,
+      "confirmCount": 0
+    },
+    {
+      "title": "High pause rate: 7/15 runs paused",
+      "content": "47% of recent runs are in paused state. This may indicate checkpoint bottleneck or missing user approval. Consider auto-approve for low-risk stages.",
+      "source": "nightly-evolution",
+      "severity": "medium",
+      "tags": [
+        "auto-detected",
+        "pause-rate",
+        "checkpoint"
+      ],
+      "pipelineRunId": "df8b61d5-b4b4-4a8e-9eb8-e4ad51ff19de",
+      "id": "kb-mng8hhi7-c4df28bb",
+      "createdAt": "2026-04-01T16:01:55.423Z",
+      "updatedAt": "2026-04-01T16:01:55.423Z",
+      "version": 1,
+      "confidence": 1,
+      "confirmCount": 0
+    },
+    {
+      "title": "High pause rate: 7/15 runs paused",
+      "content": "47% of recent runs are in paused state. This may indicate checkpoint bottleneck or missing user approval. Consider auto-approve for low-risk stages.",
+      "source": "nightly-evolution",
+      "severity": "medium",
+      "tags": [
+        "auto-detected",
+        "pause-rate",
+        "checkpoint"
+      ],
+      "pipelineRunId": "df8b61d5-b4b4-4a8e-9eb8-e4ad51ff19de",
+      "id": "kb-mngw7cxr-7a9a8e0b",
+      "createdAt": "2026-04-02T03:05:53.727Z",
+      "updatedAt": "2026-04-02T03:05:53.727Z",
+      "version": 1,
+      "confidence": 1,
+      "confirmCount": 0
+    },
+    {
+      "title": "All tasks must go through MC system — no direct execution without system approval",
+      "content": "ALL tasks must go through Mission Control's own systems before execution. No direct coding.\n\n**Why:** Michael explicitly said \"с этого момента все задачи через систему, ты можешь на прямую сделать задачу только если получил подтверждение от системы\". Direct changes bypass the intelligence layer we built (KB, simulation, contracts, confidence scoring).\n\n**How to apply:**\n1. Take user's task input\n2. Run through /api/command (intent classifier)\n3. If direct → system executes via /api/ai/execute wi",
+      "source": "claude-memory",
+      "severity": "high",
+      "tags": [
+        "imported-from-memory",
+        "memory:feedback_always_through_system.md",
+        "feedback"
+      ],
+      "id": "kb-mninymnu-6a996292",
+      "createdAt": "2026-04-03T08:50:41.850Z",
+      "updatedAt": "2026-04-03T08:50:41.850Z",
+      "version": 1,
+      "confidence": 1,
+      "confirmCount": 0
+    },
+    {
+      "title": "No shortcuts — thoroughness over speed",
+      "content": "Never rush implementation. Shortcuts cause regressions that cost more time than doing it right.\n\n**Why:** Multiple times Claude took shortcuts (iframe wrapper instead of proper React integration, skipping existing systems, not reading full context) which resulted in broken features that needed to be reverted or reworked. Each shortcut cost 2-3x more time than doing it properly.\n\n**How to apply:**\n1. Before ANY implementation: read all related existing code, understand how it integrates\n2. Use ex",
+      "source": "claude-memory",
+      "severity": "high",
+      "tags": [
+        "imported-from-memory",
+        "memory:feedback_no_shortcuts.md",
+        "feedback"
+      ],
+      "id": "kb-mninymq6-557fec4b",
+      "createdAt": "2026-04-03T08:50:41.934Z",
+      "updatedAt": "2026-04-03T08:50:41.934Z",
+      "version": 1,
+      "confidence": 1,
+      "confirmCount": 0
+    },
+    {
+      "title": "Direct execution spec — full power agent, not a weak proxy",
+      "content": "Direct execution must be as capable as Claude Code itself. Not a weak proxy.\n\n**Spec (approved 2026-04-03):**\n- Context: full project + history (not one-shot)\n- Tools: ALL available tools\n- Max turns: no limit\n- File reading: 2000 lines (not 200)\n- Context window: 200K tokens (not 25K)\n- Model: smart router (opus for complex, sonnet for simple)\n- History: use execution history for context — otherwise what's the point?\n\n**Why:** Direct tasks were failing because agent had 200-line read limit, 25K",
+      "source": "claude-memory",
+      "severity": "high",
+      "tags": [
+        "imported-from-memory",
+        "memory:feedback_direct_execution_spec.md",
+        "feedback"
+      ],
+      "id": "kb-mnjz1h75-a551649a",
+      "createdAt": "2026-04-04T06:48:36.689Z",
+      "updatedAt": "2026-04-04T06:48:36.689Z",
+      "version": 1,
+      "confidence": 1,
+      "confirmCount": 0
+    },
+    {
+      "title": "Proactively suggest skills to Michael",
+      "content": "Michael asked to be reminded about skills and given tips on when to use them.\n\n**How to apply:**\n- When Michael asks about system status → suggest `/status` or `/health`\n- When starting a new task → suggest `/run <task>`\n- When a task fails → suggest `/rerun latest`\n- Before pushing code → suggest `/deploy-check`\n- When discussing costs → suggest `/costs`\n- When looking for patterns → suggest `/kb-search <topic>`\n- At end of session → suggest `/session-report`\n- When planning → suggest `/mc-road",
+      "source": "claude-memory",
+      "severity": "high",
+      "tags": [
+        "imported-from-memory",
+        "memory:feedback_suggest_skills.md",
+        "feedback"
+      ],
+      "id": "kb-mnjz1hbe-0744fd82",
+      "createdAt": "2026-04-04T06:48:36.842Z",
+      "updatedAt": "2026-04-04T06:48:36.842Z",
+      "version": 1,
+      "confidence": 1,
+      "confirmCount": 0
+    },
+    {
+      "title": "Suggest improvements instead of asking \"what next?\"",
+      "content": "Instead of asking \"What's next?\" — suggest 2-3 specific improvements based on current system state.\n\n**Why:** Michael wants Claude to be proactive, not passive. \"What next?\" puts the burden on him. Suggestions show understanding of the system and save time.\n\n**How to apply:**\n- After completing a task, analyze current system state\n- Suggest 2-3 concrete improvements ranked by impact\n- Base suggestions on: health alerts, recent failures, missing features, user patterns\n- Use data: nightly logs, p",
+      "source": "claude-memory",
+      "severity": "high",
+      "tags": [
+        "imported-from-memory",
+        "memory:feedback_suggest_improvements.md",
+        "feedback"
+      ],
+      "id": "kb-mnk15ypn-3c593636",
+      "createdAt": "2026-04-04T07:48:05.243Z",
+      "updatedAt": "2026-04-04T07:48:05.243Z",
+      "version": 1,
+      "confidence": 1,
+      "confirmCount": 0
     }
   ],
-  "contentHash": "cfc8cfb0b0fc56ee1aa362996195ec40dec35d3e0c48db8db4ae63ec79ded52f",
-  "lastUpdated": "2026-03-28T05:39:42.338Z",
+  "contentHash": "8d948d2542fb20de43251c315b4642cca68e538ea820459565c7df60947147c8",
+  "lastUpdated": "2026-04-05T18:49:22.819Z",
   "schemaVersion": 1
 }

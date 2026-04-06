@@ -1,6 +1,6 @@
 {
   "_description": "Known issues, root causes, and solutions — maintained by QA-Agent and all agents",
-  "_updated": "2026-03-26",
+  "_updated": "2026-04-05",
   "patterns": [
     {
       "id": "FAIL-001",
@@ -914,6 +914,248 @@
       "date_discovered": "2026-03-26",
       "recurrence": "Discovered during pipeline execution",
       "source_pipeline": "6712c759-720a-4aa5-9a7b-f1e665c9c1a7"
+    },
+    {
+      "id": "FAIL-071",
+      "category": "build",
+      "title": "Business QA Score Gap (8.5) on Otherwise Perfect Pipeline",
+      "symptoms": "s9-business-qa was the sole underperforming step at 8.5/10 (C:8.5 S:8.5 A:8.5) while all upstream steps scored 10/10. The uniform sub-score distribution (all three dimensions identical) suggests the evaluator found a consistent systemic gap rather than a specific deficiency.",
+      "root_cause": "Business QA likely lacked concrete acceptance criteria to validate against — a downstream consequence of the skipped PRD. Without explicit business requirements, the QA agent defaults to inferred criteria, which reduces scoring confidence uniformly across completeness, specificity, and accuracy dimensions.",
+      "solution": "When routing skips PRD, inject a minimal acceptance criteria stub (3–5 bullet points derived from task description) that Business QA can use as a validation checklist. This closes the feedback loop between quick-routing efficiency and downstream QA rigor.",
+      "date_discovered": "2026-03-29",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "3141bd05-a01c-4fc8-9227-7f14d1d44f60"
+    },
+    {
+      "id": "FAIL-072",
+      "category": "build",
+      "title": "Frontend Agent Required 2 Retries Despite Clear Task Specification",
+      "symptoms": "Step s7-frontend completed successfully (10/10 score) but required 2 retries before producing acceptable output. The task was unambiguous — filter pipeline activity graph to show only active agents and connections — yet the agent needed multiple attempts to deliver a passing result.",
+      "root_cause": "Graph filtering logic in pipeline activity likely involves stateful component traversal (nodes + edges interdependency). The frontend agent probably produced a solution that filtered nodes but failed to reconcile dangling edges on first attempts — a common graph UI anti-pattern where edge visibility is not co-validated with node visibility.",
+      "solution": "Establish a graph mutation checklist rule: any filter operation on a graph component must simultaneously validate (1) node visibility, (2) edge source/target existence in filtered set, and (3) layout reflow after filtering. Encode this as a frontend agent prompt template for graph-related tasks.",
+      "date_discovered": "2026-04-02",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "89621d18-21b8-49e0-857f-326343cf8389"
+    },
+    {
+      "id": "FAIL-073",
+      "category": "devops",
+      "title": "PRD Gate Budget Overflow on File Analysis Tasks",
+      "symptoms": "Step s2.5-prd-gate failed with budget exceeded ($0.6162 > $0.50 cap) while attempting to analyze project files to understand the agent config save flow. The gate never produced a verdict, cascading into 5 downstream steps being left in pending state — effectively killing the entire pipeline at step 2.",
+      "root_cause": "The gate agent chose to perform deep file-system analysis (\"analyze the project files to understand the agent config save flow\") before issuing its gate verdict. This is a scope creep anti-pattern: a gate step should evaluate the *output of the previous step*, not independently re-investigate the codebase. The $0.50 budget cap is appropriate for a gate verdict, not for a full codebase exploration. The task itself (\"config change not persisting\") likely involves reading multiple config/persistence files, which inflated token usage beyond the cap.",
+      "solution": "1. Gate prompts must explicitly prohibit independent file analysis — gates evaluate the upstream step's output only. 2. If file context is needed, it must be injected by the orchestrator as a pre-summarized artifact, not fetched by the gate itself. 3. Consider raising the gate budget cap to $0.75–$1.00 for tasks tagged as `config` or `persistence` where file inspection is legitimately required. 4. Add a circuit-breaker: if a gate step exceeds 80% of budget without producing a verdict signal, auto-abort with a structured error rather than a silent budget kill.",
+      "date_discovered": "2026-04-02",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "a031b8f4-30a6-407b-95ac-57ab0b2e2046"
+    },
+    {
+      "id": "FAIL-074",
+      "category": "architecture",
+      "title": "Config Persistence Task Routed Through Full PRD Pipeline — Wrong Pipeline for Debugging",
+      "symptoms": "The task \"agent config changed to Sonnet but not persisted\" is a **debugging/bug-report task**, not a product requirements task. It was routed through the MC Pipeline which includes PRD Gate, Cyber review, Architecture Gate, Tech Review, and Final Verdict — a heavyweight pipeline designed for feature development. This mismatch caused the PRD Gate to attempt to make sense of a bug report in a requirements context, leading to scope creep and budget blowout.",
+      "root_cause": "No task-type classifier exists at pipeline entry to distinguish between (a) feature/PRD tasks, (b) bug/debugging tasks, and (c) config/ops tasks. All tasks are funneled into the same pipeline regardless of nature.",
+      "solution": "Implement a task-type routing layer at pipeline intake. Bug reports and config issues should route to a lightweight `debug-pipeline` (orchestrator → repro-analysis → fix-verdict) with a higher per-step budget and no PRD/Architecture gates. The MC Pipeline should be reserved for feature-level work.",
+      "date_discovered": "2026-04-02",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "a031b8f4-30a6-407b-95ac-57ab0b2e2046"
+    },
+    {
+      "id": "FAIL-075",
+      "category": "devops",
+      "title": "Cascade Pending — No Downstream Abort Signal on Gate Failure",
+      "symptoms": "When s2.5-prd-gate failed due to budget exceeded, steps s4-cyber, s4.5-arch-gate, s8.5-tech-review, s11-final-verdict, and s12b-consolidation were all left in `pending` state rather than being explicitly cancelled. This creates ambiguity: are these steps waiting, skipped, or orphaned?",
+      "root_cause": "The pipeline executor does not propagate a hard-cancel signal to downstream steps when a gate step fails. Steps remain in `pending` rather than transitioning to `cancelled` or `skipped`.",
+      "solution": "Gate failures must emit a pipeline-abort event that explicitly transitions all downstream steps to `cancelled` with a reason reference (e.g., `cancelled: upstream gate s2.5 failed — budget exceeded`). This makes post-mortem analysis unambiguous and prevents orphaned step states from being misread as \"not yet run.\"",
+      "date_discovered": "2026-04-02",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "a031b8f4-30a6-407b-95ac-57ab0b2e2046"
+    },
+    {
+      "id": "FAIL-076",
+      "category": "build",
+      "title": "PM Agent Budget Overrun on Simple Config Investigation Task",
+      "symptoms": "Step s2-pm failed after 2 retries with a budget exceeded error ($1.1036 > $1.00 cap). The task was straightforward — investigate why a model config change (Sonnet) wasn't persisting. Despite this simplicity, the PM agent consumed over $1.10, triggering the hard budget cap and halting the entire pipeline at s2-pm, leaving 12 downstream steps in pending state.",
+      "root_cause": "The PM agent attempted to verify the actual project structure before writing the PRD (\"Let me verify the actual project structure before writing the PRD\"), which likely triggered recursive file reads or broad codebase scanning. Combined with s0-research already consuming 68.4s and +2546 continuation tokens, the cumulative token spend entering s2-pm was already elevated. The $1.00 per-step cap was insufficient for a PM agent that performs live project verification in addition to PRD generation.",
+      "solution": "",
+      "date_discovered": "2026-04-02",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "a031b8f4-30a6-407b-95ac-57ab0b2e2046"
+    },
+    {
+      "id": "FAIL-077",
+      "category": "performance",
+      "title": "Research Agent Over-Consumption on Trivial Config Debugging Task",
+      "symptoms": "Step s0-research ran for 68.4s and required a continuation pass (+2546 tokens), scoring only 7.6/10 despite the task being a simple agent config persistence check. The research phase was disproportionately expensive relative to the problem scope — checking why a model field change isn't saved is a narrow, bounded investigation.",
+      "root_cause": "The research agent defaulted to broad knowledge-base and codebase scanning patterns suited for complex feature tasks, rather than scoping down to a targeted config-layer investigation. No task-complexity signal was passed to the research agent to constrain its search surface.",
+      "solution": "Introduce a task-complexity classifier at the orchestrator level (s1) that tags tasks as micro/small/medium/large and passes a scope_hint to downstream agents. Config debugging tasks should trigger a narrow-scan mode in s0-research, limiting file traversal depth and disabling broad KB pattern matching when not relevant.",
+      "date_discovered": "2026-04-02",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "a031b8f4-30a6-407b-95ac-57ab0b2e2046"
+    },
+    {
+      "id": "FAIL-078",
+      "category": "devops",
+      "title": "Pipeline Hard Stop Due to Single Agent Budget Failure — No Graceful Degradation",
+      "symptoms": "When s2-pm exceeded its budget cap, all 12 downstream steps (s3.1, s3.2, s4, s5, s6, s7, s8, s8.5, s9, s10, s11, s12a, s12b) were left in pending state. The pipeline did not attempt to route around the failure, produce a partial output, or escalate to a cheaper fallback agent.",
+      "root_cause": "The MC Pipeline lacks a budget-failure recovery branch. Budget exceeded is treated identically to a logic failure — full stop. There is no distinction between \"agent produced wrong output\" and \"agent ran out of money mid-task.\"",
+      "solution": "Implement a budget-failure recovery path: (1) on BudgetExceeded, truncate the agent's current output and pass the partial result to a lightweight summarizer, (2) allow the gate step (s2.5-prd-gate) to evaluate a partial PRD with a reduced acceptance threshold, (3) log the budget event and continue pipeline with a degraded-mode flag rather than halting entirely.",
+      "date_discovered": "2026-04-02",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "a031b8f4-30a6-407b-95ac-57ab0b2e2046"
+    },
+    {
+      "id": "FAIL-079",
+      "category": "architecture",
+      "title": "PM Agent Performing Live Project Verification Inside PRD Generation Step",
+      "symptoms": "The s2-pm agent output shows it initiated a live project structure verification (\"Let me verify the actual project structure before writing the PRD\") as part of PRD generation. This is work that belongs to s0-research, not s2-pm. The duplication of discovery work inside the PM step directly contributed to budget overrun.",
+      "root_cause": "The PM agent prompt does not have a hard boundary preventing it from performing research/discovery actions. It treats the PRD task as open-ended, allowing it to re-investigate context that should have been fully resolved and handed off by s0-research.",
+      "solution": "Enforce strict agent role boundaries in prompts: s2-pm must receive a fully-resolved research brief from s0-research and must not perform any file reads or project scans. Add an explicit instruction: \"Do not read files or verify project structure — use only the research brief provided.\" Gate the handoff at s1-orchestrator to ensure the research output is complete before s2-pm is invoked.",
+      "date_discovered": "2026-04-02",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "a031b8f4-30a6-407b-95ac-57ab0b2e2046"
+    },
+    {
+      "id": "FAIL-080",
+      "category": "devops",
+      "title": "Budget Cap Not Scaled to Task Complexity — Fixed $1.00 Cap Unsuitable for PRD Generation",
+      "symptoms": "The $1.00 per-step budget cap caused s2-pm to fail on a task that, while simple in intent, required PRD-level structured output. PRD generation for even a small feature routinely involves multi-section structured writing plus context integration, making $1.00 a consistently risky cap for this step type.",
+      "root_cause": "Budget caps appear to be static and uniform across all agent steps, not adjusted for the known output complexity of specific agent roles (e.g., PM/PRD agents are inherently higher-token than, say, a gate agent).",
+      "solution": "Implement role-aware dynamic budget caps: s2-pm should have a baseline cap of $1.50–$2.00, gate steps (s2.5, s4.5, s8.5) should have reduced caps of $0.30–$0.50, and research steps should be capped relative to task-complexity tag. This prevents budget failures on structurally expensive steps while conserving budget on lightweight validation steps.",
+      "date_discovered": "2026-04-02",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "a031b8f4-30a6-407b-95ac-57ab0b2e2046"
+    },
+    {
+      "id": "FAIL-081",
+      "category": "devops",
+      "title": "Budget Cap Breach on Simple Config Verification Task",
+      "symptoms": "Step s2-pm exceeded the $1.00 budget cap ($1.4627 spent) while attempting to write a PRD for what was essentially a trivial agent configuration verification task — checking whether a model change (Claude Sonnet) was persisted correctly. This triggered a cascade of 10+ downstream steps remaining permanently pending, killing the entire pipeline.",
+      "root_cause": "The task was misclassified at intake. A config-verification/debugging task (\"why didn't my model change save?\") was routed through the full MC Pipeline — a heavyweight multi-agent flow designed for feature development, not operational troubleshooting. s2-pm then attempted to produce a full PRD for a diagnostic task, consuming excessive tokens on an inappropriate deliverable. The $1.00 cap is calibrated for scoped steps, not open-ended investigation.",
+      "solution": "Implement a task-type classifier at pipeline entry (pre-s1) that routes operational/config/debugging requests to a lightweight diagnostic pipeline rather than the full MC Pipeline. Config verification tasks should route to: s0-research → direct answer → done. Additionally, s2-pm should detect when the upstream task has no product scope and short-circuit with a \"not applicable\" output rather than fabricating a PRD.",
+      "date_discovered": "2026-04-02",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "a031b8f4-30a6-407b-95ac-57ab0b2e2046"
+    },
+    {
+      "id": "FAIL-082",
+      "category": "architecture",
+      "title": "Full Product Pipeline Invoked for Operational Debug Task",
+      "symptoms": "The MC Pipeline — designed for software feature delivery (PRD → ADR → API → ERD → backend → frontend → QA → DevOps) — was triggered to investigate a user-reported config persistence bug (\"I changed model to Sonnet and saved but it didn't implement\"). s1-orchestrator scored 10/10 but produced a structured requirements brief for a task that required a 3-step debug trace, not a 12-step delivery pipeline.",
+      "root_cause": "No pre-pipeline triage gate exists to distinguish between (a) build tasks requiring full pipeline execution and (b) operational/diagnostic tasks requiring targeted investigation. s1-orchestrator optimized for its own output quality rather than questioning whether the pipeline itself was appropriate.",
+      "solution": "Add a pipeline-selection gate before s1-orchestrator that classifies intent: `build | debug | audit | config | research-only`. Debug and config tasks should bypass PRD/ADR/ERD/frontend steps entirely. This gate should also flag tasks where the expected pipeline cost will exceed budget before execution begins.",
+      "date_discovered": "2026-04-02",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "a031b8f4-30a6-407b-95ac-57ab0b2e2046"
+    },
+    {
+      "id": "FAIL-083",
+      "category": "devops",
+      "title": "s0-Research Required Continuation Tokens on a Config Check Task",
+      "symptoms": "s0-research completed but only after consuming an additional +2546 tokens via continuation (feedback: \"Passed after continuation\"). For a task scoped to checking agent config files, this volume suggests the agent explored beyond the necessary scope — likely treating it as a broad architectural research task rather than a targeted file inspection.",
+      "root_cause": "s0-research received a vague task description (\"check agent config, I changed model to sonnet and save it but it doesn't implemented\") without explicit scope boundaries. Without a tight scope, the agent defaulted to broad knowledge-base pattern matching and extended investigation, inflating token usage before the real file check occurred.",
+      "solution": "Task descriptions passed to s0-research should include explicit scope constraints: target files, target config keys, and expected output format. Orchestrator (s1) should inject these constraints into the research brief rather than passing the raw user task string. This would have reduced s0-research to a <500 token operation.",
+      "date_discovered": "2026-04-02",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "a031b8f4-30a6-407b-95ac-57ab0b2e2046"
+    },
+    {
+      "id": "FAIL-084",
+      "category": "build",
+      "title": "Low PRD Quality Score (2.6/10) Masked by Upstream Completion",
+      "symptoms": "s2-pm scored 2.6/10 (C:3.5, S:6, A:4.5) — the lowest quality score in the pipeline — yet the step was not flagged for retry before hitting the budget cap. The score breakdown shows critically low Completeness (3.5) and Accuracy (4.5), meaning the PRD that was being generated was substantively wrong before it even ran out of budget.",
+      "root_cause": "The quality gate s2.5-prd-gate was in `pending` state and never evaluated the in-progress s2-pm output. Budget exhaustion killed the step before the gate could intervene. There is no mid-execution quality checkpoint that can abort a step early when partial output quality is already below threshold.",
+      "solution": "Implement a mid-execution quality signal: if a step's partial output can be scored at the 50% token mark and falls below a threshold (e.g., <4/10), the step should be aborted and rerouted rather than allowed to continue burning budget toward a guaranteed gate failure. This is especially critical for expensive steps like s2-pm.",
+      "date_discovered": "2026-04-02",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "a031b8f4-30a6-407b-95ac-57ab0b2e2046"
+    },
+    {
+      "id": "FAIL-085",
+      "category": "devops",
+      "title": "Budget Cap Too Low for PRD Generation on Config-Diagnostic Tasks",
+      "symptoms": "Step s2-pm failed with \"Budget exceeded: $1.8225 > $1.00 cap\" while attempting to write a PRD for a simple agent config verification task. The agent consumed 1.8x the allocated budget before completing, halting the entire pipeline and leaving 13 downstream steps in `pending` state.",
+      "root_cause": "The $1.00 budget cap assigned to s2-pm is calibrated for lightweight tasks. However, the agent first checked the knowledge base for failure patterns, then verified the real project structure, and was mid-execution when the cap was hit — indicating the agent treated a diagnostic/config task as a full-scope PRD task, generating disproportionate token spend relative to task complexity.",
+      "solution": "Two complementary fixes: (1) Introduce a task-complexity classifier at s1-orchestrator that downgrades pipeline scope for diagnostic/config tasks — bypassing or capping heavy agents like s2-pm when the task is investigative rather than build-oriented. (2) Raise s2-pm budget cap to $2.50–$3.00 for standard runs, or add a dynamic cap that scales with task type. Config-check tasks should route to a lightweight verification path, not the full MC Pipeline.",
+      "date_discovered": "2026-04-02",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "a031b8f4-30a6-407b-95ac-57ab0b2e2046"
+    },
+    {
+      "id": "FAIL-086",
+      "category": "architecture",
+      "title": "Full Build Pipeline Triggered for a Config Verification Task",
+      "symptoms": "The task \"check agent config, I changed model to sonnet and save it but it doesn't implemented\" is a diagnostic/debugging task — yet the full MC Pipeline was invoked, including PRD, ADR, API design, ERD, backend, frontend, DevOps, and security audit steps. This is a structural mismatch between task intent and pipeline selection.",
+      "root_cause": "No pre-routing logic exists at the pipeline entry point to classify task type (build vs. debug vs. config-check). All tasks funnel into the same heavyweight pipeline regardless of scope.",
+      "solution": "Implement a task-type router at pipeline ingestion (before s1-orchestrator or as part of it) that classifies tasks into categories: `build`, `debug`, `config`, `audit`. Config and debug tasks should route to a minimal pipeline — e.g., s0-research → s1-orchestrator → s8.5-tech-review → s11-final-verdict — skipping all generative/design agents. This would have resolved the original task in under 5 steps and under $0.30.",
+      "date_discovered": "2026-04-02",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "a031b8f4-30a6-407b-95ac-57ab0b2e2046"
+    },
+    {
+      "id": "FAIL-087",
+      "category": "devops",
+      "title": "Cascade Pending Failure: Single Agent Budget Breach Freezes Entire Pipeline",
+      "symptoms": "The failure of s2-pm caused 13 downstream steps to remain in `pending` state indefinitely. The pipeline has no fallback, skip-on-failure, or partial-completion logic — one budget breach at step 2 of a 16-step pipeline results in 0% downstream execution and a total duration of 1238.5s with near-zero output value.",
+      "root_cause": "Pipeline execution model is strictly sequential with hard dependency on s2-pm output. No circuit-breaker or conditional branching exists to allow independent steps to proceed or to gracefully degrade to a partial result.",
+      "solution": "Introduce step-level failure handling: (1) Mark non-blocking steps as `optional` so they can be skipped without halting the pipeline. (2) Add a fallback stub output for s2-pm that allows downstream steps to proceed with reduced context when budget is exceeded. (3) Emit a partial pipeline result with a `degraded` status rather than `failed`, preserving any completed step outputs (s0-research score 7.6/10 was useful and is now wasted).",
+      "date_discovered": "2026-04-02",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "a031b8f4-30a6-407b-95ac-57ab0b2e2046"
+    },
+    {
+      "id": "FAIL-088",
+      "category": "performance",
+      "title": "s0-Research Requires Continuation Tokens for a Config-Check Task",
+      "symptoms": "s0-research completed but required a continuation pass (+2546 tokens) to finish, scoring only 7.6/10. For a task asking why a model config change (sonnet) wasn't applied, research scope should be narrow: check agent config files, check runtime loading logic, check env/override hierarchy. Instead, the agent over-researched, consuming excess tokens before producing marginally adequate output.",
+      "root_cause": "Research agent lacks task-scoped depth constraints. It defaults to broad investigation patterns regardless of whether the task requires deep research or a targeted config file inspection.",
+      "solution": "Pass task-type metadata to s0-research so it can apply a \"targeted lookup\" mode for config/debug tasks — limiting scope to 2–3 specific file paths or patterns rather than broad codebase analysis. Expected token usage for this task: <500 tokens, no continuation needed.",
+      "date_discovered": "2026-04-02",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "a031b8f4-30a6-407b-95ac-57ab0b2e2046"
+    },
+    {
+      "id": "FAIL-089",
+      "category": "build",
+      "title": "Backend Agent Produces Zero File Writes Despite Claiming Implementation Complete",
+      "symptoms": "Step s5-backend failed after 1 retry with an API 500 error (HTML response instead of JSON), yet QA agents (s8-technical-qa, s9-business-qa) confirmed zero files were written to disk. The pipeline reported implementation as complete while no actual code artifacts were produced. s9-business-qa correctly flagged this as a critical implementation failure despite the step appearing to have run.",
+      "root_cause": "The backend agent received an HTML 500 error page from the upstream LLM/API gateway instead of a valid completion response. This likely caused the agent to either silently swallow the error or misreport success. The retry (1x) did not resolve the underlying API instability, and no circuit-breaker or file-write verification gate existed between s5-backend and the QA steps.",
+      "solution": "Introduce a post-implementation file-existence gate between s5-backend and s8-technical-qa. After any backend/code-generation step, assert that at minimum one expected output file exists on disk before allowing downstream QA steps to proceed. If the gate fails, halt the pipeline immediately rather than running QA against empty artifacts. Additionally, treat HTML responses from the API as hard failures — do not retry silently, surface the 500 immediately with the raw response body.",
+      "date_discovered": "2026-04-05",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "37b9dce0-0275-4c36-9c31-4c73dfe4f29e"
+    },
+    {
+      "id": "FAIL-090",
+      "category": "devops",
+      "title": "QA Steps Allowed to Execute Against Empty Artifact Set",
+      "symptoms": "Both s8-technical-qa (10/10) and s9-business-qa (8/10) ran for 96s and 82s respectively, consuming significant compute and time, only to conclude that no implementation files existed. The pipeline wasted ~178s of QA execution validating a null artifact set.",
+      "root_cause": "No precondition check or artifact-presence assertion is enforced before QA steps are scheduled. The pipeline treats step completion (even failed completion) as sufficient signal to advance, rather than verifying that expected outputs were materialized.",
+      "solution": "Add a lightweight artifact-manifest check as a hard gate before any QA step. The manifest should list expected file paths (e.g., `lib/agent-tools/perplexity.ts`, updated `types/`, env additions) and verify their existence. If the manifest check fails, skip QA steps and surface a `NO_ARTIFACTS` pipeline error. This saves QA compute and produces a cleaner failure signal.",
+      "date_discovered": "2026-04-05",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "37b9dce0-0275-4c36-9c31-4c73dfe4f29e"
+    },
+    {
+      "id": "FAIL-091",
+      "category": "api",
+      "title": "API 500 HTML Response Causes Silent Retry Without Root Cause Diagnosis",
+      "symptoms": "Step s5-backend received an HTML 500 error (`<!DOCTYPE html>...`) — a Next.js error page — instead of a JSON API response. The step retried once and still failed. No structured error was extracted from the HTML body, making diagnosis harder and leaving the root cause (gateway overload, model timeout, routing misconfiguration) unknown.",
+      "root_cause": "The API client in the pipeline executor does not distinguish between HTTP 500 with JSON body (recoverable model error) and HTTP 500 with HTML body (infrastructure/gateway failure). Both trigger the same retry logic, which is inappropriate for infrastructure-level failures that are unlikely to self-resolve in one retry.",
+      "solution": "In `lib/pipeline-executor.ts`, inspect the `Content-Type` header of error responses. If `Content-Type: text/html`, classify as an infrastructure failure, log the full raw body, and do NOT retry — escalate immediately with error type `GATEWAY_ERROR`. Reserve retries for `application/json` error responses where the model may have timed out transiently. This avoids wasting a retry slot on unrecoverable gateway failures.",
+      "date_discovered": "2026-04-05",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "37b9dce0-0275-4c36-9c31-4c73dfe4f29e"
+    },
+    {
+      "id": "FAIL-092",
+      "category": "devops",
+      "title": "Upstream Steps (s2.5 through s3.4) Left as Pending With No Recorded Outcome",
+      "symptoms": "Five steps — s2.5-prd-gate, s3.1-adr, s3.2-api, s3.3-erd, s3.4-fileplan — all show status `pending` in the final execution record. It is ambiguous whether these steps were skipped, never scheduled, or abandoned mid-run.",
+      "root_cause": "The pipeline failure at s5-backend appears to have caused upstream steps to be recorded as `pending` rather than `skipped` or `not-reached`. This creates an ambiguous audit trail — `pending` implies the step is waiting to run, not that it was bypassed due to a downstream failure.",
+      "solution": "Introduce a terminal step state `skipped` (distinct from `pending`) that is applied to any step that was never executed because a dependency failed. On pipeline termination, sweep all `pending` steps and transition them to `skipped` with a reason reference (e.g., `skipped: s5-backend failed`). This produces an unambiguous post-mortem record.",
+      "date_discovered": "2026-04-05",
+      "recurrence": "Discovered during pipeline execution",
+      "source_pipeline": "37b9dce0-0275-4c36-9c31-4c73dfe4f29e"
     }
   ]
 }

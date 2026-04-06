@@ -15,7 +15,7 @@ const spaceMono = Space_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Mission Control — Agent Platform",
+  title: "Mission Control v4",
   description: "Multi-agent orchestration & monitoring platform",
 };
 
@@ -29,7 +29,7 @@ export default function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var s=JSON.parse(localStorage.getItem('mission-control-app')||'{}');var t=(s.state&&s.state.settings&&s.state.settings.theme)||'dark';var d=t==='dark'||(t==='system'&&matchMedia('(prefers-color-scheme:dark)').matches);document.documentElement.classList.remove('dark','light');document.documentElement.classList.add(d?'dark':'light')}catch(e){}})()`,
+            __html: `(function(){try{var s=JSON.parse(localStorage.getItem('mission-control-app')||'{}');var t=(s.state&&s.state.settings&&s.state.settings.theme)||'dark';if(t!=='dark'&&t!=='light'&&t!=='system')t='dark';var d=t==='dark'||(t==='system'&&matchMedia('(prefers-color-scheme:dark)').matches);document.documentElement.classList.remove('dark','light');document.documentElement.classList.add(d?'dark':'light')}catch(e){}})()`,
           }}
         />
       </head>

@@ -1,0 +1,36 @@
+{
+  "699715b3b1d4987b4df372f9": {
+    "llmModel": "claude-sonnet-4-6",
+    "llmProvider": "anthropic"
+  },
+  "699715cfb1d4987b4df3732d": {
+    "name": "Designer-Agent",
+    "description": "Designer agent — design systems, UI tokens, visual direction, typography, color palettes, key screen specifications.",
+    "llmProvider": "anthropic",
+    "llmModel": "claude-sonnet-4-5",
+    "maxTokens": 25000,
+    "maxOutputTokens": 4000,
+    "maxToolSteps": 10
+  },
+  "699715c0b1d4987b4df37313": {
+    "name": "Frontend-Agent",
+    "description": "Frontend/UX Developer agent — user flows, screen maps, interaction logic, component architecture.",
+    "llmProvider": "anthropic",
+    "llmModel": "claude-sonnet-4-6",
+    "maxTokens": 25000,
+    "maxOutputTokens": 5000,
+    "maxToolSteps": 10
+  },
+  "699435ec707890c41035553f": {
+    "name": "Assistant",
+    "description": "Default AI assistant",
+    "llmProvider": "anthropic",
+    "llmModel": "claude-haiku-4-5",
+    "maxTokens": 25000,
+    "maxOutputTokens": 2000,
+    "maxToolSteps": 10
+  },
+  "69971597b1d4987b4df372c5": {
+    "llmModel": "claude-opus-4-6"
+  }
+}

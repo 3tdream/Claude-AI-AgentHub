@@ -17,9 +17,11 @@
         "loyalty"
       ],
       "createdAt": "2026-03-22T18:06:53.844Z",
-      "updatedAt": "2026-03-22T18:06:53.844Z",
+      "updatedAt": "2026-04-02T20:28:59.661Z",
       "pipelineRunId": "pipeline-v3-test",
-      "version": 1
+      "version": 1,
+      "confidence": 0.92,
+      "confirmCount": 0
     },
     {
       "id": "kb-td-002",
@@ -36,9 +38,11 @@
         "adr"
       ],
       "createdAt": "2026-03-22T18:06:53.844Z",
-      "updatedAt": "2026-03-22T18:06:53.844Z",
+      "updatedAt": "2026-04-02T20:28:59.661Z",
       "pipelineRunId": "pipeline-v3-test",
-      "version": 1
+      "version": 1,
+      "confidence": 0.92,
+      "confirmCount": 0
     },
     {
       "id": "kb-td-003",
@@ -55,9 +59,11 @@
         "adr"
       ],
       "createdAt": "2026-03-22T18:06:53.844Z",
-      "updatedAt": "2026-03-22T18:06:53.844Z",
+      "updatedAt": "2026-04-02T20:28:59.661Z",
       "pipelineRunId": "pipeline-v3-test",
-      "version": 1
+      "version": 1,
+      "confidence": 0.92,
+      "confirmCount": 0
     },
     {
       "id": "kb-td-004",
@@ -74,9 +80,11 @@
         "adr"
       ],
       "createdAt": "2026-03-22T18:06:53.844Z",
-      "updatedAt": "2026-03-22T18:06:53.844Z",
+      "updatedAt": "2026-04-02T20:28:59.661Z",
       "pipelineRunId": "pipeline-v3-test",
-      "version": 1
+      "version": 1,
+      "confidence": 0.92,
+      "confirmCount": 0
     },
     {
       "id": "kb-td-005",
@@ -93,9 +101,11 @@
         "adr"
       ],
       "createdAt": "2026-03-22T18:07:31.281Z",
-      "updatedAt": "2026-03-22T18:07:31.281Z",
+      "updatedAt": "2026-04-02T20:28:59.661Z",
       "pipelineRunId": "pipeline-v3-test",
-      "version": 1
+      "version": 1,
+      "confidence": 0.92,
+      "confirmCount": 0
     },
     {
       "id": "kb-td-006",
@@ -111,9 +121,11 @@
         "type-safety"
       ],
       "createdAt": "2026-03-24T10:52:09.535Z",
-      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-04-02T20:28:59.661Z",
       "pipelineRunId": "code-review",
-      "version": 1
+      "version": 1,
+      "confidence": 0.95,
+      "confirmCount": 0
     },
     {
       "id": "kb-td-007",
@@ -128,9 +140,11 @@
         "resilience"
       ],
       "createdAt": "2026-03-24T10:52:09.535Z",
-      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-04-02T20:28:59.661Z",
       "pipelineRunId": "code-review",
-      "version": 1
+      "version": 1,
+      "confidence": 0.95,
+      "confirmCount": 0
     },
     {
       "id": "kb-td-008",
@@ -144,9 +158,11 @@
         "design-tokens"
       ],
       "createdAt": "2026-03-24T10:52:09.535Z",
-      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-04-02T20:28:59.661Z",
       "pipelineRunId": "code-review",
-      "version": 1
+      "version": 1,
+      "confidence": 0.95,
+      "confirmCount": 0
     },
     {
       "id": "kb-td-009",
@@ -161,9 +177,11 @@
         "noImplicitAny"
       ],
       "createdAt": "2026-03-24T10:52:09.535Z",
-      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-04-02T20:28:59.661Z",
       "pipelineRunId": "pipeline-v3-test",
-      "version": 1
+      "version": 1,
+      "confidence": 0.95,
+      "confirmCount": 0
     },
     {
       "id": "kb-td-010",
@@ -179,9 +197,11 @@
         "database"
       ],
       "createdAt": "2026-03-24T10:52:09.535Z",
-      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-04-02T20:28:59.661Z",
       "pipelineRunId": "pipeline-v3-test",
-      "version": 1
+      "version": 1,
+      "confidence": 0.95,
+      "confirmCount": 0
     },
     {
       "title": "Agent tools two-layer architecture",
@@ -195,8 +215,10 @@
       ],
       "id": "kb-mn59rl7b-3de4ef12",
       "createdAt": "2026-03-24T23:52:18.455Z",
-      "updatedAt": "2026-03-24T23:52:18.455Z",
-      "version": 1
+      "updatedAt": "2026-04-02T20:28:59.661Z",
+      "version": 1,
+      "confidence": 0.96,
+      "confirmCount": 0
     },
     {
       "title": "MC vs SB comparison table",
@@ -210,8 +232,10 @@
       ],
       "id": "kb-mn59rlds-c0bad011",
       "createdAt": "2026-03-24T23:52:18.688Z",
-      "updatedAt": "2026-03-24T23:52:18.688Z",
-      "version": 1
+      "updatedAt": "2026-04-02T20:28:59.661Z",
+      "version": 1,
+      "confidence": 0.96,
+      "confirmCount": 0
     },
     {
       "title": "Pipeline V2 test findings",
@@ -225,8 +249,10 @@
       ],
       "id": "kb-mn59rlf6-8ffbd48a",
       "createdAt": "2026-03-24T23:52:18.738Z",
-      "updatedAt": "2026-03-24T23:52:18.738Z",
-      "version": 1
+      "updatedAt": "2026-04-02T20:28:59.661Z",
+      "version": 1,
+      "confidence": 0.96,
+      "confirmCount": 0
     },
     {
       "title": "Pipeline V3 definitive structure",
@@ -240,8 +266,10 @@
       ],
       "id": "kb-mn59rlge-1ef46e1c",
       "createdAt": "2026-03-24T23:52:18.782Z",
-      "updatedAt": "2026-03-24T23:52:18.782Z",
-      "version": 1
+      "updatedAt": "2026-04-02T20:28:59.661Z",
+      "version": 1,
+      "confidence": 0.96,
+      "confirmCount": 0
     },
     {
       "title": "Dev server launch: use node_modules/.bin/next directly, not npm run dev",
@@ -259,8 +287,10 @@
       ],
       "id": "kb-mn69f1yy-988f89a7",
       "createdAt": "2026-03-25T16:30:19.834Z",
-      "updatedAt": "2026-03-25T16:30:19.834Z",
-      "version": 1
+      "updatedAt": "2026-04-02T20:28:59.661Z",
+      "version": 1,
+      "confidence": 0.98,
+      "confirmCount": 0
     },
     {
       "title": "npm install in pnpm monorepo: move root package.json temporarily",
@@ -277,8 +307,10 @@
       ],
       "id": "kb-mn6ifw0w-5bf70522",
       "createdAt": "2026-03-25T20:42:55.328Z",
-      "updatedAt": "2026-03-25T20:42:55.328Z",
-      "version": 1
+      "updatedAt": "2026-04-02T20:28:59.661Z",
+      "version": 1,
+      "confidence": 0.98,
+      "confirmCount": 0
     },
     {
       "title": "MC product packaging plan",
@@ -292,8 +324,10 @@
       ],
       "id": "kb-mn6k12bz-83552495",
       "createdAt": "2026-03-25T21:27:22.895Z",
-      "updatedAt": "2026-03-25T21:27:22.895Z",
-      "version": 1
+      "updatedAt": "2026-04-02T20:28:59.661Z",
+      "version": 1,
+      "confidence": 0.98,
+      "confirmCount": 0
     },
     {
       "title": "MC unified product architecture",
@@ -307,8 +341,10 @@
       ],
       "id": "kb-mn6k12ch-66eb1dab",
       "createdAt": "2026-03-25T21:27:22.913Z",
-      "updatedAt": "2026-03-25T21:27:22.913Z",
-      "version": 1
+      "updatedAt": "2026-04-02T20:28:59.661Z",
+      "version": 1,
+      "confidence": 0.98,
+      "confirmCount": 0
     },
     {
       "title": "Session 2026-03-25 — MC cognitive architecture + projects",
@@ -322,8 +358,10 @@
       ],
       "id": "kb-mn6k12d2-2ebc2736",
       "createdAt": "2026-03-25T21:27:22.934Z",
-      "updatedAt": "2026-03-25T21:27:22.934Z",
-      "version": 1
+      "updatedAt": "2026-04-02T20:28:59.661Z",
+      "version": 1,
+      "confidence": 0.98,
+      "confirmCount": 0
     },
     {
       "title": "Intent classifier needs tuning � add/toggle/feature tasks should go to pipeline",
@@ -338,8 +376,10 @@
       ],
       "id": "kb-mn91sfpw-c0bf169b",
       "createdAt": "2026-03-27T15:20:05.780Z",
-      "updatedAt": "2026-03-27T15:20:05.780Z",
-      "version": 1
+      "updatedAt": "2026-04-04T08:51:11.019Z",
+      "version": 1,
+      "confidence": 0.99,
+      "confirmCount": 0
     },
     {
       "title": "Claude in MC UI — Command Bar architecture",
@@ -353,8 +393,10 @@
       ],
       "id": "kb-mn9wgyh4-e6c467a4",
       "createdAt": "2026-03-28T05:38:58.312Z",
-      "updatedAt": "2026-03-28T05:38:58.312Z",
-      "version": 1
+      "updatedAt": "2026-04-04T08:51:11.019Z",
+      "version": 1,
+      "confidence": 1,
+      "confirmCount": 0
     },
     {
       "title": "Phase 2 plan — Global Project Selector + page unification",
@@ -368,8 +410,10 @@
       ],
       "id": "kb-mn9wgyht-229ee8e8",
       "createdAt": "2026-03-28T05:38:58.337Z",
-      "updatedAt": "2026-03-28T05:38:58.337Z",
-      "version": 1
+      "updatedAt": "2026-04-04T08:51:11.019Z",
+      "version": 1,
+      "confidence": 1,
+      "confirmCount": 0
     },
     {
       "title": "UI design system: light theme with indigo/slate/emerald palette",
@@ -385,11 +429,130 @@
       ],
       "id": "kb-mnatgvbb-d88965fd",
       "createdAt": "2026-03-28T21:02:41.543Z",
-      "updatedAt": "2026-03-28T21:02:41.543Z",
+      "updatedAt": "2026-04-05T17:17:57.118Z",
+      "version": 1,
+      "confidence": 0.98,
+      "confirmCount": 0
+    },
+    {
+      "title": "Agent Emulation Mode architecture",
+      "content": "## Agent Emulation Mode\n\nClaude = engine. Agent = configuration of thinking.\n\n### Two Modes\n- **Chat Mode**: Claude + Agent Identity Injection → fast iterations, sandbox\n- **Execute Mode**: Pipeline agents → contracts, validation, code output\n\n### Agent Identity Protocol\nBefore every chat response, inject:\n```\nSYSTEM:\nYou are acting as: {agent.name}\nRole: {agent.description}\nRules: {from agent prompt}\nContext: project state + KB patterns\n```\n\n### Metrics separation\n- `backend-agent@chat` — chat ",
+      "source": "claude-memory",
+      "severity": "medium",
+      "tags": [
+        "imported-from-memory",
+        "memory:project_agent_emulation.md",
+        "project"
+      ],
+      "id": "kb-mnb015ov-3ef9a9cd",
+      "createdAt": "2026-03-29T00:06:25.807Z",
+      "updatedAt": "2026-04-05T17:17:57.118Z",
+      "version": 1,
+      "confidence": 0.99,
+      "confirmCount": 0
+    },
+    {
+      "title": "Session 2026-03-29 — Home page Sprint 1-3 + Pipeline execution",
+      "content": "## What was built\n\nHome page (`app/(shell)/home/page.tsx`) now has full pipeline orchestration:\n\n**Sprint 1 (Easy):**\n- Pipeline/Contracts/Analytics tabs in PipelinePanel header\n- Investigation Card renders when result has investigation data\n- Export JSON button (FileDown icon) with results\n- Jira badge (CAI-XXX link) when result has jiraKey\n\n**Sprint 2 (Medium):**\n- Live Execution Status bar — progress, step counter, running/paused indicators\n- Pause/Stop/Resume controls wired to orchestration ",
+      "source": "claude-memory",
+      "severity": "medium",
+      "tags": [
+        "imported-from-memory",
+        "memory:session_2026_03_29.md",
+        "project"
+      ],
+      "id": "kb-mnb015v6-02c2e6d0",
+      "createdAt": "2026-03-29T00:06:26.034Z",
+      "updatedAt": "2026-04-05T17:17:57.118Z",
+      "version": 1,
+      "confidence": 0.99,
+      "confirmCount": 0
+    },
+    {
+      "title": "Product blockers — approved implementation order",
+      "content": "## Product Blockers — Approved Order (2026-03-31)\n\nHigh priority — start after full system pass on all pages.\n\n1. **Deploy** — Dockerfile + docker-compose, Vercel config, VPS guide\n2. **Onboarding** — setup wizard, demo pipeline, first-run flow\n3. **Auth** — login/signup, JWT, roles (admin/user/viewer)\n4. **Storage** — JSON files → PostgreSQL/SQLite\n5. **Multi-user** — teams, permissions, isolated data\n6. **API keys** — user-managed, encrypted, per-provider\n7. **Landing page + docs** — marketing",
+      "source": "claude-memory",
+      "severity": "medium",
+      "tags": [
+        "imported-from-memory",
+        "memory:project_product_blockers_order.md",
+        "project"
+      ],
+      "id": "kb-mng8hnmz-43b4a926",
+      "createdAt": "2026-04-01T16:02:03.371Z",
+      "updatedAt": "2026-04-01T16:02:03.371Z",
+      "version": 1,
+      "confidence": 1,
+      "confirmCount": 0
+    },
+    {
+      "title": "MC Product Roadmap 2026",
+      "content": "## Mission Control — Product Roadmap 2026\nUpdated: 2026-04-02\n\n---\n\n### Sprint 1 — Validate Wave 1-3 features (this week)\n**Goal:** Verify 14 new features work e2e, health 72 → 85+\n\n| # | Task | Effort | Status |\n|---|------|--------|--------|\n| 1.1 | Test KB Evolution engine — run pipeline, check confidence boost/decay | S | planned |\n| 1.2 | Test model escalation — trigger retry, verify haiku → sonnet → opus | S | planned |\n| 1.3 | Test parallel DAG execution — verify independent agents run in",
+      "source": "claude-memory",
+      "severity": "medium",
+      "tags": [
+        "imported-from-memory",
+        "memory:project_mc_roadmap.md",
+        "project"
+      ],
+      "id": "kb-mninyn73-d3854591",
+      "createdAt": "2026-04-03T08:50:42.543Z",
+      "updatedAt": "2026-04-03T08:50:42.543Z",
+      "version": 1,
+      "confidence": 1,
+      "confirmCount": 0
+    },
+    {
+      "title": "Pipeline 3D Visualization — planned feature",
+      "content": "## Pipeline 3D Visualization (planned)\n\n**Reference**: C:\\Users\\Ro050\\Downloads\\mission_control_ai_factory (2).html\n**Branch**: new branch after ux-review merge\n\n### What it does\n- 3D canvas with agent nodes orbiting, animated particle connections\n- Real-time status updates (running, completed, failed)\n- Metrics panel (tokens, latency, success rate)\n- Activity stream\n- Camera controls (rotate, zoom, presets)\n- Dark/light theme support (already in HTML)\n\n### Implementation plan\n1. `npm install p5",
+      "source": "claude-memory",
+      "severity": "medium",
+      "tags": [
+        "imported-from-memory",
+        "memory:project_pipeline_3d.md",
+        "project"
+      ],
+      "id": "kb-mninynhj-b98b0e07",
+      "createdAt": "2026-04-03T08:50:42.919Z",
+      "updatedAt": "2026-04-03T08:50:42.919Z",
+      "version": 1,
+      "confidence": 1,
+      "confirmCount": 0
+    },
+    {
+      "title": "Session 2026-04-02 — Waves 1-3, Control Layer, UX review, Pipeline 3D start",
+      "content": "## Done this session\n\n### Waves 1-3 (from parallel session, committed bc4b2c9)\n- 14 features: hooks, KB evolution, model escalation, pass@k, parallel DAG, eval baselines, etc.\n\n### Agent Infrastructure\n- Chat 3-tier fallback: Agent Hub → Anthropic Claude → OpenAI (4cc6327)\n- All 10 pipeline agents get tools (readonly for planners, readwrite for implementers) (d235367)\n- Agent Hub declared optional — MC fully autonomous\n- Full Agent Hub dependency map documented\n\n### Sprint 2: Control Layer (11 f",
+      "source": "claude-memory",
+      "severity": "medium",
+      "tags": [
+        "imported-from-memory",
+        "memory:session_2026_04_02.md",
+        "project"
+      ],
+      "id": "kb-mninynoz-4447bec7",
+      "createdAt": "2026-04-03T08:50:43.187Z",
+      "updatedAt": "2026-04-03T08:50:43.187Z",
+      "version": 1,
+      "confidence": 1,
+      "confirmCount": 0
+    },
+    {
+      "title": "Sprint — Home page full QA via Chrome DevTools",
+      "content": "## Sprint: Home Page Full QA (next session)\n\n**Tool**: Chrome DevTools MCP (screenshots, click, evaluate, network)\n**Method**: Open each feature, screenshot, test interaction, verify data\n\n### Pre-requisites\n- Anthropic balance topped up (ran out at $22)\n- Chrome DevTools MCP connected\n- MC server running on localhost:3077\n\n### Test Plan\n\n#### 1. Pipeline Execution (critical path)\n- [ ] Type task → Run → verify intent classification shows\n- [ ] Direct task → verify edit happens, status badge sho",
+      "source": "claude-memory",
+      "severity": "medium",
+      "tags": [
+        "imported-from-memory",
+        "memory:project_sprint_home_qa.md",
+        "project"
+      ],
+      "id": "kb-mnmg6upz-94716ba5",
+      "createdAt": "2026-04-06T00:24:13.319Z",
+      "updatedAt": "2026-04-06T00:24:13.319Z",
       "version": 1
     }
   ],
-  "contentHash": "611963162be01c22d7cd52832dbfd857b135f2ac1639c29cbdb76f5cadeeabb1",
-  "lastUpdated": "2026-03-28T21:02:41.543Z",
+  "contentHash": "570ead8e551754ad382b5ee20d1527b702e4ffd9041e2efe3f7aa504cd2c2454",
+  "lastUpdated": "2026-04-06T00:24:13.319Z",
   "schemaVersion": 1
 }

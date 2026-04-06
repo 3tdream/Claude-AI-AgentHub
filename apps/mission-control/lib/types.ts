@@ -63,3 +63,66 @@ export interface PipelineListItem {
   agentCount: number;
   startedAt?: string;
 }
+
+// ── Extended types for 3D preview API wiring ─────────────────────────────────
+
+export type AgentType =
+  | "orchestrator"
+  | "researcher"
+  | "writer"
+  | "reviewer"
+  | "executor"
+  | "validator"
+  | "aggregator"
+  | "notifier";
+
+export interface AgentNode {
+  id: string;
+  name: string;
+  type: AgentType;
+  status: AgentStatus;
+  progress?: number;
+  position: { x: number; y: number; z: number };
+  metadata?: Record<string, unknown>;
+  startedAt?: string;
+  completedAt?: string;
+  errorMessage?: string;
+}
+
+export interface AgentConnection {
+  id: string;
+  sourceId: string;
+  targetId: string;
+  active: boolean;
+  dataFlow?: number;
+}
+
+export interface PipelineExecution {
+  id: string;
+  pipelineId: string;
+  pipelineName: string;
+  status: AgentStatus;
+  agents: AgentNode[];
+  connections: AgentConnection[];
+  startedAt: string;
+  completedAt?: string;
+  totalAgents: number;
+  completedAgents: number;
+  failedAgents: number;
+  runningAgents: number;
+  throughput?: number;
+  latencyMs?: number;
+}
+
+export interface ExecutionStats {
+  totalRuns: number;
+  successRate: number;
+  avgLatencyMs: number;
+  activeExecutions: number;
+}
+
+export interface ApiError {
+  message: string;
+  code?: string;
+  status: number;
+}

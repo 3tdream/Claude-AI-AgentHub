@@ -15,9 +15,11 @@
         "cross-referencing"
       ],
       "createdAt": "2026-03-22T18:08:55.595Z",
-      "updatedAt": "2026-03-23T20:00:00.000Z",
+      "updatedAt": "2026-04-02T20:28:58.997Z",
       "pipelineRunId": "pipeline-v3-test",
-      "version": 2
+      "version": 2,
+      "confidence": 0.94,
+      "confirmCount": 0
     },
     {
       "id": "kb-su-002",
@@ -31,9 +33,11 @@
         "prompt-design"
       ],
       "createdAt": "2026-03-23T20:00:00.000Z",
-      "updatedAt": "2026-03-23T20:00:00.000Z",
+      "updatedAt": "2026-04-02T20:28:58.997Z",
       "pipelineRunId": "analytics-review",
-      "version": 1
+      "version": 1,
+      "confidence": 0.94,
+      "confirmCount": 0
     },
     {
       "id": "kb-su-003",
@@ -48,9 +52,11 @@
         "non-obvious"
       ],
       "createdAt": "2026-03-22T18:09:15.452Z",
-      "updatedAt": "2026-03-22T18:09:15.452Z",
+      "updatedAt": "2026-04-02T20:28:58.997Z",
       "pipelineRunId": "pipeline-v3-test",
-      "version": 1
+      "version": 1,
+      "confidence": 0.92,
+      "confirmCount": 0
     },
     {
       "id": "kb-su-004",
@@ -66,9 +72,12 @@
         "benchmark"
       ],
       "createdAt": "2026-03-22T18:09:26.724Z",
-      "updatedAt": "2026-03-22T18:09:26.724Z",
-      "pipelineRunId": "pipeline-v3-test",
-      "version": 1
+      "updatedAt": "2026-04-02T22:56:18.399Z",
+      "pipelineRunId": "a031b8f4-30a6-407b-95ac-57ab0b2e2046",
+      "version": 6,
+      "confidence": 0.95,
+      "confirmCount": 4,
+      "lastConfirmedAt": "2026-04-02T22:56:18.399Z"
     },
     {
       "id": "kb-su-005",
@@ -83,9 +92,11 @@
         "100-percent"
       ],
       "createdAt": "2026-03-23T20:00:00.000Z",
-      "updatedAt": "2026-03-23T20:00:00.000Z",
+      "updatedAt": "2026-04-02T20:28:58.997Z",
       "pipelineRunId": "analytics-review",
-      "version": 1
+      "version": 1,
+      "confidence": 0.94,
+      "confirmCount": 0
     },
     {
       "id": "kb-su-006",
@@ -99,9 +110,11 @@
         "token-efficiency"
       ],
       "createdAt": "2026-03-24T10:52:09.535Z",
-      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-04-02T20:28:58.997Z",
       "pipelineRunId": "analytics-review",
-      "version": 1
+      "version": 1,
+      "confidence": 0.95,
+      "confirmCount": 0
     },
     {
       "id": "kb-su-007",
@@ -117,9 +130,11 @@
         "implementability"
       ],
       "createdAt": "2026-03-24T10:52:09.535Z",
-      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-04-02T20:28:58.997Z",
       "pipelineRunId": "pipeline-v3-test",
-      "version": 1
+      "version": 1,
+      "confidence": 0.95,
+      "confirmCount": 0
     },
     {
       "id": "kb-su-008",
@@ -136,9 +151,12 @@
         "non-obvious-findings"
       ],
       "createdAt": "2026-03-24T10:52:09.535Z",
-      "updatedAt": "2026-03-24T10:52:09.535Z",
-      "pipelineRunId": "pipeline-v3-test",
-      "version": 1
+      "updatedAt": "2026-04-05T18:49:23.381Z",
+      "pipelineRunId": "27faae26-2b4f-4e13-8c3b-0703ef23cb65",
+      "version": 6,
+      "confidence": 0.95,
+      "confirmCount": 5,
+      "lastConfirmedAt": "2026-04-05T18:49:23.381Z"
     },
     {
       "id": "kb-su-009",
@@ -154,9 +172,11 @@
         "completeness"
       ],
       "createdAt": "2026-03-24T10:52:09.535Z",
-      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-04-02T20:28:58.997Z",
       "pipelineRunId": "pipeline-v3-test",
-      "version": 1
+      "version": 1,
+      "confidence": 0.95,
+      "confirmCount": 0
     },
     {
       "id": "kb-su-010",
@@ -173,9 +193,11 @@
         "cicd"
       ],
       "createdAt": "2026-03-24T10:52:09.535Z",
-      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-04-02T20:28:58.997Z",
       "pipelineRunId": "pipeline-v3-test",
-      "version": 1
+      "version": 1,
+      "confidence": 0.95,
+      "confirmCount": 0
     },
     {
       "id": "kb-su-011",
@@ -190,9 +212,11 @@
         "performance"
       ],
       "createdAt": "2026-03-24T10:52:09.535Z",
-      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-04-02T20:28:58.997Z",
       "pipelineRunId": "analytics-review",
-      "version": 1
+      "version": 1,
+      "confidence": 0.95,
+      "confirmCount": 0
     },
     {
       "title": "pm consistently scores 10.0/10",
@@ -208,8 +232,10 @@
       "pipelineRunId": "fe6bc195-9ab2-4591-8ead-db3b5233bc5c",
       "id": "kb-mn5997dc-88f474e1",
       "createdAt": "2026-03-24T23:38:00.720Z",
-      "updatedAt": "2026-03-24T23:38:00.720Z",
-      "version": 1
+      "updatedAt": "2026-04-02T20:28:58.997Z",
+      "version": 1,
+      "confidence": 0.96,
+      "confirmCount": 0
     },
     {
       "title": "architect consistently scores 9.9/10",
@@ -225,8 +251,10 @@
       "pipelineRunId": "fe6bc195-9ab2-4591-8ead-db3b5233bc5c",
       "id": "kb-mn5997en-78da3e43",
       "createdAt": "2026-03-24T23:38:00.767Z",
-      "updatedAt": "2026-03-24T23:38:00.767Z",
-      "version": 1
+      "updatedAt": "2026-04-02T20:28:58.997Z",
+      "version": 1,
+      "confidence": 0.96,
+      "confirmCount": 0
     },
     {
       "title": "frontend consistently scores 10.0/10",
@@ -242,8 +270,10 @@
       "pipelineRunId": "fe6bc195-9ab2-4591-8ead-db3b5233bc5c",
       "id": "kb-mn5997fu-b70b0913",
       "createdAt": "2026-03-24T23:38:00.810Z",
-      "updatedAt": "2026-03-24T23:38:00.810Z",
-      "version": 1
+      "updatedAt": "2026-04-02T20:28:58.997Z",
+      "version": 1,
+      "confidence": 0.96,
+      "confirmCount": 0
     },
     {
       "title": "designer consistently scores 10.0/10",
@@ -259,8 +289,10 @@
       "pipelineRunId": "fe6bc195-9ab2-4591-8ead-db3b5233bc5c",
       "id": "kb-mn5997h5-f4d36d3f",
       "createdAt": "2026-03-24T23:38:00.857Z",
-      "updatedAt": "2026-03-24T23:38:00.857Z",
-      "version": 1
+      "updatedAt": "2026-04-02T20:28:58.997Z",
+      "version": 1,
+      "confidence": 0.96,
+      "confirmCount": 0
     },
     {
       "title": "orchestrator consistently scores 10.0/10",
@@ -273,11 +305,14 @@
         "consistent-success",
         "orchestrator"
       ],
-      "pipelineRunId": "823256db-52b3-4914-96fa-e78ca14c2497",
+      "pipelineRunId": "a031b8f4-30a6-407b-95ac-57ab0b2e2046",
       "id": "kb-mn5997hu-3be84016",
       "createdAt": "2026-03-24T23:38:00.882Z",
-      "updatedAt": "2026-03-24T23:38:00.882Z",
-      "version": 1
+      "updatedAt": "2026-04-02T22:56:18.422Z",
+      "version": 6,
+      "confidence": 0.95,
+      "confirmCount": 4,
+      "lastConfirmedAt": "2026-04-02T22:56:18.422Z"
     },
     {
       "title": "consolidation consistently scores 10.0/10",
@@ -293,8 +328,10 @@
       "pipelineRunId": "823256db-52b3-4914-96fa-e78ca14c2497",
       "id": "kb-mn5997j2-99aa97eb",
       "createdAt": "2026-03-24T23:38:00.926Z",
-      "updatedAt": "2026-03-24T23:38:00.926Z",
-      "version": 1
+      "updatedAt": "2026-04-02T20:28:58.997Z",
+      "version": 1,
+      "confidence": 0.96,
+      "confirmCount": 0
     },
     {
       "title": "backend consistently scores 9.9/10",
@@ -310,8 +347,10 @@
       "pipelineRunId": "19f70d95-d307-4d61-8d96-4e358e87b479",
       "id": "kb-mn5997k2-4d6905b6",
       "createdAt": "2026-03-24T23:38:00.962Z",
-      "updatedAt": "2026-03-24T23:38:00.962Z",
-      "version": 1
+      "updatedAt": "2026-04-02T20:28:58.997Z",
+      "version": 1,
+      "confidence": 0.96,
+      "confirmCount": 0
     },
     {
       "title": "cyber consistently scores 10.0/10",
@@ -327,8 +366,10 @@
       "pipelineRunId": "813ce0f0-67d2-42d8-b642-da32bd08974d",
       "id": "kb-mn5997l2-fe05426e",
       "createdAt": "2026-03-24T23:38:00.998Z",
-      "updatedAt": "2026-03-24T23:38:00.998Z",
-      "version": 1
+      "updatedAt": "2026-04-02T20:28:58.997Z",
+      "version": 1,
+      "confidence": 0.96,
+      "confirmCount": 0
     },
     {
       "title": "cyber-audit consistently scores 10.0/10",
@@ -344,8 +385,10 @@
       "pipelineRunId": "813ce0f0-67d2-42d8-b642-da32bd08974d",
       "id": "kb-mn5997m4-9fcc3772",
       "createdAt": "2026-03-24T23:38:01.036Z",
-      "updatedAt": "2026-03-24T23:38:01.036Z",
-      "version": 1
+      "updatedAt": "2026-04-02T20:28:58.997Z",
+      "version": 1,
+      "confidence": 0.96,
+      "confirmCount": 0
     },
     {
       "title": "qa consistently scores 10.0/10",
@@ -361,8 +404,10 @@
       "pipelineRunId": "c45a51f6-8a0a-476a-8085-604909f61c44",
       "id": "kb-mn5997mp-859ff5e5",
       "createdAt": "2026-03-24T23:38:01.057Z",
-      "updatedAt": "2026-03-24T23:38:01.057Z",
-      "version": 1
+      "updatedAt": "2026-04-02T20:28:58.997Z",
+      "version": 1,
+      "confidence": 0.96,
+      "confirmCount": 0
     },
     {
       "title": "5 runs completed in under 60s",
@@ -377,8 +422,10 @@
       "pipelineRunId": "823256db-52b3-4914-96fa-e78ca14c2497",
       "id": "kb-mn5997nn-febbc8ec",
       "createdAt": "2026-03-24T23:38:01.091Z",
-      "updatedAt": "2026-03-24T23:38:01.091Z",
-      "version": 1
+      "updatedAt": "2026-04-02T20:28:58.997Z",
+      "version": 1,
+      "confidence": 0.96,
+      "confirmCount": 0
     },
     {
       "title": "Michael's core value",
@@ -392,8 +439,10 @@
       ],
       "id": "kb-mn59rlie-71034dc9",
       "createdAt": "2026-03-24T23:52:18.854Z",
-      "updatedAt": "2026-03-24T23:52:18.854Z",
-      "version": 1
+      "updatedAt": "2026-04-02T20:28:58.997Z",
+      "version": 1,
+      "confidence": 0.96,
+      "confirmCount": 0
     },
     {
       "title": "5 runs completed in under 60s",
@@ -408,8 +457,10 @@
       "pipelineRunId": "823256db-52b3-4914-96fa-e78ca14c2497",
       "id": "kb-mn5d93na-93685f9e",
       "createdAt": "2026-03-25T01:29:54.358Z",
-      "updatedAt": "2026-03-25T01:29:54.358Z",
-      "version": 1
+      "updatedAt": "2026-04-02T20:28:58.997Z",
+      "version": 1,
+      "confidence": 0.96,
+      "confirmCount": 0
     },
     {
       "title": "Simple technical tasks faster via CLI than full pipeline",
@@ -424,8 +475,10 @@
       ],
       "id": "kb-mn5w6ear-7bf6bbc4",
       "createdAt": "2026-03-25T10:19:40.899Z",
-      "updatedAt": "2026-03-25T10:19:40.899Z",
-      "version": 1
+      "updatedAt": "2026-04-02T20:28:58.997Z",
+      "version": 1,
+      "confidence": 0.97,
+      "confirmCount": 0
     },
     {
       "title": "Session 2026-03-25: cognitive architecture + projects � 91 files, 10627 lines",
@@ -441,8 +494,10 @@
       ],
       "id": "kb-mn6jnhun-8371489e",
       "createdAt": "2026-03-25T21:16:49.823Z",
-      "updatedAt": "2026-03-25T21:16:49.823Z",
-      "version": 1
+      "updatedAt": "2026-04-02T20:28:58.997Z",
+      "version": 1,
+      "confidence": 0.98,
+      "confirmCount": 0
     },
     {
       "title": "prd-gate consistently scores 10.0/10",
@@ -458,8 +513,10 @@
       "pipelineRunId": "4d998ff1-d88b-4416-a98e-9ad7a13ce8fd",
       "id": "kb-mn9wgxqc-3f4dd004",
       "createdAt": "2026-03-28T05:38:57.348Z",
-      "updatedAt": "2026-03-28T05:38:57.348Z",
-      "version": 1
+      "updatedAt": "2026-04-04T08:51:10.629Z",
+      "version": 1,
+      "confidence": 1,
+      "confirmCount": 0
     },
     {
       "title": "technical-qa consistently scores 10.0/10",
@@ -475,11 +532,86 @@
       "pipelineRunId": "055248df-b1d7-4c7d-abe9-e9b2afcc333a",
       "id": "kb-mn9wgxqq-7362608b",
       "createdAt": "2026-03-28T05:38:57.362Z",
-      "updatedAt": "2026-03-28T05:38:57.362Z",
-      "version": 1
+      "updatedAt": "2026-04-04T08:51:10.629Z",
+      "version": 1,
+      "confidence": 1,
+      "confirmCount": 0
+    },
+    {
+      "title": "adr consistently scores 10.0/10",
+      "content": "Agent adr scored 9+ in 2 recent completed runs. Average: 10.0. This agent's prompt and configuration are working well.",
+      "source": "nightly-evolution",
+      "agentId": "adr",
+      "severity": "medium",
+      "tags": [
+        "auto-detected",
+        "consistent-success",
+        "adr"
+      ],
+      "pipelineRunId": "3141bd05-a01c-4fc8-9227-7f14d1d44f60",
+      "id": "kb-mncf8vz7-23ee9350",
+      "createdAt": "2026-03-30T00:00:06.883Z",
+      "updatedAt": "2026-03-30T00:00:06.883Z",
+      "version": 1,
+      "confidence": 1,
+      "confirmCount": 0
+    },
+    {
+      "title": "3 runs completed in under 60s",
+      "content": "Quick mode or cached runs completing efficiently. Average duration: 14s. These represent optimal pipeline execution patterns.",
+      "source": "nightly-evolution",
+      "severity": "low",
+      "tags": [
+        "auto-detected",
+        "fast-execution",
+        "efficiency"
+      ],
+      "pipelineRunId": "3141bd05-a01c-4fc8-9227-7f14d1d44f60",
+      "id": "kb-mncf8w3m-5f2cfe11",
+      "createdAt": "2026-03-30T00:00:07.042Z",
+      "updatedAt": "2026-03-30T00:00:07.042Z",
+      "version": 1,
+      "confidence": 1,
+      "confirmCount": 0
+    },
+    {
+      "title": "3 runs completed in under 60s",
+      "content": "Quick mode or cached runs completing efficiently. Average duration: 14s. These represent optimal pipeline execution patterns.",
+      "source": "nightly-evolution",
+      "severity": "low",
+      "tags": [
+        "auto-detected",
+        "fast-execution",
+        "efficiency"
+      ],
+      "pipelineRunId": "3141bd05-a01c-4fc8-9227-7f14d1d44f60",
+      "id": "kb-mng8hjgk-c07b3101",
+      "createdAt": "2026-04-01T16:01:57.956Z",
+      "updatedAt": "2026-04-01T16:01:57.956Z",
+      "version": 1,
+      "confidence": 1,
+      "confirmCount": 0
+    },
+    {
+      "title": "3 runs completed in under 60s",
+      "content": "Quick mode or cached runs completing efficiently. Average duration: 14s. These represent optimal pipeline execution patterns.",
+      "source": "nightly-evolution",
+      "severity": "low",
+      "tags": [
+        "auto-detected",
+        "fast-execution",
+        "efficiency"
+      ],
+      "pipelineRunId": "3141bd05-a01c-4fc8-9227-7f14d1d44f60",
+      "id": "kb-mngw7d3q-cbc7c0ee",
+      "createdAt": "2026-04-02T03:05:53.942Z",
+      "updatedAt": "2026-04-02T03:05:53.942Z",
+      "version": 1,
+      "confidence": 1,
+      "confirmCount": 0
     }
   ],
-  "contentHash": "b70fc0d9c81b1aae6e5fc1fe87ac645799d45ba22fbf120df8a44abc4afe55a1",
-  "lastUpdated": "2026-03-28T05:38:57.362Z",
+  "contentHash": "f792084931fd4faf4076e81996cb458dafcdca84af553076394d1d176ea01562",
+  "lastUpdated": "2026-04-05T18:49:23.381Z",
   "schemaVersion": 1
 }

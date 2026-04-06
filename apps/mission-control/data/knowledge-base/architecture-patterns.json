@@ -16,9 +16,11 @@
         "file-organization"
       ],
       "createdAt": "2026-03-22T18:07:31.281Z",
-      "updatedAt": "2026-03-23T20:00:00.000Z",
+      "updatedAt": "2026-04-02T20:28:59.602Z",
       "pipelineRunId": "pipeline-v3-test",
-      "version": 2
+      "version": 2,
+      "confidence": 0.94,
+      "confirmCount": 0
     },
     {
       "id": "kb-ap-002",
@@ -35,9 +37,11 @@
         "adr"
       ],
       "createdAt": "2026-03-22T18:06:53.844Z",
-      "updatedAt": "2026-03-22T18:06:53.844Z",
+      "updatedAt": "2026-04-02T20:28:59.602Z",
       "pipelineRunId": "pipeline-v3-test",
-      "version": 1
+      "version": 1,
+      "confidence": 0.92,
+      "confirmCount": 0
     },
     {
       "id": "kb-ap-003",
@@ -53,9 +57,11 @@
         "adr"
       ],
       "createdAt": "2026-03-22T18:06:26.532Z",
-      "updatedAt": "2026-03-22T18:06:26.532Z",
+      "updatedAt": "2026-04-02T20:28:59.602Z",
       "pipelineRunId": "pipeline-v3-test",
-      "version": 1
+      "version": 1,
+      "confidence": 0.92,
+      "confirmCount": 0
     },
     {
       "id": "kb-ap-004",
@@ -72,9 +78,11 @@
         "devops"
       ],
       "createdAt": "2026-03-23T16:01:36.133Z",
-      "updatedAt": "2026-03-23T16:01:36.133Z",
+      "updatedAt": "2026-04-02T20:28:59.602Z",
       "pipelineRunId": "pipeline-v3-test",
-      "version": 1
+      "version": 1,
+      "confidence": 0.94,
+      "confirmCount": 0
     },
     {
       "id": "kb-ap-005",
@@ -90,9 +98,11 @@
         "historical-data"
       ],
       "createdAt": "2026-03-22T18:07:22.511Z",
-      "updatedAt": "2026-03-22T18:07:22.511Z",
+      "updatedAt": "2026-04-02T20:28:59.602Z",
       "pipelineRunId": "pipeline-v3-test",
-      "version": 1
+      "version": 1,
+      "confidence": 0.92,
+      "confirmCount": 0
     },
     {
       "id": "kb-ap-006",
@@ -106,9 +116,11 @@
         "established-pattern"
       ],
       "createdAt": "2026-03-24T10:52:09.535Z",
-      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-04-02T20:28:59.602Z",
       "pipelineRunId": "code-review",
-      "version": 1
+      "version": 1,
+      "confidence": 0.95,
+      "confirmCount": 0
     },
     {
       "id": "kb-ap-007",
@@ -122,9 +134,11 @@
         "json-storage"
       ],
       "createdAt": "2026-03-24T10:52:09.535Z",
-      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-04-02T20:28:59.602Z",
       "pipelineRunId": "code-review",
-      "version": 1
+      "version": 1,
+      "confidence": 0.95,
+      "confirmCount": 0
     },
     {
       "id": "kb-ap-008",
@@ -140,9 +154,11 @@
         "useEffect-guard"
       ],
       "createdAt": "2026-03-24T10:52:09.535Z",
-      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-04-02T20:28:59.602Z",
       "pipelineRunId": "code-review",
-      "version": 1
+      "version": 1,
+      "confidence": 0.95,
+      "confirmCount": 0
     },
     {
       "id": "kb-ap-009",
@@ -157,9 +173,11 @@
         "file-based-api"
       ],
       "createdAt": "2026-03-24T10:52:09.535Z",
-      "updatedAt": "2026-03-24T10:52:09.535Z",
+      "updatedAt": "2026-04-02T20:28:59.602Z",
       "pipelineRunId": "code-review",
-      "version": 1
+      "version": 1,
+      "confidence": 0.95,
+      "confirmCount": 0
     },
     {
       "title": "Real-time monitoring � 4 subsystem health checks",
@@ -174,8 +192,10 @@
       ],
       "id": "kb-mn595sjk-bb6a1825",
       "createdAt": "2026-03-24T23:35:21.536Z",
-      "updatedAt": "2026-03-24T23:35:21.536Z",
-      "version": 1
+      "updatedAt": "2026-04-02T20:28:59.602Z",
+      "version": 1,
+      "confidence": 0.96,
+      "confirmCount": 0
     },
     {
       "title": "5-task system upgrade: monitoring, evolution, multi-project KB, cross-session sync, deploy-check",
@@ -192,8 +212,10 @@
       ],
       "id": "kb-mn59tu31-1c22d166",
       "createdAt": "2026-03-24T23:54:03.277Z",
-      "updatedAt": "2026-03-24T23:54:03.277Z",
-      "version": 1
+      "updatedAt": "2026-04-02T20:28:59.602Z",
+      "version": 1,
+      "confidence": 0.96,
+      "confirmCount": 0
     },
     {
       "title": "Smart stage filtering � skip irrelevant agents based on task classification",
@@ -209,8 +231,10 @@
       ],
       "id": "kb-mn5xhyvm-7ee9db21",
       "createdAt": "2026-03-25T10:56:40.402Z",
-      "updatedAt": "2026-03-25T10:56:40.402Z",
-      "version": 1
+      "updatedAt": "2026-04-02T20:28:59.602Z",
+      "version": 1,
+      "confidence": 0.97,
+      "confirmCount": 0
     },
     {
       "title": "Project Discovery + Dev Server Manager � Phase 1 core",
@@ -226,8 +250,10 @@
       ],
       "id": "kb-mn5z6cjc-d0314aac",
       "createdAt": "2026-03-25T11:43:37.464Z",
-      "updatedAt": "2026-03-25T11:43:37.464Z",
-      "version": 1
+      "updatedAt": "2026-04-02T20:28:59.602Z",
+      "version": 1,
+      "confidence": 0.97,
+      "confirmCount": 0
     },
     {
       "title": "Project setup script � one command to prepare all projects",
@@ -243,8 +269,10 @@
       ],
       "id": "kb-mn67xvsq-a84614fe",
       "createdAt": "2026-03-25T15:48:59.066Z",
-      "updatedAt": "2026-03-25T15:48:59.066Z",
-      "version": 1
+      "updatedAt": "2026-04-02T20:28:59.602Z",
+      "version": 1,
+      "confidence": 0.98,
+      "confirmCount": 0
     },
     {
       "title": "Skill Router � Adaptive Skill Orchestrator with ranking, roles, and execution plan",
@@ -261,8 +289,10 @@
       ],
       "id": "kb-mn7clni0-aba6e5ba",
       "createdAt": "2026-03-26T10:47:12.696Z",
-      "updatedAt": "2026-03-26T10:47:12.696Z",
-      "version": 1
+      "updatedAt": "2026-04-02T20:28:59.602Z",
+      "version": 1,
+      "confidence": 0.99,
+      "confirmCount": 0
     },
     {
       "title": "Skill Router v1 � tuned scoring with 9 factors",
@@ -278,11 +308,30 @@
       ],
       "id": "kb-mn7cyt8d-dcc9f301",
       "createdAt": "2026-03-26T10:57:26.653Z",
-      "updatedAt": "2026-03-26T10:57:26.653Z",
-      "version": 1
+      "updatedAt": "2026-04-02T20:28:59.602Z",
+      "version": 1,
+      "confidence": 0.99,
+      "confirmCount": 0
+    },
+    {
+      "title": "Figma access token — expires 2026-07-03",
+      "content": "Figma personal access token for Designer agent pipeline integration.\n\n- **Created**: 2026-04-04\n- **Expires**: 2026-07-03 (90 days)\n- **User**: 3tdream@gmail.com\n- **Stored**: data/api-keys.json → figma.accessToken\n- **Used by**: /api/figma route → pipeline designer-agent tools\n- **Renew at**: Figma → Settings → Personal access tokens",
+      "source": "claude-memory",
+      "severity": "medium",
+      "tags": [
+        "imported-from-memory",
+        "memory:reference_figma_token.md",
+        "reference"
+      ],
+      "id": "kb-mnk15zro-56aca2fb",
+      "createdAt": "2026-04-04T07:48:06.612Z",
+      "updatedAt": "2026-04-04T07:48:06.612Z",
+      "version": 1,
+      "confidence": 1,
+      "confirmCount": 0
     }
   ],
-  "contentHash": "4b7037e0b9a8c11519000bf0e9162e705f1edf5ec0cdbc3e26bae6f687b63c81",
-  "lastUpdated": "2026-03-26T10:57:26.653Z",
+  "contentHash": "9c11d1e6962b610a4b30c2d1f53749ab45df3fbbb5aed4211d09ba230952c4ae",
+  "lastUpdated": "2026-04-04T07:52:45.648Z",
   "schemaVersion": 1
 }

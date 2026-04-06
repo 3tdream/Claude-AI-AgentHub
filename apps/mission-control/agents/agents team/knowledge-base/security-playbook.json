@@ -1,6 +1,6 @@
 {
   "_description": "Threat responses and recurring vulnerabilities — maintained by Cyber-Agent and QA-Agent",
-  "_updated": "2026-03-26",
+  "_updated": "2026-04-04",
   "threat_model": {
     "framework": "STRIDE + OWASP Top 10",
     "mandatory_triggers": [
@@ -83,6 +83,36 @@
       "mitigation": "Validate currency value server-side against an explicit whitelist of supported ISO currency codes before any storage or state update. Reject and return 400 for any value not in the allowed set. Frontend constraints are UX, not security.",
       "date_found": "2026-03-26",
       "source_pipeline": "6712c759-720a-4aa5-9a7b-f1e665c9c1a7"
+    },
+    {
+      "id": "VULN-008",
+      "category": "security",
+      "title": "localStorage Menu State Requires Input Sanitization",
+      "severity": "low",
+      "description": "The s4-cyber agent flagged that persisting collapsed/expanded menu state in localStorage without sanitization introduces a potential XSS/injection vector. Even though the risk was rated Low, client-side storage of UI state is a common overlooked attack surface in shell/layout components.",
+      "mitigation": "When reading menu state from localStorage, always parse through a strict schema validator (e.g., only accept boolean or enum values). Never interpolate raw localStorage values into DOM attributes or innerHTML. Use a whitelist approach: `const isCollapsed = localStorage.getItem('menuCollapsed') === 'true'` rather than direct assignment.",
+      "date_found": "2026-04-02",
+      "source_pipeline": "b9e9c409-a865-441e-a237-fae15670af61"
+    },
+    {
+      "id": "VULN-009",
+      "category": "security",
+      "title": "Tooltip Data Source Exposure Risk in Metric Boxes",
+      "severity": "low",
+      "description": "s4-cyber flagged that displaying internal data source identifiers (API endpoints, internal service names) directly in metric box tooltips could expose sensitive infrastructure topology to end users. The risk was classified Low but warrants design consideration.",
+      "mitigation": "Tooltip content should use human-readable labels mapped from internal identifiers — never expose raw endpoint URLs, service names, or internal identifiers. Maintain a display-name mapping layer between data source config and UI rendering. s3.5-cyber-reeval-1 confirmed the implementation passed re-evaluation at 22.3s, indicating the frontend agent applied this correctly.",
+      "date_found": "2026-04-04",
+      "source_pipeline": "de37f599-e9f8-4730-bc03-dc8ca5bbdbed"
+    },
+    {
+      "id": "VULN-010",
+      "category": "hydration",
+      "title": "Dark Mode Preference Stored in Client-Side State Without SSR Hydration Guard",
+      "severity": "medium",
+      "description": "The cyber agent (s4-cyber) flagged that theme preference stored only in React state or localStorage creates a hydration mismatch risk — the server renders with a default theme while the client immediately switches, causing a flash of unstyled/wrong-theme content (FOUC) on load.",
+      "mitigation": "Wrap theme reads in a `suppressHydrationWarning` attribute on `<html>`, or inject a blocking inline script in `_document`/`layout.tsx` that sets the `data-theme` attribute before React hydrates. Use `next-themes` library which handles this pattern correctly out of the box. Never read localStorage in component initial state — always default to system preference via `prefers-color-scheme` media query as the SSR-safe fallback.",
+      "date_found": "2026-04-04",
+      "source_pipeline": "9b809e37-786e-40e3-bc2f-90351bfab453"
     }
   ],
   "security_checklist": {
