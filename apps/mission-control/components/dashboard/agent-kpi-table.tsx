@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Download, Search, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ScoreBar } from "./score-bar";
@@ -78,7 +78,8 @@ export function AgentKPITable({ pipelineRuns, avgSuccessRate }: AgentKPITablePro
   const [search, setSearch] = useState("");
   const [sortCol, setSortCol] = useState(-1);
   const [sortDir, setSortDir] = useState(1);
-  const [now] = useState(() => Date.now());
+  const [now, setNow] = useState(0);
+  useEffect(() => { setNow(Date.now()); }, []);
 
   const isLoading = agentsLoading || costsLoading || teamsLoading;
 

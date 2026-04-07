@@ -76,6 +76,9 @@ export async function POST(request: NextRequest) {
         const key = await getKey("AGENT_HUB_API_KEY", keys);
         if (!url || !key) return NextResponse.json({ success: false, error: "URL or API key not configured" });
 
+        try { const u = new URL(url); if (!["http:", "https:"].includes(u.protocol)) throw new Error(); }
+        catch { return NextResponse.json({ success: false, error: "Invalid Agent Hub URL" }); }
+
         try {
           const controller = new AbortController();
           const timer = setTimeout(() => controller.abort(), 5000);
@@ -101,6 +104,9 @@ export async function POST(request: NextRequest) {
         if (!baseUrl || !email || !token) {
           return NextResponse.json({ success: false, error: "Jira credentials not fully configured" });
         }
+
+        try { const u = new URL(baseUrl); if (!["http:", "https:"].includes(u.protocol)) throw new Error(); }
+        catch { return NextResponse.json({ success: false, error: "Invalid Jira base URL" }); }
 
         const auth = Buffer.from(`${email}:${token}`).toString("base64");
         try {
