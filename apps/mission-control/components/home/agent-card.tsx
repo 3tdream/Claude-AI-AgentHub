@@ -1,7 +1,7 @@
 "use client";
 
 import type { Agent } from "@/types";
-import { getAgentIcon, providerColors } from "./constants";
+import { getAgentIcon, providerColors, getSuccessRateColor, getAgentStatus, agentStatusConfig } from "./constants";
 
 export function AgentCard({ agent, stats, selected, onClick }: {
   agent: Agent;
@@ -10,16 +10,9 @@ export function AgentCard({ agent, stats, selected, onClick }: {
   onClick?: () => void;
 }) {
   const successRate = stats?.successRate ?? 0;
-  const status = stats ? (successRate > 70 ? "active" : successRate > 40 ? "busy" : "idle") : "idle";
-
-  const statusConfig: Record<string, { color: string; bg: string }> = {
-    active: { color: "text-emerald-700", bg: "bg-emerald-50" },
-    busy: { color: "text-amber-700", bg: "bg-amber-50" },
-    idle: { color: "text-slate-500", bg: "bg-slate-100" },
-  };
-
-  const sc = statusConfig[status];
-  const barColor = successRate >= 70 ? "bg-emerald-500" : successRate >= 40 ? "bg-amber-500" : "bg-rose-400";
+  const status = getAgentStatus(successRate, !!stats);
+  const sc = agentStatusConfig[status];
+  const barColor = getSuccessRateColor(successRate);
   const prov = providerColors[agent.llmProvider] || providerColors.anthropic;
   const icon = getAgentIcon(agent.name);
   const teamName = agent.teams[0] || "\u2014";

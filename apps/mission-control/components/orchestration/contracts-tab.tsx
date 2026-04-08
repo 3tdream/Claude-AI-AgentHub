@@ -15,8 +15,7 @@ import {
   Target,
 } from "lucide-react";
 import type { SimulationReport } from "@/lib/preflight-simulation";
-
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
+import { fetcher } from "@/components/home/constants";
 
 interface ContractSummary {
   stageId: string;

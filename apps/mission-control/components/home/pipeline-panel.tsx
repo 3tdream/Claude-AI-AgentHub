@@ -24,6 +24,12 @@ import type { PipelineInputResult } from "./pipeline-input";
 type PipelineTab = "pipeline" | "contracts" | "analytics";
 type PipelineView = "input" | "history";
 
+const PIPELINE_TABS: { id: PipelineTab; label: string; icon: typeof GitBranch }[] = [
+  { id: "pipeline", label: "Pipeline", icon: GitBranch },
+  { id: "contracts", label: "Contracts", icon: ShieldCheck },
+  { id: "analytics", label: "Analytics", icon: BarChart3 },
+];
+
 export function PipelinePanel({ activeProjectId, projects, onSelectProject }: {
   activeProjectId: string | null;
   projects: { id: string; name: string; framework: string; status: string }[];
@@ -314,12 +320,6 @@ export function PipelinePanel({ activeProjectId, projects, onSelectProject }: {
     }
   };
 
-  const TABS: { id: PipelineTab; label: string; icon: typeof GitBranch }[] = [
-    { id: "pipeline", label: "Pipeline", icon: GitBranch },
-    { id: "contracts", label: "Contracts", icon: ShieldCheck },
-    { id: "analytics", label: "Analytics", icon: BarChart3 },
-  ];
-
   const completedSteps = activeExecution ? Object.values(activeExecution.stepResults).filter((r) => r.status === "completed").length : 0;
   const totalSteps = activeExecution ? Object.keys(activeExecution.stepResults).length : 0;
 
@@ -329,7 +329,7 @@ export function PipelinePanel({ activeProjectId, projects, onSelectProject }: {
       <div className="px-4 py-2 border-b border-slate-200">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1">
-            {TABS.map((tab) => {
+            {PIPELINE_TABS.map((tab) => {
               const Icon = tab.icon;
               const active = activeTab === tab.id;
               return (

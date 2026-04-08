@@ -8,7 +8,7 @@ import { useActivityStore } from "@/lib/stores/activity-store";
 import { useAgents } from "@/lib/hooks/use-agents";
 import { Plus, GripVertical, Pencil, ChevronUp, ChevronDown, PanelLeftClose, PanelLeft, Activity, Layers } from "lucide-react";
 
-import { fetcher, getAgentIcon } from "@/components/home/constants";
+import { fetcher, getAgentIcon, getSuccessRateColor } from "@/components/home/constants";
 import { StatusPill } from "@/components/home/status-pill";
 import { MetricBox } from "@/components/home/metric-box";
 import { AgentCard } from "@/components/home/agent-card";
@@ -141,7 +141,7 @@ export default function HomePage() {
             </div>
             {orderedAgents.map(({ agent, stats }) => {
               const successRate = stats?.successRate ?? 0;
-              const statusColor = successRate > 70 ? "bg-emerald-500" : successRate > 40 ? "bg-amber-500" : successRate > 0 ? "bg-rose-400" : "bg-slate-300";
+              const statusColor = getSuccessRateColor(successRate);
               const icon = getAgentIcon(agent.name);
               return (
                 <button

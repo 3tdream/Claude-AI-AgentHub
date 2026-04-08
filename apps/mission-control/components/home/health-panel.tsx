@@ -16,6 +16,7 @@ import {
   ChevronRight,
   Info,
 } from "lucide-react";
+import { fetcher } from "./constants";
 
 // ── Data-source map: subsystem → metric label → source description ──────────
 const DATA_SOURCES: Record<string, Record<string, string>> = {
@@ -103,8 +104,6 @@ function MetricTooltip({ source }: { source: string }) {
     </div>
   );
 }
-
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 type Status = "healthy" | "degraded" | "down";
 type AlertSeverity = "critical" | "warning" | "info";

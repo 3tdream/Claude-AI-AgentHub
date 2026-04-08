@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import useSWR from "swr";
 import {
   BookMarked,
@@ -20,8 +20,7 @@ import {
 } from "lucide-react";
 import type { KBFile, KBIndex, KBEntry, KBCategory, KBScope } from "@/types";
 import { useAppStore } from "@/lib/stores/app-store";
-
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
+import { fetcher } from "./constants";
 
 const CATEGORY_META: Record<string, { label: string; icon: typeof AlertTriangle; color: string; bg: string; border: string }> = {
   "failure-patterns": { label: "Failures", icon: AlertTriangle, color: "text-rose-600", bg: "bg-rose-50", border: "border-rose-200" },
@@ -68,19 +67,18 @@ export function KnowledgePanel() {
   const rawIndex = indexData?.data;
   const index = (rawIndex && "global" in rawIndex) ? (rawIndex as any).global as KBIndex : rawIndex as KBIndex | undefined;
 
-  const entries = searchQuery.length >= 2
-    ? searchData?.data || []
-    : (() => {
-        const cd = categoryData?.data;
-        if (!cd) return [];
-        if ("project" in cd) {
-          const pe = ((cd as any).project as KBFile | null)?.entries || [];
-          const ge = ((cd as any).global as KBFile | null)?.entries || [];
-          const seen = new Set(pe.map((e: KBEntry) => e.id));
-          return [...pe.map((e: KBEntry) => ({ ...e, _layer: "project" })), ...ge.filter((e: KBEntry) => !seen.has(e.id)).map((e: KBEntry) => ({ ...e, _layer: "global" }))];
-        }
-        return (cd as KBFile)?.entries || [];
-      })();
+  const entries = useMemo(() => {
+    if (searchQuery.length >= 2) return searchData?.data || [];
+    const cd = categoryData?.data;
+    if (!cd) return [];
+    if ("project" in cd) {
+      const pe = ((cd as any).project as KBFile | null)?.entries || [];
+      const ge = ((cd as any).global as KBFile | null)?.entries || [];
+      const seen = new Set(pe.map((e: KBEntry) => e.id));
+      return [...pe.map((e: KBEntry) => ({ ...e, _layer: "project" })), ...ge.filter((e: KBEntry) => !seen.has(e.id)).map((e: KBEntry) => ({ ...e, _layer: "global" }))];
+    }
+    return (cd as KBFile)?.entries || [];
+  }, [searchQuery, searchData, categoryData]);
 
   const handlePromoteToGlobal = async (entry: KBEntry) => {
     try {
