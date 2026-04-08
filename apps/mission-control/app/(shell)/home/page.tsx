@@ -7,7 +7,7 @@ import { useOrchestrationStore } from "@/lib/stores/orchestration-store";
 import { useActivityStore } from "@/lib/stores/activity-store";
 import { useAgents } from "@/lib/hooks/use-agents";
 import { useTeams } from "@/lib/hooks/use-teams";
-import { Plus, GripVertical, Pencil, ChevronUp, ChevronDown, PanelLeftClose, PanelLeft, Activity, Layers, Filter } from "lucide-react";
+import { Plus, GripVertical, Pencil, ChevronUp, ChevronDown, PanelLeftClose, PanelLeft, Activity, Layers, Filter, Keyboard, Zap, GitBranch } from "lucide-react";
 
 import { fetcher, getAgentIcon, getSuccessRateColor } from "@/components/home/constants";
 import { StatusPill } from "@/components/home/status-pill";
@@ -72,6 +72,15 @@ export default function HomePage() {
       return true;
     });
   }, [executionHistory]);
+
+  // Recent success rate (last 10 runs) for trend comparison
+  const recentTrend = useMemo(() => {
+    const recent = dedupedHistory.slice(0, 10);
+    if (recent.length < 3) return null;
+    const completed = recent.filter((e) => e.status === "completed").length;
+    const rate = Math.round((completed / recent.length) * 100);
+    return { rate, count: recent.length };
+  }, [dedupedHistory]);
 
   const health = healthData;
   const agentStats = agentsData?.data || agentsData?.agentStats || {};
@@ -295,8 +304,8 @@ export default function HomePage() {
           <MetricBox
             value={stats ? `${Math.round((stats.completed / (stats.totalRuns || 1)) * 100)}%` : "\u2014"}
             label="Success Rate"
-            color={stats && stats.completed / stats.totalRuns > 0.5 ? "green" : "amber"}
-            subtitle={stats ? `${stats.completed}/${stats.totalRuns} runs` : undefined}
+            color={recentTrend && recentTrend.rate > 50 ? "green" : stats && stats.completed / stats.totalRuns > 0.5 ? "green" : "amber"}
+            subtitle={stats ? `${stats.completed}/${stats.totalRuns} runs${recentTrend ? ` · last ${recentTrend.count}: ${recentTrend.rate}%${recentTrend.rate > Math.round((stats.completed / (stats.totalRuns || 1)) * 100) ? " ↑" : ""}` : ""}` : undefined}
           />
           <MetricBox
             value={costsData?.data?.apiBalances ? `$${costsData.data.apiBalances.total?.toFixed(0)}` : "\u2014"}
@@ -339,7 +348,22 @@ export default function HomePage() {
             />
           ))}
           {activityEvents.length === 0 && (
-            <div className="text-center py-8 text-slate-400 text-sm">No activity yet</div>
+            <div className="space-y-2 py-2">
+              <div className="text-[10px] text-slate-400 uppercase tracking-wide font-medium">Quick Actions</div>
+              <button onClick={() => setCenterView("health")} className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-xs text-slate-500 hover:bg-slate-50 hover:text-indigo-600 transition-colors">
+                <Zap className="w-3 h-3" /> System Health Check
+              </button>
+              <button onClick={() => setCenterView("knowledge")} className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-xs text-slate-500 hover:bg-slate-50 hover:text-indigo-600 transition-colors">
+                <GitBranch className="w-3 h-3" /> Browse Knowledge Base
+              </button>
+              <div className="pt-1 border-t border-slate-100">
+                <div className="text-[10px] text-slate-400 uppercase tracking-wide font-medium mb-1.5">Shortcuts</div>
+                <div className="space-y-1 font-mono text-[10px] text-slate-400">
+                  <div><kbd className="px-1 py-0.5 bg-slate-100 rounded text-[9px]">Cmd+K</kbd> Search agents</div>
+                  <div><kbd className="px-1 py-0.5 bg-slate-100 rounded text-[9px]">Enter</kbd> Run task</div>
+                </div>
+              </div>
+            </div>
           )}
         </div>
 
@@ -349,7 +373,7 @@ export default function HomePage() {
           <h2 className="text-xs font-semibold text-slate-900 uppercase tracking-wide">Recent Runs</h2>
         </div>
         <div className="flex flex-col gap-2">
-          {dedupedHistory.slice(0, 5).map((exec) => {
+          {dedupedHistory.slice(0, 8).map((exec) => {
             const isStale = (exec.status === "paused" || exec.status === "running") && activeExecution?.id !== exec.id;
             const displayStatus = isStale ? "interrupted" : exec.status;
             return (
