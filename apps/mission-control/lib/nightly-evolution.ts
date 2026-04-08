@@ -6,7 +6,10 @@
  * 2. Extract failure/success patterns → write to KB
  * 3. Calibrate simulation accuracy (predicted vs actual)
  * 4. Detect agent degradation trends
- * 5. Generate evolution report
+ * 5. KB Confidence Decay
+ * 6. Update Knowledge Map (rebuild graph, prune stale entries)
+ * 7. Skills Research (usage stats, unused skills, suggest new)
+ * 8. Generate evolution report
  *
  * Can be triggered manually or via cron.
  */
@@ -72,6 +75,19 @@ interface DegradationAlert {
   delta: number;
 }
 
+interface KnowledgeMapUpdate {
+  nodesUpdated: number;
+  linksUpdated: number;
+  staleNodesRemoved: number;
+}
+
+interface SkillsResearch {
+  totalSkills: number;
+  unusedSkills: string[];
+  suggestedNewSkills: string[];
+  topUsedSkills: { id: string; uses: number }[];
+}
+
 export interface EvolutionReport {
   /** When this evolution ran */
   runAt: string;
@@ -89,6 +105,10 @@ export interface EvolutionReport {
   degradationAlerts: DegradationAlert[];
   /** Health snapshot at time of evolution */
   healthScore: number;
+  /** Knowledge map refresh */
+  knowledgeMap: KnowledgeMapUpdate;
+  /** Skills research */
+  skillsResearch: SkillsResearch;
   /** Summary for human review */
   summary: string;
 }
@@ -347,6 +367,126 @@ function calibrateSimulation(runs: PipelineRun[]): SimulationCalibration {
   };
 }
 
+// ── Knowledge Map Update ────────────────────────────
+
+async function updateKnowledgeMap(): Promise<KnowledgeMapUpdate> {
+  let nodesUpdated = 0;
+  let linksUpdated = 0;
+  let staleNodesRemoved = 0;
+
+  try {
+    // Trigger knowledge-map rebuild via internal API
+    const res = await fetch(`http://localhost:${process.env.PORT || 3077}/api/knowledge-map`, {
+      headers: { "x-internal": "evolution" },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      nodesUpdated = (data.nodes?.length || 0);
+      linksUpdated = (data.links?.length || 0);
+    }
+  } catch { /* non-blocking */ }
+
+  // Clean stale KB entries (confidence < 0.3 and older than 60 days)
+  try {
+    const { getAllCategories, readKBFile, writeKBFile } = await import("@/lib/kb-storage");
+    const categories = await getAllCategories();
+    const now = Date.now();
+    const STALE_DAYS = 60;
+    const STALE_CONFIDENCE = 0.3;
+
+    for (const cat of categories) {
+      const file = await readKBFile(cat);
+      if (!file) continue;
+
+      const before = file.entries.length;
+      file.entries = file.entries.filter((entry) => {
+        const age = (now - new Date(entry.updatedAt).getTime()) / (1000 * 60 * 60 * 24);
+        if (age > STALE_DAYS && (entry.confidence ?? 1) < STALE_CONFIDENCE) return false;
+        return true;
+      });
+      const removed = before - file.entries.length;
+
+      if (removed > 0) {
+        await writeKBFile(cat, file.description, file.entries);
+        staleNodesRemoved += removed;
+      }
+    }
+  } catch { /* non-blocking */ }
+
+  return { nodesUpdated, linksUpdated, staleNodesRemoved };
+}
+
+// ── Skills Research ─────────────────────────────────
+
+async function researchSkills(runs: PipelineRun[]): Promise<SkillsResearch> {
+  // Load skill manifest from knowledge-map route's SKILLS array
+  const KNOWN_SKILLS = [
+    "architect", "api-design", "feature-scope", "tech-decision", "preflight", "pm",
+    "user-story", "acceptance-gen", "backend", "frontend", "frontend-designer",
+    "api-scaffold", "form-builder", "table-builder", "dashboard-builder",
+    "db-schema", "db-migration", "seed-data", "designer", "theme-factory", "animation",
+    "cyber", "auth-review", "threat-model", "secret-scan", "data-privacy",
+    "qa", "test-plan", "edge-cases", "bug-report", "a11y-check",
+    "devops", "docker-compose", "monitoring-setup", "env-audit", "backup-plan",
+    "research", "market-scan", "competitor-dive", "tech-radar",
+    "run-pipeline", "compare-runs", "retro", "agent-memory", "kb-update",
+    "nightly-evolution", "figma", "dead-code-scan", "performance-pass",
+    "dependency-map", "cost-analysis",
+  ];
+
+  // Count skill usage from pipeline run agent names / step IDs
+  const skillUsage: Record<string, number> = {};
+  for (const run of runs) {
+    for (const agent of run.agents || []) {
+      // Map agent role to skill (e.g. "backend-agent" → "backend")
+      const skillId = agent.agentId.replace(/-agent$/, "").replace(/^s\d+-/, "");
+      skillUsage[skillId] = (skillUsage[skillId] || 0) + 1;
+    }
+  }
+
+  // Find skills never used in any run
+  const usedSkillIds = new Set(Object.keys(skillUsage));
+  const unusedSkills = KNOWN_SKILLS.filter((s) => !usedSkillIds.has(s));
+
+  // Top used skills
+  const topUsedSkills = Object.entries(skillUsage)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([id, uses]) => ({ id, uses }));
+
+  // Suggest new skills based on common task patterns not covered
+  const suggestedNewSkills: string[] = [];
+
+  // Analyze task inputs for patterns not covered by existing skills
+  const taskWords: Record<string, number> = {};
+  for (const run of runs) {
+    if (!run.input) continue;
+    const words = run.input.toLowerCase().split(/\s+/);
+    for (const w of words) {
+      if (w.length > 4) taskWords[w] = (taskWords[w] || 0) + 1;
+    }
+  }
+
+  // Check for frequent task patterns without matching skills
+  const frequentWords = Object.entries(taskWords)
+    .filter(([, count]) => count >= 3)
+    .map(([word]) => word);
+
+  const coveredDomains = new Set(KNOWN_SKILLS);
+  for (const word of frequentWords) {
+    if (!coveredDomains.has(word) && !["build", "create", "update", "system", "pipeline", "beauty"].includes(word)) {
+      suggestedNewSkills.push(word);
+    }
+  }
+
+  return {
+    totalSkills: KNOWN_SKILLS.length,
+    unusedSkills: unusedSkills.slice(0, 15),
+    suggestedNewSkills: suggestedNewSkills.slice(0, 5),
+    topUsedSkills,
+  };
+}
+
 // ── Main Evolution ───────────────────────────────────
 
 export async function runNightlyEvolution(windowHours: number = 168): Promise<EvolutionReport> {
@@ -436,6 +576,12 @@ export async function runNightlyEvolution(windowHours: number = 168): Promise<Ev
     healthScore = health.overallScore;
   } catch { /* non-blocking */ }
 
+  // Phase 6: Update Knowledge Map
+  const knowledgeMap = await updateKnowledgeMap();
+
+  // Phase 7: Skills Research
+  const skillsResearch = await researchSkills(recentRuns);
+
   // Generate summary
   const summaryParts: string[] = [];
   summaryParts.push(`Analyzed ${recentRuns.length} runs (${windowHours}h window).`);
@@ -448,6 +594,10 @@ export async function runNightlyEvolution(windowHours: number = 168): Promise<Ev
     summaryParts.push(`${degradationAlerts.filter((a) => a.trend === "improving").length} agents improving.`);
   }
   if (decayedCount > 0) summaryParts.push(`${decayedCount} KB entries decayed.`);
+  if (knowledgeMap.staleNodesRemoved > 0) summaryParts.push(`KB map: removed ${knowledgeMap.staleNodesRemoved} stale entries.`);
+  summaryParts.push(`KB map: ${knowledgeMap.nodesUpdated} nodes, ${knowledgeMap.linksUpdated} links.`);
+  if (skillsResearch.unusedSkills.length > 0) summaryParts.push(`${skillsResearch.unusedSkills.length} unused skills.`);
+  if (skillsResearch.suggestedNewSkills.length > 0) summaryParts.push(`Suggested skills: ${skillsResearch.suggestedNewSkills.join(", ")}.`);
   summaryParts.push(`Simulation calibration error: ${calibration.calibrationError}%.`);
   summaryParts.push(`System health: ${healthScore}/100.`);
 
@@ -460,6 +610,8 @@ export async function runNightlyEvolution(windowHours: number = 168): Promise<Ev
     calibration,
     degradationAlerts,
     healthScore,
+    knowledgeMap,
+    skillsResearch,
     summary: summaryParts.join(" "),
   };
 }

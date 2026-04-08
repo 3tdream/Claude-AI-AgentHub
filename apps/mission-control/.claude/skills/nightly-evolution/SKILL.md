@@ -4,7 +4,7 @@ description: Autonomous improvement cycle — dead code scan, security hardening
 disable-model-invocation: true
 ---
 
-Autonomous nightly improvement cycle.
+Autonomous nightly improvement cycle — 7 phases including Knowledge Map update and Skills research.
 
 WARNING: This runs multiple analysis passes and may suggest code changes. Review all changes before committing.
 
@@ -59,6 +59,17 @@ For each auto-fixable issue:
 For review-needed issues:
 1. List them with file:line references
 2. Let user decide per-item
+
+## PHASE 4 — KNOWLEDGE MAP UPDATE
+- Rebuild knowledge graph (nodes: skills, agents, KB entries; links: roles, teams, conflicts)
+- Remove stale KB entries (confidence < 0.3, older than 60 days)
+- Report: nodes updated, links updated, stale entries removed
+
+## PHASE 5 — SKILLS RESEARCH
+- Count skill usage from recent pipeline runs
+- Identify unused skills (never triggered in any run)
+- Detect frequent task patterns not covered by existing skills
+- Report: top 10 used skills, unused skills list, suggested new skills
 
 ## SCHEDULING
 This skill is manual but designed for regular use.
