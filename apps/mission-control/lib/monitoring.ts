@@ -105,6 +105,42 @@ async function countRecentRuns(hours: number): Promise<{ total: number; failed: 
   }
 }
 
+// ── Threshold Logic ──────────────────────────────────
+
+/**
+ * Derives a status label from a numeric health score using the canonical
+ * three-band threshold:
+ *   score <  50  → "down"
+ *   score 50–80  → "degraded"
+ *   score >  80  → "healthy"
+ *
+ * This is the single source of truth for score→status mapping and is used
+ * both for per-subsystem status and for the overall system status so that
+ * the two are always consistent.
+ */
+export function scoreToStatus(score: number): SubsystemHealth["status"] {
+  if (score < 50) return "down";
+  if (score <= 80) return "degraded";
+  return "healthy";
+}
+
+/**
+ * Merges an alert-derived status with the score-derived status, taking the
+ * *worse* of the two.  This prevents a subsystem with a healthy score (e.g.
+ * 73) from being labelled "down" purely because of a transient critical alert,
+ * while still allowing alerts to push a status *down* when the score agrees.
+ *
+ * Severity order: healthy < degraded < down
+ */
+function worstStatus(
+  alertStatus: SubsystemHealth["status"],
+  score: number,
+): SubsystemHealth["status"] {
+  const order: Record<SubsystemHealth["status"], number> = { healthy: 0, degraded: 1, down: 2 };
+  const fromScore = scoreToStatus(score);
+  return order[alertStatus] > order[fromScore] ? alertStatus : fromScore;
+}
+
 // ── Health Checks ────────────────────────────────────
 
 async function checkAgentHealth(analytics: PipelineAnalytics | null): Promise<SubsystemHealth> {
@@ -187,10 +223,13 @@ async function checkAgentHealth(analytics: PipelineAnalytics | null): Promise<Su
     { label: "Total runs", value: String(analytics.totalRuns), status: "ok" },
   );
 
+  const alertStatus: SubsystemHealth["status"] =
+    criticalCount > 0 ? "down" : degradedCount > 0 ? "degraded" : "healthy";
+
   return {
     id: "agents",
     label: "Agent Performance",
-    status: criticalCount > 0 ? "down" : degradedCount > 0 ? "degraded" : "healthy",
+    status: worstStatus(alertStatus, score),
     score,
     alerts,
     metrics,
@@ -246,10 +285,13 @@ async function checkKBHealth(): Promise<SubsystemHealth> {
     { label: "Stale", value: String(staleCategories.length), status: staleCategories.length > 0 ? "warn" : "ok" },
   );
 
+  const alertStatus: SubsystemHealth["status"] =
+    !kbIndex.integrityOk ? "down" : staleCategories.length > 0 ? "degraded" : "healthy";
+
   return {
     id: "kb",
     label: "Knowledge Base",
-    status: !kbIndex.integrityOk ? "down" : staleCategories.length > 0 ? "degraded" : "healthy",
+    status: worstStatus(alertStatus, score),
     score,
     alerts,
     metrics,
@@ -299,10 +341,13 @@ async function checkPipelineHealth(analytics: PipelineAnalytics | null): Promise
     { label: "Paused", value: `${Math.round(pausedRate)}%`, status: pausedRate < 40 ? "ok" : "warn" },
   );
 
+  const alertStatus: SubsystemHealth["status"] =
+    alerts.some(a => a.severity === "critical") ? "down" : alerts.length > 0 ? "degraded" : "healthy";
+
   return {
     id: "pipeline",
     label: "Pipeline Health",
-    status: alerts.some(a => a.severity === "critical") ? "down" : alerts.length > 0 ? "degraded" : "healthy",
+    status: worstStatus(alertStatus, score),
     score,
     alerts,
     metrics,
@@ -375,10 +420,15 @@ async function checkDependencies(): Promise<SubsystemHealth> {
   const score = alerts.filter(a => a.severity !== "info").length === 0 ? 100
     : alerts.some(a => a.severity === "critical") ? 30 : 70;
 
+  const alertStatus: SubsystemHealth["status"] =
+    alerts.some(a => a.severity === "critical") ? "down"
+    : alerts.some(a => a.severity === "warning") ? "degraded"
+    : "healthy";
+
   return {
     id: "dependencies",
     label: "Dependencies",
-    status: alerts.some(a => a.severity === "critical") ? "down" : alerts.some(a => a.severity === "warning") ? "degraded" : "healthy",
+    status: worstStatus(alertStatus, score),
     score,
     alerts,
     metrics,
@@ -403,10 +453,8 @@ export async function runHealthCheck(): Promise<SystemHealthReport> {
   const criticalAlerts = allAlerts.filter(a => a.severity === "critical").length;
 
   const overallScore = Math.round(subsystems.reduce((sum, s) => sum + s.score, 0) / subsystems.length);
-  const overall: SystemHealthReport["overall"] =
-    subsystems.some(s => s.status === "down") ? "down"
-    : subsystems.some(s => s.status === "degraded") ? "degraded"
-    : "healthy";
+  // Canonical thresholds (scoreToStatus): score < 50 → down | 50–80 → degraded | > 80 → healthy
+  const overall: SystemHealthReport["overall"] = scoreToStatus(overallScore);
 
   return {
     overall,

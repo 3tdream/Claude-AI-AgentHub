@@ -13,6 +13,19 @@ export interface ClinicService {
   icon: string;
 }
 
+export interface Specialist {
+  id: string;
+  name: string;
+  nameEn: string;
+  role: string;
+  roleEn: string;
+  description: string;
+  descriptionEn: string;
+  experience: number;
+  avatar: string;
+  serviceIds: string[];
+}
+
 export interface BookingRequest {
   serviceId: string;
   date: string;

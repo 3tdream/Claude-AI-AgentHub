@@ -15,9 +15,10 @@ export function BookingStepper({ currentStep }: BookingStepperProps) {
 
   const steps = [
     { num: 1, label: t.booking.steps.service },
-    { num: 2, label: t.booking.steps.datetime },
-    { num: 3, label: t.booking.steps.contact },
-    { num: 4, label: t.booking.steps.confirmation },
+    { num: 2, label: t.booking.steps.specialist },
+    { num: 3, label: t.booking.steps.datetime },
+    { num: 4, label: t.booking.steps.contact },
+    { num: 5, label: t.booking.steps.confirmation },
   ]
 
   return (

@@ -1,6 +1,6 @@
 {
   "_description": "Known issues, root causes, and solutions — maintained by QA-Agent and all agents",
-  "_updated": "2026-04-05",
+  "_updated": "2026-04-08",
   "patterns": [
     {
       "id": "FAIL-001",
@@ -1199,6 +1199,101 @@
         "app/api/research/route.ts",
         "app/api/research/search/route.ts",
         "app/api/research/analyze/route.ts"
+      ]
+    },
+    {
+      "id": "FAIL-108",
+      "category": "bad-code",
+      "title": "ADR-013: Missing types RerunRequest, RerunResponse, PipelineRunSummary in types/workflow.ts",
+      "symptoms": "TypeScript compilation fails: 'RerunRequest', 'RerunResponse' imported in app/api/pipeline/rerun/route.ts and 'PipelineRunSummary' imported in lib/pipeline-run-storage.ts — none of these types exist in types/workflow.ts. Build breaks immediately.",
+      "root_cause": "The backend implementation references three new types (RerunRequest, RerunResponse, PipelineRunSummary) that were never added to types/workflow.ts during the ADR-013 implementation. The types/workflow.ts modification listed in the file tree was either skipped or incomplete.",
+      "solution": "Add to types/workflow.ts: (1) export interface RerunRequest { runId: string; fromStage?: string; } (2) export interface RerunResponse { executionId: string; resumedFromStage: string; status: 'started'; originalRunId: string; stepsSkipped: string[]; } (3) export interface PipelineRunSummary { id: string; workflowId: string; status: string; mode: string; startedAt: string; completedAt: string | null; stepCount: number; failedStep: string | null; input: string; }",
+      "date_discovered": "2026-04-08",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "types/workflow.ts",
+        "app/api/pipeline/rerun/route.ts",
+        "lib/pipeline-run-storage.ts"
+      ]
+    },
+    {
+      "id": "FAIL-109",
+      "category": "bad-code",
+      "title": "ADR-013: executePipelineResume not exported from lib/pipeline-executor.ts",
+      "symptoms": "Runtime error on POST /api/pipeline/rerun: dynamic import of executePipelineResume from lib/pipeline-executor.ts fails because only executePipeline is exported. The rerun endpoint catches this in a try/catch but returns 500 executor_error on every rerun attempt.",
+      "root_cause": "lib/pipeline-executor.ts was listed as [modify] in the file tree but executePipelineResume function was never implemented or exported. The rerun route does `const { executePipelineResume } = await import('@/lib/pipeline-executor')` which will destructure undefined.",
+      "solution": "Add export async function executePipelineResume({ originalRun, resumeFromStepId, priorContext, newExecutionId }) to lib/pipeline-executor.ts. It should reconstruct a WorkflowStep array from originalRun starting at resumeFromStepId, inject priorContext into the first step's prompt, then call the internal executePipeline logic with the new executionId.",
+      "date_discovered": "2026-04-08",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "lib/pipeline-executor.ts",
+        "app/api/pipeline/rerun/route.ts"
+      ]
+    },
+    {
+      "id": "FAIL-110",
+      "category": "bad-code",
+      "title": "ADR-013: PipelineExecution shape mismatch — storage uses .steps[] and .mode but type has .stepResults{} and no .mode",
+      "symptoms": "lib/pipeline-run-storage.ts accesses run.steps, run.mode, and run.input — none of which exist on PipelineExecution. The actual type has stepResults (Record<string,StepResult>), no mode field, and input exists. app/api/pipeline/runs/route.ts validates body.mode which is also absent from PipelineExecution. TypeScript errors on every storage access.",
+      "root_cause": "The implementation was written against a hypothetical PipelineExecution shape that differs from the actual type in types/workflow.ts. PipelineExecution uses stepResults: Record<string, StepResult> (not steps: StepResult[]), has no mode field, and workflowName is required but not validated in POST /runs.",
+      "solution": "Either (a) add mode: ExecutionMode and steps: StepResult[] to PipelineExecution in types/workflow.ts, OR (b) rewrite storage/routes to use stepResults and remove mode references. Also fix rerun/route.ts line 52: run.steps → Object.values(run.stepResults ?? {}). The StepResult.status type also lacks 'escalated' as a standalone value — only escalated?: boolean exists.",
+      "date_discovered": "2026-04-08",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "lib/pipeline-run-storage.ts",
+        "app/api/pipeline/rerun/route.ts",
+        "app/api/pipeline/runs/route.ts",
+        "types/workflow.ts"
+      ]
+    },
+    {
+      "id": "FAIL-111",
+      "category": "bad-code",
+      "title": "ADR-013: executePipelineResume missing from pipeline-executor.ts — all rerun calls silently fail",
+      "symptoms": "POST /api/pipeline/rerun returns HTTP 200 \"started\" but the dynamic import `await import('@/lib/pipeline-executor')` destructures `executePipelineResume` which does not exist. The function is `undefined`, calling it throws TypeError. The `.catch()` swallows the error silently. Every rerun request appears to succeed but no execution ever starts.",
+      "root_cause": "lib/pipeline-executor.ts only exports `executePipeline`. The `executePipelineResume` function required by ADR-013 was never implemented. The dynamic import succeeds (module loads) but the destructured function is undefined.",
+      "solution": "Add `export async function executePipelineResume({ originalRun, resumeFromStepId, priorContext, newExecutionId })` to lib/pipeline-executor.ts. It should clone the original run, skip steps before resumeFromStepId (marking them completed with prior outputs), then call the normal step execution loop from resumeFromStepId onward, saving the new execution via saveRun().",
+      "date_discovered": "2026-04-08",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "lib/pipeline-executor.ts",
+        "app/api/pipeline/rerun/route.ts"
+      ]
+    },
+    {
+      "id": "FAIL-112",
+      "category": "bad-code",
+      "title": "ADR-013: RerunRequest, RerunResponse, PipelineRunSummary types missing from types/workflow.ts — TypeScript compilation fails",
+      "symptoms": "TypeScript compiler errors: `Module '@/types/workflow' has no exported member 'RerunRequest'`, `RerunResponse`, `PipelineRunSummary`. Imports in rerun/route.ts:9 and pipeline-run-storage.ts:7 fail at compile time. Project cannot build.",
+      "root_cause": "The backend implementation imports three new interfaces that were never added to types/workflow.ts. The type file was not updated as part of the ADR-013 implementation.",
+      "solution": "Add to types/workflow.ts: `export interface RerunRequest { runId: string; fromStage?: string; }`, `export interface RerunResponse { executionId: string; resumedFromStage: string; status: 'started'; originalRunId: string; stepsSkipped: string[]; }`, `export interface PipelineRunSummary { id: string; workflowId: string; status: PipelineStatus; mode?: ExecutionMode; startedAt: string; completedAt: string | null; stepCount: number; failedStep: string | null; input: string; }`",
+      "date_discovered": "2026-04-08",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "types/workflow.ts",
+        "app/api/pipeline/rerun/route.ts",
+        "lib/pipeline-run-storage.ts"
+      ]
+    },
+    {
+      "id": "FAIL-113",
+      "category": "bad-code",
+      "title": "ADR-013: PipelineExecution.steps accessed but field is stepResults:Record — runtime crash on all rerun/list operations",
+      "symptoms": "rerun/route.ts lines 52, 56, 66, 77-83 and pipeline-run-storage.ts lines 64, 68 all access `run.steps` as an array. PipelineExecution has `stepResults: Record<string, StepResult>`, not `steps: StepResult[]`. At runtime: `run.steps` is `undefined`, `run.steps ?? []` returns `[]`, so resume point detection always finds no failed steps and returns 400 `no_failed_step` for every rerun request.",
+      "root_cause": "Implementation was written against a different data model than what exists in types/workflow.ts. PipelineExecution uses a Record keyed by stepId, not an array. The `steps` field does not exist on the type.",
+      "solution": "Either: (A) Add `steps?: StepResult[]` to PipelineExecution and populate it in the executor, OR (B) rewrite all `run.steps` accesses to use `Object.values(run.stepResults ?? {})` and access `.stepId` via the key. Option B is preferred to avoid data model duplication.",
+      "date_discovered": "2026-04-08",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/api/pipeline/rerun/route.ts",
+        "lib/pipeline-run-storage.ts",
+        "types/workflow.ts"
       ]
     }
   ]

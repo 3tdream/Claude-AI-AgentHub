@@ -8,20 +8,39 @@ import { useBookingStore } from "@/lib/stores/booking-store"
 import { useLanguageStore } from "@/lib/use-language-store"
 import { translations } from "@/lib/translations"
 import { services } from "@/data/services"
+import { specialists } from "@/data/specialists"
 
 export function ServiceSelection() {
-  const { selectedServiceId, setServiceId, nextStep } = useBookingStore()
+  const { selectedServiceId, selectedSpecialistId, setServiceId, nextStep } = useBookingStore()
   const { language } = useLanguageStore()
   const t = translations[language]
   const [category, setCategory] = useState('all')
 
+  // If specialist is pre-selected (from header menu), filter services to their serviceIds
+  const specialist = selectedSpecialistId
+    ? specialists.find((s) => s.id === selectedSpecialistId)
+    : null
+
+  const available = specialist
+    ? services.filter((s) => specialist.serviceIds.includes(s.id))
+    : services
+
   const filtered = category === 'all'
-    ? services
-    : services.filter((s) => s.category === category)
+    ? available
+    : available.filter((s) => s.category === category)
+
+  const specialistName = specialist
+    ? (language === 'ru' ? specialist.name : specialist.nameEn)
+    : ''
 
   return (
     <div>
-      <h3 className="text-lg font-semibold mb-4">{t.booking.selectService}</h3>
+      <h3 className="text-lg font-semibold mb-2">{t.booking.selectService}</h3>
+      {specialist && (
+        <p className="text-sm text-muted-foreground mb-4">
+          {t.booking.servicesForSpecialist}: <span className="font-medium text-foreground">{specialistName}</span>
+        </p>
+      )}
       <ServiceCategoryNav active={category} onChange={setCategory} />
       <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filtered.map((service) => (

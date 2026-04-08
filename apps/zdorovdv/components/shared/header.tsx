@@ -1,13 +1,14 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
-import { Phone, Menu } from "lucide-react"
+import { Phone, Menu, User, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { LanguageSelector } from "./language-selector"
 import { MobileNav } from "./mobile-nav"
 import { useLanguageStore } from "@/lib/use-language-store"
 import { translations } from "@/lib/translations"
+import { specialists } from "@/data/specialists"
 import { cn } from "@/lib/utils"
 
 const navLinks = [
@@ -22,11 +23,23 @@ export function Header() {
   const t = translations[language]
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [specOpen, setSpecOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20)
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setSpecOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
   return (
@@ -52,7 +65,66 @@ export function Header() {
             </Link>
 
             <nav className="hidden md:flex items-center gap-1">
-              {navLinks.map((link) => (
+              {navLinks.slice(0, 2).map((link) => (
+                <Link
+                  key={link.key}
+                  href={link.href}
+                  className={cn(
+                    "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                    "hover:bg-primary/10 hover:text-primary",
+                    scrolled ? "text-foreground" : "text-foreground"
+                  )}
+                >
+                  {t.nav[link.key]}
+                </Link>
+              ))}
+
+              {/* Specialists dropdown */}
+              <div ref={dropdownRef} className="relative">
+                <button
+                  onClick={() => setSpecOpen(!specOpen)}
+                  className={cn(
+                    "flex items-center gap-1 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                    "hover:bg-primary/10 hover:text-primary",
+                    specOpen && "bg-primary/10 text-primary",
+                    scrolled ? "text-foreground" : "text-foreground"
+                  )}
+                >
+                  {t.specialists.title}
+                  <ChevronDown className={cn("w-4 h-4 transition-transform", specOpen && "rotate-180")} />
+                </button>
+
+                {specOpen && (
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-80 bg-white rounded-xl shadow-lg border border-border p-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <p className="text-xs text-muted-foreground px-2 mb-2">{t.booking.selectSpecialist}</p>
+                    {specialists.map((spec) => {
+                      const name = language === 'ru' ? spec.name : spec.nameEn
+                      const role = language === 'ru' ? spec.role : spec.roleEn
+                      return (
+                        <Link
+                          key={spec.id}
+                          href={`/booking?specialist=${spec.id}`}
+                          onClick={() => setSpecOpen(false)}
+                          className="flex items-center gap-3 p-3 rounded-lg hover:bg-primary/5 transition-colors group"
+                        >
+                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
+                            <User className="w-5 h-5 text-primary/60" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-foreground truncate">{name}</p>
+                            <p className="text-xs text-muted-foreground truncate">{role}</p>
+                          </div>
+                          <span className="ml-auto text-xs text-primary/60 shrink-0">
+                            {spec.experience} {t.specialists.experience}
+                          </span>
+                        </Link>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {navLinks.slice(2).map((link) => (
                 <Link
                   key={link.key}
                   href={link.href}

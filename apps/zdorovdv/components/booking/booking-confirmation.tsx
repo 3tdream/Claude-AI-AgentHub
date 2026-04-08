@@ -8,13 +8,16 @@ import { useBookingStore } from "@/lib/stores/booking-store"
 import { useLanguageStore } from "@/lib/use-language-store"
 import { translations } from "@/lib/translations"
 import { services } from "@/data/services"
+import { specialists } from "@/data/specialists"
 
 export function BookingConfirmation() {
-  const { selectedServiceId, selectedDate, selectedTime, clientName, reset } = useBookingStore()
+  const { selectedServiceId, selectedSpecialistId, selectedDate, selectedTime, clientName, reset } = useBookingStore()
   const { language } = useLanguageStore()
   const t = translations[language]
   const service = services.find((s) => s.id === selectedServiceId)
+  const specialist = specialists.find((s) => s.id === selectedSpecialistId)
   const serviceName = service ? (language === 'ru' ? service.name : service.nameEn) : ''
+  const specialistName = specialist ? (language === 'ru' ? specialist.name : specialist.nameEn) : ''
 
   return (
     <motion.div
@@ -39,6 +42,12 @@ export function BookingConfirmation() {
           <span className="text-muted-foreground">{t.booking.steps.service}:</span>
           <span className="font-medium">{serviceName}</span>
         </div>
+        {specialistName && (
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">{t.booking.steps.specialist}:</span>
+            <span className="font-medium">{specialistName}</span>
+          </div>
+        )}
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">{t.booking.steps.datetime}:</span>
           <span className="font-medium">{selectedDate} {selectedTime}</span>
