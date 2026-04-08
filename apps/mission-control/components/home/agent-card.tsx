@@ -3,11 +3,12 @@
 import type { Agent } from "@/types";
 import { getAgentIcon, providerColors, getSuccessRateColor, getAgentStatus, agentStatusConfig } from "./constants";
 
-export function AgentCard({ agent, stats, selected, onClick }: {
+export function AgentCard({ agent, stats, selected, onClick, teamNameMap }: {
   agent: Agent;
   stats?: { runs: number; avgScore: number; successRate: number; failRate: number };
   selected?: boolean;
   onClick?: () => void;
+  teamNameMap?: Record<string, string>;
 }) {
   const successRate = stats?.successRate ?? 0;
   const status = getAgentStatus(successRate, !!stats);
@@ -15,7 +16,8 @@ export function AgentCard({ agent, stats, selected, onClick }: {
   const barColor = getSuccessRateColor(successRate);
   const prov = providerColors[agent.llmProvider] || providerColors.anthropic;
   const icon = getAgentIcon(agent.name);
-  const teamName = agent.teams[0] || "\u2014";
+  const teamId = agent.teams[0];
+  const teamName = (teamId && teamNameMap?.[teamId]) || "\u2014";
 
   return (
     <div

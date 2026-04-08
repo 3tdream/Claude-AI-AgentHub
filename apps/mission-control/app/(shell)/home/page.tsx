@@ -6,7 +6,8 @@ import { useAppStore } from "@/lib/stores/app-store";
 import { useOrchestrationStore } from "@/lib/stores/orchestration-store";
 import { useActivityStore } from "@/lib/stores/activity-store";
 import { useAgents } from "@/lib/hooks/use-agents";
-import { Plus, GripVertical, Pencil, ChevronUp, ChevronDown, PanelLeftClose, PanelLeft, Activity, Layers } from "lucide-react";
+import { useTeams } from "@/lib/hooks/use-teams";
+import { Plus, GripVertical, Pencil, ChevronUp, ChevronDown, PanelLeftClose, PanelLeft, Activity, Layers, Filter } from "lucide-react";
 
 import { fetcher, getAgentIcon, getSuccessRateColor } from "@/components/home/constants";
 import { StatusPill } from "@/components/home/status-pill";
@@ -29,11 +30,18 @@ export default function HomePage() {
   const activeExecution = useOrchestrationStore((s) => s.activeExecution);
   const activityEvents = useActivityStore((s) => s.events);
   const { agents, isLoading: agentsLoading, mutate: mutateAgents } = useAgents();
+  const { teams } = useTeams();
+  const teamNameMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const t of teams) map[t.id] = t.name;
+    return map;
+  }, [teams]);
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   const selectedAgent = agents.find((a) => a.id === selectedAgentId) || null;
   const [editMode, setEditMode] = useState(false);
   const [agentOrder, setAgentOrder] = useState<string[]>([]);
   const [fleetCollapsed, setFleetCollapsed] = useState(false);
+  const [showActiveOnly, setShowActiveOnly] = useState(false);
   const [centerView, setCenterView] = useState<"pipeline" | "health" | "knowledge">("pipeline");
 
   // Clock
@@ -113,6 +121,13 @@ export default function HomePage() {
     });
   }, [agentOrder, agentsWithStats]);
 
+  // Filter: active only hides idle agents
+  const filteredAgents = useMemo(() => {
+    if (!showActiveOnly) return orderedAgents;
+    return orderedAgents.filter(({ stats }) => stats && stats.runs > 0);
+  }, [orderedAgents, showActiveOnly]);
+  const idleCount = orderedAgents.length - filteredAgents.length;
+
   const moveAgent = (fromIdx: number, dir: -1 | 1) => {
     const toIdx = fromIdx + dir;
     if (toIdx < 0 || toIdx >= agentOrder.length) return;
@@ -167,6 +182,14 @@ export default function HomePage() {
               <h2 className="text-xs font-semibold text-slate-900 uppercase tracking-wide">Agent Fleet</h2>
               <div className="flex items-center gap-1">
                 <button
+                  onClick={() => setShowActiveOnly(!showActiveOnly)}
+                  className={`p-1 rounded transition-colors ${showActiveOnly ? "bg-indigo-50 text-indigo-600" : "text-slate-400 hover:text-slate-600"}`}
+                  title={showActiveOnly ? "Show all agents" : "Active only"}
+                  aria-label={showActiveOnly ? "Show all agents" : "Show active agents only"}
+                >
+                  <Filter className="w-3 h-3" />
+                </button>
+                <button
                   onClick={() => setEditMode(!editMode)}
                   className={`p-1 rounded transition-colors ${editMode ? "bg-indigo-50 text-indigo-600" : "text-slate-400 hover:text-slate-600"}`}
                   title={editMode ? "Done reordering" : "Reorder agents"}
@@ -196,7 +219,7 @@ export default function HomePage() {
 
             {agentsLoading && <div className="text-center py-8 text-slate-400 text-sm">Loading agents...</div>}
 
-            {orderedAgents.map(({ agent, stats }, idx) => (
+            {filteredAgents.map(({ agent, stats }, idx) => (
               <div key={agent.id} className="flex items-stretch gap-1">
                 {editMode && (
                   <div className="flex flex-col justify-center gap-0.5 shrink-0">
@@ -204,7 +227,7 @@ export default function HomePage() {
                       <ChevronUp className="w-3 h-3" />
                     </button>
                     <GripVertical className="w-3 h-3 text-slate-300 mx-auto" />
-                    <button onClick={() => moveAgent(idx, 1)} disabled={idx === orderedAgents.length - 1} className="p-0.5 text-slate-300 hover:text-indigo-600 disabled:opacity-20 transition-colors" aria-label="Move agent down">
+                    <button onClick={() => moveAgent(idx, 1)} disabled={idx === filteredAgents.length - 1} className="p-0.5 text-slate-300 hover:text-indigo-600 disabled:opacity-20 transition-colors" aria-label="Move agent down">
                       <ChevronDown className="w-3 h-3" />
                     </button>
                   </div>
@@ -215,10 +238,20 @@ export default function HomePage() {
                     stats={stats || undefined}
                     selected={selectedAgentId === agent.id}
                     onClick={() => { if (!editMode) { setSelectedAgentId(selectedAgentId === agent.id ? null : agent.id); setCenterView("pipeline"); } }}
+                    teamNameMap={teamNameMap}
                   />
                 </div>
               </div>
             ))}
+
+            {showActiveOnly && idleCount > 0 && (
+              <button
+                onClick={() => setShowActiveOnly(false)}
+                className="text-center py-2 text-xs text-slate-400 hover:text-indigo-600 transition-colors"
+              >
+                +{idleCount} idle agents
+              </button>
+            )}
 
             {!agentsLoading && agents.length === 0 && (
               <div className="text-center py-8 text-slate-400 text-sm">No agents found</div>
