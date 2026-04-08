@@ -1,6 +1,6 @@
 "use client";
 
-export function MetricBox({ value, label, color = "" }: { value: string; label: string; color?: string }) {
+export function MetricBox({ value, label, color = "", subtitle }: { value: string; label: string; color?: string; subtitle?: string }) {
   const colorClasses: Record<string, string> = {
     indigo: "text-indigo-600",
     purple: "text-violet-600",
@@ -16,6 +16,7 @@ export function MetricBox({ value, label, color = "" }: { value: string; label: 
         {value}
       </div>
       <div className="font-mono text-[10px] tracking-wide uppercase text-slate-400 mt-1.5">{label}</div>
+      {subtitle && <div className="font-mono text-[10px] text-slate-400 mt-1">{subtitle}</div>}
     </div>
   );
 }
