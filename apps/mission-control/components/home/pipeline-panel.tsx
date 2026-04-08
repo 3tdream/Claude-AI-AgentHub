@@ -20,6 +20,8 @@ import { CheckpointBar } from "./checkpoint-bar";
 import { PipelineHistory } from "./pipeline-history";
 import { PipelineInput } from "./pipeline-input";
 import type { PipelineInputResult } from "./pipeline-input";
+import { ResumeBanner } from "./resume-banner";
+import { QueueIndicator } from "./queue-indicator";
 
 type PipelineTab = "pipeline" | "contracts" | "analytics";
 type PipelineView = "input" | "history";
@@ -85,10 +87,23 @@ export function PipelinePanel({ activeProjectId, projects, onSelectProject }: {
   const approveCheckpoint = useOrchestrationStore((s) => s.approveCheckpoint);
   const rejectCheckpoint = useOrchestrationStore((s) => s.rejectCheckpoint);
   const workflows = useOrchestrationStore((s) => s.workflows);
+  const taskQueue = useOrchestrationStore((s) => s.taskQueue);
+  const enqueueTask = useOrchestrationStore((s) => s.enqueueTask);
+  const dequeueTask = useOrchestrationStore((s) => s.dequeueTask);
+  const clearQueue = useOrchestrationStore((s) => s.clearQueue);
 
   const [selectedStageId, setSelectedStageId] = useState<string | null>(null);
   // Local viewing state — for browsing history WITHOUT polluting store's activeExecution
   const [viewingExecution, setViewingExecution] = useState<PipelineExecution | null>(null);
+
+  // Resume banner — detect interrupted/paused execution on mount
+  const [showResumeBanner, setShowResumeBanner] = useState(false);
+  useEffect(() => {
+    if (activeExecution && (activeExecution.status === "interrupted" || activeExecution.status === "paused") && !executing) {
+      setShowResumeBanner(true);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Display execution = viewing history OR live execution
   const displayExecution = viewingExecution || activeExecution;
@@ -230,7 +245,22 @@ export function PipelinePanel({ activeProjectId, projects, onSelectProject }: {
   // Confirm & Execute pipeline (or resume from previous)
   const confirmAndExecute = async (resumeFrom?: PipelineExecution) => {
     const taskInput = resumeFrom?.input || pipelineInput;
-    if (!taskInput || executing) return;
+    if (!taskInput) return;
+
+    // Queue if already executing
+    if (executing && !resumeFrom) {
+      enqueueTask({
+        id: Date.now().toString(36) + Math.random().toString(36).substring(2, 6),
+        input: taskInput,
+        projectId: activeProjectId,
+        routingDecision: routingDecision || undefined,
+        enqueuedAt: new Date().toISOString(),
+      });
+      toast(`Task queued (${taskQueue.length + 1} in queue)`);
+      setRoutingDecision(null);
+      setPipelineInput("");
+      return;
+    }
 
     // Find workflow — prefer matching workflowId from previous execution
     const wf = resumeFrom
@@ -297,6 +327,15 @@ export function PipelinePanel({ activeProjectId, projects, onSelectProject }: {
     setExecuting(false);
     setRoutingDecision(null);
     setPipelineInput("");
+
+    // Auto-dequeue next task
+    const next = dequeueTask();
+    if (next) {
+      setPipelineInput(next.input);
+      setRoutingDecision(next.routingDecision || null);
+      toast(`Starting queued task: ${next.input.substring(0, 40)}...`);
+      setTimeout(() => confirmAndExecute(), 200);
+    }
   };
 
   const exportResult = () => {
@@ -379,6 +418,15 @@ export function PipelinePanel({ activeProjectId, projects, onSelectProject }: {
         </div>
       </div>
 
+      {/* Resume Banner — interrupted/paused execution from previous session */}
+      {showResumeBanner && activeExecution && !executing && (
+        <ResumeBanner
+          execution={activeExecution}
+          onResume={() => { setShowResumeBanner(false); confirmAndExecute(activeExecution); }}
+          onDiscard={() => { setShowResumeBanner(false); setActiveExecution(null); }}
+        />
+      )}
+
       {/* Live Execution Status Bar */}
       {activeExecution && (
         <ExecutionBar
@@ -401,6 +449,9 @@ export function PipelinePanel({ activeProjectId, projects, onSelectProject }: {
           onReject={rejectCheckpoint}
         />
       )}
+
+      {/* Task Queue */}
+      <QueueIndicator queue={taskQueue} onClear={clearQueue} />
 
       {/* Pipeline Graph — 2D or 3D toggle */}
       {activeTab === "pipeline" && displayExecution && displaySteps.length > 0 && (

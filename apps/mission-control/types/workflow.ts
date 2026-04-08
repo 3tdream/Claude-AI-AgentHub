@@ -127,11 +127,19 @@ export interface StepResult {
   };
 }
 
-export type PipelineStatus = "pending" | "running" | "completed" | "failed" | "paused" | "stopped" | "escalated";
+export type PipelineStatus = "pending" | "running" | "completed" | "failed" | "paused" | "stopped" | "escalated" | "interrupted";
 
 export type StepSourceType = "live" | "cached" | "resumed";
 
 export type ExecutionMode = "quick" | "medium" | "full";
+
+export interface QueuedTask {
+  id: string;
+  input: string;
+  projectId: string | null;
+  routingDecision?: RoutingDecisionData;
+  enqueuedAt: string;
+}
 
 // === ADR-007: Smart Router Escalation — Stop-and-Propose Pattern ===
 

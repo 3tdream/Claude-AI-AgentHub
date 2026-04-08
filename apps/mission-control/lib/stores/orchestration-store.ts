@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { Workflow, PipelineExecution, WorkflowSlot, SlotStatus, WorkflowStep } from "@/types";
+import type { Workflow, PipelineExecution, WorkflowSlot, SlotStatus, WorkflowStep, QueuedTask } from "@/types";
 import { CRM_PIPELINE_TEMPLATE } from "@/lib/pipeline-templates";
 
 const DEFAULT_CRM_TEMPLATE_ID = "default-crm-template";
@@ -74,6 +74,11 @@ interface OrchestrationState {
   setCorePipeline: (projectId: string, workflowId: string) => void;
   clearCorePipeline: (projectId: string) => void;
   getCorePipelineId: (projectId: string) => string | null;
+  // Task queue
+  taskQueue: QueuedTask[];
+  enqueueTask: (task: QueuedTask) => void;
+  dequeueTask: () => QueuedTask | null;
+  clearQueue: () => void;
 }
 
 export const useOrchestrationStore = create<OrchestrationState>()(
@@ -86,6 +91,7 @@ export const useOrchestrationStore = create<OrchestrationState>()(
       pauseRequested: false,
       stopRequested: false,
       selectedProject: null,
+      taskQueue: [],
       // V2: Slot defaults
       slots: [
         createEmptySlot(0),
@@ -352,6 +358,17 @@ export const useOrchestrationStore = create<OrchestrationState>()(
           activeSlotIndex: slotIdx,
         });
       },
+
+      // Task queue
+      enqueueTask: (task) => set((s) => ({ taskQueue: [...s.taskQueue, task] })),
+      dequeueTask: () => {
+        const { taskQueue } = get();
+        if (taskQueue.length === 0) return null;
+        const [next, ...rest] = taskQueue;
+        set({ taskQueue: rest });
+        return next;
+      },
+      clearQueue: () => set({ taskQueue: [] }),
     }),
     {
       name: "mission-control-orchestration",
@@ -363,6 +380,8 @@ export const useOrchestrationStore = create<OrchestrationState>()(
         slots: state.slots,
         activeSlotIndex: state.activeSlotIndex,
         corePipelines: state.corePipelines,
+        activeExecution: state.activeExecution,
+        taskQueue: state.taskQueue,
       }),
       merge: (persisted, current) => {
         const p = persisted as Partial<OrchestrationState> | undefined;
@@ -372,9 +391,20 @@ export const useOrchestrationStore = create<OrchestrationState>()(
         const workflows = Array.isArray(p?.workflows) ? p.workflows : [];
         const hasDefault = workflows.some((w: Workflow) => w.id === DEFAULT_CRM_TEMPLATE_ID);
         const seededWorkflows = hasDefault ? workflows : [getDefaultCrmWorkflow(), ...workflows];
+        // Recover activeExecution — mark as interrupted if it was mid-run when browser closed
+        const recoveredExecution = (() => {
+          const exec = p?.activeExecution;
+          if (!exec || !exec.id) return null;
+          if (exec.status === "running") return { ...exec, status: "interrupted" as const };
+          if (exec.status === "paused") return exec;
+          // completed/failed/stopped — no need to persist
+          return null;
+        })();
+
         return {
           ...current,
           ...p,
+          activeExecution: recoveredExecution,
           workflows: seededWorkflows,
           slots: (p?.slots && Array.isArray(p.slots) && p.slots.length === 4 && p.slots.every(isValidSlot)
             ? p.slots
