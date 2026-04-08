@@ -1,6 +1,7 @@
 "use client";
 
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 export type ActivityType =
   | "kb_read"
@@ -56,30 +57,41 @@ const ICONS: Record<ActivityType, string> = {
   design_validate: "\u{1F3A8}", // 🎨
 };
 
-const MAX_EVENTS = 100;
+const MAX_EVENTS = 200;
 
-export const useActivityStore = create<ActivityState>()((set) => ({
-  events: [],
-  visible: false,
+export const useActivityStore = create<ActivityState>()(
+  persist(
+    (set) => ({
+      events: [],
+      visible: false,
 
-  addEvent: (type, label, detail) =>
-    set((s) => ({
-      events: [
-        {
-          id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-          type,
-          icon: ICONS[type],
-          label,
-          detail,
-          timestamp: new Date().toISOString(),
-        },
-        ...s.events,
-      ].slice(0, MAX_EVENTS),
-    })),
+      addEvent: (type, label, detail) =>
+        set((s) => ({
+          events: [
+            {
+              id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+              type,
+              icon: ICONS[type],
+              label,
+              detail,
+              timestamp: new Date().toISOString(),
+            },
+            ...s.events,
+          ].slice(0, MAX_EVENTS),
+        })),
 
-  toggleVisible: () => set((s) => ({ visible: !s.visible })),
-  clear: () => set({ events: [] }),
-}));
+      toggleVisible: () => set((s) => ({ visible: !s.visible })),
+      clear: () => set({ events: [] }),
+    }),
+    {
+      name: "mission-control-activity",
+      version: 1,
+      partialize: (state) => ({
+        events: state.events.slice(0, 200),
+      }),
+    },
+  ),
+);
 
 /**
  * Global helper — call from anywhere (client-side) to log an activity event.
