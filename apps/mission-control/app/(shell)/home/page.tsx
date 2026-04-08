@@ -150,19 +150,20 @@ export default function HomePage() {
     <div className="flex gap-4 h-[calc(100vh-8rem)]">
 
       {/* ── LEFT: Agent Fleet ── */}
-      <div className={`flex-shrink-0 flex flex-col gap-2 overflow-y-auto transition-all duration-300 ${fleetCollapsed ? "w-14" : "w-64"}`}>
+      <div className={`flex-shrink-0 flex flex-col overflow-y-auto transition-all duration-300 bg-sidebar border-r border-sidebar-border rounded-xl ${fleetCollapsed ? "w-16" : "w-64"}`}>
 
         {/* ── COLLAPSED: icons only ── */}
         {fleetCollapsed ? (
           <>
-            <div className="flex flex-col items-center gap-1 pb-2 border-b border-slate-200">
-              <button onClick={() => setFleetCollapsed(false)} className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors" title="Expand fleet" aria-label="Expand fleet">
-                <PanelLeft className="w-4 h-4 text-slate-400" />
+            <div className="flex flex-col items-center gap-1 py-3 border-b border-sidebar-border">
+              <button onClick={() => setFleetCollapsed(false)} className="p-1.5 rounded-lg hover:bg-sidebar-accent transition-colors" title="Expand fleet" aria-label="Expand fleet">
+                <PanelLeft className="w-4 h-4 text-muted-foreground" />
               </button>
-              <button onClick={() => setSelectedAgentId("__new__")} className="p-1 rounded text-indigo-400 hover:text-indigo-600 transition-colors" title="New agent" aria-label="New agent">
+              <button onClick={() => setSelectedAgentId("__new__")} className="p-1 rounded text-primary hover:text-primary/80 transition-colors" title="New agent" aria-label="New agent">
                 <Plus className="w-3.5 h-3.5" />
               </button>
             </div>
+            <div className="py-2 px-1 space-y-1">
             {orderedAgents.map(({ agent, stats }) => {
               const successRate = stats?.successRate ?? 0;
               const statusColor = getSuccessRateColor(successRate);
@@ -172,10 +173,10 @@ export default function HomePage() {
                   key={agent.id}
                   onClick={() => { setSelectedAgentId(selectedAgentId === agent.id ? null : agent.id); setCenterView("pipeline"); }}
                   title={`${agent.name} — ${stats ? Math.round(successRate) + "%" : "idle"}`}
-                  className={`flex flex-col items-center py-1.5 rounded-lg transition-all ${
+                  className={`w-full flex flex-col items-center py-1.5 rounded-lg transition-all duration-200 ${
                     selectedAgentId === agent.id
-                      ? "bg-indigo-50 border border-indigo-300"
-                      : "hover:bg-slate-50 border border-transparent"
+                      ? "bg-primary/10 border border-primary/20"
+                      : "hover:bg-sidebar-accent border border-transparent"
                   }`}
                 >
                   <span className="text-sm">{icon}</span>
@@ -183,16 +184,17 @@ export default function HomePage() {
                 </button>
               );
             })}
+            </div>
           </>
         ) : (
           <>
             {/* ── EXPANDED: full cards ── */}
-            <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-              <h2 className="text-xs font-semibold text-slate-900 uppercase tracking-wide">Agent Fleet</h2>
+            <div className="flex items-center justify-between px-3 py-3 border-b border-sidebar-border">
+              <h2 className="text-xs font-semibold text-sidebar-foreground uppercase tracking-wide">Agent Fleet</h2>
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => setShowActiveOnly(!showActiveOnly)}
-                  className={`p-1 rounded transition-colors ${showActiveOnly ? "bg-indigo-50 text-indigo-600" : "text-slate-400 hover:text-slate-600"}`}
+                  className={`p-1 rounded-lg transition-colors duration-200 ${showActiveOnly ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-sidebar-foreground"}`}
                   title={showActiveOnly ? "Show all agents" : "Active only"}
                   aria-label={showActiveOnly ? "Show all agents" : "Show active agents only"}
                 >
@@ -200,7 +202,7 @@ export default function HomePage() {
                 </button>
                 <button
                   onClick={() => setEditMode(!editMode)}
-                  className={`p-1 rounded transition-colors ${editMode ? "bg-indigo-50 text-indigo-600" : "text-slate-400 hover:text-slate-600"}`}
+                  className={`p-1 rounded-lg transition-colors duration-200 ${editMode ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-sidebar-foreground"}`}
                   title={editMode ? "Done reordering" : "Reorder agents"}
                   aria-label={editMode ? "Done reordering" : "Reorder agents"}
                 >
@@ -208,7 +210,7 @@ export default function HomePage() {
                 </button>
                 <button
                   onClick={() => setSelectedAgentId("__new__")}
-                  className="p-1 rounded text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50 transition-colors"
+                  className="p-1 rounded-lg text-primary hover:text-primary/80 hover:bg-primary/10 transition-colors duration-200"
                   title="New agent"
                   aria-label="New agent"
                 >
@@ -216,27 +218,28 @@ export default function HomePage() {
                 </button>
                 <button
                   onClick={() => setFleetCollapsed(true)}
-                  className="p-1 rounded text-slate-400 hover:text-slate-600 transition-colors"
+                  className="p-1 rounded-lg text-muted-foreground hover:text-sidebar-foreground transition-colors duration-200"
                   title="Collapse fleet"
                   aria-label="Collapse fleet"
                 >
                   <PanelLeftClose className="w-3 h-3" />
                 </button>
-                <span className="font-mono text-[10px] text-slate-400 ml-0.5">{activeAgentCount}</span>
+                <span className="font-mono text-[10px] text-muted-foreground ml-0.5">{activeAgentCount}</span>
               </div>
             </div>
 
-            {agentsLoading && <div className="text-center py-8 text-slate-400 text-sm">Loading agents...</div>}
+            <div className="flex-1 overflow-y-auto py-2 px-2 space-y-1">
+            {agentsLoading && <div className="text-center py-8 text-muted-foreground text-sm">Loading agents...</div>}
 
             {filteredAgents.map(({ agent, stats }, idx) => (
               <div key={agent.id} className="flex items-stretch gap-1">
                 {editMode && (
                   <div className="flex flex-col justify-center gap-0.5 shrink-0">
-                    <button onClick={() => moveAgent(idx, -1)} disabled={idx === 0} className="p-0.5 text-slate-300 hover:text-indigo-600 disabled:opacity-20 transition-colors" aria-label="Move agent up">
+                    <button onClick={() => moveAgent(idx, -1)} disabled={idx === 0} className="p-0.5 text-muted-foreground hover:text-primary disabled:opacity-20 transition-colors" aria-label="Move agent up">
                       <ChevronUp className="w-3 h-3" />
                     </button>
-                    <GripVertical className="w-3 h-3 text-slate-300 mx-auto" />
-                    <button onClick={() => moveAgent(idx, 1)} disabled={idx === filteredAgents.length - 1} className="p-0.5 text-slate-300 hover:text-indigo-600 disabled:opacity-20 transition-colors" aria-label="Move agent down">
+                    <GripVertical className="w-3 h-3 text-muted-foreground mx-auto" />
+                    <button onClick={() => moveAgent(idx, 1)} disabled={idx === filteredAgents.length - 1} className="p-0.5 text-muted-foreground hover:text-primary disabled:opacity-20 transition-colors" aria-label="Move agent down">
                       <ChevronDown className="w-3 h-3" />
                     </button>
                   </div>
@@ -256,15 +259,16 @@ export default function HomePage() {
             {showActiveOnly && idleCount > 0 && (
               <button
                 onClick={() => setShowActiveOnly(false)}
-                className="text-center py-2 text-xs text-slate-400 hover:text-indigo-600 transition-colors"
+                className="w-full text-center py-2 text-xs text-muted-foreground hover:text-primary transition-colors duration-200"
               >
                 +{idleCount} idle agents
               </button>
             )}
 
             {!agentsLoading && agents.length === 0 && (
-              <div className="text-center py-8 text-slate-400 text-sm">No agents found</div>
+              <div className="text-center py-8 text-muted-foreground text-sm">No agents found</div>
             )}
+            </div>
           </>
         )}
       </div>
