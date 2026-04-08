@@ -164,7 +164,7 @@ export default function HomePage() {
           <>
             {/* ── EXPANDED: full cards ── */}
             <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-              <span className="text-xs font-semibold text-slate-900 uppercase tracking-wide">Agent Fleet</span>
+              <h2 className="text-xs font-semibold text-slate-900 uppercase tracking-wide">Agent Fleet</h2>
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => setEditMode(!editMode)}
@@ -304,7 +304,7 @@ export default function HomePage() {
       <div className="w-56 flex-shrink-0 flex flex-col gap-4 overflow-y-auto pl-1">
         <div className="flex items-center gap-1.5 border-b border-slate-200 pb-2">
           <Activity className="w-3.5 h-3.5 text-slate-400" />
-          <span className="text-xs font-semibold text-slate-900 uppercase tracking-wide">Live Activity</span>
+          <h2 className="text-xs font-semibold text-slate-900 uppercase tracking-wide">Live Activity</h2>
         </div>
         <div className="flex flex-col gap-0.5 max-h-[50vh] overflow-y-auto">
           {activityEvents.slice(0, 20).map((e) => (
@@ -323,7 +323,7 @@ export default function HomePage() {
         {/* Recent runs */}
         <div className="flex items-center gap-1.5 border-b border-slate-200 pb-2 mt-2">
           <Layers className="w-3.5 h-3.5 text-slate-400" />
-          <span className="text-xs font-semibold text-slate-900 uppercase tracking-wide">Recent Runs</span>
+          <h2 className="text-xs font-semibold text-slate-900 uppercase tracking-wide">Recent Runs</h2>
         </div>
         <div className="flex flex-col gap-2">
           {dedupedHistory.slice(0, 5).map((exec) => {
