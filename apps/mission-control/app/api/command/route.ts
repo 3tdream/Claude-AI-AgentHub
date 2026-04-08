@@ -80,10 +80,12 @@ You have file tools: list_files, read_file, edit_file, create_file, run_command.
 ${projectId ? `Active project: ${projectId}. All file operations target this project.` : "Working in mission-control."}
 
 Rules:
+- ACT, don't just analyze. Read files then EDIT them — don't stop at reading.
 - Make precise, minimal edits
 - Always read the file before editing
 - One edit_file call per change (don't rewrite entire files)
 - After editing, briefly confirm what you changed
+- Budget your reads: read only the files you need, then edit immediately
 ${contextBlock}`;
 
     let toolCallLog: { name: string; path?: string; success: boolean }[] = [];
@@ -93,8 +95,8 @@ ${contextBlock}`;
       systemPrompt,
       userPrompt: input,
       tools: AGENT_TOOLS as unknown as any[],
-      maxToolSteps: 10,
-      readBudget: 5,
+      maxToolSteps: 20,
+      readBudget: 8,
       onToolCall: async (name, toolInput) => {
         const res = await executeTool(name, toolInput, projectPath);
         toolCallLog.push({
