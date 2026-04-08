@@ -1,7 +1,7 @@
 "use client";
 
 import type { Agent } from "@/types";
-import { getAgentIcon, providerColors, getSuccessRateColor, getAgentStatus, agentStatusConfig } from "./constants";
+import { providerColors, getSuccessRateColor, getAgentStatus, agentStatusConfig, getAgentLucideIcon } from "./constants";
 
 export function AgentCard({ agent, stats, selected, onClick, teamNameMap }: {
   agent: Agent;
@@ -14,7 +14,7 @@ export function AgentCard({ agent, stats, selected, onClick, teamNameMap }: {
   const status = getAgentStatus(successRate, !!stats);
   const sc = agentStatusConfig[status];
   const barColor = getSuccessRateColor(successRate);
-  const icon = getAgentIcon(agent.name);
+  const Icon = getAgentLucideIcon(agent.name);
   const teamId = agent.teams[0];
   const teamName = (teamId && teamNameMap?.[teamId]) || "\u2014";
 
@@ -29,7 +29,7 @@ export function AgentCard({ agent, stats, selected, onClick, teamNameMap }: {
       }`}>
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="text-sm shrink-0" title={agent.id}>{icon}</span>
+          <Icon className={`w-4 h-4 shrink-0 ${selected ? "text-primary" : "text-muted-foreground"}`} />
           <span className={`text-sm font-medium tracking-tight truncate ${selected ? "text-primary" : "text-sidebar-foreground"}`}>{agent.name}</span>
         </div>
         <span className={`font-mono text-[10px] px-1.5 py-0.5 rounded-full ${sc.bg} ${sc.color} font-medium tracking-wide uppercase shrink-0`}>

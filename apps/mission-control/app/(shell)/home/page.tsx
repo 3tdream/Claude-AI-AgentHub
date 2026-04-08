@@ -9,7 +9,7 @@ import { useAgents } from "@/lib/hooks/use-agents";
 import { useTeams } from "@/lib/hooks/use-teams";
 import { Plus, GripVertical, Pencil, ChevronUp, ChevronDown, PanelLeftClose, PanelLeft, Activity, Layers, Filter, Keyboard, Zap, GitBranch } from "lucide-react";
 
-import { fetcher, getAgentIcon, getSuccessRateColor } from "@/components/home/constants";
+import { fetcher, getAgentLucideIcon, getSuccessRateColor } from "@/components/home/constants";
 import { StatusPill } from "@/components/home/status-pill";
 import { MetricBox } from "@/components/home/metric-box";
 import { AgentCard } from "@/components/home/agent-card";
@@ -167,7 +167,7 @@ export default function HomePage() {
             {orderedAgents.map(({ agent, stats }) => {
               const successRate = stats?.successRate ?? 0;
               const statusColor = getSuccessRateColor(successRate);
-              const icon = getAgentIcon(agent.name);
+              const AgentIcon = getAgentLucideIcon(agent.name);
               return (
                 <button
                   key={agent.id}
@@ -179,7 +179,7 @@ export default function HomePage() {
                       : "hover:bg-sidebar-accent border border-transparent"
                   }`}
                 >
-                  <span className="text-sm">{icon}</span>
+                  <AgentIcon className={`w-5 h-5 ${selectedAgentId === agent.id ? "text-primary" : "text-muted-foreground"}`} />
                   <div className={`w-1.5 h-1.5 rounded-full mt-1 ${statusColor}`} />
                 </button>
               );

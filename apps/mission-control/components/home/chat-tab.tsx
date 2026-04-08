@@ -5,7 +5,7 @@ import { useAgentPrompt } from "@/lib/hooks/use-agents";
 import { useAppStore } from "@/lib/stores/app-store";
 import type { Agent } from "@/types";
 import { Send, FolderOpen } from "lucide-react";
-import { getAgentIcon } from "./constants";
+import { getAgentLucideIcon } from "./constants";
 
 // ── Build agent chat system prompt ──
 export function buildAgentChatPrompt(agent: Agent, prompt: string | null, activeProjectId: string | null): string {
@@ -38,7 +38,7 @@ export function ChatTab({ agent }: { agent: Agent }) {
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const icon = getAgentIcon(agent.name);
+  const AgentIcon = getAgentLucideIcon(agent.name);
 
   // Reset messages when agent changes
   useEffect(() => {
@@ -107,7 +107,7 @@ export function ChatTab({ agent }: { agent: Agent }) {
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3" style={{ maxHeight: "calc(100vh - 280px)" }}>
         {messages.length === 0 && !loading && (
           <div className="text-center py-10">
-            <span className="text-2xl block mb-2">{icon}</span>
+            <AgentIcon className="w-8 h-8 text-muted-foreground block mb-2 mx-auto" />
             <div className="text-sm text-slate-400">Start a conversation with {agent.name}</div>
           </div>
         )}
@@ -120,7 +120,7 @@ export function ChatTab({ agent }: { agent: Agent }) {
             </div>
           ) : (
             <div key={i} className="flex justify-start gap-2">
-              <span className="text-sm shrink-0 mt-1">{icon}</span>
+              <AgentIcon className="w-4 h-4 shrink-0 mt-1 text-muted-foreground" />
               <div className="bg-slate-50 text-slate-800 rounded-lg rounded-bl-sm px-3 py-2 max-w-[80%] text-sm leading-relaxed whitespace-pre-wrap">
                 {msg.content}
               </div>
@@ -129,7 +129,7 @@ export function ChatTab({ agent }: { agent: Agent }) {
         )}
         {loading && (
           <div className="flex justify-start gap-2">
-            <span className="text-sm shrink-0 mt-1">{icon}</span>
+            <AgentIcon className="w-4 h-4 shrink-0 mt-1 text-muted-foreground" />
             <div className="bg-slate-50 text-slate-800 rounded-lg rounded-bl-sm px-3 py-2 max-w-[80%]">
               <span className="inline-flex gap-1">
                 <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />

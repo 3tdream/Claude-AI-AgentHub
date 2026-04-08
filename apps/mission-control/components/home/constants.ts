@@ -1,36 +1,42 @@
 import type { LLMProvider } from "@/types";
+import {
+  Brain, ClipboardList, Hammer, Server, Monitor, Palette, Search,
+  Rocket, Shield, FlaskConical, MessageCircle, Bot, Mail, Wrench,
+  Image, FileText,
+  type LucideIcon,
+} from "lucide-react";
 
 export const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
-// ── Agent icon map ──
-export const agentIcons: Record<string, string> = {
-  orchestrator: "\u{1F9E0}",
-  "pm-agent": "\u{1F4CB}",
-  "architect-agent": "\u{1F3D7}\uFE0F",
-  "backend-agent": "\u2699\uFE0F",
-  "frontend-agent": "\u{1F5A5}\uFE0F",
-  "designer-agent": "\u{1F3A8}",
-  "qa-agent": "\u{1F50D}",
-  "devops-agent": "\u{1F680}",
-  "cyber-agent": "\u{1F6E1}\uFE0F",
-  "research-agent": "\u{1F52C}",
-  "michael-personal-bot": "\u{1F4AC}",
-  assistant: "\u{1F916}",
-  "email": "\u{1F4E7}",
-  "calendar": "\u{1F4E7}",
-  "tech-support": "\u{1F527}",
-  "herald": "\u{1F5BC}\uFE0F",
-  "profile": "\u{1F4DD}",
-  "avatar": "\u{1F5BC}\uFE0F",
+// ── Agent Lucide icon map ──
+export const agentIconMap: Record<string, LucideIcon> = {
+  orchestrator: Brain,
+  "pm-agent": ClipboardList,
+  "architect-agent": Hammer,
+  "backend-agent": Server,
+  "frontend-agent": Monitor,
+  "designer-agent": Palette,
+  "qa-agent": Search,
+  "devops-agent": Rocket,
+  "cyber-agent": Shield,
+  "research-agent": FlaskConical,
+  "michael-personal-bot": MessageCircle,
+  assistant: Bot,
+  email: Mail,
+  calendar: Mail,
+  "tech-support": Wrench,
+  herald: Image,
+  profile: FileText,
+  avatar: Image,
 };
 
-export function getAgentIcon(name: string): string {
+export function getAgentLucideIcon(name: string): LucideIcon {
   const key = name.toLowerCase().replace(/\s+/g, "-");
-  if (agentIcons[key]) return agentIcons[key];
-  for (const [k, v] of Object.entries(agentIcons)) {
+  if (agentIconMap[key]) return agentIconMap[key];
+  for (const [k, v] of Object.entries(agentIconMap)) {
     if (key.includes(k) || k.includes(key)) return v;
   }
-  return "\u{1F916}";
+  return Bot;
 }
 
 export const PROVIDERS: LLMProvider[] = ["anthropic", "openai", "google", "openrouter"];

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { Agent } from "@/types";
 import { Settings, FileText, MessageSquare, X, Layers } from "lucide-react";
-import { getAgentIcon } from "./constants";
+import { getAgentLucideIcon } from "./constants";
 import { ConfigTab } from "./config-tab";
 import { PromptTab } from "./prompt-tab";
 import { SessionsTab } from "./sessions-tab";
@@ -13,7 +13,7 @@ type AgentTab = "config" | "prompt" | "sessions" | "chat";
 
 export function AgentPanel({ agent, onClose, onAgentUpdated }: { agent: Agent; onClose: () => void; onAgentUpdated: () => void }) {
   const [tab, setTab] = useState<AgentTab>("chat");
-  const icon = getAgentIcon(agent.name);
+  const AgentIcon = getAgentLucideIcon(agent.name);
 
   const tabs: { id: AgentTab; label: string; icon: typeof Settings }[] = [
     { id: "chat", label: "Chat", icon: MessageSquare },
@@ -27,7 +27,7 @@ export function AgentPanel({ agent, onClose, onAgentUpdated }: { agent: Agent; o
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="text-base">{icon}</span>
+          <AgentIcon className="w-4 h-4 text-primary" />
           <span className="text-sm font-semibold text-slate-900 tracking-tight truncate">{agent.name}</span>
         </div>
         <button onClick={onClose} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors" aria-label="Close agent panel">
