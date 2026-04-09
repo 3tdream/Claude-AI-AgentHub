@@ -7,7 +7,7 @@ import { useOrchestrationStore } from "@/lib/stores/orchestration-store";
 import { useActivityStore } from "@/lib/stores/activity-store";
 import { useAgents } from "@/lib/hooks/use-agents";
 import { useTeams } from "@/lib/hooks/use-teams";
-import { Plus, GripVertical, Pencil, ChevronUp, ChevronDown, PanelLeftClose, PanelLeft, Activity, Layers, Filter, Keyboard, Zap, GitBranch } from "lucide-react";
+import { Plus, GripVertical, Pencil, ChevronUp, ChevronDown, PanelLeftClose, PanelLeft, Activity, Layers, Filter, Keyboard, Zap, GitBranch, Play } from "lucide-react";
 
 import { fetcher, getAgentLucideIcon, getSuccessRateColor } from "@/components/home/constants";
 import { StatusPill } from "@/components/home/status-pill";
@@ -43,6 +43,7 @@ export default function HomePage() {
   const [fleetCollapsed, setFleetCollapsed] = useState(false);
   const [showActiveOnly, setShowActiveOnly] = useState(false);
   const [centerView, setCenterView] = useState<"pipeline" | "health" | "knowledge">("pipeline");
+  const [runStatusFilter, setRunStatusFilter] = useState<"all" | "completed" | "failed" | "interrupted">("all");
 
   // Clock
   const [clock, setClock] = useState("");
@@ -150,7 +151,7 @@ export default function HomePage() {
     <div className="flex gap-4 h-[calc(100vh-8rem)]">
 
       {/* ── LEFT: Agent Fleet ── */}
-      <div className={`flex-shrink-0 flex flex-col overflow-y-auto transition-all duration-300 bg-sidebar border-r border-sidebar-border rounded-xl ${fleetCollapsed ? "w-16" : "w-64"}`}>
+      <div className={`flex-shrink-0 flex flex-col overflow-y-auto transition-all duration-300 bg-sidebar border-r border-sidebar-border rounded-xl ${fleetCollapsed ? "w-16" : "w-80"}`}>
 
         {/* ── COLLAPSED: icons only ── */}
         {fleetCollapsed ? (
@@ -180,10 +181,25 @@ export default function HomePage() {
                   }`}
                 >
                   <AgentIcon className={`w-5 h-5 ${selectedAgentId === agent.id ? "text-primary" : "text-muted-foreground"}`} />
-                  <div className={`w-1.5 h-1.5 rounded-full mt-1 ${statusColor}`} />
+                  <div className={`w-2 h-2 rounded-full mt-1 ${statusColor} shadow-[0_0_4px_currentColor]`} />
                 </button>
               );
             })}
+            </div>
+            {/* Collapsed fleet summary badge */}
+            <div className="px-1 py-2 border-t border-sidebar-border">
+              <div className="flex flex-col items-center gap-0.5 font-mono text-[10px] text-muted-foreground">
+                {(() => {
+                  let a = 0, b = 0, i = 0;
+                  for (const { stats } of orderedAgents) {
+                    const sr = stats?.successRate ?? 0;
+                    if (!stats || stats.runs === 0) i++;
+                    else if (sr > 70) a++;
+                    else b++;
+                  }
+                  return <span>{a}A {b}B {i}I</span>;
+                })()}
+              </div>
             </div>
           </>
         ) : (
@@ -363,8 +379,8 @@ export default function HomePage() {
               <div className="pt-1 border-t border-slate-100">
                 <div className="text-[10px] text-slate-400 uppercase tracking-wide font-medium mb-1.5">Shortcuts</div>
                 <div className="space-y-1 font-mono text-[10px] text-slate-400">
-                  <div><kbd className="px-1 py-0.5 bg-slate-100 rounded text-[9px]">Cmd+K</kbd> Search agents</div>
-                  <div><kbd className="px-1 py-0.5 bg-slate-100 rounded text-[9px]">Enter</kbd> Run task</div>
+                  <div><kbd className="px-1 py-0.5 bg-slate-100 rounded text-[10px]">Cmd+K</kbd> Search agents</div>
+                  <div><kbd className="px-1 py-0.5 bg-slate-100 rounded text-[10px]">Enter</kbd> Run task</div>
                 </div>
               </div>
             </div>
@@ -376,12 +392,48 @@ export default function HomePage() {
           <Layers className="w-3.5 h-3.5 text-slate-400" />
           <h2 className="text-xs font-semibold text-slate-900 uppercase tracking-wide">Recent Runs</h2>
         </div>
+        {/* Status filter */}
+        <div className="flex items-center gap-1 py-1">
+          {(["all", "completed", "failed", "interrupted"] as const).map((f) => (
+            <button
+              key={f}
+              onClick={() => setRunStatusFilter(f)}
+              className={`px-1.5 py-0.5 rounded text-[10px] font-mono transition-colors ${
+                runStatusFilter === f
+                  ? "bg-indigo-50 text-indigo-600 font-medium"
+                  : "text-slate-400 hover:text-slate-600"
+              }`}
+            >
+              {f === "all" ? "All" : f.charAt(0).toUpperCase() + f.slice(1)}
+            </button>
+          ))}
+        </div>
         <div className="flex flex-col gap-2">
-          {dedupedHistory.slice(0, 8).map((exec) => {
-            const isStale = (exec.status === "paused" || exec.status === "running") && activeExecution?.id !== exec.id;
-            const displayStatus = isStale ? "interrupted" : exec.status;
-            return (
-              <div key={exec.id} className="bg-white border border-slate-200 rounded-lg p-3 hover:shadow-sm transition-shadow">
+          {dedupedHistory
+            .map((exec) => {
+              const isStale = (exec.status === "paused" || exec.status === "running") && activeExecution?.id !== exec.id;
+              const displayStatus = isStale ? "interrupted" : exec.status;
+              return { exec, displayStatus };
+            })
+            .filter(({ displayStatus }) => runStatusFilter === "all" || displayStatus === runStatusFilter)
+            .slice(0, 8)
+            .map(({ exec, displayStatus }) => (
+              <div
+                key={exec.id}
+                onClick={() => { setCenterView("pipeline"); setSelectedAgentId(null); }}
+                className="bg-white border border-slate-200 rounded-lg p-3 hover:shadow-sm hover:border-slate-300 transition-all cursor-pointer"
+              >
+                {exec.jiraKey && (
+                  <a
+                    href={(exec as any).jiraUrl || `#${exec.jiraKey}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="font-mono text-[10px] font-bold text-blue-600 hover:text-blue-700"
+                  >
+                    {exec.jiraKey}
+                  </a>
+                )}
                 <div className="font-mono text-xs text-slate-600 truncate">{exec.input?.substring(0, 40)}</div>
                 <div className="flex items-center justify-between mt-1.5">
                   <span className={`font-mono text-[10px] uppercase tracking-wide font-medium ${
@@ -389,13 +441,23 @@ export default function HomePage() {
                   }`}>
                     {displayStatus}
                   </span>
-                  <span className="font-mono text-[10px] text-slate-400">
-                    {exec.totalDuration ? `${Math.round(exec.totalDuration / 1000)}s` : "\u2014"}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    {(displayStatus === "interrupted" || displayStatus === "failed") && (
+                      <span className="flex items-center gap-0.5 text-[10px] font-mono text-amber-500">
+                        <Play className="w-2.5 h-2.5" />
+                        Resume
+                      </span>
+                    )}
+                    <span className="font-mono text-[10px] text-slate-400">
+                      {exec.totalDuration ? `${Math.round(exec.totalDuration / 1000)}s` : "\u2014"}
+                    </span>
+                  </div>
                 </div>
               </div>
-            );
-          })}
+            ))}
+          {dedupedHistory.length === 0 && (
+            <div className="text-center py-4 text-xs text-slate-400">No runs yet</div>
+          )}
         </div>
       </div>
     </div>

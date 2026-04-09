@@ -107,7 +107,7 @@ export function KnowledgePanel() {
           <div className="flex items-center gap-0.5 bg-slate-100 rounded-md p-0.5">
             <button
               onClick={() => { setScope("global"); setSelectedCategory(null); setSearchQuery(""); }}
-              className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium transition-colors ${scope === "global" ? "bg-white text-slate-700 shadow-sm" : "text-slate-400"}`}
+              className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${scope === "global" ? "bg-white text-slate-700 shadow-sm" : "text-slate-400"}`}
             >
               <Globe className="w-3 h-3" />
               Global
@@ -115,7 +115,7 @@ export function KnowledgePanel() {
             {activeProjectId && (
               <button
                 onClick={() => { setScope("project"); setSelectedCategory(null); setSearchQuery(""); }}
-                className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium transition-colors ${scope === "project" ? "bg-white text-slate-700 shadow-sm" : "text-slate-400"}`}
+                className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${scope === "project" ? "bg-white text-slate-700 shadow-sm" : "text-slate-400"}`}
               >
                 <FolderOpen className="w-3 h-3" />
                 Project
@@ -148,7 +148,7 @@ export function KnowledgePanel() {
               <button
                 key={cat.category}
                 onClick={() => { setSelectedCategory(isActive ? null : cat.category as KBCategory); setSearchQuery(""); }}
-                className={`flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium border transition-colors ${
+                className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium border transition-colors ${
                   isActive ? `${meta.bg} ${meta.border} ${meta.color}` : "border-slate-200 text-slate-500 hover:border-slate-300"
                 }`}
               >
@@ -178,20 +178,20 @@ export function KnowledgePanel() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="font-medium text-xs text-slate-800">{entry.title}</span>
-                        <span className={`px-1 py-0.5 rounded text-[9px] font-mono border ${SEVERITY_COLORS[entry.severity]}`}>{entry.severity}</span>
-                        {layer && <span className={`px-1 py-0.5 rounded text-[9px] font-mono ${layer === "project" ? "bg-violet-50 text-violet-600" : "bg-blue-50 text-blue-600"}`}>{layer}</span>}
+                        <span className={`px-1 py-0.5 rounded text-[10px] font-mono border ${SEVERITY_COLORS[entry.severity]}`}>{entry.severity}</span>
+                        {layer && <span className={`px-1 py-0.5 rounded text-[10px] font-mono ${layer === "project" ? "bg-violet-50 text-violet-600" : "bg-blue-50 text-blue-600"}`}>{layer}</span>}
                       </div>
                       {!isExpanded && <p className="text-[10px] text-slate-400 mt-0.5 truncate">{entry.content.slice(0, 100)}</p>}
                     </div>
-                    <span className="text-[9px] font-mono text-slate-300 shrink-0">{entry.source}</span>
+                    <span className="text-[10px] font-mono text-slate-300 shrink-0">{entry.source}</span>
                   </button>
                   {isExpanded && (
                     <div className="px-10 pb-3 space-y-2">
                       <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-wrap">{entry.content}</p>
                       <div className="flex flex-wrap gap-1">
-                        {entry.tags.map((tag) => <span key={tag} className="px-1.5 py-0.5 rounded bg-slate-100 text-[9px] font-mono text-slate-500">{tag}</span>)}
+                        {entry.tags.map((tag) => <span key={tag} className="px-1.5 py-0.5 rounded bg-slate-100 text-[10px] font-mono text-slate-500">{tag}</span>)}
                       </div>
-                      <div className="flex items-center gap-3 text-[9px] font-mono text-slate-400">
+                      <div className="flex items-center gap-3 text-[10px] font-mono text-slate-400">
                         {entry.agentId && <span>Agent: {entry.agentId}</span>}
                         <span>v{entry.version}</span>
                         <span>{new Date(entry.updatedAt).toLocaleDateString("en-US")}</span>

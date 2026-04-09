@@ -188,7 +188,7 @@ export function HealthPanel() {
                 {report.subsystems.map((sub) => (
                   <div key={sub.id} className="flex items-center gap-1">
                     <div className={`w-1.5 h-1.5 rounded-full ${statusColors[sub.status].dot}`} />
-                    <span className="font-mono text-[9px] text-slate-500">{sub.id}</span>
+                    <span className="font-mono text-[10px] text-slate-500">{sub.id}</span>
                   </div>
                 ))}
               </div>
@@ -250,7 +250,7 @@ export function HealthPanel() {
                           {m.label}
                           <MetricTooltip source={getDataSource(sub.id, m.label)} />
                         </span>
-                        <span className={`font-mono text-[10px] font-medium ${
+                        <span className={`font-mono text-xs font-medium ${
                           m.status === "ok" ? "text-emerald-600" : m.status === "warn" ? "text-amber-600" : "text-rose-600"
                         }`}>
                           {m.value}

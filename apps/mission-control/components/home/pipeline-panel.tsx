@@ -57,7 +57,7 @@ export function PipelinePanel({ activeProjectId, projects, onSelectProject }: {
   const storeHistory = useOrchestrationStore((s) => s.executionHistory);
   // Fetch file-based history (includes CLI/API tasks not in browser store)
   const { data: fileHistory } = useSWR("/api/pipeline/history", (url: string) => fetch(url).then(r => r.json()), { revalidateOnFocus: false });
-  // Merge: store history + file history, deduplicate by ID
+  // Merge: store history + file history, deduplicate by ID and input+time fingerprint
   const executionHistory = useMemo(() => {
     const fileRuns = (fileHistory?.runs || []).map((r: any) => ({
       id: r.id,
@@ -73,8 +73,26 @@ export function PipelinePanel({ activeProjectId, projects, onSelectProject }: {
       jiraKey: r.jiraKey,
       projectId: r.projectId || undefined,
     }));
+    // Dedup: by id AND by input+startedAt fingerprint (store vs file may have different ids)
     const storeIds = new Set(storeHistory.map(e => e.id));
-    const merged = [...storeHistory, ...fileRuns.filter((r: any) => !storeIds.has(r.id))];
+    const storeFingerprints = new Set(storeHistory.map(e => `${(e.input || "").slice(0, 50)}|${e.startedAt?.slice(0, 16)}`));
+    const deduped = fileRuns.filter((r: any) => {
+      if (storeIds.has(r.id)) return false;
+      const fp = `${(r.input || "").slice(0, 50)}|${r.startedAt?.slice(0, 16)}`;
+      if (storeFingerprints.has(fp)) return false;
+      return true;
+    });
+    // Prefer file runs (have shortId) — enrich store entries with shortId from matching file runs
+    for (const storeEntry of storeHistory) {
+      if (!storeEntry.shortId) {
+        const match = fileRuns.find((r: any) =>
+          r.input?.slice(0, 50) === storeEntry.input?.slice(0, 50) &&
+          r.startedAt?.slice(0, 16) === storeEntry.startedAt?.slice(0, 16)
+        );
+        if (match?.shortId) (storeEntry as any).shortId = match.shortId;
+      }
+    }
+    const merged = [...storeHistory, ...deduped];
     return merged.sort((a: any, b: any) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());
   }, [storeHistory, fileHistory]);
   const setActiveExecution = useOrchestrationStore((s) => s.setActiveExecution);
@@ -133,6 +151,20 @@ export function PipelinePanel({ activeProjectId, projects, onSelectProject }: {
     setResult(null);
     setRoutingDecision(null);
 
+    // Track in Jira — fire and continue (non-blocking)
+    let jiraKey: string | null = null;
+    let jiraUrl: string | null = null;
+    try {
+      const trackRes = await fetch("/api/pipeline/track", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ input: taskInput, mode: "direct", projectId: activeProjectId }),
+      });
+      const trackData = await trackRes.json();
+      jiraKey = trackData.jiraKey || null;
+      jiraUrl = trackData.jiraUrl || null;
+    } catch { /* non-fatal */ }
+
     try {
       const res = await fetch("/api/command", {
         method: "POST",
@@ -182,7 +214,7 @@ export function PipelinePanel({ activeProjectId, projects, onSelectProject }: {
           toolCalls: data.toolCalls,
           intent: data.intent,
           investigation: data.investigation || null,
-          jiraKey: data.jiraKey || null,
+          jiraKey: jiraKey || data.jiraKey || null,
           taskId,
           userInput: taskInput,
           status,
@@ -207,6 +239,8 @@ export function PipelinePanel({ activeProjectId, projects, onSelectProject }: {
           },
           startedAt: new Date().toISOString(),
           completedAt: new Date().toISOString(),
+          jiraKey: jiraKey || undefined,
+          jiraUrl: jiraUrl || undefined,
         } as any);
       } else if (data.action === "redirect_to_pipeline") {
         // Instead of redirect — fetch routing decision
@@ -278,6 +312,22 @@ export function PipelinePanel({ activeProjectId, projects, onSelectProject }: {
     clearControlFlags();
     setPipelineView("input");
 
+    // Track in Jira (skip for resumes that already have a key)
+    let pipelineJiraKey: string | null = resumeFrom?.jiraKey || null;
+    let pipelineJiraUrl: string | null = resumeFrom?.jiraUrl || null;
+    if (!pipelineJiraKey) {
+      try {
+        const trackRes = await fetch("/api/pipeline/track", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ input: taskInput, mode: "pipeline", projectId: activeProjectId }),
+        });
+        const trackData = await trackRes.json();
+        pipelineJiraKey = trackData.jiraKey || null;
+        pipelineJiraUrl = trackData.jiraUrl || null;
+      } catch { /* non-fatal */ }
+    }
+
     const completedCount = resumeFrom ? Object.values(resumeFrom.stepResults).filter((r) => r.status === "completed").length : 0;
     if (resumeFrom && completedCount > 0) {
       toast(`Resuming — reusing ${completedCount} completed stages`, { duration: 3000 });
@@ -317,9 +367,14 @@ export function PipelinePanel({ activeProjectId, projects, onSelectProject }: {
         resumeFrom || undefined,
       );
 
+      // Attach Jira key to final result
+      if (pipelineJiraKey) {
+        result.jiraKey = pipelineJiraKey;
+        result.jiraUrl = pipelineJiraUrl || undefined;
+      }
       addToHistory(result);
       setActiveExecution(null);
-      toast.success(`Pipeline ${result.status}: ${Object.values(result.stepResults).filter((r) => r.status === "completed").length}/${Object.keys(result.stepResults).length} steps`);
+      toast.success(`Pipeline ${result.status}: ${Object.values(result.stepResults).filter((r) => r.status === "completed").length}/${Object.keys(result.stepResults).length} steps${pipelineJiraKey ? ` · ${pipelineJiraKey}` : ""}`);
     } catch (e) {
       toast.error(`Pipeline failed: ${e}`);
     }
@@ -392,18 +447,18 @@ export function PipelinePanel({ activeProjectId, projects, onSelectProject }: {
               <div className="flex items-center gap-0.5 bg-slate-100 rounded-md p-0.5">
                 <button
                   onClick={() => setPipelineView("input")}
-                  className={`px-2 py-1 rounded text-[10px] font-medium transition-colors ${pipelineView === "input" ? "bg-white text-slate-700 shadow-sm" : "text-slate-400"}`}
+                  className={`px-2 py-1 rounded text-xs font-medium transition-colors ${pipelineView === "input" ? "bg-white text-slate-700 shadow-sm" : "text-slate-400"}`}
                 >
                   Input
                 </button>
                 <button
                   onClick={() => setPipelineView("history")}
-                  className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium transition-colors ${pipelineView === "history" ? "bg-white text-slate-700 shadow-sm" : "text-slate-400"}`}
+                  className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${pipelineView === "history" ? "bg-white text-slate-700 shadow-sm" : "text-slate-400"}`}
                 >
                   <History className="w-3 h-3" />
                   History
                   {executionHistory.length > 0 && (
-                    <span className="font-mono text-[9px] bg-slate-200 text-slate-600 px-1 rounded">{fileHistory?.total ?? executionHistory.length}</span>
+                    <span className="font-mono text-[10px] bg-slate-200 text-slate-600 px-1 rounded">{fileHistory?.total ?? executionHistory.length}</span>
                   )}
                 </button>
               </div>
@@ -461,7 +516,7 @@ export function PipelinePanel({ activeProjectId, projects, onSelectProject }: {
             <div className="flex items-center gap-0.5 bg-slate-100 rounded-md p-0.5">
               <button
                 onClick={() => setGraphMode("3d")}
-                className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${graphMode === "3d" ? "bg-white text-slate-700 shadow-sm" : "text-slate-400"}`}
+                className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium transition-colors ${graphMode === "3d" ? "bg-white text-slate-700 shadow-sm" : "text-slate-400"}`}
                 aria-label="3D visualization"
               >
                 <Box className="w-3 h-3" />
@@ -469,7 +524,7 @@ export function PipelinePanel({ activeProjectId, projects, onSelectProject }: {
               </button>
               <button
                 onClick={() => setGraphMode("2d")}
-                className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${graphMode === "2d" ? "bg-white text-slate-700 shadow-sm" : "text-slate-400"}`}
+                className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium transition-colors ${graphMode === "2d" ? "bg-white text-slate-700 shadow-sm" : "text-slate-400"}`}
                 aria-label="2D graph"
               >
                 <Rows3 className="w-3 h-3" />

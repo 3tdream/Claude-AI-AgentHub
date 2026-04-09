@@ -64,7 +64,7 @@ export function PipelineInput({
               <div className="bg-slate-50 rounded-lg px-3 py-2 border border-slate-100">
                 <div className="flex items-center gap-2 mb-1">
                   {result.taskId && (
-                    <span className="font-mono text-[9px] text-slate-400">#{result.taskId}</span>
+                    <span className="font-mono text-[10px] text-slate-400">#{result.taskId}</span>
                   )}
                   <span className="text-[10px] text-slate-400">Your request:</span>
                 </div>
@@ -160,8 +160,8 @@ export function PipelineInput({
                 {routingDecision.simulation && (
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-[10px] font-medium text-slate-600">Preflight Simulation</span>
-                      <span className={`text-[10px] font-bold ${
+                      <span className="text-xs font-medium text-slate-600">Preflight Simulation</span>
+                      <span className={`text-xs font-bold ${
                         routingDecision.simulation.overallProbability >= 70 ? "text-emerald-600" :
                         routingDecision.simulation.overallProbability >= 45 ? "text-amber-600" : "text-rose-600"
                       }`}>
@@ -181,7 +181,7 @@ export function PipelineInput({
                     {routingDecision.simulation.bottlenecks?.length > 0 && (
                       <div className="mt-1.5 space-y-0.5">
                         {routingDecision.simulation.bottlenecks.slice(0, 3).map((b: { stageId: string; probability: number; reason: string }) => (
-                          <div key={b.stageId} className="flex items-center gap-1 text-[9px] text-slate-500">
+                          <div key={b.stageId} className="flex items-center gap-1 text-[10px] text-slate-500">
                             <span className="text-amber-500">!</span>
                             <span className="font-medium">{b.stageId}</span>
                             <span>{b.probability}% — {b.reason.length > 50 ? b.reason.slice(0, 50) + "..." : b.reason}</span>
@@ -196,13 +196,13 @@ export function PipelineInput({
                 {routingDecision.selectedStepIds && (
                   <div className="flex flex-wrap gap-1">
                     {routingDecision.selectedStepIds.map((id: string) => (
-                      <span key={id} className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-600">{id}</span>
+                      <span key={id} className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-600">{id}</span>
                     ))}
                   </div>
                 )}
 
                 {/* Reasoning */}
-                <p className="text-[11px] text-slate-600">{routingDecision.reasoning}</p>
+                <p className="text-xs text-slate-600">{routingDecision.reasoning}</p>
 
                 {/* Confirm & Execute */}
                 <div className="flex items-center gap-2 pt-1">
@@ -265,16 +265,16 @@ export function PipelineInput({
                 <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-slate-50 border border-slate-100">
                   <div className="flex items-center gap-1.5 text-slate-500">
                     <CircleDollarSign className="w-3.5 h-3.5 shrink-0" />
-                    <span className="text-[11px]">Task cost</span>
+                    <span className="text-xs">Task cost</span>
                   </div>
                   <div className="flex items-center gap-3">
                     {result.taskCost !== undefined && (
-                      <span className="font-mono text-[11px] font-semibold text-slate-700">
+                      <span className="font-mono text-xs font-semibold text-slate-700">
                         −${result.taskCost.toFixed(4)}
                       </span>
                     )}
                     {result.remainingBalance !== undefined && (
-                      <span className={`font-mono text-[11px] font-medium ${
+                      <span className={`font-mono text-xs font-medium ${
                         result.remainingBalance < 3
                           ? "text-amber-600"
                           : result.remainingBalance < 10
@@ -294,11 +294,30 @@ export function PipelineInput({
             </button>
           </div>
         ) : (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center">
-              <GitBranch className="w-10 h-10 text-slate-200 mx-auto mb-3" />
-              <div className="text-sm text-slate-400 mb-1">Enter a task below</div>
-              <div className="text-xs text-slate-300">Simple edits → direct execution · Complex tasks → pipeline</div>
+          <div className="flex flex-col items-center justify-center h-full px-6">
+            <GitBranch className="w-10 h-10 text-slate-200 mb-3" />
+            <div className="text-sm text-slate-400 mb-1">What would you like to do?</div>
+            <div className="text-xs text-slate-300 mb-5">Simple edits run directly · Complex tasks go through the pipeline</div>
+            <div className="grid grid-cols-2 gap-2 w-full max-w-md">
+              {[
+                { label: "Fix a bug in...", icon: "🔧" },
+                { label: "Add a new API route for...", icon: "🔌" },
+                { label: "Run full pipeline on...", icon: "🚀" },
+                { label: "Review and refactor...", icon: "🔍" },
+              ].map((ex) => (
+                <button
+                  key={ex.label}
+                  onClick={() => onInputChange(ex.label)}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 text-xs text-slate-500 hover:border-indigo-200 hover:text-indigo-600 hover:bg-indigo-50/50 transition-colors text-left"
+                >
+                  <span>{ex.icon}</span>
+                  <span>{ex.label}</span>
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-4 mt-5 text-[10px] font-mono text-slate-300">
+              <span><kbd className="px-1 py-0.5 bg-slate-100 rounded text-slate-400">Enter</kbd> to run</span>
+              <span><kbd className="px-1 py-0.5 bg-slate-100 rounded text-slate-400">Cmd+K</kbd> search agents</span>
             </div>
           </div>
         )}
@@ -321,8 +340,8 @@ export function PipelineInput({
         </div>
       )}
 
-      {/* Input */}
-      <div className="px-4 py-3 border-t border-slate-200">
+      {/* Input — sticky bottom */}
+      <div className="px-4 py-3 border-t border-slate-200 bg-white shadow-[0_-2px_8px_rgba(0,0,0,0.04)]">
         <div className="flex gap-2">
           <input
             value={input}

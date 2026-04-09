@@ -25,7 +25,7 @@ export function ProjectDropdown({ activeProjectId, projects, onSelectProject }: 
     <div ref={projectRef} className="relative">
       <button
         onClick={() => setProjectOpen(!projectOpen)}
-        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium border transition-colors ${
+        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border transition-colors ${
           activeProjectId
             ? "bg-indigo-50 border-indigo-200 text-indigo-700"
             : "bg-slate-50 border-slate-200 text-slate-500 hover:border-indigo-200 hover:text-indigo-600"
@@ -60,7 +60,7 @@ export function ProjectDropdown({ activeProjectId, projects, onSelectProject }: 
                 <div className={`w-1.5 h-1.5 rounded-full ${p.status === "active" ? "bg-emerald-500" : "bg-slate-300"}`} />
                 <span className="text-xs font-medium truncate">{p.name}</span>
               </div>
-              <span className="font-mono text-[9px] text-slate-400 shrink-0">{p.framework}</span>
+              <span className="font-mono text-[10px] text-slate-400 shrink-0">{p.framework}</span>
             </button>
           ))}
           {projects.length === 0 && (

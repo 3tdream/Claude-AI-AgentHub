@@ -47,7 +47,7 @@ export function AgentCard({ agent, stats, selected, onClick, teamNameMap }: {
         <span className="font-mono text-[10px] text-muted-foreground">
           {stats ? `${stats.runs} runs \u00B7 ${stats.avgScore.toFixed(1)} avg` : "No runs yet"}
         </span>
-        <span className="font-mono text-[10px] font-medium text-muted-foreground">
+        <span className="font-mono text-xs font-medium text-muted-foreground">
           {stats ? `${Math.round(successRate)}%` : "\u2014"}
         </span>
       </div>

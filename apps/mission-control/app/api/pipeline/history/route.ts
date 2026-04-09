@@ -97,16 +97,9 @@ export async function GET(request: NextRequest) {
 
     const total = allRuns.length;
 
-    // Assign sequential shortIds to runs that don't have one (legacy backfill)
-    // These are display-only, not persisted back to file
-    let backfillCounter = total;
-    const runs = allRuns.slice(0, LIMIT).map((r) => {
-      if (!r.shortId) {
-        r.shortId = `MC-${String(backfillCounter).padStart(3, "0")}`;
-        backfillCounter--;
-      }
-      return r;
-    });
+    // shortIds are now persisted in saveRun (pipeline-run-storage.ts)
+    // Only assign fallback for legacy runs without one
+    const runs = allRuns.slice(0, LIMIT);
 
     // Collect unique projectIds for filter dropdown
     const projectIds = [...new Set(

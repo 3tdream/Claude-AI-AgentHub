@@ -11,7 +11,7 @@ export function StatusPill({ color, label }: { color: string; label: string }) {
 
   return (
     <div className="flex items-center gap-1.5">
-      <div className={`w-1.5 h-1.5 rounded-full ${dotColors[color] || dotColors.gray}`} />
+      <div className={`w-2 h-2 rounded-full ${dotColors[color] || dotColors.gray} shadow-[0_0_4px_currentColor]`} />
       <span className="font-mono text-[10px] tracking-wide text-slate-500">{label}</span>
     </div>
   );

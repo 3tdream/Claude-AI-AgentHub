@@ -44,7 +44,7 @@ export function ExecutionBar({
           {(pauseRequested || activeExecution.status === "paused") && (
             <button
               onClick={onResume}
-              className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
+              className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
             >
               <Play className="w-3 h-3" />
               Resume

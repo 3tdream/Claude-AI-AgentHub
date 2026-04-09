@@ -23,7 +23,7 @@ export function CheckpointBar({ executionId, onApprove, onReject }: CheckpointBa
         <div className="flex items-center gap-1">
           <button
             onClick={() => onApprove(executionId)}
-            className="flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-medium bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-colors"
+            className="flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-colors"
           >
             <CheckCircle2 className="w-3 h-3" />
             Approve
@@ -31,7 +31,7 @@ export function CheckpointBar({ executionId, onApprove, onReject }: CheckpointBa
           {!showRejectInput ? (
             <button
               onClick={() => setShowRejectInput(true)}
-              className="flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-medium bg-rose-100 text-rose-700 hover:bg-rose-200 transition-colors"
+              className="flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium bg-rose-100 text-rose-700 hover:bg-rose-200 transition-colors"
             >
               <XCircle className="w-3 h-3" />
               Reject

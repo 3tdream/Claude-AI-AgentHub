@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import type { Agent } from "@/types";
-import { Settings, FileText, MessageSquare, X, Layers } from "lucide-react";
+import { Settings, FileText, MessageSquare, X, Layers, ArrowLeft } from "lucide-react";
 import { getAgentLucideIcon } from "./constants";
 import { ConfigTab } from "./config-tab";
 import { PromptTab } from "./prompt-tab";
@@ -11,8 +11,20 @@ import { ChatTab } from "./chat-tab";
 
 type AgentTab = "config" | "prompt" | "sessions" | "chat";
 
+function getSavedTab(): AgentTab {
+  try {
+    const saved = localStorage.getItem("mc-agent-tab");
+    if (saved && ["config", "prompt", "sessions", "chat"].includes(saved)) return saved as AgentTab;
+  } catch {}
+  return "chat";
+}
+
 export function AgentPanel({ agent, onClose, onAgentUpdated }: { agent: Agent; onClose: () => void; onAgentUpdated: () => void }) {
-  const [tab, setTab] = useState<AgentTab>("chat");
+  const [tab, setTabState] = useState<AgentTab>(getSavedTab);
+  const setTab = useCallback((t: AgentTab) => {
+    setTabState(t);
+    try { localStorage.setItem("mc-agent-tab", t); } catch {}
+  }, []);
   const AgentIcon = getAgentLucideIcon(agent.name);
 
   const tabs: { id: AgentTab; label: string; icon: typeof Settings }[] = [
@@ -30,9 +42,15 @@ export function AgentPanel({ agent, onClose, onAgentUpdated }: { agent: Agent; o
           <AgentIcon className="w-4 h-4 text-primary" />
           <span className="text-sm font-semibold text-slate-900 tracking-tight truncate">{agent.name}</span>
         </div>
-        <button onClick={onClose} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors" aria-label="Close agent panel">
-          <X className="w-4 h-4 text-slate-400" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button onClick={onClose} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors" aria-label="Back to pipeline">
+            <ArrowLeft className="w-3.5 h-3.5" />
+            Pipeline
+          </button>
+          <button onClick={onClose} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors" aria-label="Close agent panel">
+            <X className="w-4 h-4 text-slate-400" />
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}

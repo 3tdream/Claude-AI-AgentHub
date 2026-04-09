@@ -60,7 +60,7 @@ export function PipelineHistory({
           <select
             value={projectFilter}
             onChange={(e) => setProjectFilter(e.target.value)}
-            className="text-[11px] font-mono bg-white border border-slate-200 rounded px-2 py-1 text-slate-600 focus:outline-none focus:ring-1 focus:ring-indigo-300"
+            className="text-xs font-mono bg-white border border-slate-200 rounded px-2 py-1 text-slate-600 focus:outline-none focus:ring-1 focus:ring-indigo-300"
           >
             <option value="">All projects ({executionHistory.length})</option>
             {projectIds.map((pid) => (
@@ -103,14 +103,26 @@ export function PipelineHistory({
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
-                    {/* Short ID + row number */}
+                    {/* Jira key (primary) or shortId fallback */}
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="font-mono text-[10px] font-bold text-indigo-500 bg-indigo-50 px-1.5 py-0.5 rounded">
-                        {shortId}
-                      </span>
-                      <span className="font-mono text-[9px] text-slate-300">#{rowNumber}</span>
+                      {exec.jiraKey ? (
+                        <a
+                          href={(exec as any).jiraUrl || `#${exec.jiraKey}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="font-mono text-xs font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded hover:bg-blue-100 hover:text-blue-700 transition-colors"
+                        >
+                          {exec.jiraKey}
+                        </a>
+                      ) : (
+                        <span className="font-mono text-xs font-bold text-indigo-500 bg-indigo-50 px-1.5 py-0.5 rounded">
+                          {shortId}
+                        </span>
+                      )}
+                      <span className="font-mono text-[10px] text-slate-300">#{rowNumber}</span>
                       {(exec as any).projectId && (
-                        <span className="font-mono text-[9px] text-teal-500 bg-teal-50 px-1.5 rounded">
+                        <span className="font-mono text-[10px] text-teal-500 bg-teal-50 px-1.5 rounded">
                           {(exec as any).projectId}
                         </span>
                       )}
@@ -125,9 +137,6 @@ export function PipelineHistory({
                       <span className="font-mono text-[10px] text-slate-400">{done}/{steps.length} steps</span>
                       {failed > 0 && <span className="font-mono text-[10px] text-rose-400">{failed} failed</span>}
                       <span className="font-mono text-[10px] text-slate-400">{elapsed}</span>
-                      {exec.jiraKey && (
-                        <span className="font-mono text-[10px] text-blue-500 bg-blue-50 px-1.5 rounded">{exec.jiraKey}</span>
-                      )}
                       {hasFiles && (
                         <span className="font-mono text-[10px] text-violet-500 bg-violet-50 px-1.5 rounded flex items-center gap-0.5">
                           <FileText className="w-2.5 h-2.5" />
@@ -140,10 +149,10 @@ export function PipelineHistory({
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-0.5 shrink-0 ml-2">
-                    <span className="font-mono text-[9px] text-slate-300">
+                    <span className="font-mono text-[10px] text-slate-300">
                       {new Date(exec.startedAt).toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit" })}
                     </span>
-                    <span className="font-mono text-[9px] text-slate-300">
+                    <span className="font-mono text-[10px] text-slate-300">
                       {new Date(exec.startedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                     </span>
                   </div>
@@ -176,7 +185,7 @@ export function PipelineHistory({
                       onSelectStage(null);
                       onSetPipelineView("input");
                     }}
-                    className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors"
+                    className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors"
                   >
                     <Layers className="w-3 h-3" />
                     View Stages
@@ -194,7 +203,7 @@ export function PipelineHistory({
                         onSetPipelineView("input");
                       }
                     }}
-                    className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 transition-colors"
+                    className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 transition-colors"
                   >
                     <ExternalLink className="w-3 h-3" />
                     Deploy Files
@@ -208,7 +217,7 @@ export function PipelineHistory({
                       onResumeExecution(exec);
                     }}
                     disabled={executing}
-                    className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium text-amber-600 bg-amber-50 hover:bg-amber-100 transition-colors disabled:opacity-50"
+                    className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium text-amber-600 bg-amber-50 hover:bg-amber-100 transition-colors disabled:opacity-50"
                   >
                     <Play className="w-3 h-3" />
                     {done > 0 ? `Resume (skip ${done} done)` : "Re-run"}
@@ -227,7 +236,7 @@ export function PipelineHistory({
                     setTimeout(() => URL.revokeObjectURL(url), 200);
                     toast.success(`Exported ${shortId}`);
                   }}
-                  className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium text-slate-500 hover:bg-slate-100 transition-colors ml-auto"
+                  className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium text-slate-500 hover:bg-slate-100 transition-colors ml-auto"
                 >
                   <FileDown className="w-3 h-3" />
                   Export

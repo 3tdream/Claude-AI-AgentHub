@@ -24,7 +24,7 @@ export function SessionsTab({ agent }: { agent: Agent }) {
                 </span>
               </div>
               <div className="flex items-center justify-between mt-1.5">
-                <div className="font-mono text-[11px] text-slate-400">
+                <div className="font-mono text-xs text-slate-400">
                   {s.messageCount || 0} msgs
                   {s.channel && <> {"\u00B7"} {s.channel}</>}
                   {lastDate && <> {"\u00B7"} {new Date(lastDate).toLocaleDateString()}</>}
