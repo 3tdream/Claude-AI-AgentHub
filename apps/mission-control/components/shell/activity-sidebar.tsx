@@ -1,6 +1,7 @@
 "use client";
 
 import { Activity, X, Trash2 } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { useActivityStore, type ActivityType } from "@/lib/stores/activity-store";
 
 const typeColors: Record<ActivityType, string> = {
@@ -55,8 +56,10 @@ function timeAgo(iso: string) {
 
 export function ActivitySidebar() {
   const { events, visible, toggleVisible, clear } = useActivityStore();
+  const pathname = usePathname();
 
-  if (!visible) return null;
+  // Home page has its own built-in activity column
+  if (!visible || pathname === "/home") return null;
 
   return (
     <div className="fixed right-0 top-0 h-screen w-72 bg-card border-l border-border z-40 flex flex-col shadow-2xl">
@@ -151,12 +154,15 @@ export function ActivitySidebar() {
   );
 }
 
-/** Toggle button for the topbar */
+/** Toggle button for the topbar — hidden on /home (has built-in activity column) */
 export function ActivityToggle() {
   const { visible, toggleVisible, events } = useActivityStore();
+  const pathname = usePathname();
   const recentCount = events.filter(
     (e) => Date.now() - new Date(e.timestamp).getTime() < 60000,
   ).length;
+
+  if (pathname === "/home") return null;
 
   return (
     <button

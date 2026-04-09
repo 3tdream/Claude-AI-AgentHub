@@ -7,6 +7,7 @@ import { CommandPalette } from "@/components/shell/command-palette";
 import { ThemeProvider } from "@/components/shell/theme-provider";
 import { DynamicToaster } from "@/components/shell/dynamic-toaster";
 import { ActivitySidebar } from "@/components/shell/activity-sidebar";
+import { usePathname } from "next/navigation";
 import { useAppStore } from "@/lib/stores/app-store";
 import { useActivityStore } from "@/lib/stores/activity-store";
 import { useOrchestrationStore } from "@/lib/stores/orchestration-store";
@@ -32,6 +33,8 @@ export default function ShellLayout({
 }) {
   const { sidebarCollapsed } = useAppStore();
   const activityVisible = useActivityStore((s) => s.visible);
+  const pathname = usePathname();
+  const isHome = pathname === "/home";
 
   return (
     <ThemeProvider>
@@ -44,7 +47,7 @@ export default function ShellLayout({
           className={cn(
             "transition-all duration-300",
             sidebarCollapsed ? "ml-16" : "ml-60",
-            activityVisible ? "mr-72" : "",
+            activityVisible && !isHome ? "mr-72" : "",
           )}
         >
           <Topbar />

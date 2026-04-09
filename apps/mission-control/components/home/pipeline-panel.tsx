@@ -22,6 +22,7 @@ import { PipelineInput } from "./pipeline-input";
 import type { PipelineInputResult } from "./pipeline-input";
 import { ResumeBanner } from "./resume-banner";
 import { QueueIndicator } from "./queue-indicator";
+import { PipelineFlowDiagram } from "./pipeline-flow-diagram";
 
 type PipelineTab = "pipeline" | "contracts" | "analytics";
 type PipelineView = "input" | "history";
@@ -507,6 +508,13 @@ export function PipelinePanel({ activeProjectId, projects, onSelectProject }: {
 
       {/* Task Queue */}
       <QueueIndicator queue={taskQueue} onClear={clearQueue} />
+
+      {/* Pipeline Flow Diagram — shown when no execution is displayed */}
+      {activeTab === "pipeline" && !displayExecution && pipelineView === "input" && (
+        <div className="border-b border-slate-200 overflow-x-auto">
+          <PipelineFlowDiagram />
+        </div>
+      )}
 
       {/* Pipeline Graph — 2D or 3D toggle */}
       {activeTab === "pipeline" && displayExecution && displaySteps.length > 0 && (
