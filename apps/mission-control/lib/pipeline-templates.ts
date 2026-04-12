@@ -31,21 +31,25 @@ export const CRM_PIPELINE_STAGES: WorkflowStep[] = [
     agentName: "Research-Agent",
     promptTemplate: `Conduct discovery research for: {{input}}
 
-Your output MUST include these sections:
+Output EXACTLY these 4 sections. Be concise — bullet points, not paragraphs.
 
-1. USER PERSONAS (2-3 personas)
-   - Name, role, goals, pain points, tech comfort level
+## 1. USER PERSONAS (2-3 max)
+For each: Name | Role | Goal | Pain point | Tech level (one line each)
 
-2. COMPETITIVE MATRIX
-   | Competitor | Strengths | Weaknesses | Pricing | Key Differentiator |
+## 2. COMPETITIVE MATRIX (3-5 competitors max)
+| Competitor | Strengths | Weaknesses | Pricing | Differentiator |
+Keep each cell under 15 words.
 
-3. MARKET SIZING
-   - TAM, SAM, SOM estimates with reasoning
+## 3. MARKET SIZING
+- TAM: [number + one sentence]
+- SAM: [number + one sentence]
+- SOM: [number + one sentence]
 
-4. KEY INSIGHTS
-   - 3-5 actionable insights that should drive product decisions
+## 4. KEY INSIGHTS (3-5 bullets)
+Each insight: one sentence + one action recommendation.
 
-MAX 4000 words. If you reach 3600 words (90%), stop and finalize.`,
+HARD LIMIT: 2000 words. Stop at 1800 and write "## Summary" with 2-3 sentences.
+If you cannot fit everything, prioritize KEY INSIGHTS over MARKET SIZING detail.`,
     dependsOn: [],
     outputKey: "research",
     metadata: {

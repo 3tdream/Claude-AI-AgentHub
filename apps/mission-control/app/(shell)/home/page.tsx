@@ -56,7 +56,7 @@ export default function HomePage() {
 
   // API data
   const { data: healthData } = useSWR("/api/system/health", fetcher, { refreshInterval: 30000 });
-  const { data: agentsData } = useSWR("/api/agents/performance", fetcher, { revalidateOnFocus: false });
+  const { data: agentsData } = useSWR("/api/agents/performance", fetcher, { refreshInterval: 30000, revalidateOnFocus: false });
   const { data: kbData } = useSWR("/api/knowledge-base/validate", fetcher, { revalidateOnFocus: false });
   const { data: statsData } = useSWR("/api/pipeline/stats", fetcher, { revalidateOnFocus: false });
   const { data: costsData } = useSWR("/api/costs/real", fetcher, { revalidateOnFocus: false });

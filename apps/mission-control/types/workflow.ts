@@ -283,4 +283,32 @@ export interface PipelineExecution {
   routingDecision?: RoutingDecisionData;
   tokenUsage?: Record<string, StepTokenUsage>;
   budgetUsage?: Record<string, { spent: number; limit: number }>;
+  /** Rerun tracking */
+  rerunFromId?: string;
+  rerunFromStage?: string;
+}
+
+export interface PipelineRunSummary {
+  id: string;
+  shortId?: string;
+  workflowId: string;
+  workflowName: string;
+  status: string;
+  startedAt: string;
+  completedAt: string | null;
+  stepCount: number;
+  failedStep: string | null;
+  input: string;
+}
+
+export interface RerunRequest {
+  runId: string;
+  fromStage?: string;
+}
+
+export interface RerunResponse {
+  execution: PipelineExecution;
+  resumeFromStage: string;
+  stepsSkipped: string[];
+  stepsToRerun: string[];
 }

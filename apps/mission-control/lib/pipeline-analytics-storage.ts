@@ -196,6 +196,13 @@ async function updateAnalytics(run: PipelineRunRecord) {
   analytics.byMode[run.mode] = (analytics.byMode[run.mode] || 0) + 1;
   analytics.byStatus[run.status] = (analytics.byStatus[run.status] || 0) + 1;
 
+  // Skip agent stats for stopped/paused runs — partial results pollute success rates
+  if (run.status === "stopped" || run.status === "paused" || run.status === "interrupted") {
+    analytics.lastUpdated = new Date().toISOString();
+    await fs.writeFile(ANALYTICS_FILE, JSON.stringify(analytics, null, 2), "utf-8");
+    return;
+  }
+
   for (const agent of run.agents) {
     if (!analytics.agentStats[agent.agentId]) {
       analytics.agentStats[agent.agentId] = {
@@ -225,6 +232,58 @@ async function updateAnalytics(run: PipelineRunRecord) {
 
   analytics.lastUpdated = new Date().toISOString();
   await fs.writeFile(ANALYTICS_FILE, JSON.stringify(analytics, null, 2), "utf-8");
+}
+
+// --- Recalculate analytics from all saved runs (excludes stopped/paused/interrupted) ---
+
+export async function recalculateAnalytics(): Promise<AnalyticsSummary> {
+  await ensureDir(RUNS_DIR);
+  const files = await fs.readdir(RUNS_DIR);
+  const jsonFiles = files.filter((f) => f.endsWith(".json"));
+
+  const analytics: AnalyticsSummary = {
+    totalRuns: 0,
+    byMode: {},
+    byStatus: {},
+    agentStats: {},
+    lastUpdated: new Date().toISOString(),
+  };
+
+  for (const file of jsonFiles) {
+    try {
+      const raw = await fs.readFile(path.join(RUNS_DIR, file), "utf-8");
+      const run: PipelineRunRecord = JSON.parse(raw);
+
+      analytics.totalRuns++;
+      analytics.byMode[run.mode] = (analytics.byMode[run.mode] || 0) + 1;
+      analytics.byStatus[run.status] = (analytics.byStatus[run.status] || 0) + 1;
+
+      // Skip agent stats for stopped/paused/interrupted runs
+      if (run.status === "stopped" || run.status === "paused" || run.status === "interrupted") continue;
+
+      for (const agent of run.agents) {
+        if (!analytics.agentStats[agent.agentId]) {
+          analytics.agentStats[agent.agentId] = {
+            runs: 0, avgScore: 0, avgTokens: 0, avgDuration: 0, successRate: 0, failRate: 0,
+          };
+        }
+        const stat = analytics.agentStats[agent.agentId];
+        const n = stat.runs;
+        stat.runs++;
+        stat.avgScore = (stat.avgScore * n + agent.score) / (n + 1);
+        stat.avgTokens = (stat.avgTokens * n + agent.tokens.input + agent.tokens.output) / (n + 1);
+        stat.avgDuration = (stat.avgDuration * n + agent.duration) / (n + 1);
+        const allRuns = stat.runs;
+        const prevSuccesses = Math.round(stat.successRate * n / 100);
+        const prevFails = Math.round(stat.failRate * n / 100);
+        stat.successRate = ((prevSuccesses + (agent.score >= 8 ? 1 : 0)) / allRuns) * 100;
+        stat.failRate = ((prevFails + (agent.score < 7 ? 1 : 0)) / allRuns) * 100;
+      }
+    } catch { /* skip corrupt files */ }
+  }
+
+  await fs.writeFile(ANALYTICS_FILE, JSON.stringify(analytics, null, 2), "utf-8");
+  return analytics;
 }
 
 // --- Read analytics for agent context ---

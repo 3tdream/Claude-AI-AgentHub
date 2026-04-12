@@ -1,14 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
-import { savePipelineRun, getAgentLearningContext, getRecentAgentRuns } from "@/lib/pipeline-analytics-storage";
+import { savePipelineRun, getAgentLearningContext, getRecentAgentRuns, recalculateAnalytics } from "@/lib/pipeline-analytics-storage";
 
 /**
  * POST /api/pipeline/analytics — Save pipeline execution to learning database
+ *   body: { action: "recalculate" } — rebuild analytics from all runs (excludes stopped/paused)
+ *   body: { ...execution } — save a new run
  * GET /api/pipeline/analytics?agentId=xxx — Get learning context for an agent
  */
 export async function POST(request: NextRequest) {
   try {
-    const execution = await request.json();
-    const record = await savePipelineRun(execution);
+    const body = await request.json();
+
+    // Recalculate action — rebuild from all saved runs
+    if (body.action === "recalculate") {
+      const analytics = await recalculateAnalytics();
+      return NextResponse.json({ success: true, totalRuns: analytics.totalRuns, agents: Object.keys(analytics.agentStats).length });
+    }
+
+    const record = await savePipelineRun(body);
     return NextResponse.json({ success: true, id: record.id });
   } catch (err) {
     return NextResponse.json(

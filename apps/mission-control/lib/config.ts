@@ -42,7 +42,7 @@ export const AGENT_CONFIG: Record<string, {
   diffSoft?: { edit: number; create: number };
   diffHard?: number;
 }> = {
-  "research-agent":   { qualityThreshold: 7.5, escalationThreshold: 5, maxTurns: 4,  maxContextChars: 8000,  readBudget: 5,  wordLimit: 4000 },
+  "research-agent":   { qualityThreshold: 7.5, escalationThreshold: 5, maxTurns: 4,  maxContextChars: 8000,  readBudget: 5,  wordLimit: 2000 },
   "orchestrator":     { qualityThreshold: 7.5, escalationThreshold: 5, maxTurns: 4,  maxContextChars: 8000,  readBudget: 5,  wordLimit: 4000 },
   "pm-agent":         { qualityThreshold: 7.5, escalationThreshold: 5, maxTurns: 5,  maxContextChars: 8000,  readBudget: 8,  wordLimit: 4000 },
   "architect-agent":  { qualityThreshold: 7.5, escalationThreshold: 5, maxTurns: 5,  maxContextChars: 8000,  readBudget: 5,  wordLimit: 4000 },
