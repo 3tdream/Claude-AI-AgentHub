@@ -4,16 +4,20 @@ import { useState, useEffect } from "react";
 import { DollarSign, Filter, FolderOpen, TrendingUp, CheckCircle2, BarChart3 } from "lucide-react";
 import { useCostSummary, useDailyCosts } from "@/lib/hooks/use-costs";
 import { useAppStore } from "@/lib/stores/app-store";
-import { CostChart } from "@/components/costs/cost-chart";
+import { CostChart, filterByScale, type Scale } from "@/components/costs/cost-chart";
 import { ProviderBreakdown } from "@/components/costs/provider-breakdown";
 
 export default function CostsPage() {
   const activeProjectId = useAppStore((s) => s.activeProjectId);
   const [filterByProject, setFilterByProject] = useState(false);
 
+  const [costScale, setCostScale] = useState<Scale>("all");
+
   const effectiveProjectId = filterByProject ? activeProjectId : undefined;
   const { costs, isLoading: costsLoading } = useCostSummary(undefined, effectiveProjectId);
-  const { dailyCosts, isLoading: dailyLoading } = useDailyCosts(30, effectiveProjectId);
+  // Fetch 90 days so shorter scales have data to filter from
+  const { dailyCosts, isLoading: dailyLoading } = useDailyCosts(90, effectiveProjectId);
+  const filteredDailyCosts = filterByScale(dailyCosts, costScale);
 
   const totalTokens = costs
     ? (costs.totalInputTokens ?? 0) + (costs.totalOutputTokens ?? 0)
@@ -109,7 +113,7 @@ export default function CostsPage() {
           {dailyLoading ? (
             <div className="bg-card border border-border rounded-xl p-6 h-80 animate-pulse" />
           ) : dailyCosts.length > 0 ? (
-            <CostChart data={dailyCosts} />
+            <CostChart data={dailyCosts} scale={costScale} onScaleChange={setCostScale} />
           ) : (
             <div className="bg-card border border-border rounded-xl p-6 flex items-center justify-center h-80">
               <p className="font-mono text-xs text-muted-foreground">No daily cost data</p>
@@ -173,11 +177,13 @@ export default function CostsPage() {
       {/* Daily costs table */}
       <div className="bg-card border border-border rounded-xl overflow-hidden">
         <div className="px-5 py-4 border-b border-border">
-          <h2 className="font-bold text-sm">Daily Breakdown (Last 30 Days)</h2>
+          <h2 className="font-bold text-sm">
+            Daily Breakdown ({costScale === "all" ? "All Time" : costScale === "30d" ? "Last 30 Days" : costScale === "7d" ? "Last 7 Days" : "Today"})
+          </h2>
         </div>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto overflow-y-auto max-h-[calc(20*2.75rem+3rem)]">
           <table className="w-full">
-            <thead>
+            <thead className="sticky top-0 z-10 bg-card">
               <tr className="border-b border-border">
                 <th className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground px-5 py-3 text-left">Date</th>
                 <th className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground px-5 py-3 text-left">Cost</th>
@@ -188,10 +194,10 @@ export default function CostsPage() {
             <tbody>
               {dailyLoading ? (
                 <tr><td colSpan={4} className="text-center py-8 font-mono text-xs text-muted-foreground">Loading...</td></tr>
-              ) : dailyCosts.length === 0 ? (
-                <tr><td colSpan={4} className="text-center py-8 font-mono text-xs text-muted-foreground">No cost data available</td></tr>
+              ) : filteredDailyCosts.length === 0 ? (
+                <tr><td colSpan={4} className="text-center py-8 font-mono text-xs text-muted-foreground">No cost data for this period</td></tr>
               ) : (
-                dailyCosts.map((d) => (
+                filteredDailyCosts.map((d) => (
                   <tr key={d.date} className="border-b border-border/50 hover:bg-primary/5 transition-colors">
                     <td className="px-5 py-3 font-mono text-xs">{d.date}</td>
                     <td className="px-5 py-3 font-mono text-xs text-chart-4">${d.cost.toFixed(4)}</td>

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { agentHubFetch } from "@/lib/agent-hub-client";
-import { cachedDailyCosts } from "@/lib/agent-hub-cache";
+import { aggregateDailyCostsFromRuns } from "@/lib/pipeline-daily-costs";
 
 interface DailyResponse {
   success: boolean;
@@ -14,9 +14,11 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const days = searchParams.get("days") || "30";
     const provider = searchParams.get("provider") || "";
+    const projectId = searchParams.get("projectId") || "";
 
     let url = `/costs/daily?days=${days}`;
     if (provider) url += `&provider=${provider}`;
+    if (projectId) url += `&projectId=${projectId}`;
 
     const raw = await agentHubFetch<DailyResponse>(url);
     return NextResponse.json({
@@ -25,8 +27,10 @@ export async function GET(request: NextRequest) {
       summary: raw.summary ?? null,
     });
   } catch {
-    // Fallback to cached data when Agent Hub backend is unreachable
-    console.log("[API] Agent Hub unreachable, serving cached daily costs");
-    return NextResponse.json({ success: true, data: cachedDailyCosts, cached: true });
+    // Fallback: aggregate daily costs from local pipeline-runs
+    console.log("[API] Agent Hub unreachable, aggregating costs from pipeline-runs");
+    const days = Number(new URL(request.url).searchParams.get("days") || "90");
+    const localCosts = await aggregateDailyCostsFromRuns(days);
+    return NextResponse.json({ success: true, data: localCosts, cached: true, source: "pipeline-runs" });
   }
 }

@@ -96,8 +96,11 @@ export function PipelineHistory({
                     onSelectStage(null);
                   } else {
                     onViewExecution(exec);
-                    onSelectStage(null);
-                    onSetPipelineView("input");
+                    // Forward to the current active stage: prefer running → last completed → first step
+                    const runningStep = steps.find((s) => s.status === "running");
+                    const lastCompleted = [...steps].reverse().find((s) => s.status === "completed");
+                    const targetStage = runningStep ?? lastCompleted ?? steps[0] ?? null;
+                    onSelectStage(targetStage?.stepId ?? null);
                   }
                 }}
               >
@@ -182,8 +185,11 @@ export function PipelineHistory({
                     onClick={(e) => {
                       e.stopPropagation();
                       onViewExecution(exec);
-                      onSelectStage(null);
-                      onSetPipelineView("input");
+                      // Forward to the current active stage: prefer running → last completed → first step
+                      const runningStep = steps.find((s) => s.status === "running");
+                      const lastCompleted = [...steps].reverse().find((s) => s.status === "completed");
+                      const targetStage = runningStep ?? lastCompleted ?? steps[0] ?? null;
+                      onSelectStage(targetStage?.stepId ?? null);
                     }}
                     className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors"
                   >
@@ -198,9 +204,9 @@ export function PipelineHistory({
                       e.stopPropagation();
                       const stepWithFiles = stepsWithOutput.find((s) => s.output && (s.output.includes('```') || s.output.includes('"files"')));
                       if (stepWithFiles) {
+                        onSetPipelineView("input");
                         onViewExecution(exec);
                         onSelectStage(stepWithFiles.stepId);
-                        onSetPipelineView("input");
                       }
                     }}
                     className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 transition-colors"

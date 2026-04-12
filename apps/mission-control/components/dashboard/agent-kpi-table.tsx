@@ -203,7 +203,7 @@ export function AgentKPITable({ pipelineRuns, avgSuccessRate }: AgentKPITablePro
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-[120%] -mx-[10%]">
       {/* Header */}
       <div className="flex items-end justify-between flex-wrap gap-4">
         <div>
@@ -234,7 +234,7 @@ export function AgentKPITable({ pipelineRuns, avgSuccessRate }: AgentKPITablePro
               placeholder="Search agent..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="bg-card border border-border rounded-lg pl-9 pr-4 py-2 font-mono text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none w-56 transition-colors"
+              className="bg-card border border-border rounded-lg pl-9 pr-4 py-2 font-mono text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none w-[268px] transition-colors"
             />
           </div>
           <button onClick={exportCSV} className="font-mono text-xs px-4 py-2 rounded-lg border border-primary bg-primary/10 text-secondary hover:bg-primary/20 transition-all uppercase tracking-wider flex items-center gap-2">
@@ -279,7 +279,7 @@ export function AgentKPITable({ pipelineRuns, avgSuccessRate }: AgentKPITablePro
                     onClick={() => router.push(`/home?agent=${encodeURIComponent(row.agent.id)}`)}
                   >
                     <td className="px-5 py-4">
-                      <div className="flex items-center gap-3 min-w-[220px]">
+                      <div className="flex items-center gap-3 min-w-[264px]">
                         <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-lg flex-shrink-0">
                           {row.icon}
                         </div>

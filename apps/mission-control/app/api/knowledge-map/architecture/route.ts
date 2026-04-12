@@ -36,6 +36,7 @@ const PAGES: ArchNode[] = [
   { id: "p:settings", name: "Settings", type: "page", group: "ui", val: 4 },
   { id: "p:health", name: "Health", type: "page", group: "ui", val: 3 },
   { id: "p:guide", name: "Guide", type: "page", group: "ui", val: 3 },
+  { id: "p:setup", name: "Setup", type: "page", group: "ui", val: 4, description: "Onboarding wizard — system readiness checks" },
 ];
 
 // ── API Routes (grouped by domain) ──
@@ -71,7 +72,8 @@ const APIS: ArchNode[] = [
   { id: "a:projects/context", name: "Project Context", type: "api", group: "projects", val: 5 },
   { id: "a:projects/discover", name: "Project Discover", type: "api", group: "projects", val: 4 },
   // System
-  { id: "a:system/health", name: "Health Check", type: "api", group: "system", val: 4 },
+  { id: "a:health", name: "Health", type: "api", group: "system", val: 5, description: "System health endpoint — data dir, API keys, Docker HEALTHCHECK" },
+  { id: "a:system/health", name: "System Health (legacy)", type: "api", group: "system", val: 3 },
   { id: "a:system/config", name: "System Config", type: "api", group: "system", val: 4 },
   { id: "a:system/deploy-check", name: "Deploy Check", type: "api", group: "system", val: 3 },
   // Execution
@@ -180,6 +182,8 @@ const LINKS: ArchLink[] = [
   { source: "p:settings", target: "a:system/config", type: "calls" },
   { source: "p:health", target: "a:system/health", type: "calls" },
   { source: "p:health", target: "a:system/deploy-check", type: "calls" },
+  { source: "p:setup", target: "a:health", type: "calls" },
+  { source: "p:setup", target: "a:jira/config", type: "calls" },
 
   // Pages → Stores
   { source: "p:home", target: "s:orchestration", type: "uses" },
