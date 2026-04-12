@@ -4,44 +4,44 @@
       "category": "architecture-patterns",
       "description": "Validated architecture decisions and patterns from successful pipeline runs",
       "entryCount": 17,
-      "contentHash": "9c11d1e6962b610a4b30c2d1f53749ab45df3fbbb5aed4211d09ba230952c4ae",
-      "lastUpdated": "2026-04-04T07:52:45.648Z",
+      "contentHash": "de29ef5746f44237d07f3e3812c57e3f625cc1e542132660b8cd725487e5c488",
+      "lastUpdated": "2026-04-12T14:58:32.844Z",
       "stale": false
     },
     {
       "category": "failure-patterns",
       "description": "Recurring failure patterns from pipeline runs — prevent known bugs from returning",
-      "entryCount": 43,
-      "contentHash": "7801f33a921432aa2c3fd908ab42551cb9aeee77b63ed9415857bd6b7ee97589",
-      "lastUpdated": "2026-04-07T11:34:07.190Z",
+      "entryCount": 54,
+      "contentHash": "e2f75b686b2ee3d6d62a12d731e162576e7abd61bc99ecab6325dfef4919758a",
+      "lastUpdated": "2026-04-12T14:58:32.700Z",
       "stale": false
     },
     {
       "category": "security-playbook",
       "description": "Security findings, fixes, and hardening rules extracted from Cyber agent and QA audits",
       "entryCount": 12,
-      "contentHash": "7a97ad45f0b2eeda1210015c57e5ce0905ab4e8aaf11eff5d3e286ec6ba4bcca",
-      "lastUpdated": "2026-04-02T20:28:59.087Z",
+      "contentHash": "9968e4b87da8f5b51fbe2177ca2b35e61abd35795855741c8f32da023ae632c7",
+      "lastUpdated": "2026-04-12T14:58:32.699Z",
       "stale": false
     },
     {
       "category": "success-patterns",
       "description": "Patterns from high-scoring pipeline stages — what works well",
-      "entryCount": 29,
-      "contentHash": "bceeb01ce8bc11954f9741e3b1b58d7eef4b44f0801733edb4af616072b76e14",
-      "lastUpdated": "2026-04-07T11:32:53.302Z",
+      "entryCount": 34,
+      "contentHash": "924942b7827bb821f828830755f9b06d0b91894f13f96407f9398866f9e6369f",
+      "lastUpdated": "2026-04-12T14:58:32.868Z",
       "stale": false
     },
     {
       "category": "tech-decisions",
       "description": "Technology choices, tradeoffs, and rationale from ADR stages",
-      "entryCount": 30,
-      "contentHash": "570ead8e551754ad382b5ee20d1527b702e4ffd9041e2efe3f7aa504cd2c2454",
-      "lastUpdated": "2026-04-06T00:24:13.319Z",
+      "entryCount": 33,
+      "contentHash": "caec91c782edcc0595f8b583745c59f31831bcfe3865fecd60077cf56e6d563e",
+      "lastUpdated": "2026-04-12T14:58:33.108Z",
       "stale": false
     }
   ],
-  "totalEntries": 131,
-  "lastValidated": "2026-04-08T20:22:46.170Z",
-  "integrityOk": true
+  "totalEntries": 150,
+  "lastValidated": "2026-04-12T17:58:52.060Z",
+  "integrityOk": false
 }

@@ -16,10 +16,10 @@
         "file-organization"
       ],
       "createdAt": "2026-03-22T18:07:31.281Z",
-      "updatedAt": "2026-04-02T20:28:59.602Z",
+      "updatedAt": "2026-04-12T14:58:32.844Z",
       "pipelineRunId": "pipeline-v3-test",
       "version": 2,
-      "confidence": 0.94,
+      "confidence": 0.88,
       "confirmCount": 0
     },
     {
@@ -37,10 +37,10 @@
         "adr"
       ],
       "createdAt": "2026-03-22T18:06:53.844Z",
-      "updatedAt": "2026-04-02T20:28:59.602Z",
+      "updatedAt": "2026-04-12T14:58:32.844Z",
       "pipelineRunId": "pipeline-v3-test",
       "version": 1,
-      "confidence": 0.92,
+      "confidence": 0.86,
       "confirmCount": 0
     },
     {
@@ -57,10 +57,10 @@
         "adr"
       ],
       "createdAt": "2026-03-22T18:06:26.532Z",
-      "updatedAt": "2026-04-02T20:28:59.602Z",
+      "updatedAt": "2026-04-12T14:58:32.844Z",
       "pipelineRunId": "pipeline-v3-test",
       "version": 1,
-      "confidence": 0.92,
+      "confidence": 0.86,
       "confirmCount": 0
     },
     {
@@ -78,10 +78,10 @@
         "devops"
       ],
       "createdAt": "2026-03-23T16:01:36.133Z",
-      "updatedAt": "2026-04-02T20:28:59.602Z",
+      "updatedAt": "2026-04-12T14:58:32.844Z",
       "pipelineRunId": "pipeline-v3-test",
       "version": 1,
-      "confidence": 0.94,
+      "confidence": 0.88,
       "confirmCount": 0
     },
     {
@@ -98,10 +98,10 @@
         "historical-data"
       ],
       "createdAt": "2026-03-22T18:07:22.511Z",
-      "updatedAt": "2026-04-02T20:28:59.602Z",
+      "updatedAt": "2026-04-12T14:58:32.844Z",
       "pipelineRunId": "pipeline-v3-test",
       "version": 1,
-      "confidence": 0.92,
+      "confidence": 0.86,
       "confirmCount": 0
     },
     {
@@ -116,10 +116,10 @@
         "established-pattern"
       ],
       "createdAt": "2026-03-24T10:52:09.535Z",
-      "updatedAt": "2026-04-02T20:28:59.602Z",
+      "updatedAt": "2026-04-12T14:58:32.844Z",
       "pipelineRunId": "code-review",
       "version": 1,
-      "confidence": 0.95,
+      "confidence": 0.89,
       "confirmCount": 0
     },
     {
@@ -134,10 +134,10 @@
         "json-storage"
       ],
       "createdAt": "2026-03-24T10:52:09.535Z",
-      "updatedAt": "2026-04-02T20:28:59.602Z",
+      "updatedAt": "2026-04-12T14:58:32.844Z",
       "pipelineRunId": "code-review",
       "version": 1,
-      "confidence": 0.95,
+      "confidence": 0.89,
       "confirmCount": 0
     },
     {
@@ -154,10 +154,10 @@
         "useEffect-guard"
       ],
       "createdAt": "2026-03-24T10:52:09.535Z",
-      "updatedAt": "2026-04-02T20:28:59.602Z",
+      "updatedAt": "2026-04-12T14:58:32.844Z",
       "pipelineRunId": "code-review",
       "version": 1,
-      "confidence": 0.95,
+      "confidence": 0.89,
       "confirmCount": 0
     },
     {
@@ -173,10 +173,10 @@
         "file-based-api"
       ],
       "createdAt": "2026-03-24T10:52:09.535Z",
-      "updatedAt": "2026-04-02T20:28:59.602Z",
+      "updatedAt": "2026-04-12T14:58:32.844Z",
       "pipelineRunId": "code-review",
       "version": 1,
-      "confidence": 0.95,
+      "confidence": 0.89,
       "confirmCount": 0
     },
     {
@@ -192,9 +192,9 @@
       ],
       "id": "kb-mn595sjk-bb6a1825",
       "createdAt": "2026-03-24T23:35:21.536Z",
-      "updatedAt": "2026-04-02T20:28:59.602Z",
+      "updatedAt": "2026-04-12T14:58:32.844Z",
       "version": 1,
-      "confidence": 0.96,
+      "confidence": 0.9,
       "confirmCount": 0
     },
     {
@@ -212,9 +212,9 @@
       ],
       "id": "kb-mn59tu31-1c22d166",
       "createdAt": "2026-03-24T23:54:03.277Z",
-      "updatedAt": "2026-04-02T20:28:59.602Z",
+      "updatedAt": "2026-04-12T14:58:32.844Z",
       "version": 1,
-      "confidence": 0.96,
+      "confidence": 0.9,
       "confirmCount": 0
     },
     {
@@ -231,9 +231,9 @@
       ],
       "id": "kb-mn5xhyvm-7ee9db21",
       "createdAt": "2026-03-25T10:56:40.402Z",
-      "updatedAt": "2026-04-02T20:28:59.602Z",
+      "updatedAt": "2026-04-12T14:58:32.844Z",
       "version": 1,
-      "confidence": 0.97,
+      "confidence": 0.91,
       "confirmCount": 0
     },
     {
@@ -250,9 +250,9 @@
       ],
       "id": "kb-mn5z6cjc-d0314aac",
       "createdAt": "2026-03-25T11:43:37.464Z",
-      "updatedAt": "2026-04-02T20:28:59.602Z",
+      "updatedAt": "2026-04-12T14:58:32.844Z",
       "version": 1,
-      "confidence": 0.97,
+      "confidence": 0.91,
       "confirmCount": 0
     },
     {
@@ -269,9 +269,9 @@
       ],
       "id": "kb-mn67xvsq-a84614fe",
       "createdAt": "2026-03-25T15:48:59.066Z",
-      "updatedAt": "2026-04-02T20:28:59.602Z",
+      "updatedAt": "2026-04-12T14:58:32.844Z",
       "version": 1,
-      "confidence": 0.98,
+      "confidence": 0.92,
       "confirmCount": 0
     },
     {
@@ -289,9 +289,9 @@
       ],
       "id": "kb-mn7clni0-aba6e5ba",
       "createdAt": "2026-03-26T10:47:12.696Z",
-      "updatedAt": "2026-04-02T20:28:59.602Z",
+      "updatedAt": "2026-04-12T14:58:32.844Z",
       "version": 1,
-      "confidence": 0.99,
+      "confidence": 0.93,
       "confirmCount": 0
     },
     {
@@ -308,9 +308,9 @@
       ],
       "id": "kb-mn7cyt8d-dcc9f301",
       "createdAt": "2026-03-26T10:57:26.653Z",
-      "updatedAt": "2026-04-02T20:28:59.602Z",
+      "updatedAt": "2026-04-12T14:58:32.844Z",
       "version": 1,
-      "confidence": 0.99,
+      "confidence": 0.93,
       "confirmCount": 0
     },
     {
@@ -325,13 +325,13 @@
       ],
       "id": "kb-mnk15zro-56aca2fb",
       "createdAt": "2026-04-04T07:48:06.612Z",
-      "updatedAt": "2026-04-04T07:48:06.612Z",
+      "updatedAt": "2026-04-12T14:58:32.844Z",
       "version": 1,
-      "confidence": 1,
+      "confidence": 0.97,
       "confirmCount": 0
     }
   ],
-  "contentHash": "9c11d1e6962b610a4b30c2d1f53749ab45df3fbbb5aed4211d09ba230952c4ae",
-  "lastUpdated": "2026-04-04T07:52:45.648Z",
+  "contentHash": "de29ef5746f44237d07f3e3812c57e3f625cc1e542132660b8cd725487e5c488",
+  "lastUpdated": "2026-04-12T14:58:32.844Z",
   "schemaVersion": 1
 }

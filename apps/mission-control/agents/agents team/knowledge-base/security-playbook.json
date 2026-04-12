@@ -1,6 +1,6 @@
 {
   "_description": "Threat responses and recurring vulnerabilities — maintained by Cyber-Agent and QA-Agent",
-  "_updated": "2026-04-04",
+  "_updated": "2026-04-12",
   "threat_model": {
     "framework": "STRIDE + OWASP Top 10",
     "mandatory_triggers": [
@@ -113,6 +113,26 @@
       "mitigation": "Wrap theme reads in a `suppressHydrationWarning` attribute on `<html>`, or inject a blocking inline script in `_document`/`layout.tsx` that sets the `data-theme` attribute before React hydrates. Use `next-themes` library which handles this pattern correctly out of the box. Never read localStorage in component initial state — always default to system preference via `prefers-color-scheme` media query as the SSR-safe fallback.",
       "date_found": "2026-04-04",
       "source_pipeline": "9b809e37-786e-40e3-bc2f-90351bfab453"
+    },
+    {
+      "id": "VULN-011",
+      "category": "security",
+      "title": "Unbounded Data Rendering Without Scroll Cap Exposes Performance Attack Surface",
+      "severity": "medium",
+      "description": "s4-cyber identified that the Daily Breakdown (All Time) table in the Costs page rendered all rows without any virtualization or scroll boundary. An attacker or misconfigured data source could inject thousands of rows, causing browser thread exhaustion and potential DoS-level UI freeze.",
+      "mitigation": "Implemented a scroll boundary after 20 rows (max-h + overflow-y-auto or a virtualized list). For production hardening, pair with row-count server-side limits and sanitize any user-controlled field values before render to prevent XSS via injected cost labels or category strings.",
+      "date_found": "2026-04-12",
+      "source_pipeline": "dd92eaac-a14e-4939-b6f9-5bb9518a5ffe"
+    },
+    {
+      "id": "VULN-012",
+      "category": "security",
+      "title": "Missing Row-Level Data Sanitization Before Render in Cost Tables",
+      "severity": "high",
+      "description": "s3.5-cyber-reeval confirmed that while the scroll fix addressed the original unbounded rendering concern, no row-level sanitization was applied to cost data fields before they reached the DOM. Fields like category names, vendor labels, or description strings sourced from external APIs could carry injected payloads.",
+      "mitigation": "Apply sanitization (e.g., DOMPurify or equivalent) to all string fields rendered in the Daily Breakdown rows, particularly any fields that may originate from external billing sources, imports, or user-editable metadata. Treat cost data as untrusted at the render boundary.",
+      "date_found": "2026-04-12",
+      "source_pipeline": "dd92eaac-a14e-4939-b6f9-5bb9518a5ffe"
     }
   ],
   "security_checklist": {

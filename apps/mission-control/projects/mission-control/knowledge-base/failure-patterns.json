@@ -1,6 +1,6 @@
 {
   "_description": "Known issues, root causes, and solutions — maintained by QA-Agent and all agents",
-  "_updated": "2026-04-08",
+  "_updated": "2026-04-12",
   "patterns": [
     {
       "id": "FAIL-001",
@@ -1294,6 +1294,22 @@
         "app/api/pipeline/rerun/route.ts",
         "lib/pipeline-run-storage.ts",
         "types/workflow.ts"
+      ]
+    },
+    {
+      "id": "FAIL-114",
+      "category": "security",
+      "title": "XSS via unsanitized string fields rendered in UI — defense-in-depth required",
+      "symptoms": "Cyber-Agent flagged potential XSS if cost labels, category names, or agent output strings from external sources are rendered as raw HTML or interpolated into dynamic class names.",
+      "root_cause": "No explicit server-side string sanitization exists at the API write boundary. While React JSX escaping and Canvas fillText() are inherently safe, there is no defense-in-depth layer to protect against future regressions (e.g., someone adding dangerouslySetInnerHTML or a new external data integration).",
+      "solution": "1. Add lib/sanitize-fields.ts with sanitizeStringFields() that strips HTML tags, encodes entities, truncates to 10K chars, and rejects javascript:/data: URIs. 2. Apply it in API route handlers (POST /api/pipeline/replay, POST /api/kb/[category]) before persisting data. 3. Never use dangerouslySetInnerHTML anywhere in the codebase. 4. Always use closed enum maps (like STATUS_CONFIG) for status→className mappings, never interpolate raw strings into class names.",
+      "date_discovered": "2026-04-12",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "lib/sanitize-fields.ts",
+        "app/api/pipeline/replay/route.ts",
+        "app/api/kb/[category]/route.ts"
       ]
     }
   ]

@@ -17,10 +17,10 @@
         "loyalty"
       ],
       "createdAt": "2026-03-22T18:06:53.844Z",
-      "updatedAt": "2026-04-02T20:28:59.661Z",
+      "updatedAt": "2026-04-12T14:58:33.107Z",
       "pipelineRunId": "pipeline-v3-test",
       "version": 1,
-      "confidence": 0.92,
+      "confidence": 0.86,
       "confirmCount": 0
     },
     {
@@ -38,10 +38,10 @@
         "adr"
       ],
       "createdAt": "2026-03-22T18:06:53.844Z",
-      "updatedAt": "2026-04-02T20:28:59.661Z",
+      "updatedAt": "2026-04-12T14:58:33.107Z",
       "pipelineRunId": "pipeline-v3-test",
       "version": 1,
-      "confidence": 0.92,
+      "confidence": 0.86,
       "confirmCount": 0
     },
     {
@@ -59,10 +59,10 @@
         "adr"
       ],
       "createdAt": "2026-03-22T18:06:53.844Z",
-      "updatedAt": "2026-04-02T20:28:59.661Z",
+      "updatedAt": "2026-04-12T14:58:33.107Z",
       "pipelineRunId": "pipeline-v3-test",
       "version": 1,
-      "confidence": 0.92,
+      "confidence": 0.86,
       "confirmCount": 0
     },
     {
@@ -80,10 +80,10 @@
         "adr"
       ],
       "createdAt": "2026-03-22T18:06:53.844Z",
-      "updatedAt": "2026-04-02T20:28:59.661Z",
+      "updatedAt": "2026-04-12T14:58:33.107Z",
       "pipelineRunId": "pipeline-v3-test",
       "version": 1,
-      "confidence": 0.92,
+      "confidence": 0.86,
       "confirmCount": 0
     },
     {
@@ -101,10 +101,10 @@
         "adr"
       ],
       "createdAt": "2026-03-22T18:07:31.281Z",
-      "updatedAt": "2026-04-02T20:28:59.661Z",
+      "updatedAt": "2026-04-12T14:58:33.107Z",
       "pipelineRunId": "pipeline-v3-test",
       "version": 1,
-      "confidence": 0.92,
+      "confidence": 0.86,
       "confirmCount": 0
     },
     {
@@ -121,10 +121,10 @@
         "type-safety"
       ],
       "createdAt": "2026-03-24T10:52:09.535Z",
-      "updatedAt": "2026-04-02T20:28:59.661Z",
+      "updatedAt": "2026-04-12T14:58:33.107Z",
       "pipelineRunId": "code-review",
       "version": 1,
-      "confidence": 0.95,
+      "confidence": 0.89,
       "confirmCount": 0
     },
     {
@@ -140,10 +140,10 @@
         "resilience"
       ],
       "createdAt": "2026-03-24T10:52:09.535Z",
-      "updatedAt": "2026-04-02T20:28:59.661Z",
+      "updatedAt": "2026-04-12T14:58:33.107Z",
       "pipelineRunId": "code-review",
       "version": 1,
-      "confidence": 0.95,
+      "confidence": 0.89,
       "confirmCount": 0
     },
     {
@@ -158,10 +158,10 @@
         "design-tokens"
       ],
       "createdAt": "2026-03-24T10:52:09.535Z",
-      "updatedAt": "2026-04-02T20:28:59.661Z",
+      "updatedAt": "2026-04-12T14:58:33.107Z",
       "pipelineRunId": "code-review",
       "version": 1,
-      "confidence": 0.95,
+      "confidence": 0.89,
       "confirmCount": 0
     },
     {
@@ -177,10 +177,10 @@
         "noImplicitAny"
       ],
       "createdAt": "2026-03-24T10:52:09.535Z",
-      "updatedAt": "2026-04-02T20:28:59.661Z",
+      "updatedAt": "2026-04-12T14:58:33.107Z",
       "pipelineRunId": "pipeline-v3-test",
       "version": 1,
-      "confidence": 0.95,
+      "confidence": 0.89,
       "confirmCount": 0
     },
     {
@@ -197,10 +197,10 @@
         "database"
       ],
       "createdAt": "2026-03-24T10:52:09.535Z",
-      "updatedAt": "2026-04-02T20:28:59.661Z",
+      "updatedAt": "2026-04-12T14:58:33.107Z",
       "pipelineRunId": "pipeline-v3-test",
       "version": 1,
-      "confidence": 0.95,
+      "confidence": 0.89,
       "confirmCount": 0
     },
     {
@@ -215,9 +215,9 @@
       ],
       "id": "kb-mn59rl7b-3de4ef12",
       "createdAt": "2026-03-24T23:52:18.455Z",
-      "updatedAt": "2026-04-02T20:28:59.661Z",
+      "updatedAt": "2026-04-12T14:58:33.107Z",
       "version": 1,
-      "confidence": 0.96,
+      "confidence": 0.9,
       "confirmCount": 0
     },
     {
@@ -232,9 +232,9 @@
       ],
       "id": "kb-mn59rlds-c0bad011",
       "createdAt": "2026-03-24T23:52:18.688Z",
-      "updatedAt": "2026-04-02T20:28:59.661Z",
+      "updatedAt": "2026-04-12T14:58:33.107Z",
       "version": 1,
-      "confidence": 0.96,
+      "confidence": 0.9,
       "confirmCount": 0
     },
     {
@@ -249,9 +249,9 @@
       ],
       "id": "kb-mn59rlf6-8ffbd48a",
       "createdAt": "2026-03-24T23:52:18.738Z",
-      "updatedAt": "2026-04-02T20:28:59.661Z",
+      "updatedAt": "2026-04-12T14:58:33.107Z",
       "version": 1,
-      "confidence": 0.96,
+      "confidence": 0.9,
       "confirmCount": 0
     },
     {
@@ -266,9 +266,9 @@
       ],
       "id": "kb-mn59rlge-1ef46e1c",
       "createdAt": "2026-03-24T23:52:18.782Z",
-      "updatedAt": "2026-04-02T20:28:59.661Z",
+      "updatedAt": "2026-04-12T14:58:33.107Z",
       "version": 1,
-      "confidence": 0.96,
+      "confidence": 0.9,
       "confirmCount": 0
     },
     {
@@ -287,9 +287,9 @@
       ],
       "id": "kb-mn69f1yy-988f89a7",
       "createdAt": "2026-03-25T16:30:19.834Z",
-      "updatedAt": "2026-04-02T20:28:59.661Z",
+      "updatedAt": "2026-04-12T14:58:33.107Z",
       "version": 1,
-      "confidence": 0.98,
+      "confidence": 0.92,
       "confirmCount": 0
     },
     {
@@ -307,9 +307,9 @@
       ],
       "id": "kb-mn6ifw0w-5bf70522",
       "createdAt": "2026-03-25T20:42:55.328Z",
-      "updatedAt": "2026-04-02T20:28:59.661Z",
+      "updatedAt": "2026-04-12T14:58:33.107Z",
       "version": 1,
-      "confidence": 0.98,
+      "confidence": 0.92,
       "confirmCount": 0
     },
     {
@@ -324,9 +324,9 @@
       ],
       "id": "kb-mn6k12bz-83552495",
       "createdAt": "2026-03-25T21:27:22.895Z",
-      "updatedAt": "2026-04-02T20:28:59.661Z",
+      "updatedAt": "2026-04-12T14:58:33.107Z",
       "version": 1,
-      "confidence": 0.98,
+      "confidence": 0.92,
       "confirmCount": 0
     },
     {
@@ -341,9 +341,9 @@
       ],
       "id": "kb-mn6k12ch-66eb1dab",
       "createdAt": "2026-03-25T21:27:22.913Z",
-      "updatedAt": "2026-04-02T20:28:59.661Z",
+      "updatedAt": "2026-04-12T14:58:33.107Z",
       "version": 1,
-      "confidence": 0.98,
+      "confidence": 0.92,
       "confirmCount": 0
     },
     {
@@ -358,9 +358,9 @@
       ],
       "id": "kb-mn6k12d2-2ebc2736",
       "createdAt": "2026-03-25T21:27:22.934Z",
-      "updatedAt": "2026-04-02T20:28:59.661Z",
+      "updatedAt": "2026-04-12T14:58:33.107Z",
       "version": 1,
-      "confidence": 0.98,
+      "confidence": 0.92,
       "confirmCount": 0
     },
     {
@@ -376,9 +376,9 @@
       ],
       "id": "kb-mn91sfpw-c0bf169b",
       "createdAt": "2026-03-27T15:20:05.780Z",
-      "updatedAt": "2026-04-04T08:51:11.019Z",
+      "updatedAt": "2026-04-12T14:58:33.107Z",
       "version": 1,
-      "confidence": 0.99,
+      "confidence": 0.96,
       "confirmCount": 0
     },
     {
@@ -393,9 +393,9 @@
       ],
       "id": "kb-mn9wgyh4-e6c467a4",
       "createdAt": "2026-03-28T05:38:58.312Z",
-      "updatedAt": "2026-04-04T08:51:11.019Z",
+      "updatedAt": "2026-04-12T14:58:33.107Z",
       "version": 1,
-      "confidence": 1,
+      "confidence": 0.97,
       "confirmCount": 0
     },
     {
@@ -410,9 +410,9 @@
       ],
       "id": "kb-mn9wgyht-229ee8e8",
       "createdAt": "2026-03-28T05:38:58.337Z",
-      "updatedAt": "2026-04-04T08:51:11.019Z",
+      "updatedAt": "2026-04-12T14:58:33.107Z",
       "version": 1,
-      "confidence": 1,
+      "confidence": 0.97,
       "confirmCount": 0
     },
     {
@@ -480,9 +480,9 @@
       ],
       "id": "kb-mng8hnmz-43b4a926",
       "createdAt": "2026-04-01T16:02:03.371Z",
-      "updatedAt": "2026-04-01T16:02:03.371Z",
+      "updatedAt": "2026-04-12T14:58:33.107Z",
       "version": 1,
-      "confidence": 1,
+      "confidence": 0.92,
       "confirmCount": 0
     },
     {
@@ -497,9 +497,9 @@
       ],
       "id": "kb-mninyn73-d3854591",
       "createdAt": "2026-04-03T08:50:42.543Z",
-      "updatedAt": "2026-04-03T08:50:42.543Z",
+      "updatedAt": "2026-04-12T14:58:33.107Z",
       "version": 1,
-      "confidence": 1,
+      "confidence": 0.95,
       "confirmCount": 0
     },
     {
@@ -514,9 +514,9 @@
       ],
       "id": "kb-mninynhj-b98b0e07",
       "createdAt": "2026-04-03T08:50:42.919Z",
-      "updatedAt": "2026-04-03T08:50:42.919Z",
+      "updatedAt": "2026-04-12T14:58:33.107Z",
       "version": 1,
-      "confidence": 1,
+      "confidence": 0.95,
       "confirmCount": 0
     },
     {
@@ -531,9 +531,9 @@
       ],
       "id": "kb-mninynoz-4447bec7",
       "createdAt": "2026-04-03T08:50:43.187Z",
-      "updatedAt": "2026-04-03T08:50:43.187Z",
+      "updatedAt": "2026-04-12T14:58:33.107Z",
       "version": 1,
-      "confidence": 1,
+      "confidence": 0.95,
       "confirmCount": 0
     },
     {
@@ -549,10 +549,64 @@
       "id": "kb-mnmg6upz-94716ba5",
       "createdAt": "2026-04-06T00:24:13.319Z",
       "updatedAt": "2026-04-06T00:24:13.319Z",
-      "version": 1
+      "version": 1,
+      "confidence": 1,
+      "confirmCount": 0
+    },
+    {
+      "title": "Nightly Evolution — 2026-04-07",
+      "content": "## Nightly Evolution — 2026-04-07\n\nFirst automated scan of Mission Control codebase.\n\n### Applied (committed)\n- Deleted 4 unused orchestration components: slot-bar, template-library, recruitment-center, routing-decision-panel\n- Deleted 2 duplicate date utility files: lib/costs/date-utils.ts + dateUtils.ts (neither imported)\n- Deleted 1 unused lib: task-cache.ts\n- Fixed hydration mismatch: agent-kpi-table.tsx `Date.now()` moved to useEffect\n- Added 4 missing loading.tsx: health/, teams/[teamId]/,",
+      "source": "claude-memory",
+      "severity": "medium",
+      "tags": [
+        "imported-from-memory",
+        "memory:nightly_evolution_2026_04_07.md",
+        "project"
+      ],
+      "id": "kb-mnr3kh89-71529ac3",
+      "createdAt": "2026-04-09T06:29:44.889Z",
+      "updatedAt": "2026-04-09T06:29:44.889Z",
+      "version": 1,
+      "confidence": 1,
+      "confirmCount": 0
+    },
+    {
+      "title": "Session 2026-04-06 — Enforcement, cost tracking, roadmap update",
+      "content": "## Done this session\n\n### MC Workflow Enforcement (4 mechanisms)\n- CLAUDE.md: 7 mandatory rules (always through MC, verify in browser, screenshot proof)\n- Pre-Edit Hook: warns when editing without running through /api/command\n- Session Start Hook: prints rules + feedback memories at session start\n- /check-workflow skill: manual compliance audit\n\n### Cost Tracking in UI\n- pipeline-input.tsx: shows task cost + remaining balance after execution\n- pipeline-panel.tsx: calculates cost ($0.05/tool call",
+      "source": "claude-memory",
+      "severity": "medium",
+      "tags": [
+        "imported-from-memory",
+        "memory:session_2026_04_06.md",
+        "project"
+      ],
+      "id": "kb-mnr3khs1-0ce0460d",
+      "createdAt": "2026-04-09T06:29:45.601Z",
+      "updatedAt": "2026-04-09T06:29:45.601Z",
+      "version": 1,
+      "confidence": 1,
+      "confirmCount": 0
+    },
+    {
+      "id": "kb-td-session-12b-001",
+      "title": "Analytics recalculation strategy: exclude non-terminal pipeline statuses",
+      "content": "Agent performance analytics now exclude stopped/paused/interrupted runs from agentStats. Only completed and failed runs affect success/fail rates. Rationale: stopped runs have partial data that skews averages unfairly. The recalculateAnalytics() function rebuilds from all saved run files — idempotent, safe to re-run anytime. Tradeoff: stopped runs still count in totalRuns/byStatus for overall pipeline health metrics, just not agent-level scoring.",
+      "source": "architecture-decision",
+      "severity": "medium",
+      "tags": [
+        "analytics",
+        "data-model",
+        "agent-stats",
+        "recalculation"
+      ],
+      "createdAt": "2026-04-12T20:00:00.000Z",
+      "updatedAt": "2026-04-12T20:00:00.000Z",
+      "version": 1,
+      "confidence": 1.0,
+      "confirmCount": 1
     }
   ],
-  "contentHash": "570ead8e551754ad382b5ee20d1527b702e4ffd9041e2efe3f7aa504cd2c2454",
-  "lastUpdated": "2026-04-06T00:24:13.319Z",
+  "contentHash": "caec91c782edcc0595f8b583745c59f31831bcfe3865fecd60077cf56e6d563e",
+  "lastUpdated": "2026-04-12T14:58:33.108Z",
   "schemaVersion": 1
 }

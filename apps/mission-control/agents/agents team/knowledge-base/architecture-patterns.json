@@ -1,6 +1,6 @@
 {
   "_description": "Reusable patterns and anti-patterns — maintained by Architect-Agent and Backend-Agent",
-  "_updated": "2026-04-05",
+  "_updated": "2026-04-12",
   "patterns": [
     {
       "id": "PAT-001",
@@ -276,6 +276,15 @@
       "code_reference": "",
       "when_to_use": "UI changes that affect user-triggered actions (buttons, forms, inputs) carry implicit security and UX risks (double-submit, CSRF-adjacent patterns, state desync) that are easy to miss when focused purely on visual implementation.",
       "source_pipeline": "27faae26-2b4f-4e13-8c3b-0703ef23cb65"
+    },
+    {
+      "id": "PAT-032",
+      "name": "Scroll Boundary at 20 Rows as UX + Performance Contract for Large Data Tables",
+      "context": "The pipeline established a clear pattern: tables displaying time-series financial data (Daily Breakdown, All Time) must cap visible rows at 20 with overflow scroll, rather than rendering the full dataset. This was validated by both the security agent (risk reduction) and the architecture step (s3.2).",
+      "pattern": "Codify this as a component standard: any table component receiving an unbounded array prop must either (a) accept a `maxVisibleRows` prop defaulting to 20 with scroll enabled, or (b) use a virtualized list (e.g., react-window) for datasets that may exceed 100 rows. Apply consistently across all financial/analytics tables in the Costs page family.",
+      "code_reference": "",
+      "when_to_use": "N/A — proactive pattern extraction.",
+      "source_pipeline": "dd92eaac-a14e-4939-b6f9-5bb9518a5ffe"
     }
   ],
   "anti_patterns": [

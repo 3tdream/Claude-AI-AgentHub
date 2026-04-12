@@ -17,10 +17,10 @@
         "mandatory"
       ],
       "createdAt": "2026-03-22T18:07:40.430Z",
-      "updatedAt": "2026-04-02T20:28:59.086Z",
+      "updatedAt": "2026-04-12T14:58:32.699Z",
       "pipelineRunId": "pipeline-v3-test",
       "version": 2,
-      "confidence": 0.94,
+      "confidence": 0.88,
       "confirmCount": 0
     },
     {
@@ -37,10 +37,10 @@
         "vpc"
       ],
       "createdAt": "2026-03-22T18:07:40.430Z",
-      "updatedAt": "2026-04-02T20:28:59.086Z",
+      "updatedAt": "2026-04-12T14:58:32.699Z",
       "pipelineRunId": "pipeline-v3-test",
       "version": 1,
-      "confidence": 0.92,
+      "confidence": 0.86,
       "confirmCount": 0
     },
     {
@@ -58,10 +58,10 @@
         "decorator"
       ],
       "createdAt": "2026-03-22T18:09:15.452Z",
-      "updatedAt": "2026-04-02T20:28:59.086Z",
+      "updatedAt": "2026-04-12T14:58:32.699Z",
       "pipelineRunId": "pipeline-v3-test",
       "version": 1,
-      "confidence": 0.92,
+      "confidence": 0.86,
       "confirmCount": 0
     },
     {
@@ -78,10 +78,10 @@
         "brute-force"
       ],
       "createdAt": "2026-03-22T18:09:15.452Z",
-      "updatedAt": "2026-04-02T20:28:59.086Z",
+      "updatedAt": "2026-04-12T14:58:32.699Z",
       "pipelineRunId": "pipeline-v3-test",
       "version": 1,
-      "confidence": 0.92,
+      "confidence": 0.86,
       "confirmCount": 0
     },
     {
@@ -98,10 +98,10 @@
         "headers"
       ],
       "createdAt": "2026-03-22T18:07:40.430Z",
-      "updatedAt": "2026-04-02T20:28:59.086Z",
+      "updatedAt": "2026-04-12T14:58:32.699Z",
       "pipelineRunId": "pipeline-v3-test",
       "version": 1,
-      "confidence": 0.92,
+      "confidence": 0.86,
       "confirmCount": 0
     },
     {
@@ -119,10 +119,10 @@
         "compliance"
       ],
       "createdAt": "2026-03-22T18:09:15.452Z",
-      "updatedAt": "2026-04-02T20:28:59.086Z",
+      "updatedAt": "2026-04-12T14:58:32.699Z",
       "pipelineRunId": "pipeline-v3-test",
       "version": 1,
-      "confidence": 0.92,
+      "confidence": 0.86,
       "confirmCount": 0
     },
     {
@@ -138,10 +138,10 @@
         "input-validation"
       ],
       "createdAt": "2026-03-24T10:52:09.535Z",
-      "updatedAt": "2026-04-02T20:28:59.086Z",
+      "updatedAt": "2026-04-12T14:58:32.699Z",
       "pipelineRunId": "pipeline-runs-analysis",
       "version": 1,
-      "confidence": 0.95,
+      "confidence": 0.89,
       "confirmCount": 0
     },
     {
@@ -157,10 +157,10 @@
         "access-control"
       ],
       "createdAt": "2026-03-24T10:52:09.535Z",
-      "updatedAt": "2026-04-02T20:28:59.086Z",
+      "updatedAt": "2026-04-12T14:58:32.699Z",
       "pipelineRunId": "pipeline-runs-analysis",
       "version": 1,
-      "confidence": 0.95,
+      "confidence": 0.89,
       "confirmCount": 0
     },
     {
@@ -176,10 +176,10 @@
         "resource-limits"
       ],
       "createdAt": "2026-03-24T10:52:09.535Z",
-      "updatedAt": "2026-04-02T20:28:59.086Z",
+      "updatedAt": "2026-04-12T14:58:32.699Z",
       "pipelineRunId": "pipeline-runs-analysis",
       "version": 1,
-      "confidence": 0.95,
+      "confidence": 0.89,
       "confirmCount": 0
     },
     {
@@ -195,10 +195,10 @@
         "implementation-gap"
       ],
       "createdAt": "2026-03-24T10:52:09.535Z",
-      "updatedAt": "2026-04-02T20:28:59.086Z",
+      "updatedAt": "2026-04-12T14:58:32.699Z",
       "pipelineRunId": "pipeline-runs-analysis",
       "version": 1,
-      "confidence": 0.95,
+      "confidence": 0.89,
       "confirmCount": 0
     },
     {
@@ -214,10 +214,10 @@
         "mutation-security"
       ],
       "createdAt": "2026-03-24T10:52:09.535Z",
-      "updatedAt": "2026-04-02T20:28:59.086Z",
+      "updatedAt": "2026-04-12T14:58:32.699Z",
       "pipelineRunId": "pipeline-runs-analysis",
       "version": 1,
-      "confidence": 0.95,
+      "confidence": 0.89,
       "confirmCount": 0
     },
     {
@@ -234,14 +234,14 @@
         "compliance"
       ],
       "createdAt": "2026-03-24T10:52:09.535Z",
-      "updatedAt": "2026-04-02T20:28:59.086Z",
+      "updatedAt": "2026-04-12T14:58:32.699Z",
       "pipelineRunId": "pipeline-runs-analysis",
       "version": 1,
-      "confidence": 0.95,
+      "confidence": 0.89,
       "confirmCount": 0
     }
   ],
-  "contentHash": "7a97ad45f0b2eeda1210015c57e5ce0905ab4e8aaf11eff5d3e286ec6ba4bcca",
-  "lastUpdated": "2026-04-02T20:28:59.087Z",
+  "contentHash": "9968e4b87da8f5b51fbe2177ca2b35e61abd35795855741c8f32da023ae632c7",
+  "lastUpdated": "2026-04-12T14:58:32.699Z",
   "schemaVersion": 1
 }
