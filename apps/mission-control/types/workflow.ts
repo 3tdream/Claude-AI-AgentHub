@@ -312,3 +312,32 @@ export interface RerunResponse {
   stepsSkipped: string[];
   stepsToRerun: string[];
 }
+
+export type NotificationType =
+  | 'pipeline_completed'
+  | 'pipeline_failed'
+  | 'pipeline_escalated';
+
+export interface NotificationEntry {
+  id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  executionId: string;
+  workflowName: string;
+  read: boolean;
+  createdAt: string;
+}
+
+export interface NotificationsResponse {
+  data: NotificationEntry[];
+  unreadCount: number;
+  cached?: boolean;
+}
+
+export interface CreateNotificationRequest {
+  type: NotificationType;
+  executionId: string;
+  workflowName: string;
+  message: string;
+}

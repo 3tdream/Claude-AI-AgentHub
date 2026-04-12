@@ -7,6 +7,7 @@ import { useCostSummary } from "@/lib/hooks/use-costs";
 import useSWR from "swr";
 import { useState, useRef, useEffect } from "react";
 import { ActivityToggle } from "@/components/shell/activity-sidebar";
+import { NotificationBell } from "@/components/home/notification-bell";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -125,6 +126,7 @@ export function Topbar() {
           </div>
         )}
 
+        <NotificationBell />
         <ActivityToggle />
       </div>
     </header>
