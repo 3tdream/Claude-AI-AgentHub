@@ -22,6 +22,11 @@ export function classifyIntent(input: string): IntentDecision {
   const t = input.toLowerCase().trim();
   const wordCount = t.split(/\s+/).length;
 
+  // ── Explicit pipeline override ──
+  if (/^run\s+(full\s+)?pipeline\b/i.test(t)) {
+    return { intent: "pipeline", confidence: 0.95, reason: "Explicit pipeline request", pipelineMode: "full" };
+  }
+
   // ── PIPELINE signals (check FIRST — these override direct) ──
   const pipelineSignals = [
     // New functionality
