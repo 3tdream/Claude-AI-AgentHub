@@ -8,6 +8,7 @@
 import type { SimulationReport, StageSimulation } from "@/lib/preflight-simulation";
 import type { RoutingDecision } from "@/lib/smart-router";
 import type { ExecutionMode } from "@/types";
+import { MODE_CONFIG } from "@/lib/config";
 
 export interface SimulationAdjustment {
   type: "mode_upgrade" | "stage_warning" | "stage_split" | "guard_added";
@@ -59,45 +60,52 @@ export function applySimulationAdjustments(
     });
   }
 
+  // Respect skipAgents — never force-add an agent the mode explicitly forbids
+  const modeSkipAgents = MODE_CONFIG[adjustedMode]?.skipAgents ?? [];
+
   // ── Rule 2: Force QA if any stage is critical ──
-  const criticalStages = simulation.stages.filter(
-    (s) => s.riskLevel === "critical" && adjustedStepIds.includes(s.stageId),
-  );
-  if (criticalStages.length > 0 && !adjustedAgents.includes("qa-agent")) {
-    adjustedAgents.push("qa-agent");
-    const qaStepId = "s8-technical-qa";
-    if (!adjustedStepIds.includes(qaStepId)) {
-      adjustedStepIds.push(qaStepId);
-      const idx = adjustedSkipIds.indexOf(qaStepId);
-      if (idx !== -1) adjustedSkipIds.splice(idx, 1);
+  if (!modeSkipAgents.includes("qa-agent")) {
+    const criticalStages = simulation.stages.filter(
+      (s) => s.riskLevel === "critical" && adjustedStepIds.includes(s.stageId),
+    );
+    if (criticalStages.length > 0 && !adjustedAgents.includes("qa-agent")) {
+      adjustedAgents.push("qa-agent");
+      const qaStepId = "s8-technical-qa";
+      if (!adjustedStepIds.includes(qaStepId)) {
+        adjustedStepIds.push(qaStepId);
+        const idx = adjustedSkipIds.indexOf(qaStepId);
+        if (idx !== -1) adjustedSkipIds.splice(idx, 1);
+      }
+      adjustments.push({
+        type: "guard_added",
+        stageId: qaStepId,
+        description: "Added QA-Agent to pipeline",
+        reason: `${criticalStages.length} critical stage(s): ${criticalStages.map((s) => s.stageId).join(", ")}`,
+      });
     }
-    adjustments.push({
-      type: "guard_added",
-      stageId: qaStepId,
-      description: "Added QA-Agent to pipeline",
-      reason: `${criticalStages.length} critical stage(s): ${criticalStages.map((s) => s.stageId).join(", ")}`,
-    });
   }
 
   // ── Rule 3: Force Cyber if security-related KB patterns active ──
-  const securityRiskyStages = simulation.stages.filter(
-    (s) => s.activeFailurePatterns.some((p) => p.severity === "critical") &&
-    adjustedStepIds.includes(s.stageId),
-  );
-  if (securityRiskyStages.length > 0 && !adjustedAgents.includes("cyber-agent")) {
-    adjustedAgents.push("cyber-agent");
-    const cyberStepId = "s4-cyber";
-    if (!adjustedStepIds.includes(cyberStepId)) {
-      adjustedStepIds.push(cyberStepId);
-      const idx = adjustedSkipIds.indexOf(cyberStepId);
-      if (idx !== -1) adjustedSkipIds.splice(idx, 1);
+  if (!modeSkipAgents.includes("cyber-agent")) {
+    const securityRiskyStages = simulation.stages.filter(
+      (s) => s.activeFailurePatterns.some((p) => p.severity === "critical") &&
+      adjustedStepIds.includes(s.stageId),
+    );
+    if (securityRiskyStages.length > 0 && !adjustedAgents.includes("cyber-agent")) {
+      adjustedAgents.push("cyber-agent");
+      const cyberStepId = "s4-cyber";
+      if (!adjustedStepIds.includes(cyberStepId)) {
+        adjustedStepIds.push(cyberStepId);
+        const idx = adjustedSkipIds.indexOf(cyberStepId);
+        if (idx !== -1) adjustedSkipIds.splice(idx, 1);
+      }
+      adjustments.push({
+        type: "guard_added",
+        stageId: cyberStepId,
+        description: "Added Cyber-Agent to pipeline",
+        reason: `Critical security patterns active in ${securityRiskyStages.map((s) => s.stageId).join(", ")}`,
+      });
     }
-    adjustments.push({
-      type: "guard_added",
-      stageId: cyberStepId,
-      description: "Added Cyber-Agent to pipeline",
-      reason: `Critical security patterns active in ${securityRiskyStages.map((s) => s.stageId).join(", ")}`,
-    });
   }
 
   // ── Rule 4: Warn on high-risk stages ──

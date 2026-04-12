@@ -93,7 +93,7 @@ export const cachedAgents = [
     llmProvider: "openai",
     llmModel: "gpt-4.1",
     maxTokens: 25000,
-    maxOutputTokens: 5000,
+    maxOutputTokens: 10000,
     maxToolSteps: 10,
     teams: ["6997155db1d4987b4df37291"],
     lastAccessedAt: "2026-02-25T10:12:11.931Z",

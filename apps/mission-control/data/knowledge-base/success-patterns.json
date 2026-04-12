@@ -625,7 +625,7 @@
       "createdAt": "2026-04-12T20:00:00.000Z",
       "updatedAt": "2026-04-12T20:00:00.000Z",
       "version": 1,
-      "confidence": 1.0,
+      "confidence": 1,
       "confirmCount": 1
     },
     {
@@ -647,7 +647,7 @@
       "confirmCount": 0
     }
   ],
-  "contentHash": "924942b7827bb821f828830755f9b06d0b91894f13f96407f9398866f9e6369f",
-  "lastUpdated": "2026-04-12T14:58:32.868Z",
+  "contentHash": "310e3af24a76e13d2ca90bf880cbfb666112a9e3923a9968d91bba50357a1457",
+  "lastUpdated": "2026-04-12T20:19:37.466Z",
   "schemaVersion": 1
 }

@@ -18,7 +18,7 @@
     "llmProvider": "anthropic",
     "llmModel": "claude-sonnet-4-6",
     "maxTokens": 25000,
-    "maxOutputTokens": 5000,
+    "maxOutputTokens": 10000,
     "maxToolSteps": 10
   },
   "699435ec707890c41035553f": {

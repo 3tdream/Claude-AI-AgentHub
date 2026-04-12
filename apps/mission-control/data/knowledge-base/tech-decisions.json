@@ -602,11 +602,11 @@
       "createdAt": "2026-04-12T20:00:00.000Z",
       "updatedAt": "2026-04-12T20:00:00.000Z",
       "version": 1,
-      "confidence": 1.0,
+      "confidence": 1,
       "confirmCount": 1
     }
   ],
-  "contentHash": "caec91c782edcc0595f8b583745c59f31831bcfe3865fecd60077cf56e6d563e",
-  "lastUpdated": "2026-04-12T14:58:33.108Z",
+  "contentHash": "0e89320c6b6424ae3fb1720f4a7675dbd56d12d647bf9a05d15444f3b5255860",
+  "lastUpdated": "2026-04-12T20:19:37.491Z",
   "schemaVersion": 1
 }

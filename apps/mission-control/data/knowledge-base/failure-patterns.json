@@ -1005,7 +1005,7 @@
       "createdAt": "2026-04-12T20:00:00.000Z",
       "updatedAt": "2026-04-12T20:00:00.000Z",
       "version": 1,
-      "confidence": 1.0,
+      "confidence": 1,
       "confirmCount": 1
     },
     {
@@ -1024,11 +1024,11 @@
       "createdAt": "2026-04-12T20:00:00.000Z",
       "updatedAt": "2026-04-12T20:00:00.000Z",
       "version": 1,
-      "confidence": 1.0,
+      "confidence": 1,
       "confirmCount": 1
     }
   ],
-  "contentHash": "e2f75b686b2ee3d6d62a12d731e162576e7abd61bc99ecab6325dfef4919758a",
-  "lastUpdated": "2026-04-12T14:58:32.700Z",
+  "contentHash": "729d2d1d80551306ed70f0d2d5909ee20b4ecab7712e7ae8fc1b8e63a5c67122",
+  "lastUpdated": "2026-04-12T20:19:37.441Z",
   "schemaVersion": 1
 }
