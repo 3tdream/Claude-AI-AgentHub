@@ -138,7 +138,9 @@ export default function HomePage() {
   }, [orderedAgents, showActiveOnly]);
   const idleCount = orderedAgents.length - filteredAgents.length;
 
-  const moveAgent = (fromIdx: number, dir: -1 | 1) => {
+  const moveAgent = (agentId: string, dir: -1 | 1) => {
+    const fromIdx = agentOrder.indexOf(agentId);
+    if (fromIdx === -1) return;
     const toIdx = fromIdx + dir;
     if (toIdx < 0 || toIdx >= agentOrder.length) return;
     const newOrder = [...agentOrder];
@@ -165,7 +167,7 @@ export default function HomePage() {
               </button>
             </div>
             <div className="py-2 px-1 space-y-1">
-            {orderedAgents.map(({ agent, stats }) => {
+            {filteredAgents.map(({ agent, stats }) => {
               const successRate = stats?.successRate ?? 0;
               const statusColor = getSuccessRateColor(successRate);
               const AgentIcon = getAgentLucideIcon(agent.name);
@@ -251,11 +253,11 @@ export default function HomePage() {
               <div key={agent.id} className="flex items-stretch gap-1">
                 {editMode && (
                   <div className="flex flex-col justify-center gap-0.5 shrink-0">
-                    <button onClick={() => moveAgent(idx, -1)} disabled={idx === 0} className="p-0.5 text-muted-foreground hover:text-primary disabled:opacity-20 transition-colors" aria-label="Move agent up">
+                    <button onClick={() => moveAgent(agent.id, -1)} disabled={idx === 0} className="p-0.5 text-muted-foreground hover:text-primary disabled:opacity-20 transition-colors" aria-label="Move agent up">
                       <ChevronUp className="w-3 h-3" />
                     </button>
                     <GripVertical className="w-3 h-3 text-muted-foreground mx-auto" />
-                    <button onClick={() => moveAgent(idx, 1)} disabled={idx === filteredAgents.length - 1} className="p-0.5 text-muted-foreground hover:text-primary disabled:opacity-20 transition-colors" aria-label="Move agent down">
+                    <button onClick={() => moveAgent(agent.id, 1)} disabled={idx === filteredAgents.length - 1} className="p-0.5 text-muted-foreground hover:text-primary disabled:opacity-20 transition-colors" aria-label="Move agent down">
                       <ChevronDown className="w-3 h-3" />
                     </button>
                   </div>
@@ -443,10 +445,14 @@ export default function HomePage() {
                   </span>
                   <div className="flex items-center gap-2">
                     {(displayStatus === "interrupted" || displayStatus === "failed") && (
-                      <span className="flex items-center gap-0.5 text-[10px] font-mono text-amber-500">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setCenterView("pipeline"); setSelectedAgentId(null); }}
+                        className="flex items-center gap-0.5 text-[10px] font-mono text-amber-500 hover:text-amber-600 transition-colors"
+                        title="View in pipeline history"
+                      >
                         <Play className="w-2.5 h-2.5" />
-                        Resume
-                      </span>
+                        View
+                      </button>
                     )}
                     <span className="font-mono text-[10px] text-slate-400">
                       {exec.totalDuration ? `${Math.round(exec.totalDuration / 1000)}s` : "\u2014"}

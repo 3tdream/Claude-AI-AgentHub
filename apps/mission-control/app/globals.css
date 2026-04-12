@@ -172,3 +172,8 @@ body::before {
   50%       { opacity: 0.85; transform: scale(0.95) rotate(4deg);   filter: drop-shadow(0 0 8px hsl(var(--primary) / 1));   }
   60%       { opacity: 1;    transform: scale(1.1)  rotate(-4deg);  filter: drop-shadow(0 0 5px hsl(var(--primary) / 0.8)); }
 }
+
+@keyframes runSlide {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
+}

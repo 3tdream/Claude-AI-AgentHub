@@ -6,6 +6,7 @@ export function StatusPill({ color, label }: { color: string; label: string }) {
     blue: "bg-indigo-500",
     amber: "bg-amber-500",
     red: "bg-rose-500",
+    purple: "bg-violet-500",
     gray: "bg-slate-400",
   };
 

@@ -18,6 +18,7 @@ import {
   FolderOpen,
   ArrowUp,
 } from "lucide-react";
+import { toast } from "sonner";
 import type { KBFile, KBIndex, KBEntry, KBCategory, KBScope } from "@/types";
 import { useAppStore } from "@/lib/stores/app-store";
 import { fetcher } from "./constants";
@@ -87,9 +88,15 @@ export function KnowledgePanel() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ projectId: activeProjectId, entryId: entry.id, category: selectedCategory }),
       });
-      if (res.ok) revalidateIndex();
+      if (res.ok) {
+        revalidateIndex();
+        toast.success("Promoted to global KB");
+      } else {
+        toast.error("Failed to promote entry");
+      }
     } catch (err) {
       console.error("[KB] Promote failed:", err);
+      toast.error("Promote failed");
     }
   };
 

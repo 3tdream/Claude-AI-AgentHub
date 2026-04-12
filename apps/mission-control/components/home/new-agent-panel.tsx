@@ -21,6 +21,7 @@ export function NewAgentPanel({ onClose, onCreated }: { onClose: () => void; onC
 
   const handleCreate = async () => {
     if (!name.trim()) { toast.error("Name is required"); return; }
+    if (!model.trim()) { toast.error("Select a model"); return; }
     setSaving(true);
     try {
       const res = await createAgent({ name, description, llmProvider: provider, llmModel: model, maxTokens, maxToolSteps: 10 });
@@ -69,17 +70,19 @@ export function NewAgentPanel({ onClose, onCreated }: { onClose: () => void; onC
           <div className={labelCls}>Model</div>
           <select value={model} onChange={(e) => setModel(e.target.value)}
             className={inputCls}>
+            {!model && <option value="">— Select model —</option>}
             {filteredModels.length > 0
               ? filteredModels.map((m: any) => <option key={m.id} value={m.id}>{m.name || m.id}</option>)
-              : <option value={model}>{model}</option>}
+              : model ? <option value={model}>{model}</option> : null}
           </select>
         </div>
         <div>
           <div className={labelCls}>Max Tokens</div>
           <input type="number" value={maxTokens} onChange={(e) => setMaxTokens(Number(e.target.value))}
+            min={1000} max={200000} step={1000}
             className={inputCls} />
         </div>
-        <button onClick={handleCreate} disabled={saving || !name.trim()}
+        <button onClick={handleCreate} disabled={saving || !name.trim() || !model.trim()}
           className="w-full py-2.5 bg-indigo-600 text-white rounded-lg font-medium text-sm hover:bg-indigo-700 transition-colors disabled:opacity-30">
           {saving ? "Creating..." : "Create Agent"}
         </button>

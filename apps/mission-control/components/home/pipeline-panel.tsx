@@ -13,6 +13,7 @@ import { PipelineGraph } from "@/components/orchestration/pipeline-graph";
 import { StageDetailPanel } from "@/components/orchestration/stage-detail-panel";
 import { executePipeline } from "@/lib/pipeline-executor";
 import { filterStepsForRouting } from "@/lib/pipeline-step-filter";
+import { calculateCost } from "@/lib/budget-manager";
 
 import { ProjectDropdown } from "./project-dropdown";
 import { ExecutionBar } from "./execution-bar";
@@ -131,7 +132,7 @@ export function PipelinePanel({ activeProjectId, projects, onSelectProject }: {
   // Fallback: build step from stepResult if workflow not found (for viewing history)
   const selectedStep = displaySteps.find((s) => s.id === selectedStageId)
     || (selectedStageId && displayExecution?.stepResults[selectedStageId]
-      ? { id: selectedStageId, agentId: selectedStageId, agentName: selectedStageId.replace(/^s\d+-/, "").replace(/-/g, " "), prompt: "", dependsOn: [], metadata: {} } as unknown as WorkflowStep
+      ? { id: selectedStageId, agentId: selectedStageId, agentName: selectedStageId.replace(/^s\d+-/, "").replace(/-/g, " "), promptTemplate: "", dependsOn: [], metadata: {} } as unknown as WorkflowStep
       : null);
   const selectedStepResult = selectedStep && displayExecution ? displayExecution.stepResults[selectedStep.id] : undefined;
   const selectedQualityScore = selectedStep && displayExecution?.qualityScores ? displayExecution.qualityScores[selectedStep.id] : undefined;
@@ -185,8 +186,10 @@ export function PipelinePanel({ activeProjectId, projects, onSelectProject }: {
           : successEdits.length > 0 ? "partial" as const
           : "failed" as const;
 
-        // Estimate task cost from tool calls (rough: $0.05 per tool call for sonnet)
-        const taskCost = (data.toolCalls?.length ?? 0) * 0.05;
+        // Estimate task cost from model pricing and actual token usage
+        const taskCost = data.tokensUsed && data.model
+          ? calculateCost(data.model, data.tokensUsed)
+          : (data.toolCalls?.length ?? 0) * 0.03; // fallback if no token data
 
         // Fetch current balance and deduct task cost
         let remainingBalance: number | undefined;
