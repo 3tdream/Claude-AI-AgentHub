@@ -112,6 +112,30 @@ ${contextBlock}`;
       },
     });
 
+    // Post-execution: check created files for broken imports
+    const createdFiles = toolCallLog.filter((t) => t.name === "create_file" && t.success).map((t) => t.path).filter(Boolean) as string[];
+    const editedFiles = toolCallLog.filter((t) => t.name === "edit_file" && t.success).map((t) => t.path).filter(Boolean) as string[];
+    const touchedFiles = [...new Set([...createdFiles, ...editedFiles])];
+    let buildWarnings: string[] = [];
+    if (touchedFiles.length > 0 && projectPath) {
+      try {
+        const { execSync } = await import("child_process");
+        const tscResult = execSync(
+          `node_modules/.bin/tsc --noEmit --pretty 2>&1 | head -30`,
+          { cwd: projectPath, timeout: 15_000, encoding: "utf-8" }
+        );
+        // Filter only errors in files we touched
+        const errorLines = tscResult.split("\n").filter((line) =>
+          touchedFiles.some((f) => line.includes(f.replace(/^.*[\\/]/, "")))
+        );
+        if (errorLines.length > 0) {
+          buildWarnings = errorLines.slice(0, 5);
+        }
+      } catch {
+        // tsc not available or timed out — skip validation
+      }
+    }
+
     // Persist as a pipeline-run so direct tasks appear in UI history and nightly evolution
     const taskId = `direct_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const startedAt = new Date().toISOString();
@@ -127,10 +151,12 @@ ${contextBlock}`;
           stepId: "direct",
           status: result.content ? "completed" : "failed",
           output: result.content,
+          ...(buildWarnings.length > 0 && { buildWarnings }),
         },
       },
       startedAt,
       completedAt,
+      ...(buildWarnings.length > 0 && { buildWarnings }),
     };
     const logPath = path.resolve(
       process.cwd(),
@@ -150,6 +176,7 @@ ${contextBlock}`;
       toolCalls: toolCallLog,
       tokensUsed: result.tokensUsed,
       model: result.model,
+      ...(buildWarnings.length > 0 && { buildWarnings }),
     });
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 });

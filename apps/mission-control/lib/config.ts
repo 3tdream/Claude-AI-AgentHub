@@ -15,10 +15,9 @@ export const PIPELINE = {
   QUALITY_PASS_THRESHOLD: 7.5,
   /** Default quality threshold if not specified per-step */
   DEFAULT_QUALITY_THRESHOLD: 7.5,
-  /** Timeout per agent execution step (ms) — 0 = no timeout.
-   *  Disabled: tool-enabled agents need >120s for multi-turn loops.
-   *  Re-enable when per-agent timeouts implemented. */
-  STEP_TIMEOUT_MS: 0,
+  /** Timeout per agent execution step (ms).
+   *  120s is enough for multi-turn tool loops; prevents infinite hangs (e.g. cyber agent). */
+  STEP_TIMEOUT_MS: 120_000,
   /** Timeout for run_command tool (ms) */
   COMMAND_TIMEOUT_MS: 20_000,
   /** Max output tokens for LLM calls */
