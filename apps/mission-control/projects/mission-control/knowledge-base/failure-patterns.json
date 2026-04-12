@@ -1311,6 +1311,118 @@
         "app/api/pipeline/replay/route.ts",
         "app/api/kb/[category]/route.ts"
       ]
+    },
+    {
+      "id": "FAIL-115",
+      "category": "security",
+      "title": "Unauthenticated POST /api/notifications exposed to SSRF and notification injection via workflowName/message fields",
+      "symptoms": "ADR-015 claims POST /api/notifications is \"server-side only\" and \"never called from the browser directly\" — but the endpoint has no auth, no origin check, and no SSRF guard. Any browser tab, external script, or misconfigured CORS policy can POST arbitrary workflowName and message values, injecting fake pipeline failure/escalation alerts into the operator's notification feed. The message field is capped at 500 chars but workflowName has no length cap in the API contract (only in the ERD: 255 chars — inconsistency). Additionally, the fire-and-forget fetch in pipeline-executor.ts uses a relative URL (/api/notifications) which works client-side but will fail in server-side Node.js execution contexts where relative URLs are not resolvable.",
+      "root_cause": "The design conflates \"only intended to be called server-side\" with \"protected from client-side calls.\" No mechanism enforces this intent. The API route is a public HTTP endpoint — intent is not a security control. The ADR also copies the no-auth pattern from /api/logs without recognizing that /api/logs is read-only from the browser, while POST /api/notifications is a write operation that mutates operator-visible state.",
+      "solution": "1) Add a shared secret header check: pipeline-executor sends X-Internal-Token: process.env.INTERNAL_API_SECRET, route validates it — rejects 401 if missing/wrong. This is a single env var, zero infrastructure. 2) Add workflowName length validation (max 255 chars) in the POST handler to match the ERD constraint. 3) Change the fire-and-forget fetch in pipeline-executor.ts to use an absolute URL (http://localhost:${PORT}/api/notifications) or, better, call the storage function directly since pipeline-executor runs server-side — eliminating the HTTP round-trip entirely and the SSRF surface.",
+      "date_discovered": "2026-04-12",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/api/notifications/route.ts",
+        "lib/pipeline-executor.ts",
+        "lib/notifications-storage.ts"
+      ]
+    },
+    {
+      "id": "FAIL-116",
+      "category": "security",
+      "title": "POST /api/notifications is an unauthenticated public write endpoint",
+      "symptoms": "Any browser script or external HTTP client can POST arbitrary notification payloads (fake pipeline_failed, pipeline_escalated alerts) into the operator's notification feed. No auth, no origin check, no shared secret.",
+      "root_cause": "Architecture spec marked POST /api/notifications as \"None (internal)\" auth, relying on the assumption it would only be called server-side. However, pipeline-executor.ts runs in the client bundle (cannot import fs), so it must use fetch() to reach the API route — meaning the route is reachable from any HTTP client. The \"internal only\" designation is intent, not enforcement.",
+      "solution": "Add X-Internal-Token header check against process.env.INTERNAL_API_SECRET in the POST handler. pipeline-executor.ts cannot call storage directly (it's client-bundled). Instead: (1) POST /api/notifications requires header X-Internal-Token matching env var, (2) pipeline-executor.ts sends this token via the header, (3) missing/wrong token returns 401. The token is safe to embed in client JS for a single-operator tool but adds a meaningful barrier against blind injection. For higher security, move notification creation into the server-side finalize API route that already receives the full execution object.",
+      "date_discovered": "2026-04-12",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/api/notifications/route.ts",
+        "lib/pipeline-executor.ts",
+        "lib/notifications-storage.ts"
+      ]
+    },
+    {
+      "id": "FAIL-117",
+      "category": "broke-something",
+      "title": "Missing files: app/api/notifications/[id]/route.ts and lib/hooks/use-notifications.ts not created",
+      "symptoms": "ENOENT on app/api/notifications/[id]/route.ts and lib/hooks/use-notifications.ts — both files referenced in the implementation plan (CHUNK B) but not present on disk. NotificationBell component imports useNotifications from @/lib/hooks/use-notifications which does not exist, causing a build-time module resolution failure. PATCH /api/notifications/[id] endpoint is completely absent.",
+      "root_cause": "Backend agent created only CHUNK A files (types/workflow.ts, lib/notifications-storage.ts) and the base route (app/api/notifications/route.ts) but skipped the dynamic route file and the SWR hook. The frontend component (components/shell/notification-bell.tsx) was created but its dependency lib/hooks/use-notifications.ts was never written.",
+      "solution": "Create lib/hooks/use-notifications.ts with useSWR('/api/notifications', fetcher, { revalidateOnFocus: false, refreshInterval: 30_000 }) returning NotificationsResponse. Create app/api/notifications/[id]/route.ts implementing PATCH handler: validate id against /^notif_\\d+_[a-z0-9]+$/, validate body.read is boolean, call markOneRead(), return 200/400/404/500 per contract.",
+      "date_discovered": "2026-04-12",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "app/api/notifications/[id]/route.ts",
+        "lib/hooks/use-notifications.ts",
+        "components/shell/notification-bell.tsx"
+      ]
+    },
+    {
+      "id": "FAIL-118",
+      "category": "broke-something",
+      "title": "pipeline-executor.ts not modified — no notification fire-and-forget calls on pipeline status transitions",
+      "symptoms": "grep for 'api/notifications', 'pipeline_completed', 'pipeline_failed', 'pipeline_escalated', 'buildNotificationMessage' in lib/pipeline-executor.ts returns no results. The notification system is wired up on the frontend but never triggered from the backend — notifications will never be created during actual pipeline runs.",
+      "root_cause": "Backend agent listed lib/pipeline-executor.ts as a file to modify in CHUNK B but did not implement the changes. The fire-and-forget POST calls to /api/notifications on status transitions (completed, failed, escalated) are completely absent.",
+      "solution": "In lib/pipeline-executor.ts, add fire-and-forget helper: function postNotification(type, executionId, workflowName, message) { fetch('/api/notifications', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({type,executionId,workflowName,message:message.slice(0,500)}) }).catch(()=>{}) }. Call it at: (1) execution.status = 'completed' with message format \"{workflowName} finished in {duration} — score {score}/10\", (2) execution.status = 'failed' with \"{workflowName} failed at stage {failedStep}\", (3) escalation trigger fires with \"{workflowName} escalated: {trigger.reason} (T{triggerId})\".",
+      "date_discovered": "2026-04-12",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "lib/pipeline-executor.ts"
+      ]
+    },
+    {
+      "id": "FAIL-119",
+      "category": "broke-something",
+      "title": "topbar.tsx not modified — NotificationBell component not integrated into shell header",
+      "symptoms": "components/shell/topbar.tsx has no import of NotificationBell and no JSX usage of <NotificationBell />. The bell icon will never appear in the UI. The notification system is fully built but invisible to users.",
+      "root_cause": "Frontend/designer agent created components/shell/notification-bell.tsx (CHUNK C) but did not modify topbar.tsx to import and render it. The integration step was skipped.",
+      "solution": "In components/shell/topbar.tsx, add: import { NotificationBell } from \"@/components/shell/notification-bell\"; then render <NotificationBell /> inside the right-side flex container (the div with className=\"flex items-center gap-2\"), placed before <ActivityToggle /> or <ThemeToggle />.",
+      "date_discovered": "2026-04-12",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "components/shell/topbar.tsx",
+        "components/shell/notification-bell.tsx"
+      ]
+    },
+    {
+      "id": "FAIL-120",
+      "category": "broke-something",
+      "title": "Notification system missing 3 critical files — build fails and feature is non-functional",
+      "symptoms": "1. Build fails: `Cannot find module '@/lib/hooks/use-notifications'` — file never created. 2. PATCH /api/notifications/[id] returns Next.js 404 — app/api/notifications/[id]/route.ts never created. 3. NotificationBell never imported/rendered in topbar.tsx — bell icon invisible in UI. 4. pipeline-executor.ts has zero notification calls — no notifications ever generated during pipeline runs.",
+      "root_cause": "Implementation was split across multiple agents (frontend-agent, backend-agent) but file creation steps were either skipped or not committed. The SWR hook file, the dynamic API route, the topbar integration, and the pipeline-executor integration were all described in the plan but not delivered on disk.",
+      "solution": "1. Create lib/hooks/use-notifications.ts with useSWR('/api/notifications', fetcher, { revalidateOnFocus: false, refreshInterval: 30_000 }) returning NotificationsResponse. 2. Create app/api/notifications/[id]/route.ts with PATCH handler: validate id regex /^notif_\\d+_[a-z0-9]+$/, validate body.read boolean, call markOneRead(), return 200/400/404/500. 3. In components/shell/topbar.tsx add: import { NotificationBell } from '@/components/shell/notification-bell' and render <NotificationBell /> before <ActivityToggle /> in the right-side flex container. 4. In lib/pipeline-executor.ts add fire-and-forget postNotification() calls at execution.status='completed', 'failed', and escalation trigger points.",
+      "date_discovered": "2026-04-12",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "lib/hooks/use-notifications.ts",
+        "app/api/notifications/[id]/route.ts",
+        "components/shell/topbar.tsx",
+        "lib/pipeline-executor.ts"
+      ]
+    },
+    {
+      "id": "FAIL-121",
+      "category": "broke-something",
+      "title": "Notification system missing 4 critical integration points — feature is non-functional",
+      "symptoms": "1) Build fails: lib/hooks/use-notifications.ts does not exist but is imported by notification-bell.tsx. 2) PATCH /api/notifications/[id] endpoint missing — marking single notification read returns 404. 3) NotificationBell never rendered in topbar.tsx — bell icon invisible. 4) pipeline-executor.ts has zero references to notification API — no notifications ever created.",
+      "root_cause": "Implementation was incomplete. Only 3 of 7 required files were created (notification-bell.tsx, notifications/route.ts, notifications-storage.ts). The SWR hook, individual-read endpoint, topbar integration, and pipeline-executor integration were all skipped.",
+      "solution": "Create: lib/hooks/use-notifications.ts (SWR hook with 30s refresh), app/api/notifications/[id]/route.ts (PATCH with id regex validation). Modify: components/shell/topbar.tsx (import+render NotificationBell), lib/pipeline-executor.ts (add fire-and-forget POST to /api/notifications on status transitions). All 4 are P0 blockers.",
+      "date_discovered": "2026-04-12",
+      "recurrence": "Discovered by QA-Agent",
+      "source": "qa-agent",
+      "affected_files": [
+        "lib/hooks/use-notifications.ts",
+        "app/api/notifications/[id]/route.ts",
+        "components/shell/topbar.tsx",
+        "lib/pipeline-executor.ts",
+        "components/shell/notification-bell.tsx"
+      ]
     }
   ]
 }
