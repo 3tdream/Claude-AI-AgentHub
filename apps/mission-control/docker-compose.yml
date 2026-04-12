@@ -1,0 +1,20 @@
+services:
+  mission-control:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mission-control
+    restart: unless-stopped
+    ports:
+      - "3077:3077"
+    env_file:
+      - .env.local
+    volumes:
+      - mc-data:/app/data
+    environment:
+      - NODE_ENV=production
+      - NEXT_TELEMETRY_DISABLED=1
+
+volumes:
+  mc-data:
+    driver: local

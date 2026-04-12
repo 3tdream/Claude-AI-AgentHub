@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
   if (!body.id || !validateRunId(body.id)) {
     return NextResponse.json({ error: 'invalid_run_id' }, { status: 400 });
   }
-  if (!body.workflowId || !body.status || !body.mode || !body.startedAt) {
+  if (!body.workflowId || !body.status || !body.startedAt) {
     return NextResponse.json({ error: 'invalid_body', detail: 'missing required field' }, { status: 400 });
   }
 

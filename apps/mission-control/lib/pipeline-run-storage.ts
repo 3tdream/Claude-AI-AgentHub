@@ -93,7 +93,7 @@ export async function listRuns(opts: {
       const run = JSON.parse(await fs.readFile(path.join(DATA_DIR, file), 'utf-8')) as PipelineExecution;
       if (status && run.status !== status) continue;
       const stepResultValues = Object.values(run.stepResults ?? {});
-      const failedStep = stepResultValues.find(s => s.status === 'failed' || s.status === 'escalated');
+      const failedStep = stepResultValues.find(s => s.status === 'failed' || (s.status as string) === 'escalated');
       summaries.push({
         id: run.id, workflowId: run.workflowId, workflowName: run.workflowName, status: run.status,
         startedAt: run.startedAt, completedAt: run.completedAt ?? null,
