@@ -4,13 +4,15 @@ import { memo } from "react";
 import type { Agent } from "@/types";
 import { providerColors, getSuccessRateColor, getAgentStatus, agentStatusConfig, getAgentLucideIcon } from "./constants";
 
-export const AgentCard = memo(function AgentCard({ agent, stats, selected, onClick, teamNameMap }: {
+interface AgentCardProps {
   agent: Agent;
   stats?: { runs: number; avgScore: number; successRate: number; failRate: number };
   selected?: boolean;
   onClick?: () => void;
   teamNameMap?: Record<string, string>;
-}) {
+}
+
+function AgentCardInner({ agent, stats, selected, onClick, teamNameMap }: AgentCardProps) {
   const successRate = stats?.successRate ?? 0;
   const status = getAgentStatus(successRate, !!stats);
   const sc = agentStatusConfig[status];
@@ -54,4 +56,6 @@ export const AgentCard = memo(function AgentCard({ agent, stats, selected, onCli
       </div>
     </div>
   );
-});
+}
+
+export const AgentCard = memo(AgentCardInner) as unknown as typeof AgentCardInner;
