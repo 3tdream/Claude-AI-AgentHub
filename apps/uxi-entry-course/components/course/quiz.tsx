@@ -1,10 +1,38 @@
 'use client'
 
 import { useState } from 'react'
-import { type Quiz } from '@/data/intro-module'
+import { type Quiz } from '@/data/types'
+import { useLanguage } from '@/lib/language'
 import { CheckCircle2, XCircle, HelpCircle, ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+
+const quizLabels = {
+  ru: {
+    question: 'Вопрос',
+    checkAnswer: 'Проверить ответ',
+    correct: 'Правильно!',
+    incorrect: 'Неправильно',
+    next: 'Далее',
+    checkYourself: 'Проверьте себя',
+    youAnswered: (score: number, total: number) => `Вы ответили правильно на ${score} из ${total} вопросов`,
+    excellent: 'Отличный результат!',
+    good: 'Хороший результат, но есть что повторить.',
+    review: 'Рекомендуем перечитать материал урока.',
+  },
+  en: {
+    question: 'Question',
+    checkAnswer: 'Check Answer',
+    correct: 'Correct!',
+    incorrect: 'Incorrect',
+    next: 'Next',
+    checkYourself: 'Check Your Knowledge',
+    youAnswered: (score: number, total: number) => `You answered ${score} out of ${total} questions correctly`,
+    excellent: 'Excellent result!',
+    good: 'Good result, but there\'s room to review.',
+    review: 'We recommend re-reading the lesson material.',
+  },
+}
 
 function QuizCard({
   quiz,
@@ -15,6 +43,8 @@ function QuizCard({
   index: number
   onComplete: () => void
 }) {
+  const { lang } = useLanguage()
+  const l = quizLabels[lang]
   const [selected, setSelected] = useState<string | null>(null)
   const [revealed, setRevealed] = useState(false)
   const isCorrect = selected === quiz.correctId
@@ -36,7 +66,7 @@ function QuizCard({
           <HelpCircle className="w-4 h-4 text-primary" />
         </div>
         <div>
-          <span className="text-xs font-medium text-muted-foreground">Вопрос {index + 1}</span>
+          <span className="text-xs font-medium text-muted-foreground">{l.question} {index + 1}</span>
           <h3 className="text-base font-semibold text-foreground mt-0.5">{quiz.question}</h3>
         </div>
       </div>
@@ -93,7 +123,7 @@ function QuizCard({
 
       {!revealed && (
         <Button onClick={handleCheck} disabled={!selected} className="w-full">
-          Проверить ответ
+          {l.checkAnswer}
         </Button>
       )}
 
@@ -107,11 +137,11 @@ function QuizCard({
           <div className="flex items-center gap-2 mb-1 font-semibold">
             {isCorrect ? (
               <>
-                <CheckCircle2 className="w-4 h-4" /> Правильно!
+                <CheckCircle2 className="w-4 h-4" /> {l.correct}
               </>
             ) : (
               <>
-                <XCircle className="w-4 h-4" /> Неправильно
+                <XCircle className="w-4 h-4" /> {l.incorrect}
               </>
             )}
           </div>
@@ -121,7 +151,7 @@ function QuizCard({
 
       {revealed && (
         <Button variant="ghost" onClick={onComplete} className="w-full">
-          Далее <ArrowRight className="w-4 h-4 ml-1" />
+          {l.next} <ArrowRight className="w-4 h-4 ml-1" />
         </Button>
       )}
     </div>
@@ -135,6 +165,8 @@ export function QuizSection({
   quizzes: Quiz[]
   onAllComplete?: () => void
 }) {
+  const { lang } = useLanguage()
+  const l = quizLabels[lang]
   const [current, setCurrent] = useState(0)
   const [score, setScore] = useState(0)
   const [finished, setFinished] = useState(false)
@@ -154,10 +186,10 @@ export function QuizSection({
       <div className="rounded-xl border bg-card p-8 text-center space-y-3">
         <div className="text-4xl font-bold text-primary">{pct}%</div>
         <p className="text-muted-foreground text-sm">
-          Вы ответили правильно на {score} из {quizzes.length} вопросов
+          {l.youAnswered(score, quizzes.length)}
         </p>
         <p className="text-xs text-muted-foreground/60">
-          {pct >= 80 ? 'Отличный результат!' : pct >= 50 ? 'Хороший результат, но есть что повторить.' : 'Рекомендуем перечитать материал урока.'}
+          {pct >= 80 ? l.excellent : pct >= 50 ? l.good : l.review}
         </p>
       </div>
     )
@@ -166,7 +198,7 @@ export function QuizSection({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Проверьте себя</h3>
+        <h3 className="text-lg font-semibold">{l.checkYourself}</h3>
         <span className="text-xs text-muted-foreground">
           {current + 1} / {quizzes.length}
         </span>

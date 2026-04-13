@@ -1,12 +1,14 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
+import { LanguageProvider } from '@/lib/language'
+import { LanguageToggle } from '@/components/ui/language-toggle'
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'] })
 
 export const metadata: Metadata = {
-  title: 'UXI Entry Course — Основы UX/UI дизайна',
-  description: 'Интерактивный курс для изучения основ UX/UI дизайна',
+  title: 'UXI Entry Course — UX/UI Design Fundamentals',
+  description: 'Interactive course for learning UX/UI design fundamentals',
 }
 
 export default function RootLayout({
@@ -15,9 +17,12 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="he" dir="ltr">
+    <html lang="en" dir="ltr">
       <body className={inter.className} suppressHydrationWarning>
-        {children}
+        <LanguageProvider>
+          <LanguageToggle />
+          {children}
+        </LanguageProvider>
       </body>
     </html>
   )
