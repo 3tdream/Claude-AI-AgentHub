@@ -41,7 +41,7 @@ async function figmaFetch(endpoint: string, options?: RequestInit) {
 
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`Figma API error ${res.status}: ${text.substring(0, 200)}`);
+    throw new Error(`Figma API error ${res.status} on ${endpoint} [body redacted]`);
   }
 
   return res.json();

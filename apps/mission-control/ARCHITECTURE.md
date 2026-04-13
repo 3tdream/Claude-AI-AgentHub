@@ -73,7 +73,6 @@ All routes proxy through `agentHubFetch()` with cached fallback on failure.
 | `/api/ai/execute` | POST | Direct AI execution — standard (single prompt) or tool-enabled (multi-turn with file system access) |
 | `/api/command` | POST | Unified command — intent classifier decides direct/pipeline/hybrid, Claude + file tools + KB |
 | `/api/intent-test` | POST | Intent classifier testing endpoint |
-| `/api/quick-edit` | POST | Quick code edit execution |
 
 ### Pipeline
 

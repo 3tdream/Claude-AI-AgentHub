@@ -87,6 +87,8 @@ const APIS: ArchNode[] = [
   { id: "a:jira/config", name: "Jira Config", type: "api", group: "jira", val: 4 },
   // Costs
   { id: "a:costs/anthropic", name: "Anthropic Costs", type: "api", group: "costs", val: 5 },
+  // Notifications
+  { id: "a:notifications", name: "Notifications", type: "api", group: "system", val: 5, description: "Pipeline event alerts — GET list, POST create, PATCH read" },
 ];
 
 // ── Stores ──
@@ -123,7 +125,7 @@ const LIBS: ArchNode[] = [
   { id: "l:agent-prompt-loader", name: "Prompt Loader", type: "lib", group: "agent-core", val: 5 },
   // Resources
   { id: "l:budget-manager", name: "Budget Manager", type: "lib", group: "resources", val: 6, description: "Token budget, cost calc, mode downgrade" },
-  { id: "l:task-cache", name: "Task Cache", type: "lib", group: "resources", val: 4 },
+  { id: "l:notifications", name: "Notifications Storage", type: "lib", group: "resources", val: 5, description: "Pipeline event notifications with read/unread state" },
   // System
   { id: "l:config", name: "Config", type: "lib", group: "system-core", val: 5, description: "Central configuration constants" },
   { id: "l:monitoring", name: "Monitoring", type: "lib", group: "system-core", val: 4 },
@@ -266,6 +268,11 @@ const LINKS: ArchLink[] = [
   { source: "s:orchestration", target: "a:pipeline/execute", type: "calls" },
   { source: "s:chat", target: "a:chat", type: "calls" },
   { source: "s:chat", target: "a:agent-hub/sessions", type: "calls" },
+
+  // Notifications
+  { source: "p:home", target: "a:notifications", type: "calls", label: "bell icon" },
+  { source: "a:notifications", target: "l:notifications", type: "uses" },
+  { source: "l:pipeline-executor", target: "l:notifications", type: "writes", label: "pipeline events" },
 
   // Learning loop
   { source: "l:pipeline-executor", target: "l:kb-storage", type: "feeds", label: "success/failure" },

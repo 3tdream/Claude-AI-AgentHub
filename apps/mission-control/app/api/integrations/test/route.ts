@@ -4,6 +4,13 @@ import path from "path";
 
 const KEYS_FILE = path.join(process.cwd(), "data", "api-keys.json");
 
+function isInternalUrl(urlStr: string): boolean {
+  try {
+    const { hostname } = new URL(urlStr);
+    return /^(127\.|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|0\.|localhost$|::1$|\[::1\])/.test(hostname);
+  } catch { return true; }
+}
+
 async function getKey(envKey: string, overrides?: Record<string, string>): Promise<string> {
   // 1. Direct override from request (unsaved form values)
   if (overrides?.[envKey]) return overrides[envKey];
@@ -79,6 +86,10 @@ export async function POST(request: NextRequest) {
         try { const u = new URL(url); if (!["http:", "https:"].includes(u.protocol)) throw new Error(); }
         catch { return NextResponse.json({ success: false, error: "Invalid Agent Hub URL" }); }
 
+        if (isInternalUrl(url)) {
+          return NextResponse.json({ success: false, error: "Internal network targets are forbidden" });
+        }
+
         try {
           const controller = new AbortController();
           const timer = setTimeout(() => controller.abort(), 5000);
@@ -107,6 +118,10 @@ export async function POST(request: NextRequest) {
 
         try { const u = new URL(baseUrl); if (!["http:", "https:"].includes(u.protocol)) throw new Error(); }
         catch { return NextResponse.json({ success: false, error: "Invalid Jira base URL" }); }
+
+        if (isInternalUrl(baseUrl)) {
+          return NextResponse.json({ success: false, error: "Internal network targets are forbidden" });
+        }
 
         const auth = Buffer.from(`${email}:${token}`).toString("base64");
         try {

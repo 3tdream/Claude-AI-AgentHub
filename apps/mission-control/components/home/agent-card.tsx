@@ -1,9 +1,10 @@
 "use client";
 
+import { memo } from "react";
 import type { Agent } from "@/types";
 import { providerColors, getSuccessRateColor, getAgentStatus, agentStatusConfig, getAgentLucideIcon } from "./constants";
 
-export function AgentCard({ agent, stats, selected, onClick, teamNameMap }: {
+export const AgentCard = memo(function AgentCard({ agent, stats, selected, onClick, teamNameMap }: {
   agent: Agent;
   stats?: { runs: number; avgScore: number; successRate: number; failRate: number };
   selected?: boolean;
@@ -53,4 +54,4 @@ export function AgentCard({ agent, stats, selected, onClick, teamNameMap }: {
       </div>
     </div>
   );
-}
+});

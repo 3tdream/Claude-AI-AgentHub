@@ -604,9 +604,204 @@
       "version": 1,
       "confidence": 1,
       "confirmCount": 1
+    },
+    {
+      "title": "BUSY agents threshold decision (2026-04-12)",
+      "content": "## Decision: Keep BUSY→ACTIVE threshold at 70%\n\n**Date:** 2026-04-12\n\n**What was fixed:**\n- Analytics recalculation now excludes stopped/paused/interrupted runs (polluted success rates)\n- SWR refreshInterval 30s added to Home page `/api/agents/performance`\n- Added `POST /api/pipeline/analytics { action: \"recalculate\" }` endpoint\n\n**Before recalc → After recalc:**\n- Backend: 43% → 64%\n- PM: 37% → 65%\n- Architect: 39% → 75% (now ACTIVE)\n\n**Decision:** Don't lower threshold. Wait for 10 clean pipel",
+      "source": "claude-memory",
+      "severity": "medium",
+      "tags": [
+        "imported-from-memory",
+        "memory:project_busy_agents_decision.md",
+        "project"
+      ],
+      "id": "kb-mnx112tx-6cebca55",
+      "createdAt": "2026-04-13T10:05:17.589Z",
+      "updatedAt": "2026-04-13T10:05:17.589Z",
+      "version": 1
+    },
+    {
+      "title": "MC Competitive Analysis — April 2026",
+      "content": "## MC Market Position (April 2026)\n\nMC is the **only Full-Cycle AI Dev Platform** — no competitor covers all 5 layers:\n1. Multi-agent orchestration with quality gates\n2. Knowledge Base with auto-learning\n3. Cost governance with per-stage budgets\n4. PM integration (Jira native)\n5. Self-healing pipeline with model escalation\n\n**Why:** Every competitor solves 1-2 layers. Closest combinations:\n- CrewAI + LangSmith + AgentOps + Jira = ~4 layers but no unified product\n- Dify = workflow + KB but no pip",
+      "source": "claude-memory",
+      "severity": "medium",
+      "tags": [
+        "imported-from-memory",
+        "memory:project_competitive_analysis.md",
+        "project"
+      ],
+      "id": "kb-mnx112um-d95fe118",
+      "createdAt": "2026-04-13T10:05:17.614Z",
+      "updatedAt": "2026-04-13T10:05:17.614Z",
+      "version": 1
+    },
+    {
+      "title": "QA improvement tasks",
+      "content": "## QA Improvement Tasks (from 2026-04-13)\n\n### 1. Improve qa-michael for Home Page QA\n- qa-michael should be able to run Chrome DevTools QA on Home page\n- Three QA layers: claude (manual), qa-michael (agent), qa-mc (MC system)\n- Goal: `qa home page by claude/qa-michael/qa-mc` — unified QA command\n\n### 2. SWR Loading Wait\n- First screenshot often catches loading state (~3-4s SWR cold fetch)\n- QA process should wait for SWR data before evaluating\n- Solution: evaluate script to check if key element",
+      "source": "claude-memory",
+      "severity": "medium",
+      "tags": [
+        "imported-from-memory",
+        "memory:project_qa_improvements.md",
+        "project"
+      ],
+      "id": "kb-mnx112vk-644f3000",
+      "createdAt": "2026-04-13T10:05:17.648Z",
+      "updatedAt": "2026-04-13T10:05:17.648Z",
+      "version": 1
+    },
+    {
+      "title": "session-2026-04-08",
+      "content": "## Session 2026-04-08/09 — Home Page Sprint\n\n### Done (16 commits on main)\n1. **QA** — 11-area audit, found mobile responsive + a11y issues\n2. **a11y fix** — semantic h2 headings for AGENT FLEET, LIVE ACTIVITY, RECENT RUNS\n3. **Refactoring** — centralize fetcher (3 dupes removed), status color helpers, TABS to module level, KB entries memoized\n4. **Blocker 1: Activity Persistence** — zustand persist middleware, 200 events in localStorage\n5. **Blocker 2: Execution Persistence** — activeExecution ",
+      "source": "claude-memory",
+      "severity": "medium",
+      "tags": [
+        "imported-from-memory",
+        "memory:session_2026_04_08.md",
+        "project"
+      ],
+      "id": "kb-mnx112wk-b2264d32",
+      "createdAt": "2026-04-13T10:05:17.684Z",
+      "updatedAt": "2026-04-13T10:05:17.684Z",
+      "version": 1
+    },
+    {
+      "title": "Session 2026-04-12 — System Report + Competitive Analysis + Jira Sprint",
+      "content": "## Session Summary (2026-04-12)\n\n### 1. Full System Report\nGenerated comprehensive MC audit:\n- 733 files, 75 API routes, 53 components, 83 lib modules\n- 15 pages, 4 Zustand stores, 6 KB categories\n- Pipeline V3: 19 stages, 4 gates, 3 modes, parallel DAG\n- 16 agents across 3 teams\n\n### 2. Competitive Analysis — 24 Platforms\nDeep research of AI agent management market. 4 tiers analyzed:\n- **Tier 1 Orchestration**: CrewAI, LangGraph, AutoGen/MS Agent, Dify, n8n, Flowise, Relevance AI, Dust\n- **Tier",
+      "source": "claude-memory",
+      "severity": "medium",
+      "tags": [
+        "imported-from-memory",
+        "memory:session_2026_04_12.md",
+        "project"
+      ],
+      "id": "kb-mnx112x3-bb1b93bf",
+      "createdAt": "2026-04-13T10:05:17.703Z",
+      "updatedAt": "2026-04-13T10:05:17.703Z",
+      "version": 1
+    },
+    {
+      "title": "Session 2026-04-12b — Pipeline reliability sprint (4 tasks)",
+      "content": "## Session Summary (2026-04-12, evening)\n\n### 1. BUSY Agents Fix\n**Root cause:** Stopped/paused pipeline runs polluted agent analytics with partial low scores. SWR had no refreshInterval — data never updated.\n\n**Fixes applied:**\n- `pipeline-analytics-storage.ts`: skip agent stats for stopped/paused/interrupted runs\n- `pipeline-analytics-storage.ts`: added `recalculateAnalytics()` — rebuilds from all saved runs\n- `app/api/pipeline/analytics`: added `{ action: \"recalculate\" }` POST action\n- `home/",
+      "source": "claude-memory",
+      "severity": "medium",
+      "tags": [
+        "imported-from-memory",
+        "memory:session_2026_04_12b.md",
+        "project"
+      ],
+      "id": "kb-mnx112xo-cf31ff57",
+      "createdAt": "2026-04-13T10:05:17.724Z",
+      "updatedAt": "2026-04-13T10:05:17.724Z",
+      "version": 1
+    },
+    {
+      "title": "Session 2026-04-12c — Deploy + Onboarding sprint (5 tasks)",
+      "content": "## Session Summary (2026-04-12, night)\n\n### Sprint: Deploy + Onboarding — 5/5 DONE\n\n**Branch:** `feature/deploy-onboarding` → merged to `main` (fast-forward)\n**Commit:** `1e5ed9e` — 11 files, +494 lines\n\n### Tasks Completed\n\n1. **Dockerfile + docker-compose + .dockerignore**\n   - Multi-stage: deps → build → runtime (node:20-alpine)\n   - `output: \"standalone\"` added to next.config.ts\n   - docker-compose.yml with `mc-data` volume for persistence\n   - HEALTHCHECK via wget to /api/health\n\n2. **Healt",
+      "source": "claude-memory",
+      "severity": "medium",
+      "tags": [
+        "imported-from-memory",
+        "memory:session_2026_04_12c.md",
+        "project"
+      ],
+      "id": "kb-mnx112yd-308f4998",
+      "createdAt": "2026-04-13T10:05:17.749Z",
+      "updatedAt": "2026-04-13T10:05:17.749Z",
+      "version": 1
+    },
+    {
+      "title": "Session 2026-04-12d — Commit cleanup + pipeline validation run",
+      "content": "## Session Summary (2026-04-12, night #2)\n\n### Commits (3)\n\n1. `be92342` — **feat(costs,ux):** cost scale filter (All/30d/7d/Today), pipeline-runs fallback for daily costs, smart stage forwarding in pipeline history, MC icon + CSS animations, Knowledge Map setup/health nodes (9 files, +332/-61)\n2. `38a848a` — **chore(data):** KB + pipeline data updates, 150 entries across 5 categories (12 files, +499/-307)\n3. `e599dfc` — **fix(intent):** explicit pipeline override for \"Run full pipeline\" command",
+      "source": "claude-memory",
+      "severity": "medium",
+      "tags": [
+        "imported-from-memory",
+        "memory:session_2026_04_12d.md",
+        "project"
+      ],
+      "id": "kb-mnx112z2-04293a8a",
+      "createdAt": "2026-04-13T10:05:17.773Z",
+      "updatedAt": "2026-04-13T10:05:17.773Z",
+      "version": 1
+    },
+    {
+      "title": "Session 2026-04-12e — 3 bug fixes from previous session investigation",
+      "content": "## Session Summary (2026-04-12, session #5)\n\n### Commit (1)\n\n1. `33a07bd` — **fix(pipeline,kb):** skipAgents bypass, frontend token limit, KB integrity (7 files, +61/-53)\n\n### Bugs Investigated & Fixed\n\n#### 1. Frontend agent score 50/100 (CAI-304)\n- **Root cause:** `maxOutputTokens: 5000` too low for multi-file notification system task. Agent hit token limit mid-delivery, QA evaluator capped `taskCompletion` at 5 (\"described but didn't deliver\")\n- **Fix:** `maxOutputTokens` 5000 → 10000 in `age",
+      "source": "claude-memory",
+      "severity": "medium",
+      "tags": [
+        "imported-from-memory",
+        "memory:session_2026_04_12e.md",
+        "project"
+      ],
+      "id": "kb-mnx112zo-041aee28",
+      "createdAt": "2026-04-13T10:05:17.796Z",
+      "updatedAt": "2026-04-13T10:05:17.796Z",
+      "version": 1
+    },
+    {
+      "title": "Session 2026-04-13 — QA 11/11 closed, notification bell feature",
+      "content": "## Session Summary (2026-04-13)\n\n### Commits (2)\n\n1. `4307c84` — **fix(home):** resolve 10 QA bugs (6 files, +38/-13)\n2. `211b077` — **feat(notifications):** notification bell with pipeline alerts (5 files, +297)\n\n### QA Bug Resolution (11/11)\n\n| # | Bug | Fix |\n|---|-----|-----|\n| 1 | StatusPill purple missing | Added `purple: \"bg-violet-500\"` |\n| 2 | Resume fake button | Renamed to \"View\", navigates to pipeline |\n| 3 | runSlide keyframes missing | Added to globals.css |\n| 4 | Edit mode reorder",
+      "source": "claude-memory",
+      "severity": "medium",
+      "tags": [
+        "imported-from-memory",
+        "memory:session_2026_04_13.md",
+        "project"
+      ],
+      "id": "kb-mnx11308-64e21402",
+      "createdAt": "2026-04-13T10:05:17.816Z",
+      "updatedAt": "2026-04-13T10:05:17.816Z",
+      "version": 1
+    },
+    {
+      "title": "Session 2026-04-13b — QA all pages clean, commit data files",
+      "content": "## Session Summary (2026-04-13, session 2)\n\n### Commit\n- `fad762d` — **chore(data):** update costs balance, KB index, and QA failure patterns (+114/-2)\n\n### QA Chrome DevTools — Full Page Audit (13 pages)\n\nAll pages tested with Chrome DevTools MCP — screenshots + console check.\n\n| Page | Status | Key Observations |\n|------|--------|-----------------|\n| Home | OK | 16 agents, health 93, KB 150, $83 balance. SWR loading ~3-4s |\n| Dashboard | OK | 16 agents table, KPIs |\n| Teams | OK | 1 team (AI O",
+      "source": "claude-memory",
+      "severity": "medium",
+      "tags": [
+        "imported-from-memory",
+        "memory:session_2026_04_13b.md",
+        "project"
+      ],
+      "id": "kb-mnx1130r-e5244229",
+      "createdAt": "2026-04-13T10:05:17.835Z",
+      "updatedAt": "2026-04-13T10:05:17.835Z",
+      "version": 1
+    },
+    {
+      "id": "kb-td-011",
+      "title": "React.memo for list-rendered components with 16+ items",
+      "content": "AgentCard component rendered in .map() of 16+ agents without React.memo. Parent re-renders on clock tick, selection change, SWR refetch — all cause cascading re-renders of every card. Fix: wrap in React.memo(). Rule: any component rendered inside .map() with 10+ items should use React.memo, especially when parent has frequently-changing state (timers, selections, SWR). Custom comparator optional — default shallow compare is sufficient for primitive props.",
+      "source": "nightly-evolution-2026-04-13",
+      "agentId": "nightly-evolution",
+      "severity": "medium",
+      "tags": ["react", "performance", "memo", "rendering", "nightly-evolution"],
+      "createdAt": "2026-04-13T10:30:00.000Z",
+      "updatedAt": "2026-04-13T10:30:00.000Z",
+      "pipelineRunId": "nightly-2026-04-13",
+      "version": 1,
+      "confidence": 0.85,
+      "confirmCount": 0
+    },
+    {
+      "id": "kb-td-012",
+      "title": "Centralized isInternalUrl() for SSRF protection across all API routes",
+      "content": "SSRF protection was applied per-case (agent-hub only) but missed other URL validation points (jira). Pattern: create a shared helper function isInternalUrl() that blocks 127.x, 10.x, 172.16-31.x, 192.168.x, localhost, ::1, 0.0.0.0. Apply at every point where user-supplied URLs are used in server-side fetch. Currently applied in integrations/test/route.ts for both agent-hub and jira cases.",
+      "source": "nightly-evolution-2026-04-13",
+      "agentId": "nightly-evolution",
+      "severity": "high",
+      "tags": ["ssrf", "security", "pattern", "nightly-evolution"],
+      "createdAt": "2026-04-13T10:30:00.000Z",
+      "updatedAt": "2026-04-13T10:30:00.000Z",
+      "pipelineRunId": "nightly-2026-04-13",
+      "version": 1,
+      "confidence": 0.92,
+      "confirmCount": 0
     }
   ],
-  "contentHash": "0e89320c6b6424ae3fb1720f4a7675dbd56d12d647bf9a05d15444f3b5255860",
-  "lastUpdated": "2026-04-12T20:19:37.491Z",
+  "contentHash": "updated-2026-04-13T10:30:00.000Z",
+  "lastUpdated": "2026-04-13T10:30:00.000Z",
   "schemaVersion": 1
 }

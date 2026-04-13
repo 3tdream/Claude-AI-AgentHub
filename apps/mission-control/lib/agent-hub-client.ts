@@ -48,7 +48,10 @@ export async function agentHubFetch<T>(
     ? endpoint
     : `${baseUrl}${endpoint.startsWith("/") ? "" : "/"}${endpoint}`;
 
-  console.log(`[Agent Hub] ${options?.method || "GET"} ${url}`);
+  const safePath = endpoint.startsWith("http")
+    ? new URL(endpoint).pathname
+    : endpoint;
+  console.log(`[Agent Hub] ${options?.method || "GET"} ${safePath}`);
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 3000);
@@ -66,7 +69,7 @@ export async function agentHubFetch<T>(
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`[Agent Hub] Error ${response.status}:`, errorText);
+      console.error(`[Agent Hub] Error ${response.status} on ${safePath} [body redacted]`);
       throw new AgentHubError(response.status, errorText);
     }
 

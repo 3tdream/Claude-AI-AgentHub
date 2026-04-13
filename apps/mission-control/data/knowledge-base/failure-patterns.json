@@ -1026,9 +1026,99 @@
       "version": 1,
       "confidence": 1,
       "confirmCount": 1
+    },
+    {
+      "title": "Memory + KB ritual — start and end of every session",
+      "content": "Two mandatory actions every session:\n\n**START of session:** Read MEMORY.md and scan Knowledge Base (`data/knowledge-base/`) to load context from prior sessions. Don't work blind.\n\n**END of session:** Update memory files with session learnings, update KB via `/api/knowledge/enrich` or direct writes to `data/knowledge-base/` with new patterns, failures, decisions discovered, and update Knowledge Map (`app/api/knowledge-map/architecture/route.ts`) if any new pages, API routes, libs, or data files w",
+      "source": "claude-memory",
+      "severity": "high",
+      "tags": [
+        "imported-from-memory",
+        "memory:feedback_memory_kb_ritual.md",
+        "feedback"
+      ],
+      "id": "kb-mnx112rt-b87f1b90",
+      "createdAt": "2026-04-13T10:05:17.513Z",
+      "updatedAt": "2026-04-13T10:05:17.513Z",
+      "version": 1
+    },
+    {
+      "title": "Use MC system for code changes, not direct edits",
+      "content": "Always use MC system (`/api/command` or `/run`) for code changes, not direct file edits.\n\n**Why:** User explicitly said \"dont do it directly, use MC\" when I edited files directly instead of routing through the MC command API. Direct edits bypass MC's KB learning, simulation, contracts, and history tracking.\n\n**How to apply:** For any code fix or feature work, POST to `/api/command` with clear description of what needs to change and why. Only edit files directly for investigation/reading or when ",
+      "source": "claude-memory",
+      "severity": "high",
+      "tags": [
+        "imported-from-memory",
+        "memory:feedback_use_mc_for_code.md",
+        "feedback"
+      ],
+      "id": "kb-mnx112sx-d3996d40",
+      "createdAt": "2026-04-13T10:05:17.553Z",
+      "updatedAt": "2026-04-13T10:05:17.553Z",
+      "version": 1
+    },
+    {
+      "id": "kb-fp-017",
+      "title": "Dead code scan agent produces 90% false positives — grep verification mandatory",
+      "content": "Nightly evolution dead code agent reported 30 unused files, but grep verification showed 27 were actually imported (by pipeline-panel.tsx, agent-panel.tsx, pipeline-graph.tsx, etc.). Root cause: the Explore agent searches for imports by component name but misses when the import path uses relative paths within the same directory (e.g., './checkpoint-bar'). Fix: always verify every dead code finding with grep before deleting. Never trust agent output without verification.",
+      "source": "nightly-evolution-2026-04-13",
+      "agentId": "nightly-evolution",
+      "severity": "high",
+      "tags": ["dead-code", "false-positive", "agent-reliability", "nightly-evolution"],
+      "createdAt": "2026-04-13T10:30:00.000Z",
+      "updatedAt": "2026-04-13T10:30:00.000Z",
+      "pipelineRunId": "nightly-2026-04-13",
+      "version": 1,
+      "confidence": 0.95,
+      "confirmCount": 2
+    },
+    {
+      "id": "kb-fp-018",
+      "title": "SSRF via internal IP in integrations/test route — recurring pattern",
+      "content": "integrations/test/route.ts validates URL protocol (http/https) but does not block internal IPs (127.x, 10.x, 172.16-31.x, 192.168.x, localhost). First flagged in nightly-2026-04-07, partial fix applied. Recurred in 2026-04-13 scan because only agent-hub case was fixed, jira case was missed. Fix: add centralized isInternalUrl() helper and apply to ALL URL validation points in the route. Pattern: always check both protocol AND hostname.",
+      "source": "nightly-evolution-2026-04-13",
+      "agentId": "nightly-evolution",
+      "severity": "high",
+      "tags": ["ssrf", "security", "integrations", "recurring", "nightly-evolution"],
+      "createdAt": "2026-04-13T10:30:00.000Z",
+      "updatedAt": "2026-04-13T10:30:00.000Z",
+      "pipelineRunId": "nightly-2026-04-13",
+      "version": 1,
+      "confidence": 0.92,
+      "confirmCount": 1
+    },
+    {
+      "id": "kb-fp-019",
+      "title": "Console.log leaks full URLs and error bodies in production logs",
+      "content": "agent-hub-client.ts logged full URL (including base domain) and raw error response text. In production (Vercel/PM2 logs), this could expose: internal API endpoints, error messages containing tokens or user data. Fix: log only pathname (new URL(url).pathname), redact error body with '[body redacted]'. Same pattern found in figma/route.ts. Rule: never log full URLs or raw error bodies in server-side API clients.",
+      "source": "nightly-evolution-2026-04-13",
+      "agentId": "nightly-evolution",
+      "severity": "medium",
+      "tags": ["logging", "security", "data-leak", "nightly-evolution"],
+      "createdAt": "2026-04-13T10:30:00.000Z",
+      "updatedAt": "2026-04-13T10:30:00.000Z",
+      "pipelineRunId": "nightly-2026-04-13",
+      "version": 1,
+      "confidence": 0.88,
+      "confirmCount": 0
+    },
+    {
+      "id": "kb-fp-020",
+      "title": "npm audit fix blocked by monorepo Invalid Version bug",
+      "content": "npm install/audit commands fail with 'Invalid Version:' error in the ai-projects monorepo. Root cause: a sibling package (cv-creator area) has an empty or malformed version field that breaks npm's dependency resolution. This blocks ALL npm operations including security patches (axios critical vulns). Fix: find and fix the invalid version in the sibling package.json, then re-run npm audit fix.",
+      "source": "nightly-evolution-2026-04-13",
+      "agentId": "nightly-evolution",
+      "severity": "medium",
+      "tags": ["npm", "monorepo", "dependencies", "blocker", "nightly-evolution"],
+      "createdAt": "2026-04-13T10:30:00.000Z",
+      "updatedAt": "2026-04-13T10:30:00.000Z",
+      "pipelineRunId": "nightly-2026-04-13",
+      "version": 1,
+      "confidence": 0.90,
+      "confirmCount": 0
     }
   ],
-  "contentHash": "729d2d1d80551306ed70f0d2d5909ee20b4ecab7712e7ae8fc1b8e63a5c67122",
-  "lastUpdated": "2026-04-12T20:19:37.441Z",
+  "contentHash": "updated-2026-04-13T10:30:00.000Z",
+  "lastUpdated": "2026-04-13T10:30:00.000Z",
   "schemaVersion": 1
 }
