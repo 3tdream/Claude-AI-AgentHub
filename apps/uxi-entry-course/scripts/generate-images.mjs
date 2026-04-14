@@ -11,7 +11,11 @@ import { fileURLToPath } from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = join(__dirname, '..', 'public', 'images');
 
-const FAL_KEY = '8bccbbfb-ac16-45f7-9495-9e2e19161446:3773ff80d2b0e3f50eeeddcb9b0eafea';
+const FAL_KEY = process.env.FAL_KEY;
+if (!FAL_KEY) {
+  console.error('❌ FAL_KEY environment variable is required. Set it: FAL_KEY=your-key node scripts/generate-images.mjs');
+  process.exit(1);
+}
 
 const IMAGES = [
   {

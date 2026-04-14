@@ -55,6 +55,8 @@ nul
 
 # Local development
 *.local
+settings.local.json
+ecosystem.config.cjs
 
 # Logs
 logs/
