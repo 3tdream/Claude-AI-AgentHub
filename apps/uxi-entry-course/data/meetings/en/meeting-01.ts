@@ -31,7 +31,8 @@ export const meeting01: Meeting = {
             'UX/UI design is not just about "making things pretty." It is the science of how people think, act, and feel when using a product.',
         },
         {
-          type: 'image-placeholder' as const,
+          type: 'image' as const,
+          src: '/images/meeting-01-user-devices.webp',
           alt: 'Illustration: a user interacting with various digital devices',
           caption: 'We are surrounded by design — both good and bad',
         },
@@ -170,7 +171,8 @@ export const meeting01: Meeting = {
           ],
         },
         {
-          type: 'image-placeholder' as const,
+          type: 'image' as const,
+          src: '/images/meeting-01-ux-ui-venn.webp',
           alt: 'Venn diagram: the overlap of UX and UI',
           caption: 'UX and UI overlap but are not the same',
         },
@@ -516,7 +518,8 @@ export const meeting01: Meeting = {
             'According to Forrester Research, every $1 invested in UX returns $100. That is an ROI of 9,900%.',
         },
         {
-          type: 'image-placeholder' as const,
+          type: 'image' as const,
+          src: '/images/meeting-01-ux-roi-graph.webp',
           alt: 'Graph of ROI from UX design investments',
           caption: 'The return on UX investment significantly exceeds other business investments',
         },

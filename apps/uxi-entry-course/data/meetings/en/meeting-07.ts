@@ -129,7 +129,8 @@ export const meeting07: Meeting = {
           ],
         },
         {
-          type: 'image-placeholder' as const,
+          type: 'image' as const,
+          src: '/images/meeting-07-font-anatomy.webp',
           alt: 'Font anatomy diagram: baseline, x-height, ascenders, descenders, serifs',
           caption:
             'Visual guide to font anatomy — memorize these terms',
@@ -879,7 +880,8 @@ export const meeting07: Meeting = {
             'In CSS, grids are implemented using **CSS Grid** or **Flexbox**. In Tailwind CSS: `grid grid-cols-12 gap-6` creates a 12-column grid with a 24px gap. Bootstrap, Material Design, and all major frameworks use a 12-column system.',
         },
         {
-          type: 'image-placeholder' as const,
+          type: 'image' as const,
+          src: '/images/meeting-07-12col-grid.webp',
           alt: 'Visualization of a 12-column grid with gutters and margins on a desktop screen',
           caption:
             'The 12-column grid — the foundation of web design. Columns + Gutters + Margins.',

@@ -42,7 +42,8 @@ export const meeting06: Meeting = {
           role: 'Artist, art theorist',
         },
         {
-          type: 'image-placeholder' as const,
+          type: 'image' as const,
+          src: '/images/meeting-06-color-emotions.webp',
           alt: 'Color spectrum and its influence on user emotions',
           caption: 'Color forms a first impression in 50 milliseconds',
         },
@@ -101,7 +102,8 @@ export const meeting06: Meeting = {
           ],
         },
         {
-          type: 'image-placeholder' as const,
+          type: 'image' as const,
+          src: '/images/meeting-06-itten-color-wheel.webp',
           alt: 'Itten color wheel with 12 colors and three levels',
           caption:
             'The Itten color wheel is your primary tool for selecting color harmonies',
@@ -202,7 +204,8 @@ export const meeting06: Meeting = {
           ],
         },
         {
-          type: 'image-placeholder' as const,
+          type: 'image' as const,
+          src: '/images/meeting-06-color-harmonies.webp',
           alt: 'Six types of color harmonies on the color wheel',
           caption:
             'Each type of harmony creates its own mood and is suited for different tasks',

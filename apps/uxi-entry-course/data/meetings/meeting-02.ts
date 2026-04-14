@@ -128,7 +128,8 @@ export const meeting02: Meeting = {
           },
         },
         {
-          type: 'image-placeholder' as const,
+          type: 'image' as const,
+          src: '/images/meeting-02-cli-vs-gui.webp',
           alt: 'Сравнение CLI терминала и Macintosh GUI 1984',
           caption:
             'Слева: терминал Unix (1970-е). Справа: рабочий стол Macintosh (1984). Две разных вселенных.',

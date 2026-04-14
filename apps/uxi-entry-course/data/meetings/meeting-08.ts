@@ -41,7 +41,8 @@ export const meeting08: Meeting = {
           role: 'Автор книги «Design Is a Job»',
         },
         {
-          type: 'image-placeholder' as const,
+          type: 'image' as const,
+          src: '/images/meeting-08-visual-hierarchy.webp',
           alt: 'Пример: одна и та же страница с визуальной иерархией и без неё',
           caption: 'Слева — хаос без иерархии. Справа — чётко структурированный интерфейс.',
         },

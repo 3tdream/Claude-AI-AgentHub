@@ -129,7 +129,8 @@ export const meeting07: Meeting = {
           ],
         },
         {
-          type: 'image-placeholder' as const,
+          type: 'image' as const,
+          src: '/images/meeting-07-font-anatomy.webp',
           alt: 'Схема анатомии шрифта: baseline, x-height, ascenders, descenders, serifs',
           caption:
             'Визуальное руководство по анатомии шрифта — запомните эти термины',
@@ -879,7 +880,8 @@ export const meeting07: Meeting = {
             'В CSS сетку реализуют через **CSS Grid** или **Flexbox**. В Tailwind CSS: `grid grid-cols-12 gap-6` создаёт 12-колоночную сетку с gap 24px. Bootstrap, Material Design и все крупные фреймворки используют 12-колоночную систему.',
         },
         {
-          type: 'image-placeholder' as const,
+          type: 'image' as const,
+          src: '/images/meeting-07-12col-grid.webp',
           alt: 'Визуализация 12-колоночной сетки с gutters и margins на десктопном экране',
           caption:
             '12-колоночная сетка — фундамент веб-дизайна. Columns + Gutters + Margins.',

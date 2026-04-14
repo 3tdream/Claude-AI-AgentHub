@@ -31,7 +31,8 @@ export const meeting01: Meeting = {
             'UX/UI дизайн — это не просто «сделать красиво». Это наука о том, как люди думают, действуют и чувствуют при использовании продукта.',
         },
         {
-          type: 'image-placeholder' as const,
+          type: 'image' as const,
+          src: '/images/meeting-01-user-devices.webp',
           alt: 'Иллюстрация: пользователь взаимодействует с различными цифровыми устройствами',
           caption: 'Мы окружены дизайном — хорошим и плохим',
         },
@@ -170,7 +171,8 @@ export const meeting01: Meeting = {
           ],
         },
         {
-          type: 'image-placeholder' as const,
+          type: 'image' as const,
+          src: '/images/meeting-01-ux-ui-venn.webp',
           alt: 'Диаграмма Венна: пересечение UX и UI',
           caption: 'UX и UI пересекаются, но не совпадают',
         },
@@ -516,7 +518,8 @@ export const meeting01: Meeting = {
             'По данным Forrester Research, каждый $1, вложенный в UX, приносит $100 отдачи. Это ROI в 9 900%.',
         },
         {
-          type: 'image-placeholder' as const,
+          type: 'image' as const,
+          src: '/images/meeting-01-ux-roi-graph.webp',
           alt: 'График ROI от инвестиций в UX дизайн',
           caption: 'Возврат инвестиций в UX значительно превышает другие бизнес-вложения',
         },

@@ -42,7 +42,8 @@ export const meeting06: Meeting = {
           role: 'Художник, теоретик искусства',
         },
         {
-          type: 'image-placeholder' as const,
+          type: 'image' as const,
+          src: '/images/meeting-06-color-emotions.webp',
           alt: 'Спектр цветов и их влияние на эмоции пользователя',
           caption: 'Цвет формирует первое впечатление за 50 миллисекунд',
         },
@@ -101,7 +102,8 @@ export const meeting06: Meeting = {
           ],
         },
         {
-          type: 'image-placeholder' as const,
+          type: 'image' as const,
+          src: '/images/meeting-06-itten-color-wheel.webp',
           alt: 'Цветовой круг Иттена с 12 цветами и тремя уровнями',
           caption:
             'Круг Иттена — ваш главный инструмент для подбора цветовых гармоний',
@@ -202,7 +204,8 @@ export const meeting06: Meeting = {
           ],
         },
         {
-          type: 'image-placeholder' as const,
+          type: 'image' as const,
+          src: '/images/meeting-06-color-harmonies.webp',
           alt: 'Шесть типов цветовых гармоний на цветовом круге',
           caption:
             'Каждый тип гармонии создаёт своё настроение и подходит для разных задач',

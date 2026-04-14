@@ -983,7 +983,8 @@ export const meeting12: Meeting = {
           ],
         },
         {
-          type: 'image-placeholder' as const,
+          type: 'image' as const,
+          src: '/images/meeting-12-dashboards-comparison.webp',
           alt: 'Сравнение дашбордов Tableau, Metabase и Grafana',
           caption: 'Три подхода к визуализации данных: enterprise, open-source, DevOps-oriented',
         },

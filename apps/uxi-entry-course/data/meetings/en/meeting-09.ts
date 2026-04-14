@@ -38,7 +38,8 @@ export const meeting09: Meeting = {
           role: 'Partner at IDEO',
         },
         {
-          type: 'image-placeholder' as const,
+          type: 'image' as const,
+          src: '/images/meeting-09-wireframe-evolution.webp',
           alt: 'Wireframe example: from pencil sketch to digital mockup',
           caption: 'Evolution of an idea: sketch \u2192 lo-fi wireframe \u2192 hi-fi wireframe',
         },

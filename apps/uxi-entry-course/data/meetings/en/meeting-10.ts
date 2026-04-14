@@ -41,7 +41,8 @@ export const meeting10: Meeting = {
             'A prototype is not the final product. Its purpose is to validate a hypothesis and gather feedback as quickly and cheaply as possible.',
         },
         {
-          type: 'image-placeholder' as const,
+          type: 'image' as const,
+          src: '/images/meeting-10-prototype-fidelity.webp',
           alt: 'Prototype fidelity spectrum: from paper sketch to clickable hi-fi',
           caption:
             'Prototypes vary in fidelity — from paper sketches to near-finished applications',
